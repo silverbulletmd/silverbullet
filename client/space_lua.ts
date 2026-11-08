@@ -1,3 +1,5 @@
+import { installRestrictedContext } from "./space_lua/restricted_context.ts";
+import { isTrustedScriptObject } from "../plug-api/lib/trusted_script_source.ts";
 import type { System } from "./plugos/system.ts";
 import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
 import {
@@ -80,6 +82,7 @@ export class SpaceLuaEnvironment {
     private client?: { ui: BudgetNotifier },
   ) {
     this.env = buildLuaEnv(system);
+    if (client) installRestrictedContext(this.env, system);
   }
 
   private offerStop(script: SpaceLuaObject, budget: LuaBudget) {
@@ -159,10 +162,8 @@ export class SpaceLuaEnvironment {
    * @param system
    */
   async reload() {
-    const allScripts: SpaceLuaObject[] = await this.objectIndex.queryLuaObjects(
-      this.env,
-      "space-lua",
-      {
+    const indexedScripts: SpaceLuaObject[] =
+      await this.objectIndex.queryLuaObjects(this.env, "space-lua", {
         objectVariable: "script",
         orderBy: [
           {
@@ -175,7 +176,9 @@ export class SpaceLuaEnvironment {
             desc: false,
           },
         ],
-      } as LuaCollectionQuery,
+      } as LuaCollectionQuery);
+    const allScripts = indexedScripts.filter((script) =>
+      isTrustedScriptObject(script, "space-lua"),
     );
     reconcileQuarantine(allScripts.map((script) => script.ref));
     const records: ScriptRecord[] = [];
@@ -184,6 +187,7 @@ export class SpaceLuaEnvironment {
     // the current one, so a widget rendering mid-reload never sees a
     // half-loaded space; the new one takes over once every script has run.
     const env = buildLuaEnv(this.system);
+    if (this.client) installRestrictedContext(env, this.system);
     try {
       const tl = new LuaEnv();
       tl.setLocal("_GLOBAL", env);

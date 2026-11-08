@@ -1,3 +1,6 @@
+import { trustedLuaFunction, trustedCallFrame } from "./restricted_context.ts";
+import { toLuaData, inertResult } from "./restricted_env.ts";
+import { opaqueRenderValue } from "./restricted_render.ts";
 import type { ASTCtx } from "./ast.ts";
 import { evalExpression } from "./eval.ts";
 import { parseExpressionString } from "./parse.ts";
@@ -186,7 +189,19 @@ export async function renderLuaCallback(
 ): Promise<any> {
   return renderLuaWidgetResult(
     client,
-    (_env, sf) => fn.call(sf, ...args),
+    async (_env, sf) => {
+      if (!sf.threadState.restrictedPolicy) return fn.call(sf, ...args);
+      const installed = trustedLuaFunction(fn);
+      if (!installed)
+        throw new Error("Code widgets must be installed in Library/ or CONFIG");
+      const frame = trustedCallFrame(client.clientSystem.spaceLuaEnv.env, sf);
+      return opaqueRenderValue(
+        await installed.call(
+          frame,
+          ...args.map((arg) => toLuaData(inertResult(arg))),
+        ),
+      );
+    },
     {} as ASTCtx,
     currentPageMeta,
     opts,

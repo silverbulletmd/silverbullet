@@ -5,16 +5,27 @@ import {
   waitForPersistedContent,
 } from "../fixtures/core.ts";
 
-const conceptIndex = `# Concepts
-
-\${template.each(query[[
-  from p = tags.concept
-  order by p.name
-]], templates.pageItem)}
-`;
+const conceptIndex = "# Concepts\n\n${fixtureConceptIndex()}\n";
+const widgetLibrary = [
+  "```space-lua",
+  "--- @capabilities space:read",
+  "function fixtureConceptIndex()",
+  "  return template.each(query[[from p = tags.concept order by p.name]], templates.pageItem)",
+  "end",
+  "--- @capabilities widget:render",
+  "function fixtureButton(label)",
+  '  return widgets.button(label, function() editor.flashNotification(string.lower(label) .. " clicked") end)',
+  "end",
+  "--- @capabilities widget:render",
+  "function fixtureNested()",
+  `  return widget.markdown("deep \${fixtureButton('Deep')}")`,
+  "end",
+  "```",
+].join("\n");
 
 test.use({
   spaceFiles: {
+    "Library/Test/Knowledge Widgets.md": widgetLibrary,
     "Draft.md": "# Draft\n",
     "Topic.md": "# Topic\n\nA topic page.\n",
     "Concepts.md": conceptIndex,
@@ -23,15 +34,14 @@ test.use({
       "",
       "| item | action |",
       "|---|---|",
-      '| one | ${widgets.button("Cell", function() editor.flashNotification("cell clicked") end)} |',
+      '| one | ${fixtureButton("Cell")} |',
       "",
       "Bold **${1+1}** here.",
       "",
       "![[Nested]]",
       "",
     ].join("\n"),
-    "Nested.md":
-      "${widget.markdown(\"deep ${widgets.button('Deep', function() editor.flashNotification('deep clicked') end)}\")}\n",
+    "Nested.md": "${fixtureNested()}\n",
   },
 });
 

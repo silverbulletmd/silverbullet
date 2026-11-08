@@ -4,7 +4,10 @@ import {
 } from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { applyCachedFonts } from "@silverbulletmd/silverbullet/lib/fonts";
-import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import {
+  extractTrustedSpaceLuaFromPageText,
+  loadConfig,
+} from "./boot_config.ts";
 import { loadBootFiles } from "./boot_fetch.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
@@ -93,15 +96,16 @@ safeRun(async () => {
   // Placeholder proxy for Client object to be swapped in later
   const clientProxy = new BoxProxy({});
   let bootstrapLuaScriptPages: string[] = [];
+  const bootstrapPageNames = [
+    "Library/Std/APIs/Schema",
+    "Library/Std/Config",
+    "Library/Std/APIs/Tag",
+    "CONFIG",
+  ];
   try {
     const { configText, pageTexts } = await loadBootFiles(
       ".config",
-      [
-        ".fs/Library/Std/APIs/Schema.md",
-        ".fs/Library/Std/Config.md",
-        ".fs/Library/Std/APIs/Tag.md",
-        ".fs/CONFIG.md",
-      ],
+      bootstrapPageNames.map((name) => `.fs/${name}.md`),
       {
         fetch: globalThis.fetch.bind(globalThis),
         storage: localStorage,
@@ -142,7 +146,11 @@ safeRun(async () => {
   }
   try {
     config = await loadConfig(
-      bootstrapLuaScriptPages.map(extractSpaceLuaFromPageText).join("\n"),
+      bootstrapLuaScriptPages
+        .map((text, i) =>
+          extractTrustedSpaceLuaFromPageText(bootstrapPageNames[i], text),
+        )
+        .join("\n"),
       clientProxy.buildProxy(),
       !!bootConfig?.readOnly,
     );
@@ -156,7 +164,9 @@ safeRun(async () => {
         // Everything but CONFIG (at the end)
         bootstrapLuaScriptPages
           .slice(0, bootstrapLuaScriptPages.length - 1)
-          .map(extractSpaceLuaFromPageText)
+          .map((text, i) =>
+            extractTrustedSpaceLuaFromPageText(bootstrapPageNames[i], text),
+          )
           .join("\n"),
         clientProxy.buildProxy(),
         false,

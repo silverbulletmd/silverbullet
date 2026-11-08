@@ -1,3 +1,4 @@
+import { assertEditorWritePath } from "../plug-api/lib/trusted_script_source.ts";
 import { isolateHistory } from "@codemirror/commands";
 import type { ChangeSet, Text } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
@@ -584,6 +585,13 @@ export class ContentManager {
 
     await this.refreshCurrentPageMeta(pageName, doc.meta);
 
+    if (this.client.bootConfig.canBuild === false) {
+      try {
+        assertEditorWritePath(doc.meta.name + ".md");
+      } catch {
+        doc.meta.perm = "ro";
+      }
+    }
     if (loadingDifferentPath || doc.meta.perm === "ro") {
       // Fresh state, nothing to diff against yet: doc.text *is* the new base.
       this.pendingExternal = undefined;

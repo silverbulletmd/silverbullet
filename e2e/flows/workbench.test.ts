@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   navigateViaPagePicker,
@@ -8,9 +8,16 @@ import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
 
 test.use({
   spaceFiles: {
+    "Library/Test/Workbench Button.md": [
+      "```space-lua",
+      "--- @capabilities widget:render",
+      "function openWorkbenchButton()",
+      '  return widgets.commandButton("Workbench: Toggle")',
+      "end",
+      "```",
+    ].join("\n"),
     "index.md": "Welcome\n${pageAmount = 21}",
-    "Recipes.md":
-      '${pageAmount = 7}\n\n${widgets.commandButton("Workbench: Toggle")}\n\nEnd\n',
+    "Recipes.md": "${pageAmount = 7}\n\n${openWorkbenchButton()}\n\nEnd\n",
   },
 });
 
@@ -731,7 +738,7 @@ test.describe("query builder list templates", () => {
     spaceFiles: {
       "index.md": "Welcome",
       "Work.md": "- [ ] Send quarterly report\n- [ ] Update team wiki",
-      "My Templates.md": [
+      "Library/Test/My Templates.md": [
         "```space-lua",
         "--- A task and nothing else.",
         "--- @param t task",
@@ -822,9 +829,10 @@ test.describe("query builder refresh", () => {
     const results = page.getByRole("region", { name: "Results" });
     // Not defined yet
     await expect(results).toContainText("isNotes");
+    await mkdir(join(sbServer.spaceDir, "Library/Test"), { recursive: true });
     await writeFile(
-      join(sbServer.spaceDir, "Lib.md"),
-      '```space-lua\nfunction isNotes(p) return p.name == "Notes" end\n```\n',
+      join(sbServer.spaceDir, "Library/Test/Lib.md"),
+      '```space-lua\n--- @capabilities space:read\nfunction isNotes(p) return p.name == "Notes" end\n```\n',
     );
     await expect
       .poll(() =>
@@ -849,7 +857,8 @@ test.describe("overview and maintenance", () => {
       "index.md": "See [[Missing Placeholder]] #idea\n\n- [ ] Open task #idea",
       "Broken.md": "---\ntags: [unclosed\n---\nBody",
       // A space-lua block without a priority comment must pass the space-wide lint
-      "Script.md": '```space-lua\nlocal greeting = "hi"\n```',
+      "Script.md": "The installed script lives in [[Library/Test/Script]].",
+      "Library/Test/Script.md": '```space-lua\nlocal greeting = "hi"\n```',
     },
   });
 

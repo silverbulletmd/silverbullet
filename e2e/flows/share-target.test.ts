@@ -132,7 +132,7 @@ test.describe("programmable actions", () => {
   test.use({
     spaceFiles: {
       "index.md": "Share target space",
-      "Capture Actions.md": [
+      "Library/Test/Capture Actions.md": [
         "```space-lua",
         "service.define {",
         '  selector = "capture",',

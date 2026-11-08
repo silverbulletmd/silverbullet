@@ -108,7 +108,9 @@ function Busy(props: {
 
 export function LibrariesView({ client, focusTarget, showing }: TabProps) {
   // The write syscalls aren't registered in a read-only space
-  const libs = useLibraries(!client.bootConfig.readOnly);
+  const libs = useLibraries(
+    !client.bootConfig.readOnly && client.bootConfig.canBuild !== false,
+  );
   const { state, writable } = libs;
   const [phrase, setPhrase] = useState("");
   const filterInput = useRef<HTMLInputElement>(null);
@@ -199,7 +201,13 @@ export function LibrariesView({ client, focusTarget, showing }: TabProps) {
           </Button>
         )}
       </div>
-      {!writable && <BlockNote>{READ_ONLY_NOTE}</BlockNote>}
+      {!writable && (
+        <BlockNote>
+          {client.bootConfig.canBuild === false
+            ? "Builder access is required to install, update or remove libraries."
+            : READ_ONLY_NOTE}
+        </BlockNote>
+      )}
       {progress.running && (
         <div className="sb-wb-lib-progress">
           <Progress

@@ -16,15 +16,16 @@ In essence, Space Lua adds a few features to SilverBullet’s [[Markdown]] langu
 Have a look at [[Space Lua/Conventions]] for best practices around code style.
 
 > **note** Note
-> A `lua` fence displays inert source. Use [[Workbench/Console]] for one-off expressions. Put reusable definitions in a `space-lua` fence in your own space and reload them. A `markdown` fence shows text to copy into a page, including its `${...}` expressions. Follow each example’s placement instructions.
+> A `lua` fence displays inert source. Use [[Workbench/Console]] for one-off expressions. As a Builder, put reusable definitions in a `space-lua` fence under `Library/` or in root [[CONFIG]], then reload them. A `markdown` fence shows text to copy into a page, including its `${...}` expressions. Follow each example’s placement instructions.
 
 # Definitions
-Space Lua definitions are defined in fenced code blocks with the `space-lua` language. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
+Space Lua definitions are defined in fenced code blocks with the `space-lua` language. Only blocks under `Library/` or in root [[CONFIG]] load. They are active **across your entire space** (hence _Space_ Lua). Move existing global scripts from ordinary pages into a library page. Ordinary `${...}` expressions and `page-lua` blocks have restricted APIs for every viewer; see [[Space Lua/Capabilities]].
 
-To install a reusable definition, copy this example into a `space-lua` block in your own space:
+To install a reusable definition, copy this example into a `space-lua` block in `Library/Custom/Arithmetic`:
 
 ```lua
 --- Adds two numbers.
+--- @capabilities space:read
 ---@param a number First number.
 ---@param b number Second number.
 ---@return number sum
@@ -33,14 +34,14 @@ function adder(a, b)
 end
 ```
 
-Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous documentation comments immediately before a function are parsed into structured runtime metadata. Supported annotations are `@param`, `@return`, `@deprecated`, and `@see`. Inspect the result from Lua with [[API/spacelua#spacelua.describe|spacelua.describe]]. Regular `--` comments remain ordinary comments.
+Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous documentation comments immediately before a function are parsed into structured runtime metadata. Supported annotations are `@param`, `@return`, `@deprecated`, `@see`, and `@capabilities` (see [[Space Lua/Capabilities]]). Inspect the result from Lua with [[API/spacelua#spacelua.describe|spacelua.describe]]. Regular `--` comments remain ordinary comments.
 
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 
 ## Definition loading
 Your `space-lua` definitions are constantly being indexed as part of the [[Object Index]] with the [[Tag/space-lua]] tag. There is nothing you have to do for this, other than be a bit patient for things to start working when you initialize a fresh client.
 
-When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence.
+When your client boots, or if you explicitly run the `System: Reload` command, the trusted scripts are executed in sequence.
 
 It is possible to **control load order** of Space Lua scripts using the special `-- priority: <number>` comment in Space Lua code. For instance:
 
@@ -55,6 +56,7 @@ The order used is determined by this [[Space Lua/Integrated Query|query]] (the [
 
     query[[
       from t = index.objects("space-lua")
+      where t.page == "CONFIG" or string.startsWith(t.page, "Library/")
       order by t.priority desc
     ]]
 

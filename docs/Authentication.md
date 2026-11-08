@@ -17,7 +17,7 @@ How you authenticate depends on how the server is running:
 When the server runs in the default [[Dashboard|multi-space]] mode, authentication is account-based:
 
 * Each member has an [[Account]], provisioned by an administrator with local credentials or [[Single Sign-On]].
-* Each [[Space]] has an [[Dashboard#Access|access level]] — `none`, `read`, or `write` — for visitors with no account, plus per-member `read`/`write` roles. Admins can reach every space and the admin UI.
+* Each [[Space]] has an [[Dashboard#Access|access level]] — `none`, `read`, `edit`, or `write` — for visitors with no account, plus per-member Reader (`read`), Editor (`edit`) and Builder (`write`) roles. Admins can reach every space and the admin UI.
 * Accounts, spaces, and access are all managed in the [[Dashboard]], which every account can open.
 * Every space has a login page, including one that permits anonymous access.
 

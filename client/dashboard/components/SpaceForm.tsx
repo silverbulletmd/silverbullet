@@ -313,21 +313,27 @@ export function SpaceForm({
           <fieldset class="sb-access-table">
             <legend>Who has access</legend>
             <p class="sb-help-text">
-              Note: write members can also author scripts (Space Lua, install
-              libraries and plugs) that run for anyone who opens this space.
+              Readers can view pages. Editors can edit ordinary pages and use
+              installed queries and widgets. Builders can also change CONFIG.md
+              and Library pages, install libraries and plugs, and author scripts
+              that run for anyone who opens this space.
             </p>
             <div class="sb-access-row sb-access-public">
               <span class="sb-access-who">Public (not signed in)</span>
               <Select
+                aria-label="Public access"
                 value={access}
                 onChange={(e) =>
                   setAccess(e.currentTarget.value as SpaceAccess)
                 }
               >
                 <option value="none">No access</option>
-                <option value="read">Read</option>
+                <option value="read">Reader</option>
+                <option value="edit" disabled={readOnly}>
+                  Editor
+                </option>
                 <option value="write" disabled={readOnly}>
-                  Read &amp; write
+                  Builder
                 </option>
               </Select>
             </div>
@@ -337,10 +343,13 @@ export function SpaceForm({
                 revisions stay members-only.
               </Alert>
             )}
-            {access === "write" && !readOnly && (
+            {(access === "edit" || access === "write") && !readOnly && (
               <Alert variant="warning">
                 Anyone on the internet can read AND EDIT this space without
-                signing in. Only use for auth-proxy or VPN deployments.
+                signing in.{" "}
+                {access === "write" &&
+                  "They can also change configuration and scripts that run for everyone. "}
+                Only use for auth-proxy or VPN deployments.
               </Alert>
             )}
             {usersError && (

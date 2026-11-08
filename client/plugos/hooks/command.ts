@@ -20,6 +20,7 @@ export class CommandHook
     private readOnly: boolean,
     private additionalCommands: Map<string, Command>,
     private disableServiceWorker = false,
+    private canBuild: () => boolean = () => true,
   ) {
     super();
   }
@@ -44,6 +45,7 @@ export class CommandHook
       const command: Command = {
         ...existingCommand,
         ...cmd,
+        requireBuilder: existingCommand.requireBuilder || cmd.requireBuilder,
       };
       if (cmd.run) {
         command.run = cmd.run;
@@ -72,7 +74,7 @@ export class CommandHook
       commands.set(name, cmd);
     }
     if (!this.system) {
-      return commands;
+      return this.guardBuilderCommands(commands);
     }
     for (const plug of this.system.loadedPlugs.values()) {
       for (const [name, functionDef] of Object.entries(
@@ -100,6 +102,28 @@ export class CommandHook
     // so users can rebind keys / replace run bodies from Lua.
     for (const [name, cmd] of this.additionalCommands) {
       this.mergeCommand(commands, name, cmd);
+    }
+    return this.guardBuilderCommands(commands);
+  }
+
+  private guardBuilderCommands(
+    commands: Map<string, Command>,
+  ): Map<string, Command> {
+    for (const [name, command] of commands) {
+      if (!command.requireBuilder) continue;
+      if (!this.canBuild()) {
+        commands.delete(name);
+        continue;
+      }
+      const run = command.run;
+      if (run)
+        commands.set(name, {
+          ...command,
+          run: async (args) => {
+            if (!this.canBuild()) throw new Error("Builder access required");
+            return run(args);
+          },
+        });
     }
     return commands;
   }

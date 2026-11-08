@@ -343,3 +343,17 @@ test("completion does not change a running command's page context", async () => 
   await running;
   expect(value(log.entries.at(-1)!)).toBe("RecipesRecipes");
 });
+
+test("Editor cannot execute console input", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  const session = new ConsoleSession({
+    spaceEnv: () => env,
+    canBuild: () => false,
+    log: new ConsoleLog(),
+    ui: () => ({ flashNotification: () => {} }),
+  });
+  await expect(session.run("secret = 42")).rejects.toThrow(
+    "Builder access required",
+  );
+  expect(session.localNames()).toEqual([]);
+});

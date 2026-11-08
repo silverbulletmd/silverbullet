@@ -3,10 +3,18 @@ import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
 test.use({
   spaceFiles: {
     "index.md": "Welcome",
+    "Library/Test/Task Counts.md": [
+      "```space-lua",
+      "--- @capabilities widget:render",
+      "function taskTotal()",
+      '  return widget.new { content = function() return "Total: " .. #query[[from index.tag "task"]] end }',
+      "end",
+      "```",
+    ].join("\n"),
     "Dashboard.md": [
       'Open: ${#query[[from index.tag "task" where not _.done]]}',
       "",
-      '${widget.new { content = function() return "Total: " .. #query[[from index.tag "task"]] end }}',
+      "${taskTotal()}",
       "",
     ].join("\n"),
     "Work.md": "- [ ] one\n",

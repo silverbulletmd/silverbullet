@@ -8,12 +8,14 @@ A work-in-progress library of generally useful templates for rendering queries.
 -- priority: 10
 --- Renders a page as a linked list item.
 --- @param p page
+--- @capabilities space:read
 templates.pageItem = template.new([==[
 * [[${name}]]
 ]==])
 
 --- Renders a page as a linked list item, with its full path.
 --- @param p page
+--- @capabilities space:read
 templates.fullPageItem = template.new([==[
 * [[${name}|${name}]]
 ]==])
@@ -24,24 +26,28 @@ templates.fullPageItem = template.new([==[
 
 --- Renders a task as a togglable task, linked to where it is.
 --- @param t task
+--- @capabilities space:read
 templates.taskItem = template.new([==[
 * [${state}] [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
 --- Renders an item, linked to where it is.
 --- @param i item
+--- @capabilities space:read
 templates.itemItem = template.new([==[
 * [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
 ]==])
 
 --- Renders a paragraph, linked to where it is.
 --- @param p paragraph
+--- @capabilities space:read
 templates.paragraphItem = template.new([==[
 * [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${text}
 ]==])
 
 --- Renders a tag as a link to its page.
 --- @param t tag
+--- @capabilities space:read
 templates.tagItem = template.new([==[
 * [[tag:${name}|#${name}]]
 ]==])

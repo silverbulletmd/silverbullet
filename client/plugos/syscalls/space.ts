@@ -171,11 +171,13 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       ],
     },
     "space.listPages": {
+      capabilities: ["space:read"],
       dependsOn: () => ["index"],
       callback: (): Promise<PageMeta[]> => client.space.fetchPageList(),
       description: "Lists all pages in the space.",
     },
     "space.readPage": {
+      capabilities: ["space:read"],
       dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: async (_ctx, name: string): Promise<string> =>
         (await client.space.readPage(name)).text,
@@ -183,6 +185,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.readPage(name)"],
     },
     "space.readPageWithMeta": {
+      capabilities: ["space:read"],
       dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: (
         _ctx,
@@ -219,6 +222,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       signatures: ["space.pageExists(name)"],
     },
     "space.getPageMeta": {
+      capabilities: ["space:read"],
       dependsOn: (name: string) => [fileChangedEvent(`${name}.md`)],
       callback: (_ctx, name: string): Promise<PageMeta> =>
         client.space.getPageMeta(name),
@@ -230,6 +234,7 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       description: "Lists all plug files in the space.",
     },
     "space.listDocuments": {
+      capabilities: ["space:read"],
       dependsOn: () => ["index"],
       callback: async (): Promise<DocumentMeta[]> =>
         await client.space.fetchDocumentList(),

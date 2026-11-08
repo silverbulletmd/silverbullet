@@ -111,6 +111,7 @@ export function pageVarsSyscalls(
   };
   return {
     "lua:pageVars.get": {
+      capabilities: ["space:read"],
       callback: async (
         ctx: { sf?: LuaStackFrame },
         name: string,

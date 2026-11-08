@@ -43,6 +43,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Plugs can declare dockable panel views in their manifest ([[Plugs/Development/Reference#`view` (panel view)|`view`]]): a sandboxed HTML panel that can show in the modal window, a sidebar or the bottom panel, with tabs, and optionally rebuilt for each page opened.
 * [[Baked Sections]] styling: now show a slim header and an end line in place of their markers and offer a drop-down menu.
 * Lua:
+  * **Breaking:** new Reader / Editor / Builder roles let Editors change ordinary pages without installing code. Existing `write` grants remain Builder. Global `space-lua` now loads only from `Library/` and root `CONFIG`; move existing scripts there. Ordinary page expressions and Page Lua use restricted read/query APIs for every viewer, with explicitly exposed installed widgets. See [[Dashboard#Access]] and [[Space Lua/Capabilities]] for migration and limits.
   * Performance: `pairs()` no longer copies the whole table on each iteration, reducing pauses in views that loop over many pages.
   * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don’t depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
   * Eligible queries with a `limit` stop reading once enough rows are collected, and Workbench query previews avoid loading unnecessary rows.

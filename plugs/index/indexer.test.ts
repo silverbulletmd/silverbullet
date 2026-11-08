@@ -161,12 +161,13 @@ describe("inComment", () => {
     expect(objects.some((o: any) => o.tag === "space-style")).toBe(false);
   });
 
-  test("the same blocks outside a comment are still indexed", async () => {
+  test("the same blocks outside a comment in Library are still indexed", async () => {
     createMockSystem();
-    const objects = await indexMarkdown(
-      "```space-lua\nx = 1\n```\n",
-      defaultPageMeta,
-    );
+    const objects = await indexMarkdown("```space-lua\nx = 1\n```\n", {
+      ...defaultPageMeta,
+      name: "Library/Test",
+      ref: "Library/Test",
+    });
     expect(objects.some((o: any) => o.tag === "space-lua")).toBe(true);
   });
 

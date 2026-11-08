@@ -76,6 +76,7 @@ export type CommandDef = {
 
   hide?: boolean;
   requireMode?: "rw" | "ro";
+  requireBuilder?: boolean;
   requireEditor?: "any" | "page" | "notpage" | string;
   /**
    * When true, the command is omitted from the palette, menus, and

@@ -11,8 +11,9 @@ const PERMISSIONS: {
   label: string;
   requiresWrite: boolean;
 }[] = [
-  { role: "read", label: "Read", requiresWrite: false },
-  { role: "write", label: "Write", requiresWrite: true },
+  { role: "read", label: "Reader", requiresWrite: false },
+  { role: "edit", label: "Editor", requiresWrite: true },
+  { role: "write", label: "Builder", requiresWrite: true },
 ];
 
 export function AccessGrid({
@@ -80,11 +81,14 @@ export function AccessGrid({
                       aria-label={`${username}: Runtime API`}
                       checked={
                         !frozen &&
-                        level >= 1 &&
+                        level === PERMISSIONS.length - 1 &&
                         (user.admin || (members[username]?.runtimeApi ?? true))
                       }
                       disabled={
-                        user.admin || frozen || level < 1 || !runtimeAvailable
+                        user.admin ||
+                        frozen ||
+                        level < PERMISSIONS.length - 1 ||
+                        !runtimeAvailable
                       }
                       onChange={(event) =>
                         onRuntimeChange(username, event.currentTarget.checked)

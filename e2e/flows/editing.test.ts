@@ -238,7 +238,7 @@ test.describe("completion next to live widgets", () => {
         "${query[[",
         "  from r = index.relations()",
         '  where r.from == "sam-ref"',
-        '  select table.select(r, "kind", "to")',
+        "  select { kind = r.kind, to = r.to }",
         "]]}",
       ].join("\n"),
       "Examples/Example Page.md": "An example.",

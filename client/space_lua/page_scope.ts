@@ -1,3 +1,4 @@
+import { restrictedContext } from "./restricted_context.ts";
 import { LuaBudgetStopped } from "./budget.ts";
 import type { EventInterest } from "../event_interest.ts";
 import { expandRefreshTriggers } from "../navigator/refresh_triggers.ts";
@@ -73,7 +74,15 @@ export function assignmentRenderValue(
   const result = scope?.assignments.get(name);
   if (!result) return "**Lua error:** page scope not available";
   if ("error" in result) return `**Lua error:** ${result.error}`;
-  return toRenderValue(result.value, LuaStackFrame.lostFrame);
+  const restricted = restrictedContext(scope!.env, undefined, scope!.env);
+  try {
+    return toRenderValue(
+      result.value,
+      restricted?.sf ?? LuaStackFrame.lostFrame,
+    );
+  } catch (error) {
+    return `**Lua error:** ${error instanceof Error ? error.message : String(error)}`;
+  }
 }
 
 type DefState = {
@@ -392,7 +401,10 @@ export class PageScopes {
     track?: Tracker,
   ): Promise<PageScope> {
     const indexed = await this.deps.pageMeta?.(page).catch(() => null);
-    const pageEnv = new PageEnv(this.deps.spaceEnv(), { boundary: true });
+    const root =
+      restrictedContext(this.deps.spaceEnv(), page)?.env ??
+      this.deps.spaceEnv();
+    const pageEnv = new PageEnv(root, { boundary: true });
     const scope: PageScope = {
       key: `${page}#${++this.generation}`,
       env: pageEnv,

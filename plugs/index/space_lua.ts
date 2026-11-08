@@ -1,3 +1,4 @@
+import { isTrustedScriptPage } from "../../plug-api/lib/trusted_script_source.ts";
 import {
   collectNodesOfType,
   findNodeOfType,
@@ -19,6 +20,7 @@ export function indexSpaceLua(
   _frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
+  if (!isTrustedScriptPage(pageMeta.name)) return Promise.resolve([]);
   const allSpaceLuas: SpaceLuaObject[] = [];
   collectNodesOfType(tree, "FencedCode").map((t) => {
     const codeInfoNode = findNodeOfType(t, "CodeInfo");

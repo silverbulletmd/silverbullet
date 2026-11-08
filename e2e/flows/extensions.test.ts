@@ -15,7 +15,7 @@ view.define {
   dock = "modal",
   presentation = { mode = "list", row = { description = "details" } },
   source = function()
-    return js.importFromSpace("routes.js").rows()
+    return js.importFromSpace("Library/Test/routes.js").rows()
   end,
   onSelect = function(item) editor.navigate(item.ref) end,
 }
@@ -27,7 +27,7 @@ test.describe("Lua-defined views", () => {
     spaceFiles: {
       "index.md": "Welcome",
       "CONFIG.md": viewConfig,
-      "routes.js": `export function rows() {
+      "Library/Test/routes.js": `export function rows() {
         return new Promise(resolve => {
           globalThis.finishRoutes = () => resolve([{ name: "Open Destination", ref: "Destination", details: { label: "Weekend routes", text: "A quiet walking route through pine forest.", highlights: [[8, 15]] } }]);
         });
@@ -288,6 +288,7 @@ test.describe("merged define calls", () => {
 
 const inlineViewConfig = `# Inline views
 \`\`\`space-lua
+--- @capabilities widget:render
 function workshopTree()
   return widget.new {
     stateKey = "workshop",
@@ -308,6 +309,7 @@ function workshopTree()
   }
 end
 readingDone = false
+--- @capabilities widget:render
 function readingList()
   return widget.new {
     source = function() return {{name = "Paper studies", details = "Notes on paper, texture, and binding"}} end,
@@ -324,6 +326,7 @@ function readingList()
     onSelect = function() editor.navigate("Destination") end,
   }
 end
+--- @capabilities widget:render
 function weeklyContent()
   return widget.new {content = function() return "A **small** experiment." end}
 end
@@ -525,6 +528,7 @@ test.describe("inline view values", () => {
 
 const tableConfig = `# Table views
 \`\`\`space-lua
+--- @capabilities widget:render
 function projectTable(selectable)
   return widget.new {
     refreshOn = {"fixture:table"},
@@ -544,6 +548,7 @@ function projectTable(selectable)
     onSelect = selectable and function(obj) tableSelected = obj.completed; return false end or nil,
   }
 end
+--- @capabilities widget:render
 function automaticTable()
   return widget.new {
     source = function() return {{name = "Maple", count = 2}, {name = "Cedar", status = false}} end,
@@ -790,6 +795,7 @@ test.describe("table views", () => {
 
 const inlineFilterConfig = `# Inline filters
 \`\`\`space-lua
+--- @capabilities widget:render
 function clientFilteredTable()
   return widget.new {
     title = "Projects",
@@ -802,6 +808,7 @@ function clientFilteredTable()
     presentation = {mode = "table", limit = 2},
   }
 end
+--- @capabilities widget:render
 function secondFilteredTable()
   return widget.new {
     source = function() return {{name = "Finch"}, {name = "Robin"}} end,
@@ -809,6 +816,7 @@ function secondFilteredTable()
     presentation = {mode = "table"},
   }
 end
+--- @capabilities widget:render
 function sourceFilteredTable()
   return widget.new {
     source = function(ctx)
@@ -821,6 +829,7 @@ function sourceFilteredTable()
     presentation = {mode = "table"},
   }
 end
+--- @capabilities widget:render
 function clientFilteredList()
   return widget.new {
     source = function() return {{name = "Hawk"}, {name = "Sparrow"}} end,

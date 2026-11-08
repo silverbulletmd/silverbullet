@@ -1,3 +1,4 @@
+import { isTrustedScriptPage } from "../../plug-api/lib/trusted_script_source.ts";
 import {
   collectNodesOfType,
   findNodeOfType,
@@ -19,6 +20,7 @@ export function indexSpaceStyle(
   _frontmatter: FrontMatter,
   tree: ParseTree,
 ) {
+  if (!isTrustedScriptPage(pageMeta.name)) return Promise.resolve([]);
   const allStyles: StyleObject[] = [];
 
   // Also collect CSS from custom styles in config

@@ -40,7 +40,8 @@ export function DataView({
   const entries = data.tags ? allEntries(data.tags) : [];
   const entry = entries.find((e) => e.name === data.selected);
   const m = builder.model;
-  const writable = !client.bootConfig.readOnly;
+  const writable =
+    !client.bootConfig.readOnly && client.bootConfig.canBuild !== false;
 
   useEffect(
     () => (filterRef.current ? focusTarget(filterRef.current) : undefined),

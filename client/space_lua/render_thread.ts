@@ -1,3 +1,6 @@
+import { restrictedContext } from "./restricted_context.ts";
+import { restrictedRenderValue } from "./restricted_render.ts";
+import { toLuaData } from "./restricted_env.ts";
 import type { ASTCtx } from "./ast.ts";
 import {
   BUSY_LIMIT_DEFAULT_MS,
@@ -36,10 +39,26 @@ export function renderThread(
   ctx: ASTCtx | null,
   opts: RenderThreadOptions = {},
 ): { env: LuaEnv; sf: LuaStackFrame } {
+  const restricted = restrictedContext(
+    globalEnv,
+    opts.sourcePage,
+    opts.parentEnv,
+  );
+  if (restricted) globalEnv = restricted.env;
   const sf = LuaStackFrame.createWithGlobalEnv(globalEnv, ctx);
+  if (restricted) sf.threadState.restrictedPolicy = restricted.policy;
   const tl = sf.threadLocal;
-  tl.setLocal("currentPage", opts.currentPage);
-  if (opts.sourcePage) tl.setLocal("sourcePage", { name: opts.sourcePage });
+  tl.setLocal(
+    "currentPage",
+    restricted ? toLuaData(opts.currentPage) : opts.currentPage,
+  );
+  if (opts.sourcePage)
+    tl.setLocal(
+      "sourcePage",
+      restricted
+        ? toLuaData({ name: opts.sourcePage })
+        : { name: opts.sourcePage },
+    );
   sf.threadState.budget =
     opts.budget ??
     makeLuaBudget({
@@ -59,6 +78,7 @@ export function renderThread(
 
 /** A Lua result as the widget renderer takes it: numbers and tables stay Lua. */
 export function toRenderValue(rawResult: LuaValue, sf: LuaStackFrame): any {
+  if (sf.threadState.restrictedPolicy) return restrictedRenderValue(rawResult);
   if (isTaggedFloat(rawResult) || typeof rawResult === "number") {
     return rawResult;
   }

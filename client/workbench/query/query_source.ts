@@ -1,3 +1,4 @@
+import { renderThread, toRenderValue } from "../../space_lua/render_thread.ts";
 /**
  * What the query builder reads from the running client: sampled objects,
  * declared schemas, aggregates, and the result of a query; and picking a
@@ -177,6 +178,13 @@ export async function evalQueryText(
   text: string,
 ): Promise<unknown> {
   const expr = parseExpressionString(text);
+  if (client.bootConfig?.canBuild === false) {
+    const { env, sf } = renderThread(
+      client.clientSystem.spaceLuaEnv.env,
+      expr.ctx,
+    );
+    return toRenderValue(await evalExpression(expr, env, sf), sf);
+  }
   const tl = new LuaEnv();
   tl.setLocal("_GLOBAL", client.clientSystem.spaceLuaEnv.env);
   const budget = makeLuaBudget({ busyLimitMs: BUSY_LIMIT_DEFAULT_MS });

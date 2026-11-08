@@ -204,13 +204,19 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
       <div className="sb-workbench-body" ref={body} onScroll={onScroll}>
         <LogView entries={visible} ctx={rowContext} />
       </div>
-      <ReplInput
-        client={client}
-        session={session}
-        focusTarget={focusTarget}
-        context={context}
-        pageName={pageName}
-      />
+      {client.bootConfig.canBuild === false ? (
+        <div className="sb-wb-footer">
+          Builder access is required to run console code.
+        </div>
+      ) : (
+        <ReplInput
+          client={client}
+          session={session}
+          focusTarget={focusTarget}
+          context={context}
+          pageName={pageName}
+        />
+      )}
     </div>
   );
 }

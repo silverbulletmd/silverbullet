@@ -166,9 +166,15 @@ function parseFunctionDocumentation(
   const returns: NonNullable<LuaFunctionDocumentation["returns"]> = [];
   let deprecated: string | boolean | undefined;
   let see: string | undefined;
+  let capabilities: string[] | undefined;
 
   for (const comment of comments) {
     const line = comment.text.slice(3).replace(/^\s?/, "");
+    const capabilityDoc = /^@capabilities\s+(.+)$/.exec(line);
+    if (capabilityDoc) {
+      capabilities = capabilityDoc[1].split(/[\s,]+/).filter(Boolean);
+      continue;
+    }
     const param = /^@param\s+(\S+)\s+(\S+)(?:\s+(.*))?$/.exec(line);
     if (param) {
       const optional = param[1].endsWith("?");
@@ -208,6 +214,7 @@ function parseFunctionDocumentation(
   if (returns.length) docs.returns = returns;
   if (deprecated !== undefined) docs.deprecated = deprecated;
   if (see) docs.see = see;
+  if (capabilities) docs.capabilities = capabilities;
   return Object.keys(docs).length ? docs : undefined;
 }
 

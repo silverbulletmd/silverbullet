@@ -26,8 +26,8 @@ test("Test space lua indexing", async () => {
   const frontmatter = extractFrontMatter(tree);
 
   const pageMeta: PageMeta = {
-    ref: "folder/test",
-    name: "folder/test",
+    ref: "Library/Test",
+    name: "Library/Test",
     tag: "page",
     created: "",
     lastModified: "",

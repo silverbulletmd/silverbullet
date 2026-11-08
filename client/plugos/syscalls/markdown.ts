@@ -282,6 +282,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       ],
     },
     "markdown.link": {
+      capabilities: ["space:read"],
       callback: (_ctx, target: unknown, alias?: string) =>
         wikiLink(target, alias),
       description:

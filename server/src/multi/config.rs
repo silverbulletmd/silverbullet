@@ -220,6 +220,7 @@ pub enum SpaceAccess {
     #[default]
     None,
     Read,
+    Edit,
     Write,
 }
 
@@ -229,6 +230,7 @@ pub enum SpaceAccess {
 #[serde(rename_all = "lowercase")]
 pub enum MemberRole {
     Read,
+    Edit,
     #[default]
     Write,
 }
@@ -491,6 +493,23 @@ mod tests {
             "futureField": { "nested": 1 }
           }
         }"#
+    }
+
+    #[test]
+    fn editor_roles_round_trip_without_changing_legacy_builders() {
+        let editor: MemberEntry = serde_json::from_str(r#"{"role":"edit"}"#).unwrap();
+        assert_eq!(editor.role, MemberRole::Edit);
+        assert!(!editor.runtime_api);
+        assert_eq!(serde_json::to_value(&editor).unwrap()["role"], "edit");
+        for json in ["{}", r#"{"role":"write"}"#] {
+            let builder: MemberEntry = serde_json::from_str(json).unwrap();
+            assert_eq!(builder.role, MemberRole::Write);
+            assert!(builder.runtime_api);
+        }
+        assert_eq!(
+            serde_json::from_str::<SpaceAccess>(r#""edit""#).unwrap(),
+            SpaceAccess::Edit
+        );
     }
 
     #[test]

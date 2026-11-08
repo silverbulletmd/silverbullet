@@ -239,7 +239,11 @@ export function SchemaView({
         ) : null}
       </div>
       {!schemas.writable && schemas.ready ? (
-        <BlockNote>{READ_ONLY_NOTE}</BlockNote>
+        <BlockNote>
+          {client.bootConfig.canBuild === false
+            ? "Builder access is required to change schemas. You can still inspect schemas and build queries."
+            : READ_ONLY_NOTE}
+        </BlockNote>
       ) : null}
       {schemas.loadError ? (
         <div className="sb-wb-cfg-error">{schemas.loadError}</div>

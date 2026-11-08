@@ -140,7 +140,13 @@ export function ConfigurationView({
               </>
             )}
           </div>
-          {!writable && model.ready && <BlockNote>{READ_ONLY_NOTE}</BlockNote>}
+          {!writable && model.ready && (
+            <BlockNote>
+              {client.bootConfig.canBuild === false
+                ? "Builder access is required to change configuration and key bindings."
+                : READ_ONLY_NOTE}
+            </BlockNote>
+          )}
           {model.managedBlockError && (
             <div className="sb-wb-cfg-error">{model.managedBlockError}</div>
           )}

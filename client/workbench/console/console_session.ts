@@ -81,6 +81,7 @@ export class ConsoleSession {
   constructor(
     private opts: {
       spaceEnv: () => LuaEnv;
+      canBuild?: () => boolean;
       currentPage?: () => string;
       pageContext?: (page: string) => Promise<{ env: LuaEnv; meta: unknown }>;
       log: ConsoleLog;
@@ -142,6 +143,8 @@ export class ConsoleSession {
   }
 
   private async evaluate(code: string, page: string | null): Promise<void> {
+    if (this.opts.canBuild?.() === false)
+      throw new Error("Builder access required");
     const ref = `${CONSOLE_REF_PREFIX}${++this.counter}`;
     this.sources.set(ref, code);
     const { log } = this.opts;

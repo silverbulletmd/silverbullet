@@ -1,3 +1,4 @@
+import { isTrustedScriptPage } from "../plug-api/lib/trusted_script_source.ts";
 import {
   findNodeOfType,
   traverseTree,
@@ -99,4 +100,11 @@ export async function loadConfig(
     }
   }
   return config;
+}
+
+export function extractTrustedSpaceLuaFromPageText(
+  page: string,
+  text: string,
+): string {
+  return isTrustedScriptPage(page) ? extractSpaceLuaFromPageText(text) : "";
 }

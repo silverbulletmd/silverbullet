@@ -45,17 +45,17 @@ test("Builtins and ordinary JavaScript functions have no Lua definition", () => 
 
 test("reload records each script's outcome in load order", async () => {
   const scripts = [
-    { ref: "Alpha@0", script: "x = 1", priority: 10 },
-    { ref: "Beta@5", script: "nil_value.y = 2" },
-    { ref: "Gamma@9", script: "y = x + 1" },
-    { ref: "Delta@20", script: "while true do end" },
+    { tag: "space-lua", ref: "Library/Alpha@0", script: "x = 1", priority: 10 },
+    { tag: "space-lua", ref: "Library/Beta@5", script: "nil_value.y = 2" },
+    { tag: "space-lua", ref: "Library/Gamma@9", script: "y = x + 1" },
+    { tag: "space-lua", ref: "Library/Delta@20", script: "while true do end" },
   ];
   const memory = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     getItem: (k: string) => memory.get(k) ?? null,
     setItem: (k: string, v: string) => memory.set(k, v),
   });
-  quarantine("Delta@20", "while true do end");
+  quarantine("Library/Delta@20", "while true do end");
   const objectIndex = { queryLuaObjects: async () => scripts };
   const env = new SpaceLuaEnvironment(new System(), objectIndex as any);
   const loads: unknown[] = [];
@@ -68,16 +68,16 @@ test("reload records each script's outcome in load order", async () => {
   const load = env.lastLoad!;
   expect(loads).toEqual([load]);
   expect(load.scripts.map((s) => [s.ref, s.priority, s.status])).toEqual([
-    ["Alpha@0", 10, "loaded"],
-    ["Beta@5", 0, "failed"],
-    ["Gamma@9", 0, "loaded"],
-    ["Delta@20", 0, "quarantined"],
+    ["Library/Alpha@0", 10, "loaded"],
+    ["Library/Beta@5", 0, "failed"],
+    ["Library/Gamma@9", 0, "loaded"],
+    ["Library/Delta@20", 0, "quarantined"],
   ]);
   const failed = load.scripts[1];
   expect(failed.status === "failed" && failed.error).toBeInstanceOf(
     LuaRuntimeError,
   );
-  expect(env.sourceFor("Gamma@9")).toBe("y = x + 1");
+  expect(env.sourceFor("Library/Gamma@9")).toBe("y = x + 1");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
@@ -88,7 +88,9 @@ test("while scripts reload, the previous environment stays in use until all have
     getItem: (k: string) => memory.get(k) ?? null,
     setItem: (k: string, v: string) => memory.set(k, v),
   });
-  let scripts = [{ ref: "Defs@0", script: "late = 1" }];
+  let scripts = [
+    { tag: "space-lua", ref: "Library/Defs@0", script: "late = 1" },
+  ];
   const objectIndex = { queryLuaObjects: async () => scripts };
   const sle = new SpaceLuaEnvironment(new System(), objectIndex as any);
   vi.spyOn(console, "log").mockImplementation(() => {});
@@ -101,10 +103,41 @@ test("while scripts reload, the previous environment stays in use until all have
     seen.push(sle.env.get("late"));
   });
   scripts = [
-    { ref: "Broken@0", script: "nil_value.y = 2", priority: 10 } as any,
-    { ref: "Defs@0", script: "late = 2" },
+    {
+      tag: "space-lua",
+      ref: "Library/Broken@0",
+      script: "nil_value.y = 2",
+      priority: 10,
+    } as any,
+    { tag: "space-lua", ref: "Library/Defs@0", script: "late = 2" },
   ];
   await sle.reload();
   expect(seen).toEqual([1]);
   expect(sle.env.get("late")).toBe(2);
+});
+
+test("reload ignores stale script records outside protected locations", async () => {
+  const objectIndex = {
+    queryLuaObjects: async () => [
+      { tag: "space-lua", ref: "Notebook@0", script: "unexpected = true" },
+      {
+        tag: "data",
+        ref: "Library/Forged",
+        tags: ["space-lua"],
+        script: "unexpected = true",
+      },
+      {
+        tag: "space-lua",
+        ref: "Library/../Notebook@0",
+        script: "unexpected = true",
+      },
+      { tag: "space-lua", ref: "CONFIG@0", script: "configured = true" },
+      { tag: "space-lua", ref: "Library/Cards@0", script: "installed = true" },
+    ],
+  };
+  const sle = new SpaceLuaEnvironment(new System(), objectIndex as any);
+  await sle.reload();
+  expect(sle.env.get("unexpected")).toBeNull();
+  expect(sle.env.get("configured")).toBe(true);
+  expect(sle.env.get("installed")).toBe(true);
 });

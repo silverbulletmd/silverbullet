@@ -2,6 +2,8 @@
 
 SilverBullet lets you define _page-only_ variables and functions that `${...}` expressions on that same page can use, turning the page into a type of work sheet (think: spreadsheet or Python notebook).
 
+Ordinary pages use the restricted environment described in [[Space Lua/Capabilities]], even for Builders. Calculations and queries work there; JavaScript, direct DOM access and write APIs do not. The write-back button examples below require migration to reviewed installed library widgets before they can run on ordinary pages.
+
 # Defining values
 Assign a value inline to a page variable with `${name = expression}`.
 

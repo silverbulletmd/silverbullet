@@ -428,7 +428,7 @@ fn script_write_reports_its_load_error() {
     let (code, stdout, stderr) = write_page(
         &url,
         &token,
-        "Tools.md",
+        "Library/Tools.md",
         "# Tools\n```space-lua\nfunction tools_ping() return 1 end\n```\n",
         sb_config.path(),
     );
@@ -437,7 +437,7 @@ fn script_write_reports_its_load_error() {
     let (code, stdout, stderr) = write_page(
         &url,
         &token,
-        "Broken.md",
+        "Library/Broken.md",
         "# Broken\n```space-lua\nlocal x = = 1\n```\n",
         sb_config.path(),
     );
@@ -448,7 +448,7 @@ fn script_write_reports_its_load_error() {
         "clean write: {clean:?}\n--- server log ---\n{log}"
     );
     assert!(
-        clean.1.starts_with("Wrote Tools.md (revision "),
+        clean.1.starts_with("Wrote Library/Tools.md (revision "),
         "{clean:?}"
     );
     assert_eq!(
@@ -460,19 +460,22 @@ fn script_write_reports_its_load_error() {
         code, 9,
         "stdout={stdout:?} stderr={stderr:?}\n--- server log ---\n{log}"
     );
-    assert!(stdout.starts_with("Wrote Broken.md (revision "), "{stdout}");
+    assert!(
+        stdout.starts_with("Wrote Library/Broken.md (revision "),
+        "{stdout}"
+    );
     assert!(
         stderr.contains("reloaded, but have problems") && stderr.contains("Load errors:"),
         "{stderr}\n--- server log ---\n{log}"
     );
     assert!(
         stderr.ends_with(
-            "Exit code 9: Broken.md was written, but its Space Lua/Style has problems.\n"
+            "Exit code 9: Library/Broken.md was written, but its Space Lua/Style has problems.\n"
         ),
         "{stderr}"
     );
     assert_eq!(
-        std::fs::read_to_string(root.path().join("spaceNotes").join("Broken.md")).unwrap(),
+        std::fs::read_to_string(root.path().join("spaceNotes").join("Library/Broken.md")).unwrap(),
         "# Broken\n```space-lua\nlocal x = = 1\n```\n"
     );
 }

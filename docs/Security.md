@@ -8,25 +8,31 @@ references:
 ---
 SilverBullet [[Space|spaces]] are scriptable environments. This is where a lot of SilverBullet’s power and flexibility comes from. This page lays out the trust model that follows from that, so you can configure a deployment that matches who you’re sharing it with. For a more basic walk-through of concrete setups, see [[Security Profiles]].
 
-You need to trust people with `write` access. Anyone who can write to a space can author [[Space Lua]] and other dynamic content that runs in the browser of anyone who later opens that space.
+Editors can collaborate on ordinary pages without receiving Builder access. The server protects `Library/` and root `CONFIG.md` from Editor writes, including deletes and rename destinations. Existing `write` grants still mean Builder access.
 
 # Access levels
-Each space resolves to one of three [[Dashboard#Access|access levels]] for a given visitor, plus a separate admin flag:
+Each space resolves to one of four [[Dashboard#Access|access levels]] for a visitor, plus a separate admin flag:
 
-* **`none`:** Not visible. Requests are refused.
-* **`read`:** May view content, will run all scripts and queries locally. Cannot modify anything or reach any capability endpoint.
-* **`write`:** Full access to the space’s content **and** capabilities.
+* **No access (`none`):** Not visible; requests are refused.
+* **Reader (`read`):** Read content and use its queries and installed widgets.
+* **Editor (`edit`):** Also edit ordinary pages and attachments, but not protected configuration or library files.
+* **Builder (`write`):** Full content and extension-authoring access, including capability endpoints when enabled.
 
-Admins get `write` on every space, plus the `/.dashboard` management UI.
+Admins get Builder access on every space and the `/.dashboard` management UI. A frozen space remains read-only for everyone.
 
 # What `write` really means
-`write` is not just “can edit files” in the narrow sense — a `write` member can create content that runs, unattended, as whoever else opens that space. That includes admins.
+Builders can install code that runs as other visitors, including administrators. **Grant Builder only to people you trust to act as those visitors.** Editor is the role for collaborators who should edit content without installing code. Use separate origins when you need to isolate spaces with different trust levels; see [[Security Profiles]].
 
-The practical rule: **grant `write` only to people you’d trust to act as any member of every space they can reach.** If someone doesn’t clear that bar, don’t add them as a `write` member of a space other trusted people also use, give them their own space, on its own (sub)domain instead (see [[Security Profiles#Software team]]). SilverBullet does not offer an in-between “can edit, but can’t script” role within a single space.
+Only [[Space Lua]] definitions in `Library/` and root [[CONFIG]] load as trusted global code. Ordinary pages’ inline expressions and [[Space Lua/Page Lua|Page Lua]] run with restricted APIs, even when a Builder or administrator opens them. They can query and read space data, and call explicitly exposed installed functions, but cannot directly access JavaScript, the DOM, arbitrary syscalls or write APIs. See [[Space Lua/Capabilities]] for migration and library authoring.
+
+An installed function’s capability annotation exposes a trusted entry point; it does not sandbox that function’s implementation. Builders must review its implementation, arguments, callbacks and rendered content before making it available to ordinary pages.
 
 # Capability endpoints
-A few endpoints can reach beyond the space’s own content, and all require `write`:
+These endpoints require Builder (`write`) access:
 
-* **Shell** (`/.shell`) — runs any command on the server. (Off by default)
-* **HTTP proxy** (`/.proxy`, exposed to Lua as [[API/net#net.proxyFetch(url, options?)|net.proxyFetch]]) — fetches an external URL through the server, on the server’s network.
-* **Runtime API** (`/.runtime`) — evaluates Lua and scripts via a headless browser instance, see [[Runtime API]].
+* **Shell** (`/.shell`) — runs commands on the server when enabled (off by default).
+* **HTTP proxy** (`/.proxy`, exposed as [[API/net#net.proxyFetch(url, options?)|net.proxyFetch]]) — fetches external URLs through the server’s network.
+* **Runtime API** (`/.runtime`) — evaluates Lua through a headless browser, subject to its separate member permission and server setting; see [[Runtime API]].
+
+# Limits of isolation
+Restricted expressions have execution budgets and limits on transferred data. They still run in the browser process: a large allocation or a native operation that does not yield can exhaust memory or block the UI. This is not process-level resource isolation, and does not guarantee availability against hostile content. Trusted installed code retains the viewer’s authority.

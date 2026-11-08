@@ -392,12 +392,12 @@ fn try_build_parts(
         InstanceAuth::Single(auth) => auth.is_none(),
     };
 
-    // Whether a stranger off the internet can author content here. SSR renders
-    // page markdown with raw HTML intact, so `anonymous_readable` alone is not
-    // a safe gate for it: on an anonymously *writable* space that would serve
-    // an attacker's stored HTML to every later visitor and crawler.
+    // Public discovery excludes anonymously authored content, even though SSR
+    // escapes executable markup before serving it.
     let anonymous_writable = match &deps.auth {
-        InstanceAuth::Accounts { .. } => config.access() == SpaceAccess::Write,
+        InstanceAuth::Accounts { .. } => {
+            matches!(config.access(), SpaceAccess::Edit | SpaceAccess::Write)
+        }
         InstanceAuth::Single(auth) => auth.is_none() && !config.read_only,
     };
 
@@ -1178,8 +1178,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn public_editor_can_write_notes_but_not_sources_or_run_shell() {
+        use axum::body::{to_bytes, Body};
+        use axum::http::{Method, Request, StatusCode};
+        use tower::ServiceExt;
+
+        let (_dir, state) = state_with_access(SpaceAccess::Edit);
+        let app = crate::build_router(Arc::new(state));
+        for (path, expected) in [
+            ("Notes/Today.md", StatusCode::OK),
+            ("CONFIG.md", StatusCode::FORBIDDEN),
+            ("Library/Rules.md", StatusCode::FORBIDDEN),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method(Method::PUT)
+                        .uri(format!("/.fs/{path}"))
+                        .body(Body::from("content"))
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), expected, "{path}");
+        }
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/.shell")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/.config")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let config: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(config["canBuild"], false);
+        assert_eq!(config["readOnly"], false);
+    }
+
+    #[tokio::test]
     async fn every_account_managed_space_has_a_login_manager() {
-        for access in [SpaceAccess::None, SpaceAccess::Read, SpaceAccess::Write] {
+        for access in [
+            SpaceAccess::None,
+            SpaceAccess::Read,
+            SpaceAccess::Edit,
+            SpaceAccess::Write,
+        ] {
             let (_dir, state) = state_with_access(access);
             assert!(state.login.is_some(), "{access:?}");
             assert!(state.authorizer.is_some(), "{access:?}");
@@ -1199,13 +1257,12 @@ mod tests {
 
     #[tokio::test]
     async fn anonymous_writable_tracks_who_may_author_the_content() {
-        // Gates SSR alongside `anonymous_readable`: only `access: "write"`
-        // (legacy `public: true`) lets a stranger author a page, and rendering
-        // stranger-authored markdown into the shell would serve stored HTML.
         let (_dir_none, none) = state_with_access(SpaceAccess::None);
         assert!(!none.anonymous_writable);
         let (_dir_read, read) = state_with_access(SpaceAccess::Read);
         assert!(!read.anonymous_writable);
+        let (_dir_edit, edit) = state_with_access(SpaceAccess::Edit);
+        assert!(edit.anonymous_writable);
         let (_dir_write, write) = state_with_access(SpaceAccess::Write);
         assert!(write.anonymous_writable);
     }

@@ -72,6 +72,7 @@ export type LuaFunctionExampleDocumentation = {
 
 /** Structured documentation shared by Lua functions, built-ins and syscalls. */
 export type LuaFunctionDocumentation = {
+  capabilities?: string[];
   description?: string;
   parameters?: LuaFunctionParameterDocumentation[];
   returns?: LuaFunctionReturnDocumentation[];

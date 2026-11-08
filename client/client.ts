@@ -501,6 +501,7 @@ export class Client {
       new CheckedSpacePrimitives(
         this.httpSpacePrimitives,
         this.bootConfig.readOnly,
+        this.bootConfig.canBuild !== false,
       ),
       this.eventHook,
       this.ds,

@@ -208,6 +208,7 @@ export type Action =
  * Client configuration that is set at boot time, doesn't change at runtime
  */
 export type BootConfig = {
+  canBuild?: boolean;
   spaceFolderPath: string;
   shareOwnerId: string;
   indexPage: string;

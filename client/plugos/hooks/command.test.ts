@@ -120,3 +120,42 @@ test("plug commands with requireServiceWorker are omitted when the service worke
 
   expect(names(commands.buildAllCommands())).toEqual(["Other: Thing"]);
 });
+
+test("Builder commands remain unavailable after Lua binding overrides", () => {
+  const commands = new CommandHook(
+    false,
+    new Map([
+      [
+        "Library: Install",
+        { name: "Library: Install", key: "Alt-i", requireBuilder: false },
+      ],
+    ]),
+    false,
+    () => false,
+  );
+  commands.system = {
+    loadedPlugs: new Map(),
+  } as unknown as System<CommandHookT>;
+  commands.registerCommand({
+    name: "Library: Install",
+    requireBuilder: true,
+    run: vi.fn(),
+  });
+  commands.registerCommand({ name: "Workbench: Edit Query", run: vi.fn() });
+  expect(names(commands.buildAllCommands())).toEqual(["Workbench: Edit Query"]);
+});
+
+test("a retained Builder command rejects execution after capability is revoked", async () => {
+  let canBuild = true;
+  const commands = new CommandHook(false, new Map(), false, () => canBuild);
+  const run = vi.fn(async () => {});
+  commands.registerCommand({
+    name: "Configuration: Open",
+    requireBuilder: true,
+    run,
+  });
+  const command = commands.buildAllCommands().get("Configuration: Open")!;
+  canBuild = false;
+  await expect(command.run!()).rejects.toThrow("Builder access required");
+  expect(run).not.toHaveBeenCalled();
+});

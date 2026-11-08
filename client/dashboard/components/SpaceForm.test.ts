@@ -31,6 +31,9 @@ test("new spaces start with managed revisions and shell commands disabled", () =
   );
   expect(html).toContain("Primary hostname — localhost:3000");
   expect(html).toContain("New hostname");
+  expect(html).toContain('<option value="read">Reader</option>');
+  expect(html).toContain('<option value="edit">Editor</option>');
+  expect(html).toContain('<option value="write">Builder</option>');
 });
 
 const spaces: VisibleSpace[] = [

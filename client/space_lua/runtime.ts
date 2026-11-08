@@ -13,6 +13,16 @@ import type {
 } from "../../plug-api/types/index.ts";
 
 let boundaryBudgetFactory: (() => LuaBudget) | undefined;
+const originalLuaFunctions = new WeakMap<Function, LuaFunction>();
+
+export function originalLuaFunction(value: unknown): LuaFunction | undefined {
+  return value instanceof LuaFunction
+    ? value
+    : typeof value === "function"
+      ? originalLuaFunctions.get(value)
+      : undefined;
+}
+
 export const luaFunctionInfo = Symbol("luaFunctionInfo");
 
 export function setBoundaryBudgetFactory(
@@ -92,7 +102,12 @@ const MAX_TAG_LOOP = 200;
 
 export type LuaCloseEntry = { value: LuaValue; ctx: ASTCtx };
 
+export type RestrictedPolicy = {
+  nativeFunctions: Set<unknown>;
+};
+
 type LuaThreadState = {
+  restrictedPolicy?: RestrictedPolicy;
   closeStack?: LuaCloseEntry[];
   budget?: LuaBudget;
   // Widget nesting depth of the render evaluating this thread
@@ -501,6 +516,7 @@ export class LuaFunction implements ILuaFunction {
     readonly body: LuaFunctionBody,
     closure: LuaEnv,
     info: Partial<LuaFunctionInfo> = {},
+    private restrictedPolicy?: RestrictedPolicy,
   ) {
     this.capturedEnv = closure;
     const documentation = body.documentation ?? {};
@@ -517,6 +533,12 @@ export class LuaFunction implements ILuaFunction {
   }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+    if (
+      this.restrictedPolicy &&
+      sf.threadState.restrictedPolicy !== this.restrictedPolicy
+    ) {
+      throw new LuaRuntimeError("Safe mode: callback lost its policy", sf);
+    }
     const env = new LuaEnv(this.capturedEnv);
     env.setLocal("_CTX", sf.threadLocal);
 
@@ -639,6 +661,12 @@ export class LuaNativeJSFunction implements ILuaFunction {
 
   // Performs automatic conversion between Lua and JS values for arguments, but not for return values
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+    if (
+      sf.threadState.restrictedPolicy &&
+      !sf.threadState.restrictedPolicy.nativeFunctions.has(this)
+    ) {
+      throw new LuaRuntimeError("Safe mode: native API denied", sf);
+    }
     // Avoid .map() allocation: convert in-place and check for promises
     const len = args.length;
     let hasAsync = false;
@@ -693,6 +721,12 @@ export class LuaBuiltinFunction implements ILuaFunction {
   }
 
   call(sf: LuaStackFrame, ...args: LuaValue[]): Promise<LuaValue> | LuaValue {
+    if (
+      sf.threadState.restrictedPolicy &&
+      !sf.threadState.restrictedPolicy.nativeFunctions.has(this)
+    ) {
+      throw new LuaRuntimeError("Safe mode: builtin API denied", sf);
+    }
     // _CTX is already available via the stack frame
     return this.fn(sf, ...args);
   }
@@ -721,7 +755,10 @@ export class LuaTable implements ILuaSettable, ILuaGettable {
   constructor(init?: any[] | Record<string, any>) {
     // For efficiency and performance reasons we pre-allocate these (modern JS engines are very good at optimizing this)
     this.arrayPart = Array.isArray(init) ? init : [];
-    this.stringKeys = init && !Array.isArray(init) ? init : {};
+    this.stringKeys = Object.assign(
+      Object.create(null),
+      init && !Array.isArray(init) ? init : {},
+    );
     this.otherKeys = null;
     this.metatable = null;
   }
@@ -1371,6 +1408,12 @@ export function luaSet(
     throw new LuaRuntimeError(`Not a settable object: nil`, sf);
   }
 
+  if (
+    sf.threadState.restrictedPolicy &&
+    !(obj instanceof LuaTable || obj instanceof LuaEnv)
+  ) {
+    throw new LuaRuntimeError("Safe mode: host assignment denied", sf);
+  }
   const normKey = isTaggedFloat(key) ? key.value : key;
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
@@ -1407,6 +1450,13 @@ export function luaGet(
 
   if (obj instanceof LuaTable || obj instanceof LuaEnv) {
     return obj.get(key, sf);
+  }
+  if (sf.threadState.restrictedPolicy) {
+    if (typeof obj === "string") {
+      const strings = sf.threadLocal.get("_GLOBAL").get("string");
+      return strings instanceof LuaTable ? strings.get(key, sf) : null;
+    }
+    throw new LuaRuntimeError("Safe mode: host property access denied", sf);
   }
   // Native JS array access: normalize undefined → null (Lua nil).
   // Without this, accessing an out-of-bounds index on a JS array
@@ -1475,6 +1525,13 @@ export function luaCall(
     );
   }
 
+  if (
+    sf?.threadState.restrictedPolicy &&
+    typeof callee === "function" &&
+    !sf.threadState.restrictedPolicy.nativeFunctions.has(callee)
+  ) {
+    throw new LuaRuntimeError("Safe mode: native call denied", sf);
+  }
   if (typeof callee === "function") {
     const baseSf = sf || LuaStackFrame.lostFrame;
     const len = args.length;
@@ -1944,6 +2001,7 @@ export function luaValueToJS(value: any, sf: LuaStackFrame): any {
     const fn = (...args: any[]) => invoke(undefined, false, args);
     trackedCalls.set(fn, (track, args) => invoke(track, true, args));
     if (value instanceof LuaFunction) {
+      originalLuaFunctions.set(fn, value);
       (fn as typeof fn & { [luaFunctionInfo]: LuaFunctionInfo })[
         luaFunctionInfo
       ] = value.info;

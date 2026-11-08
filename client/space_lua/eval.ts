@@ -1104,7 +1104,12 @@ export function evalExpression(
       }
       case "FunctionDefinition": {
         const fd = asFunctionDef(e);
-        return new LuaFunction(fd.body, env);
+        return new LuaFunction(
+          fd.body,
+          env,
+          {},
+          sf.threadState.restrictedPolicy,
+        );
       }
       case "Memo":
         return evalMemo(e, env, sf);
@@ -2489,14 +2494,27 @@ export function evalStatement(
       }
       (settable as any).set(
         propNames[propNames.length - 1],
-        new LuaFunction(body, env, { name: propNames.join(".") }),
+        new LuaFunction(
+          body,
+          env,
+          { name: propNames.join(".") },
+          sf.threadState.restrictedPolicy,
+        ),
         sf,
       );
       return;
     }
     case "LocalFunction": {
       const lf = asLocalFunction(s);
-      env.setLocal(lf.name, new LuaFunction(lf.body, env, { name: lf.name }));
+      env.setLocal(
+        lf.name,
+        new LuaFunction(
+          lf.body,
+          env,
+          { name: lf.name },
+          sf.threadState.restrictedPolicy,
+        ),
+      );
       return;
     }
     case "Return": {

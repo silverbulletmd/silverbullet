@@ -29,18 +29,17 @@ Each space has a public address composed from a hostname and a path (which can b
 The setup wizard, **Create space**, and **Space settings → General** use the same address editor. Choose the primary host, a previously configured custom hostname or `hostname:port`, or **New hostname**, then choose a path.
 
 ## Access
-Access to a space can be configured to one of three levels:
+The access selector offers three roles, plus **No access**:
 
-* **`none`:** Not visible, no access.
-* **`read`:** May read content. May not modify anything, and may not reach any capability endpoint (shell, proxy, runtime API).
-* **`write`:** Full access to the space’s content and capabilities.
+| Role | Stored value | Permissions |
+|---|---|---|
+| Reader | `read` | Read pages and use their queries and installed widgets. |
+| Editor | `edit` | Also edit ordinary pages and attachments. Cannot change `Library/` or root `CONFIG.md`, install libraries or use shell, proxy or Runtime API endpoints. |
+| Builder | `write` | Also change configuration, install libraries and author executable extensions. |
 
-`write` carries real trust — see [[Security#What `write` really means]].
+Existing `write` grants remain **Builder** grants; they are not downgraded to Editor. Grant Builder only to trusted people: their installed code runs for other visitors. See [[Security]]. Runtime API access also requires its separate member permission and server availability. Freezing a space suspends writes for everyone, including admins.
 
-The effective level for a request is the **maximum** of three independent sources:
+The effective level is the **maximum** of the public `access` setting (`none`, `read`, `edit`, `write`), the account’s member `role` (`read`, `edit`, `write`), and administrator access (always Builder). A Reader membership does not lower public Editor access.
 
-* **`access` — what a visitor with no session gets:** `none` (default), `read`, `write`.
-* **`username.role` — what one account gets:** absent (no access), `read`, `write`.
-* **admin:** always `write` on every space.
 # Dashboard access
 When no space is bound to the server root (`/`), opening `/` redirects to `/.dashboard` instead of opening a space. Any account can log in there. Ordinary accounts see spaces with anonymous [[#Access|access]] and spaces where they are members, administrators see every space, plus the admin screens.

@@ -59,6 +59,9 @@ pub(crate) fn required_level(method: &Method, path: &str) -> AccessLevel {
     {
         return AccessLevel::Write;
     }
+    if !safe && (path.starts_with("/.fs/") || path == "/.merge") {
+        return AccessLevel::Edit;
+    }
     if !safe {
         return AccessLevel::Write;
     }
@@ -109,7 +112,7 @@ pub(crate) fn cross_origin_refused(
     method: &Method,
     path: &str,
 ) -> bool {
-    if required_level(method, path) != AccessLevel::Write && !search::needs_same_origin(path) {
+    if required_level(method, path) < AccessLevel::Edit && !search::needs_same_origin(path) {
         return false;
     }
     if has_bearer(headers) || !has_session_cookie(headers) {
@@ -899,6 +902,158 @@ mod auth_tests {
         }
     }
 
+    #[tokio::test]
+    async fn editor_file_mutations_enforce_source_boundaries() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut state = test_state();
+        state.space_folder_path = dir.path().to_string_lossy().into_owned();
+        state.space = Arc::new(
+            silverbullet_server_common::space::disk::DiskSpacePrimitives::new(dir.path(), "")
+                .unwrap(),
+        );
+        state.authorizer = Some(Arc::new(AsUser("gardener")));
+        state.access_policy = Arc::new(FixedPolicy(AccessLevel::Edit));
+        state
+            .space
+            .write_file("CONFIG.md", b"original", None)
+            .unwrap();
+        state
+            .space
+            .write_file("Library/Rules.md", b"original", None)
+            .unwrap();
+        let state = Arc::new(state);
+        let app = crate::build_router(state.clone());
+        for method in [Method::PUT, Method::POST, Method::DELETE, Method::PATCH] {
+            for path in [
+                "CONFIG.md",
+                "config.MD",
+                "Library/Rules.md",
+                "library/New.md",
+                "Library%2FRules.md",
+                "Library%5CRules.md",
+                "CONFIG.md%20",
+                "CONFIG.md.",
+                "Notes/../CONFIG.md",
+                "%2fCONFIG.md",
+            ] {
+                let response = app
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .method(method.clone())
+                            .uri(format!("/.fs/{path}"))
+                            .body(Body::from("changed"))
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                assert!(
+                    response.status().is_client_error(),
+                    "{method} {path}: {}",
+                    response.status()
+                );
+            }
+        }
+        for path in ["CONFIG.md", "Library/Rules.md"] {
+            assert_eq!(state.space.read_file(path).unwrap().0, b"original");
+            assert_eq!(
+                app.clone()
+                    .oneshot(
+                        Request::builder()
+                            .uri(format!("/.fs/{path}"))
+                            .body(Body::empty())
+                            .unwrap()
+                    )
+                    .await
+                    .unwrap()
+                    .status(),
+                StatusCode::OK
+            );
+        }
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::PUT)
+                    .uri("/.fs/Notes/Today.md")
+                    .body(Body::from("ordinary"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            state.space.read_file("Notes/Today.md").unwrap().0,
+            b"ordinary"
+        );
+        let hash = silverbullet_server_common::revision::sha256_hex(b"ordinary");
+        let proposed_hash = silverbullet_server_common::revision::sha256_hex(b"updated");
+        let reconcile = serde_json::json!({
+            "baseText": "ordinary", "baseHash": hash,
+            "proposedText": "updated", "proposedHash": proposed_hash,
+        });
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method(Method::POST)
+                    .uri("/.fs/Notes/Today.md")
+                    .body(Body::from(reconcile.to_string()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            state.space.read_file("Notes/Today.md").unwrap().0,
+            b"updated"
+        );
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method(Method::DELETE)
+                    .uri("/.fs/Notes/Today.md")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn editor_cannot_use_builder_capabilities() {
+        let mut state = test_state();
+        state.authorizer = Some(Arc::new(AsUser("gardener")));
+        state.access_policy = Arc::new(FixedPolicy(AccessLevel::Edit));
+        let app = crate::build_router(Arc::new(state));
+        for (method, path) in [
+            (Method::POST, "/.shell"),
+            (Method::GET, "/.proxy/https://example.com"),
+            (Method::POST, "/.runtime/lua"),
+            (Method::POST, "/.runtime/lua_script"),
+            (Method::GET, "/.runtime/logs"),
+            (Method::GET, "/.runtime/screenshot"),
+            (Method::GET, "/.revisions/CONFIG.md"),
+            (Method::POST, "/.revisions/"),
+            (Method::POST, "/.revisions/_sync"),
+            (Method::POST, "/.revisions/_conflicts/1"),
+        ] {
+            let response = app
+                .clone()
+                .oneshot(
+                    Request::builder()
+                        .method(method.clone())
+                        .uri(path)
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::FORBIDDEN, "{method} {path}");
+        }
+    }
+
     #[test]
     fn revisions_activity_requires_write() {
         assert_eq!(
@@ -926,11 +1081,11 @@ mod auth_tests {
         );
         assert_eq!(
             super::required_level(&Method::PUT, "/.fs/index.md"),
-            AccessLevel::Write
+            AccessLevel::Edit
         );
         assert_eq!(
             super::required_level(&Method::POST, "/.fs/index.md"),
-            AccessLevel::Write
+            AccessLevel::Edit
         );
     }
 

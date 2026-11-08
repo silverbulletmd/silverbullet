@@ -63,8 +63,9 @@ export function sanitizeTag(tag: Tag): Tag {
     const cleaned: Record<string, string | undefined> = {};
     for (const [key, value] of Object.entries(tag.attrs)) {
       const k = key.toLowerCase();
-      if (k.startsWith("on")) {
-        continue; // event handler
+      if (k.startsWith("on") || k === "data-onclick") {
+        // Widget delegation would execute a page author's command as its viewer.
+        continue;
       }
       if (
         URL_ATTRS.has(k) &&

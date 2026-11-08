@@ -14,13 +14,21 @@ const budget = [
 
 test.use({
   spaceFiles: {
+    "Library/Test/Page Buttons.md": [
+      "```space-lua",
+      "--- @capabilities widget:render",
+      "function raiseRate()",
+      "  local source = _CTX.sourcePage.name",
+      '  return widgets.button("Raise", function() pageVars.set("rate", 5, source) end)',
+      "end",
+      "```",
+    ].join("\n"),
     "Budget.md": budget,
     "Report.md": '![[Budget]]\n\nRead: ${pageVars.get("increase", "Budget")}\n',
     "Totals.md":
       '${open = #query[[from index.tag "task" where not _.done]]}\n\nOpen tasks: ${open}\n',
     "Work.md": "- [ ] one\n",
-    "Sheet.md":
-      '${rate = 2}\n\nDouble: ${rate * 2}\n\n${widgets.button("Raise", function() pageVars.set("rate", 5) end)}\n',
+    "Sheet.md": "${rate = 2}\n\nDouble: ${rate * 2}\n\n${raiseRate()}\n",
     "Reader.md": 'Read: ${pageVars.get("rate", "Sheet")}\n',
     "Host.md": "![[Sheet]]\n",
   },

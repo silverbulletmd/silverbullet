@@ -1,3 +1,5 @@
+import { installRestrictedContext } from "../../space_lua/restricted_context.ts";
+import { System } from "../../plugos/system.ts";
 import { describe, expect, test, vi } from "vitest";
 import {
   jsToLuaValue,
@@ -187,4 +189,13 @@ describe("evalQueryText", () => {
       ),
     ).rejects.toThrow();
   });
+});
+
+test("Editor query evaluation uses restricted APIs even with a privileged global environment", async () => {
+  const env = new LuaEnv(luaBuildStandardEnv());
+  installRestrictedContext(env, new System());
+  const { client } = stubClient({ env });
+  client.bootConfig = { canBuild: false };
+  expect(await evalQueryText(client, "math.floor(9 / 2)")).toBe(4);
+  await expect(evalQueryText(client, "js.window")).rejects.toThrow();
 });

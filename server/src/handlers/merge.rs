@@ -218,7 +218,7 @@ mod tests {
         // Graded like a write, so read-only visitors can't use it as a CPU sink
         assert_eq!(
             crate::router::required_level(&Method::POST, "/.merge"),
-            AccessLevel::Write
+            AccessLevel::Edit
         );
     }
 

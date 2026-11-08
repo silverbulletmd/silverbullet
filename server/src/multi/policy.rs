@@ -39,6 +39,7 @@ fn level_of(access: SpaceAccess) -> AccessLevel {
     match access {
         SpaceAccess::None => AccessLevel::None,
         SpaceAccess::Read => AccessLevel::Read,
+        SpaceAccess::Edit => AccessLevel::Edit,
         SpaceAccess::Write => AccessLevel::Write,
     }
 }
@@ -46,6 +47,7 @@ fn level_of(access: SpaceAccess) -> AccessLevel {
 fn level_of_role(role: MemberRole) -> AccessLevel {
     match role {
         MemberRole::Read => AccessLevel::Read,
+        MemberRole::Edit => AccessLevel::Edit,
         MemberRole::Write => AccessLevel::Write,
     }
 }
@@ -126,6 +128,17 @@ mod tests {
             })
             .collect();
         SpaceAccessPolicy::new(store, access, members, frozen)
+    }
+
+    #[test]
+    fn public_editor_grants_edit_without_runtime_and_freeze_caps_it() {
+        let editable = policy(SpaceAccess::Edit, &[], false);
+        assert_eq!(editable.level_for(None), AccessLevel::Edit);
+        assert!(!editable.runtime_allowed(None));
+        let frozen = policy(SpaceAccess::Edit, &[], true);
+        assert_eq!(frozen.level_for(None), AccessLevel::Read);
+        assert_eq!(level_of_role(MemberRole::Edit), AccessLevel::Edit);
+        assert_eq!(level_of_role(MemberRole::Write), AccessLevel::Write);
     }
 
     #[test]

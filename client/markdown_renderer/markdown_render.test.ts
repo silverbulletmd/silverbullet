@@ -747,3 +747,16 @@ test("Blank middle and trailing table header cells render as empty cells", () =>
     "<table><thead><tr><td>a</td><td></td><td></td></tr></thead><tr><td>1</td><td>2</td><td>3</td></tr></table>",
   );
 });
+
+test("raw HTML cannot delegate command execution to the viewer", () => {
+  for (const attribute of ["data-onclick", "DATA-ONCLICK"]) {
+    const html = renderMarkdownToHtml(
+      parse(
+        extendedMarkdownLanguage,
+        `<button ${attribute}='["command","Library: Update",[{"name":"Example"}]]'>Inspect</button>`,
+      ),
+    );
+    expect(html.toLowerCase()).not.toContain("data-onclick");
+    expect(html).toContain("Inspect");
+  }
+});

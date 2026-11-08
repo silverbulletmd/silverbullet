@@ -28,3 +28,20 @@ test("new writers default on and readers default off", () => {
   });
   expect(changeMemberAccess({ role: "write" }, "none")).toBeUndefined();
 });
+
+test("Editor grants revoke runtime access without losing unknown fields", () => {
+  const editor = changeMemberAccess(
+    { role: "write", runtimeApi: true, future: 1 },
+    "edit",
+  );
+  expect(editor).toEqual({ role: "edit", runtimeApi: false, future: 1 });
+  expect(changeMemberAccess(editor, "write")).toEqual({
+    role: "write",
+    runtimeApi: false,
+    future: 1,
+  });
+  expect(changeMemberAccess(undefined, "edit")).toEqual({
+    role: "edit",
+    runtimeApi: false,
+  });
+});

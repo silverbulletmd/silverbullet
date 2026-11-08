@@ -20,6 +20,7 @@ export function indexSyscalls(
 ): SysCallMapping {
   return {
     "index.tag": {
+      capabilities: ["space:read"],
       dependsOn: (tag: string) => [tagChangedEvent(tag)],
       callback: (_ctx, tagName: string): LuaQueryCollection => {
         return objectIndex.objectsWithTag(tagName);
@@ -29,6 +30,7 @@ export function indexSyscalls(
     },
     // Alias for tag
     "index.objects": {
+      capabilities: ["space:read"],
       dependsOn: (tag: string) => [tagChangedEvent(tag)],
       callback: (_ctx, tagName: string): LuaQueryCollection => {
         return objectIndex.objectsWithTag(tagName);
@@ -37,6 +39,7 @@ export function indexSyscalls(
       signatures: ["index.objects(tagName)"],
     },
     "index.pages": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("page", tagName);
@@ -46,6 +49,7 @@ export function indexSyscalls(
       signatures: ["index.pages(tagName?)"],
     },
     "index.subPages": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, pageName: string): LuaQueryCollection => {
         return objectIndex.subPages(pageName);
@@ -55,6 +59,7 @@ export function indexSyscalls(
       signatures: ["index.subPages(pageName)"],
     },
     "index.documents": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("document")],
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("document");
@@ -62,6 +67,7 @@ export function indexSyscalls(
       description: "Returns all indexed documents as a query collection.",
     },
     "index.links": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("link")],
       callback: (): LuaQueryCollection => {
         return objectIndex.objectsWithTag("link");
@@ -70,6 +76,7 @@ export function indexSyscalls(
         "Deprecated: returns all indexed links, a view over relations, as a query collection. Use index.relations instead.",
     },
     "index.relations": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("relation")],
       callback: (_ctx, kind?: string): LuaQueryCollection => {
         return objectIndex.relations(kind);
@@ -79,6 +86,7 @@ export function indexSyscalls(
       signatures: ["index.relations(kind?)"],
     },
     "index.contentPages": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.contentPages(tagName);
@@ -88,6 +96,7 @@ export function indexSyscalls(
       signatures: ["index.contentPages(tagName?)"],
     },
     "index.metaPages": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.metaPages(tagName);
@@ -97,6 +106,7 @@ export function indexSyscalls(
       signatures: ["index.metaPages(tagName?)"],
     },
     "index.tasks": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("task")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("task", tagName);
@@ -106,6 +116,7 @@ export function indexSyscalls(
       signatures: ["index.tasks(tagName?)"],
     },
     "index.headers": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("header")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("header", tagName);
@@ -115,6 +126,7 @@ export function indexSyscalls(
       signatures: ["index.headers(tagName?)"],
     },
     "index.items": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("item")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("item", tagName);
@@ -124,6 +136,7 @@ export function indexSyscalls(
       signatures: ["index.items(tagName?)"],
     },
     "index.paragraphs": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("paragraph")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("paragraph", tagName);
@@ -133,6 +146,7 @@ export function indexSyscalls(
       signatures: ["index.paragraphs(tagName?)"],
     },
     "index.tables": {
+      capabilities: ["space:read"],
       dependsOn: () => [tagChangedEvent("table")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
         return objectIndex.rootTaggedObjects("table", tagName);

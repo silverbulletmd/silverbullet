@@ -2,8 +2,8 @@ import type { GitSyncSnapshot } from "@silverbulletmd/silverbullet/type/revision
 import type { SemanticChoice } from "@silverbulletmd/silverbullet/type/search_admin";
 export type RevisionsMode = "managed" | "unmanaged" | "disabled";
 
-export type SpaceAccess = "none" | "read" | "write";
-export type MemberRole = "read" | "write";
+export type SpaceAccess = "none" | "read" | "edit" | "write";
+export type MemberRole = "read" | "edit" | "write";
 export type MemberEntry = {
   role: MemberRole;
   runtimeApi?: boolean;

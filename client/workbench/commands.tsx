@@ -43,6 +43,7 @@ export function registerWorkbenchCommands(
 ): { builder: QueryBuilder } {
   // Called while the client is still being set up, so its parts are read when used
   const session = new ConsoleSession({
+    canBuild: () => client.bootConfig.canBuild !== false,
     spaceEnv: () => client.clientSystem.spaceLuaEnv.env,
     currentPage: () => client.currentName(),
     pageContext: async (page) => {
@@ -131,6 +132,7 @@ export function registerWorkbenchCommands(
     hook.registerCommand({
       name,
       requireMode,
+      requireBuilder: requireMode === "rw",
       menu,
       menuMac,
       run: async () => {
@@ -145,6 +147,7 @@ export function registerWorkbenchCommands(
     name: "Library: Update",
     hide: true,
     requireMode: "rw",
+    requireBuilder: true,
     run: async (args?: unknown[]) => {
       await runLibraryUpdate(args, updateByName, (message, type) =>
         client.ui.flashNotification(message, type),

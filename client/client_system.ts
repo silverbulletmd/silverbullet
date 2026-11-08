@@ -208,6 +208,7 @@ export class ClientSystem {
       this.readOnlyMode,
       this.scriptCommands,
       !!this.client.bootConfig.disableServiceWorker,
+      () => this.client.bootConfig.canBuild !== false,
     );
     registerEditorCommands(client, this.commandHook);
     const { builder } = registerWorkbenchCommands(client, this.commandHook);
@@ -437,6 +438,11 @@ export class ClientSystem {
   }
 
   async loadPlugFromPath(path: string, lastModified: number) {
+    if (
+      !path.startsWith("Library/") ||
+      path.split("/").some((part) => part === ".." || part === ".")
+    )
+      throw new Error("Plugs must be installed in Library/");
     await this.system.loadPlug(WorkerSandbox.forPath(path), path, lastModified);
   }
 
@@ -444,7 +450,9 @@ export class ClientSystem {
     console.log("(Re)loading plugs");
     await this.system.unloadAll();
 
-    let allPlugs = await space.listPlugs();
+    let allPlugs = (await space.listPlugs()).filter((file) =>
+      file.name.startsWith("Library/"),
+    );
     if (this.client.bootConfig.disablePlugs) {
       allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));
 

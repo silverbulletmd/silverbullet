@@ -62,7 +62,8 @@ export function schemaDrafts(client: Client): SchemaDrafts {
         page: string;
         script: string;
       }>("space-lua", {}),
-      writable: !client.bootConfig.readOnly,
+      writable:
+        !client.bootConfig.readOnly && client.bootConfig.canBuild !== false,
     }),
     save: saveSchemaChanges,
     effective: (tag) => client.config.get(["tags", tag, "schema"], null),

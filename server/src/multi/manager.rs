@@ -512,7 +512,7 @@ impl MultiManager {
                         entry.runtime_api = false;
                     }
                     entry.runtime_api_explicit = true;
-                    if entry.role == super::config::MemberRole::Read
+                    if entry.role != super::config::MemberRole::Write
                         && previous
                             .members
                             .get(name)

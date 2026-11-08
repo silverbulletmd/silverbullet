@@ -67,6 +67,7 @@ end
 --- @param pageName? string default the current page
 --- @return table a markdown widget
 --- @see API/widgets
+--- @capabilities space:read widget:render
 function widgets.subPages(pageName)
   pageName = pageName or editor.getCurrentPage()
   return widget.markdown(table.concat(query[[

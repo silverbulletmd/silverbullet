@@ -27,6 +27,7 @@ struct ConfigResponse<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     default_font: Option<String>,
     share_owner_id: String,
+    can_build: bool,
 }
 
 pub(crate) async fn handle_config(
@@ -34,13 +35,16 @@ pub(crate) async fn handle_config(
     axum::Extension(actor): axum::Extension<crate::auth::Actor>,
     revision_access: Option<axum::Extension<crate::router::RevisionAccess>>,
 ) -> impl IntoResponse {
-    let writable = actor.level >= crate::auth::AccessLevel::Write;
+    let writable = actor.level >= crate::auth::AccessLevel::Edit;
+    let can_build = actor.level >= crate::auth::AccessLevel::Write;
     let mut boot_config = state.boot_config.clone();
     if revision_access.is_some_and(|access| !access.0 .0) {
         boot_config.revisions = silverbullet_server_common::RevisionsMode::Disabled;
     }
     if !writable {
         boot_config.read_only = true;
+    }
+    if !can_build {
         boot_config.shell_backend = "noop".into();
     }
     (
@@ -48,6 +52,7 @@ pub(crate) async fn handle_config(
         [("Cache-Control", "no-cache")],
         axum::Json(ConfigResponse {
             boot_config: &boot_config,
+            can_build,
             space_prefixes: state.space_prefixes.current(),
             default_font: state.default_font.current(),
             share_owner_id: silverbullet_server_common::revision::sha256_hex(
@@ -119,7 +124,7 @@ pub async fn handle_manifest(
     axum::Extension(actor): axum::Extension<crate::auth::Actor>,
 ) -> impl IntoResponse {
     let prefix = &state.host_url_prefix;
-    let eligible = actor.level >= crate::auth::AccessLevel::Write
+    let eligible = actor.level >= crate::auth::AccessLevel::Edit
         && !state.boot_config.read_only
         && !state.boot_config.enable_client_encryption
         && !state.boot_config.disable_service_worker;
@@ -285,6 +290,18 @@ mod tests {
         let body = config_for(crate::auth::AccessLevel::Read).await;
         assert_eq!(body["readOnly"], serde_json::json!(true));
         assert_eq!(body["shellBackend"], serde_json::json!("noop"));
+    }
+
+    #[tokio::test]
+    async fn editor_can_edit_but_cannot_build_or_run_shell() {
+        let body = config_for(crate::auth::AccessLevel::Edit).await;
+        assert_eq!(body["readOnly"], false);
+        assert_eq!(body["canBuild"], false);
+        assert_eq!(body["shellBackend"], "noop");
+        assert_eq!(
+            config_for(crate::auth::AccessLevel::Write).await["canBuild"],
+            true
+        );
     }
 
     #[tokio::test]

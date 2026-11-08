@@ -1,3 +1,4 @@
+import { isTrustedScriptPage } from "../../plug-api/lib/trusted_script_source.ts";
 import {
   getNameFromPath,
   parseToRef,
@@ -170,7 +171,10 @@ function lintYamlBlock(
  * Lint Lua code in fenced code blocks
  * @returns A list of LintDiagnostics for any errors found
  */
-export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
+export async function lintLua({
+  tree,
+  name,
+}: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FencedCode") {
@@ -179,6 +183,18 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
+      if (
+        (codeLang === "space-lua" || codeLang === "space-style") &&
+        !isTrustedScriptPage(name)
+      ) {
+        diagnostics.push({
+          from: codeInfo.from!,
+          to: codeInfo.to!,
+          severity: "error",
+          message: `${codeLang} blocks are only supported in Library/ or root CONFIG.md; this block is ignored.`,
+        });
+        return true;
+      }
       if (codeLang !== "space-lua" && codeLang !== "page-lua") {
         return true;
       }

@@ -317,11 +317,42 @@ fn render_with_heading_ids(text: &str, ids: Vec<Option<String>>) -> String {
                 *id = Some(original.into());
             }
         }
-        event
+        match event {
+            Event::Html(text) | Event::InlineHtml(text) => Event::Text(text),
+            Event::Start(
+                Tag::Link {
+                    ref mut dest_url, ..
+                }
+                | Tag::Image {
+                    ref mut dest_url, ..
+                },
+            ) => {
+                if !safe_url(dest_url) {
+                    *dest_url = "#".into();
+                }
+                event
+            }
+            _ => event,
+        }
     });
     let mut out = String::new();
     html::push_html(&mut out, events);
     out
+}
+
+fn safe_url(url: &str) -> bool {
+    let url = url.trim();
+    if url.chars().any(char::is_control) {
+        return false;
+    }
+    let prefix = url.split(['/', '?', '#', '\\']).next().unwrap_or("");
+    match prefix.split_once(':') {
+        Some((scheme, _)) => matches!(
+            scheme.to_ascii_lowercase().as_str(),
+            "http" | "https" | "mailto" | "tel"
+        ),
+        None => true,
+    }
 }
 
 #[cfg(test)]
@@ -334,6 +365,39 @@ mod tests {
 
     fn render_markdown(text: &str) -> String {
         render_with_heading_ids(text, heading_ids(text))
+    }
+
+    #[test]
+    fn stored_html_and_unsafe_links_cannot_execute_in_ssr() {
+        let html = render_page_markdown(
+            "# Heading\n\n<script>alert(1)</script>\n\n<img src=x onerror=alert(1)>\n\n[unsafe](javascript:alert%281%29) [encoded](java&#x73;cript:alert%281%29) ![image](data:text/html,payload) [[Home]]",
+            "Notes.md", None,
+        );
+        assert!(!html.contains("<script"), "{html}");
+        assert!(!html.contains("<img src=\"x\""), "{html}");
+        assert!(!html.contains("href=\"javascript:"), "{html}");
+        assert!(!html.contains("src=\"data:"), "{html}");
+        assert!(html.contains("&lt;script&gt;"), "{html}");
+        assert!(html.contains("id=\"Heading\""), "{html}");
+        assert!(html.contains("href=\"Home\""), "{html}");
+        for url in [
+            "javascript:alert(1)",
+            "JaVaScRiPt:alert(1)",
+            "java\nscript:alert(1)",
+            "data:text/html,x",
+            "vbscript:x",
+        ] {
+            assert!(!safe_url(url), "{url}");
+        }
+        for url in [
+            "https://example.test",
+            "/Page",
+            "#Heading",
+            "./Page",
+            "mailto:person@example.test",
+        ] {
+            assert!(safe_url(url), "{url}");
+        }
     }
 
     #[test]
@@ -545,8 +609,8 @@ mod tests {
             "Page.md",
             None,
         ));
-        assert!(html.contains("<code>[[Home]]</code>"), "{html}");
-        assert!(html.contains("<pre>[[Home]]</pre>"), "{html}");
+        assert!(html.contains("&lt;code&gt;[[Home]]&lt;/code&gt;"), "{html}");
+        assert!(html.contains("&lt;pre&gt;[[Home]]&lt;/pre&gt;"), "{html}");
         assert_eq!(html.matches("<a ").count(), 1, "{html}");
     }
 

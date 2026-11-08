@@ -27,7 +27,8 @@ export function configurationModel(client: Client): ConfigurationModel {
         commands,
         configText: await readConfigPage(),
         isMac: isMacLike,
-        writable: !client.bootConfig.readOnly,
+        writable:
+          !client.bootConfig.readOnly && client.bootConfig.canBuild !== false,
       };
     },
     save: saveManagedChanges,
@@ -52,6 +53,7 @@ export function registerConfigurationCommands(
     key: "Ctrl-,",
     mac: "Cmd-,",
     requireMode: "rw",
+    requireBuilder: true,
     menuMac: {
       location: "app",
       group: "2_prefs",
@@ -69,6 +71,7 @@ export function registerConfigurationCommands(
   hook.registerCommand({
     name: "Configuration: Keyboard Shortcuts",
     requireMode: "rw",
+    requireBuilder: true,
     menu: {
       location: "edit",
       group: "8_preferences",

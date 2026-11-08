@@ -253,14 +253,44 @@ test("an administrator creates a member and saves a space grant", async ({
   );
   await page.goto(`${sbServer.url}/.dashboard/${space.id}?section=access`);
   await page
-    .getByRole("checkbox", { name: "casey: Write", exact: true })
+    .getByRole("checkbox", { name: "casey: Builder", exact: true })
     .check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Saved");
   await page.reload();
   await expect(
-    page.getByRole("checkbox", { name: "casey: Write", exact: true }),
+    page.getByRole("checkbox", { name: "casey: Builder", exact: true }),
   ).toBeChecked();
   const saved = await adminApi(page, sbServer, "GET", `spaces/${space.id}`);
   expect(saved.members.casey.role).toBe("write");
+  await page
+    .getByRole("checkbox", { name: "casey: Builder", exact: true })
+    .uncheck();
+  await page
+    .getByRole("combobox", { name: "Public access" })
+    .selectOption("edit");
+  await expect(
+    page.getByRole("checkbox", { name: "casey: Editor", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "casey: Runtime API", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await expect(page.getByRole("status")).toHaveText("Saved");
+  await page.reload();
+  await expect(
+    page.getByRole("checkbox", { name: "casey: Editor", exact: true }),
+  ).toBeChecked();
+  await expect(
+    page.getByRole("checkbox", { name: "casey: Builder", exact: true }),
+  ).not.toBeChecked();
+  await expect(
+    page.getByRole("combobox", { name: "Public access" }),
+  ).toHaveValue("edit");
+  const edited = await adminApi(page, sbServer, "GET", `spaces/${space.id}`);
+  expect(edited.members.casey).toMatchObject({
+    role: "edit",
+    runtimeApi: false,
+  });
+  expect(edited.access).toBe("edit");
 });

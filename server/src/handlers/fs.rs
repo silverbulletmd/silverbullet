@@ -484,10 +484,19 @@ fn file_response_builder(
     if !last_modified.is_empty() {
         builder = builder.header(axum::http::header::LAST_MODIFIED, last_modified);
     }
-    if !force_octet_stream && !is_inline_file_content_type(real_content_type) {
+    let trusted_web_asset =
+        meta.name.starts_with("Library/") && is_inline_file_content_type(real_content_type);
+    if !force_octet_stream && !is_inline_safe(real_content_type) && !trusted_web_asset {
         builder = builder
             .header(axum::http::header::CONTENT_DISPOSITION, "attachment")
             .header(axum::http::header::X_CONTENT_TYPE_OPTIONS, "nosniff");
+        if is_inline_file_content_type(real_content_type) {
+            // Attachment alone does not stop a script subresource from executing.
+            builder.headers_mut().unwrap().insert(
+                axum::http::header::CONTENT_TYPE,
+                HeaderValue::from_static("application/octet-stream"),
+            );
+        }
     }
     builder
 }
@@ -588,6 +597,15 @@ fn precondition_failed_response(current: CurrentRevision) -> Response {
         .unwrap()
 }
 
+async fn can_mutate_file(state: &ServerState, actor: &Actor, path: &str) -> bool {
+    let level = actor.level;
+    let root = state.space_folder_path.clone();
+    let path = path.to_string();
+    run_blocking(move || Ok(crate::auth::access::can_mutate_file(level, &root, &path)))
+        .await
+        .unwrap_or(false)
+}
+
 pub async fn handle_fs_put(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
@@ -595,6 +613,14 @@ pub async fn handle_fs_put(
     headers: HeaderMap,
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
+    if !can_mutate_file(&state, &actor, &path).await {
+        return (
+            StatusCode::FORBIDDEN,
+            "Builder access required for this path",
+        )
+            .into_response();
+    }
+
     let meta = file_meta_from_headers(&headers, &path);
     let if_match = headers
         .get(axum::http::header::IF_MATCH)
@@ -675,6 +701,14 @@ pub async fn handle_fs_delete(
     Extension(actor): Extension<Actor>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
+    if !can_mutate_file(&state, &actor, &path).await {
+        return (
+            StatusCode::FORBIDDEN,
+            "Builder access required for this path",
+        )
+            .into_response();
+    }
+
     let if_match = headers
         .get(axum::http::header::IF_MATCH)
         .map(|v| v.to_str().unwrap_or("").to_string());
@@ -765,6 +799,14 @@ pub async fn handle_fs_reconcile(
     headers: HeaderMap,
     body: axum::body::Bytes,
 ) -> impl IntoResponse {
+    if !can_mutate_file(&state, &actor, &path).await {
+        return (
+            StatusCode::FORBIDDEN,
+            "Builder access required for this path",
+        )
+            .into_response();
+    }
+
     let attribution = WriteAttribution {
         actor,
         client_id: client_id_header(&headers),
@@ -1862,8 +1904,9 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(html.status(), StatusCode::PARTIAL_CONTENT);
-        assert!(html.headers().get("content-disposition").is_none());
-        assert!(html.headers().get("x-content-type-options").is_none());
+        assert_eq!(html.headers()["content-disposition"], "attachment");
+        assert_eq!(html.headers()["x-content-type-options"], "nosniff");
+        assert_eq!(html.headers()["content-type"], "application/octet-stream");
 
         let octets = router
             .oneshot(
@@ -2413,7 +2456,56 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn html_file_is_served_inline() {
+    async fn executable_assets_are_only_inline_from_builder_sources() {
+        let state = test_state();
+        for name in [
+            "Page.html",
+            "Script.js",
+            "Library/Page.html",
+            "Library/Script.js",
+        ] {
+            state.space.write_file(name, b"payload", None).unwrap();
+        }
+        let app = crate::build_router(Arc::new(state));
+        for name in [
+            "Page.html",
+            "Script.js",
+            "Library/Page.html",
+            "Library/Script.js",
+        ] {
+            for method in [axum::http::Method::GET, axum::http::Method::HEAD] {
+                let response = app
+                    .clone()
+                    .oneshot(
+                        Request::builder()
+                            .method(method)
+                            .uri(format!("/.fs/{name}"))
+                            .body(Body::empty())
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                assert_eq!(response.status(), StatusCode::OK);
+                if name.starts_with("Library/") {
+                    assert!(response.headers().get("Content-Disposition").is_none());
+                    assert_ne!(
+                        response.headers()["Content-Type"],
+                        "application/octet-stream"
+                    );
+                } else {
+                    assert_eq!(response.headers()["Content-Disposition"], "attachment");
+                    assert_eq!(
+                        response.headers()["Content-Type"],
+                        "application/octet-stream"
+                    );
+                    assert_eq!(response.headers()["X-Content-Type-Options"], "nosniff");
+                }
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn untrusted_html_is_downloaded_and_safe_images_remain_inline() {
         let state = test_state();
         state
             .space
@@ -2441,8 +2533,18 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(html_resp.status(), StatusCode::OK);
-        assert!(html_resp.headers().get("Content-Disposition").is_none());
-        assert!(html_resp.headers().get("X-Content-Type-Options").is_none());
+        assert_eq!(
+            html_resp.headers().get("Content-Disposition").unwrap(),
+            "attachment"
+        );
+        assert_eq!(
+            html_resp.headers().get("X-Content-Type-Options").unwrap(),
+            "nosniff"
+        );
+        assert_eq!(
+            html_resp.headers().get("Content-Type").unwrap(),
+            "application/octet-stream"
+        );
 
         let png_resp = app
             .clone()

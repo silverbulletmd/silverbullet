@@ -1,3 +1,4 @@
+import { isTrustedScriptObject } from "../plug-api/lib/trusted_script_source.ts";
 import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { Client } from "./client.ts";
 import { parseExpressionString } from "./space_lua/parse.ts";
@@ -43,17 +44,20 @@ export class SpaceStyles {
       return;
     }
 
-    const spaceStyles = await client.queryLuaObjects<StyleObject>(
+    const indexedStyles = await client.queryLuaObjects<StyleObject>(
       "space-style",
       {
         objectVariable: "_",
         orderBy: [{ expr: parseExpressionString("_.priority"), desc: true }],
       },
     );
-    if (!spaceStyles) {
+    if (!indexedStyles) {
       return;
     }
 
+    const spaceStyles = indexedStyles.filter((style) =>
+      isTrustedScriptObject(style, "space-style"),
+    );
     const customStylesContent = spaceStyles
       .map((s) => `<style>${s.style}</style>`)
       .join("\n\n");
