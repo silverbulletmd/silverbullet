@@ -5,7 +5,7 @@ references:
 - plugs/index/space_lua.ts
 - client/space_lua.ts
 ---
-Every `space-lua` block across your space is indexed with the `space-lua` tag. Upon client boot (or after using `System: Reload`), all space lua scripts are executed in sequence.
+Every `space-lua` block on a [[Tool Page]] is indexed with the `space-lua` tag. Blocks on other pages don’t run, so they aren’t indexed. Upon client boot (or after using `System: Reload`), all space lua scripts are executed in sequence.
 
 ## Field reference
 * `ref`: containing page and block position as `page@pos`.

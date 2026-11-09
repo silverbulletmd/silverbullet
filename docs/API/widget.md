@@ -32,9 +32,9 @@ A plain expression runs when the page opens, and again whenever something it rea
 ## Markdown widgets
 When setting a `markdown` key, or using the `widget.markdown` API, a markdown-based widget can be created.
 
-Install these example definitions in `space-lua` blocks in your own space. The `lua` fences here are inert.
+To use these example definitions, put them in `space-lua` blocks on a page under `Library/` in your own space.
 
-```lua
+```space-lua
 function helloWorld(name)
   return widget.markdown("Hello world, *" .. name .. "*!")
 end
@@ -51,7 +51,7 @@ After installing the definition in a `space-lua` block, this displays “Hello w
 ### Showing text without evaluating it
 Markdown widgets evaluate what they render: `${...}` expressions run, and `![[Page]]` pulls in other pages. When a widget shows text written by someone else (an imported note, a form entry, generated text), pass `evaluate = false`. The text is still rendered as Markdown (formatting, lists, links), but expressions and transclusions stay literal text:
 
-```lua
+```space-lua
 widget.markdownBlock(importedText, { evaluate = false })
 widget.new { markdown = importedText, evaluate = false }
 ```
@@ -61,7 +61,7 @@ For text placed inside HTML, escape it with `string.escapeHtml` instead.
 ## DOM widgets
 To render a custom HTML-based widget, use the [[API/dom]] elements passed as an argument to `widget.html`:
 
-```lua
+```space-lua
 function marquee(text)
   return widget.html(dom.marquee {
     class = "my-marquee",
@@ -80,6 +80,8 @@ We can combine this with some [[Space Style]] to style it:
   color: purple;
 }
 ```
+
+This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
 
 This can be used as follows:
 ```markdown
@@ -108,7 +110,7 @@ Inside the sandbox the script has access to:
 
 The widget’s `markdown` value (if set) is what **Copy as Markdown** copies and **Bake into page** writes — handy for exposing a scripted widget’s source. Without it the widget has neither. Sandboxed widgets render as a block.
 
-```lua
+```space-lua
 function clock()
   return widget.sandbox {
     html = [[<div id="t"></div>]],
@@ -209,7 +211,7 @@ ${widget.new {
 }}
 
 For live data, replace the static `source` with a query:
-```lua
+```space-lua
 source = function()
   return query [[
     from p = index.pages("project")
@@ -298,7 +300,7 @@ In client search mode, `segments[i].where(obj)` filters before fuzzy ranking. In
 ## Content functions
 For content instead of rows, pass `content(ctx)` to `widget.new`. It returns any value a `${...}` expression accepts: Markdown, a table or query result, a number, a fragment, a sandbox, a DOM node, or a nested list, tree or table widget. It re-runs when what it read changes. Add `refreshOn` for anything else.
 
-```lua
+```space-lua
 widget.new {
   content = function()
     return "## Current page\n\n" .. editor.getCurrentPage()
@@ -308,7 +310,7 @@ widget.new {
 
 A query becomes a table that follows the index:
 
-```lua
+```space-lua
 widget.new {
   content = function()
     return query [[from index.tag("task") where not _.done limit 5]]
@@ -354,7 +356,7 @@ Creates a composable inline widget for a short Markdown excerpt. It keeps emphas
 - `sourcePage` gives relative links their original context. Defaults to the current page.
 - `maxChars` limits visible characters, including the truncation ellipsis. Defaults to 160.
 
-```lua
+```space-lua
 "* " .. markdown.link(page.name) .. " " ..
   widget.markdownSummary(excerpt, { sourcePage = page.name })
 ```

@@ -22,7 +22,7 @@ Deletes multiple values from the key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 datastore.batchDelete({{"user", "1"}, {"user", "2"}})
 ```
 
@@ -41,7 +41,7 @@ Gets multiple values from the key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 local values = datastore.batchGet({{"user", "1"}, {"user", "2"}})
 ```
 
@@ -56,7 +56,7 @@ Sets multiple key-value entries in one operation.
 
 **Example:**
 
-```lua
+```space-lua
 datastore.batchSet({
   {key = {"user", "1"}, value = {name = "Alice"}},
   {key = {"user", "2"}, value = {name = "Bob"}},
@@ -74,7 +74,7 @@ Deletes a value from the key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 datastore.delete({"user", "123"})
 ```
 
@@ -93,7 +93,7 @@ Gets a value from the key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 local user = datastore.get({"user", "123"})
 ```
 
@@ -137,7 +137,7 @@ Sets a value in the key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 datastore.set({"user", "123"}, {name = "John"})
 ```
 <!--/lua-->

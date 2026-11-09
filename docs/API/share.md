@@ -101,7 +101,7 @@ After the built-in steps the `share:transform` services run (see below) when `ex
 Returns the `steps` table for a page: the `defaults` of the target, switched off for pages that are exempt, and for the steps `override` turns off. `override` is the page’s `share.transform` value: `false` switches every step off, a table such as `{bake = false}` switches the listed steps off. It can only turn steps off, never on. `extensions` is on unless the page is exempt or `override` is `false`.
 
 ## share.isExempt(name, text)
-Returns true for pages tagged `meta` or `meta/...`, such as library pages: they are published as they are apart from removing their `share.*` keys, with no step and no `share:transform` service applied.
+Returns true for Tool Pages (`CONFIG` and pages under `Library/`) and for pages tagged `meta` or `meta/...`, such as templates: they are published as they are apart from removing their `share.*` keys, with no step and no `share:transform` service applied.
 
 ## share.target(uri)
 Returns the descriptor of the provider that serves a URI, found through the `share:target:<uri>` services, or `share.genericTarget` when none claims it.
@@ -145,7 +145,7 @@ Share is extended through the [[API/service|service]] API.
 ## share:onboard
 Offers a way to share a page for the first time. These are the options listed by `Share: Page`. Register one with `match` fields `name` and `description` (shown in the list). `run(data)` receives `{name, text, content}`: the page name, its text, and `content`, the text a push would send (transformed for a generic target, so a provider that uploads during onboarding doesn’t publish comments or `share.*` keys, `ctx.uri` is not set during this transform). When that transform fails, `Share: Page` reports the error and offers no providers. It returns `{uri, mode}` to set up the frontmatter, or nil when cancelled. A `hash` in the result is ignored. `Share: Page` then shares the page as usual, which uploads it in `push` mode. A provider doesn’t need to upload it itself. When that first share fails, the `share.*` keys are taken out again, so the page stays unshared.
 
-```lua
+```space-lua
 service.define {
   selector = "share:onboard",
   match = {name = "My service", description = "Share this page to my service"},
@@ -169,7 +169,7 @@ Describes how a location wants the pages published to it. A provider registers a
 ## share:transform
 Extends `share.transform` with your own step. Register a service with `match = {name = "...", order = n}`. `run({text, ctx})` returns the new text (`ctx` is described at [[#share.transform(text, ctx)]]). Services run after the built-in steps in ascending `order` (100 when not set) and are skipped for exempt pages and for pages with `share.transform: false`. A service that returns `nil` leaves the text as it is. Returning anything other than text is an error.
 
-```lua
+```space-lua
 service.define {
   selector = "share:transform",
   match = {name = "Remove todos", order = 200},

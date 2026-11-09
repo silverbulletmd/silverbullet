@@ -10,7 +10,7 @@ Page templates create pages from a reusable blueprint. Expressions in the templa
 # Creating a page template
 1. Run the `Page: From Template` command
 2. Select “Page Template”
-3. Pick a name. The last component of the page name will be used as the template name.
+3. Pick a name. The last component of the page name will be used as the template name. Keep templates under `Library/`, such as `Library/Page Templates/Daily Note`, so they count as [[Tool Page|tool pages]] and stay out of the page picker. A template elsewhere still works, but shows up as regular content.
 4. Edit its body and frontmatter, then run `System: Reload` to register any command or shortcut.
 
 ## Cursor placement

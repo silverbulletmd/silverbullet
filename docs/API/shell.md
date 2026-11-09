@@ -24,12 +24,12 @@ Runs a shell command on the server and returns its output.
 
 **Examples:**
 
-```lua
+```space-lua
 local result = shell.run("ls", {"-l"})
 print(result.stdout)
 ```
 
-```lua
+```space-lua
 local result = shell.run("cat", {}, "hello")
 print(result.stdout)
 ```

@@ -1,6 +1,3 @@
----
-tags: meta
----
 Widgets, styles and navigation for the docs.silverbullet.md site and Desktop’s built-in Help.
 
 ```space-lua
@@ -138,7 +135,7 @@ docsNav.sections = {
         { ref = "Linked Mention" },
         { ref = "Linked Tasks" },
         { ref = "Page Picker" },
-        { ref = "Meta Picker" },
+        { ref = "Tool Picker" },
         { ref = "Anything Picker" },
         { ref = "Tag Picker" },
         { ref = "File Tree" },
@@ -237,7 +234,7 @@ docsNav.sections = {
         { ref = "Repository" },
         { ref = "Plugs" },
         { ref = "Document Editor" },
-        { ref = "Meta Page" },
+        { ref = "Tool Page" },
         { ref = "Library/Std/Config", label = "Configuration options" },
       },
     },
@@ -443,17 +440,27 @@ view.define {
 ```
 
 # Moved pages
-Pages that moved keep their old links (from outside the site) working: the old name opens a stub pointing at the new page, and the client jumps there right away. On a fresh client, the jump waits until the first indexing pass has loaded this script.
+Pages that moved keep their old links (from outside the site) working: the old name opens a stub pointing at the new page, and the client jumps there right away. A key ending in `/` moves every page under that prefix; any other key moves that one page.
 
 ```space-lua
 docsRedirects = {
   ["Object/"] = "Tag/",
+  ["Meta Page"] = "Tool Page",
+  ["Meta Picker"] = "Tool Picker",
 }
+
+local function isPrefix(from)
+  return from:endsWith("/")
+end
 
 local function movedTo(pageName)
   for from, to in pairs(docsRedirects) do
-    if pageName:startsWith(from) then
-      return to .. pageName:sub(#from + 1)
+    if isPrefix(from) then
+      if pageName:startsWith(from) then
+        return to .. pageName:sub(#from + 1)
+      end
+    elseif pageName == from then
+      return to
     end
   end
 end
@@ -463,13 +470,17 @@ end
 local movedHash = ""
 
 for from, to in pairs(docsRedirects) do
+  local escaped = from:gsub("%p", "%%%0")
   virtualPage.define {
-    pattern = "^" .. from:gsub("%p", "%%%0") .. "(.+)$",
+    pattern = "^" .. escaped .. (isPrefix(from) and "(.+)$" or "$"),
     run = function(rest)
       local state = js.window.history.state
       local details = state and state.details
       movedHash = details and details.type == "header"
         and "#" .. details.header or ""
+      if not isPrefix(from) then
+        rest = ""
+      end
       return "This page moved to " .. markdown.link(to .. rest) .. "."
     end,
   }
@@ -488,8 +499,8 @@ event.listen {
   end,
 }
 
--- On a fresh client the page opens before indexing has loaded this script,
--- so neither the stub nor the listener existed yet: catch up now
+-- The first page can open before this script has run, so neither the stub
+-- nor the listener existed yet: catch up now
 local target = movedTo(editor.getCurrentPage() or "")
 if target then
   editor.navigate(target, true)

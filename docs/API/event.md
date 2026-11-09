@@ -24,7 +24,7 @@ Dispatches an event and collects responses from its listeners.
 
 **Example:**
 
-```lua
+```space-lua
 local responses = event.dispatch("data.request", {id = 123})
 ```
 
@@ -48,7 +48,7 @@ Registers a Space Lua listener on the event bus.
 
 **Example:**
 
-```lua
+```space-lua
 event.listen { name = "my-event", run = function(e) print(e.data) end }
 ```
 <!--/lua-->

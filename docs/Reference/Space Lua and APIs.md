@@ -10,7 +10,7 @@ Language syntax, extension mechanisms and callable APIs.
 * [[Command]], [[Template]], [[Widget]], [[View]] and [[Virtual Pages]] — reusable actions and generated content.
 * [[Space Style]], [[Page Decorations]], [[Event]] and [[Service]] — presentation and extension hooks.
 * [[Extensions]], [[Library]], [[Repository]], [[Plugs]] and [[Document Editor]] — extension mechanisms.
-* [[Meta Page]], [[CONFIG]] and [[^Library/Std/Config|Configuration options]] — configuration pages and options.
+* [[Tool Page]], [[CONFIG]] and [[^Library/Std/Config|Configuration options]] — configuration pages and options.
 
 
 # API

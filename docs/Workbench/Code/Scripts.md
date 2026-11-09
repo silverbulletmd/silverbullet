@@ -5,7 +5,7 @@ aliases:
 references:
 - client/workbench/scripts/**
 ---
-The **Space Lua** section of the [[Workbench/Code|Code]] tab lists every `space-lua` block in your space, in the order SilverBullet loads them: by priority, highest first (see [[Space Lua#Definition loading]]).
+The **Space Lua** section of the [[Workbench/Code|Code]] tab lists every `space-lua` block on a [[Tool Page]] in your space, in the order SilverBullet loads them: by priority, highest first, then by page name and position (see [[Space Lua#Definition loading]]).
 
 ${widgets.commandButton("Workbench: Scripts")} opens the [[Workbench]] on this section.
 
@@ -17,7 +17,7 @@ Each row shows:
 Scripts that failed to load show their error right below the row, with the same message, marked line and clickable stack as in the console. To narrow the list, use the filter field and two sets of buttons, each showing counts:
 
 * **All**, **Custom** and **Built-in**: where scripts come from. Built-in scripts ship with SilverBullet, on `Library/Std` pages. Everything else is custom, including libraries you installed.
-* **All**, **Loaded**, **Failed** and **Quarantined**: how loading went.
+* **All**, **Loaded**, **Failed**, **Quarantined** and **Boot**: how loading went, and which scripts are boot blocks. Boot blocks run early, before the client starts, and also carry a small `boot` marker in their row.
 
 The footer shows how many scripts there are, how long loading them took in total, and when they last loaded.
 

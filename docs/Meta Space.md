@@ -15,8 +15,8 @@ When you open a space that has the meta space underlaid:
 * They are **read-only** — to edit them you switch to the meta space itself, where they behave like normal pages.
 * If a file in your own space has the same name as a meta-space file, your own version wins. The meta space is a fallback, not an override.
 
-# CONFIG.md and METACONFIG.md
-The meta space contains an ordinary `CONFIG` page and any other page. When the meta space is underlaid into another space, the space files are merged (where the meta space’s `CONFIG` page is renamed to `METACONFIG` to avoid clashes with local `CONFIG` changes). Since SilverBullet will load `space-lua` from anywhere in the space, both will be activated.
+# CONFIG.md and Library/METACONFIG.md
+The meta space contains an ordinary `CONFIG` page and any other page. When the meta space is underlaid into another space, the space files are merged (where the meta space’s `CONFIG` page shows up as `Library/METACONFIG` to avoid clashes with local `CONFIG` changes). It lives under `Library/` because SilverBullet only runs `space-lua` and `space-style` from pages under `Library/` and from `CONFIG`. That is also why both your local `CONFIG` and `Library/METACONFIG` are activated.
 
 # Setting it up
 1. Create a new space, for example one called `META`.
@@ -24,7 +24,7 @@ The meta space contains an ordinary `CONFIG` page and any other page. When the m
 3. Open the SilverBullet Desktop dashboard and go to the **Pro** tab.
 4. Under **Meta space**, pick `META` from the dropdown.
 
-All _other_ spaces will now load the meta space as well (you may have to reopen some windows). In each you will see a `METACONFIG.md` and library files appear in the file list.
+All _other_ spaces will now load the meta space as well (you may have to reopen some windows). In each you will see a `Library/METACONFIG.md` and library files appear in the file list.
 
 To switch which space is your meta space, just pick a different one from the dropdown. To turn the feature off, pick `<None>`.
 

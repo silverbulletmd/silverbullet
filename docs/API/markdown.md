@@ -25,7 +25,7 @@ Re-evaluates all baked Lua sections in Markdown text. Sections that error or onl
 
 **Example:**
 
-```lua
+```space-lua
 local text = "Total: <!--#lua 1 + 2 -->\nold\n<!-- /lua -->"
 print(markdown.bakeSections(text))
 ```
@@ -47,7 +47,7 @@ Expands Markdown transclusions, Lua directives, and task references. Directive r
 
 **Example:**
 
-```lua
+```space-lua
 local expanded = markdown.expandMarkdown("This is some Lua: ${1 + 2}")
 ```
 
@@ -67,11 +67,11 @@ Markdown for a wiki link: to a page, to an object by its ref, or to a page or re
 
 **Example:**
 
-```lua
+```space-lua
 markdown.link(p)
 ```
 
-```lua
+```space-lua
 markdown.link("Books/Dune", "Dune")
 ```
 
@@ -91,7 +91,7 @@ Renders Markdown text to HTML.
 
 **Example:**
 
-```lua
+```space-lua
 local html = markdown.markdownToHtml("# Title")
 ```
 
@@ -111,7 +111,7 @@ Formats a list of objects as a Markdown table.
 
 **Example:**
 
-```lua
+```space-lua
 local tableText = markdown.objectsToTable({{name = "Pete", age = 20}})
 ```
 
@@ -130,7 +130,7 @@ Parses Markdown text into a syntax tree.
 
 **Example:**
 
-```lua
+```space-lua
 local tree = markdown.parseMarkdown("# Title")
 ```
 
@@ -149,7 +149,7 @@ Renders a Markdown syntax tree back to source text.
 
 **Example:**
 
-```lua
+```space-lua
 local tree = markdown.parseMarkdown("# Title")
 print(markdown.renderParseTree(tree))
 ```

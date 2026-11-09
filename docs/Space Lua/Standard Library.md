@@ -33,7 +33,7 @@ The following functions are available globally (no module prefix needed):
 
 `some()` is particularly useful in templates and queries for handling missing data gracefully:
 
-```lua
+```space-lua
 print(some("hello"))       -- hello
 print(some(""))            -- nil
 print(some({}))            -- nil

@@ -12,7 +12,7 @@ Signing in uses the `github` provider of [[API/auth|auth]], which runs the devic
 * `github.clientId`: client ID of your own Github OAuth app (device flow enabled), used instead of the default one for signing in.
 * `github.name` and `github.email`: author of commits made when sharing to repositories.
 
-```lua
+```space-lua
 config.set("github.token", "your token")
 config.set("github.clientId", "your client id")
 ```

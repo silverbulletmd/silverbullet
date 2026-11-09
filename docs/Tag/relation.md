@@ -52,7 +52,7 @@ ${query[[
 ## Deprecated: the `link` view
 Older spaces query links via `index.links()` or `index.objects("link")`. Both still work: they return a view over relations of kind `mention`, reshaped into the old link format (`toPage`, `toFile` or `toURL`, depending on the target). New queries should use `index.relations()` instead:
 
-```lua
+```space-lua
 -- Which pages link to MyPage?
 query[[from r = index.relations("mention") where r.to == "MyPage" select r.page]]
 ```

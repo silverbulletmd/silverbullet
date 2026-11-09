@@ -19,7 +19,7 @@ Returns the SilverBullet instance’s base URL, or `nil` when run on the server.
 
 **Example:**
 
-```lua
+```space-lua
 local url = spacelua.baseUrl()
 print(url)
 ```
@@ -39,7 +39,7 @@ Returns structured documentation for a Lua function value or dotted API name.
 
 **Example:**
 
-```lua
+```space-lua
 local info = spacelua.describe(editor.getText)
 print(info.name, info.kind, info.see)
 
@@ -62,7 +62,7 @@ Evaluates a parsed Lua expression, optionally with additional environment values
 
 **Example:**
 
-```lua
+```space-lua
 local parsed = spacelua.parseExpression("x + y")
 local result = spacelua.evalExpression(parsed, {x = 1, y = 2})
 print(result)
@@ -84,7 +84,7 @@ Interpolates `${...}` Lua expressions in a string, optionally with additional en
 
 **Example:**
 
-```lua
+```space-lua
 local greeting = spacelua.interpolate("Hello ${name}!", {name = "Pete"})
 print(greeting)
 ```
@@ -104,7 +104,7 @@ Lists documented functions in the global environment or an API namespace.
 
 **Example:**
 
-```lua
+```space-lua
 for info in each(spacelua.listFunctions("editor")) do
   print(info.name, info.description or info.see)
 end
@@ -125,7 +125,7 @@ Parses a Lua chunk and returns its AST. Blocks retain comments in source order w
 
 **Example:**
 
-```lua
+```space-lua
 local parsed = spacelua.parseBlock("local x = 1\nreturn x + 2")
 ```
 
@@ -144,7 +144,7 @@ Parses a Lua expression and returns its AST.
 
 **Example:**
 
-```lua
+```space-lua
 local parsed = spacelua.parseExpression("1 + 1")
 ```
 
@@ -164,7 +164,7 @@ Pretty-prints a parsed Lua block AST. Comments are preserved while their placeme
 
 **Example:**
 
-```lua
+```space-lua
 local formatted = spacelua.prettyPrintBlock(spacelua.parseBlock("if a then return 1 end"))
 print(formatted)
 ```
@@ -185,7 +185,7 @@ Pretty-prints a parsed Lua expression AST.
 
 **Example:**
 
-```lua
+```space-lua
 local parsed = spacelua.parseExpression("{a=1,b=2}")
 print(spacelua.prettyPrintExpression(parsed))
 ```

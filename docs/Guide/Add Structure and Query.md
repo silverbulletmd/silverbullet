@@ -69,7 +69,6 @@ Return to your index page with the home button. In a new space this is `index`. 
 Click **Insert at cursor** in Workbench, then close the panel. The table now appears below `Outings`. Its rows come from the original pages, so you can open an outing from the result rather than maintaining a second copy.
 
 ![The index page shows the two outing pages in a table under Outings.](../Screenshots/outing-query-index.png)
-
 Try changing `Woodland Hike`’s status to `completed`, then return to the index page. After saving and indexing, its row should show the new status. You can change it back to `planned` to restore the example.
 
 To adjust the list later, open its ⋯ menu and choose **Edit in query builder**. Workbench opens the existing query and offers **Update page**. Use that to save changes instead of inserting another copy.

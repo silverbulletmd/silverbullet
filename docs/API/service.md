@@ -18,7 +18,7 @@ Defines a service that can be discovered by selector.
 
 **Example:**
 
-```lua
+```space-lua
 service.define { selector = "greeter", match = {}, run = function(name) return "Hello " .. name end }
 ```
 
@@ -66,7 +66,7 @@ Discovers and invokes the highest-priority matching service.
 
 **Example:**
 
-```lua
+```space-lua
 local greeting = service.invokeBestMatch("greeter", "Pete")
 ```
 <!--/lua-->
@@ -80,7 +80,7 @@ Services are built on top of [[Event|Events]]. When a service is defined, it reg
 Discovery broadcasts on the event bus and collects all matches, sorted by priority. Invocation calls the specific service’s `run` callback.
 
 # Example
-```lua
+```space-lua
 service.define {
   selector = "greeter-service",
   match = {},
@@ -104,5 +104,5 @@ service.define {
 }
 ```
 
-Install the definitions in a `space-lua` block in your space, then evaluate `service.invokeBestMatch("greeter-service", "Pete")` in [[Workbench/Console]] to get `Hello Pete, so happy to see you!`. Passing `"Hank"` returns `Hello Hank`.
+Install the definitions in a `space-lua` block on a page under `Library/` in your space, then evaluate `service.invokeBestMatch("greeter-service", "Pete")` in [[Workbench/Console]] to get `Hello Pete, so happy to see you!`. Passing `"Hank"` returns `Hello Hank`.
 

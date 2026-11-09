@@ -12,7 +12,7 @@ Enables customization of [[Tag|tags]] and its [[Object|objects]] in a few ways:
 * Tweak styling of tags in the editor using [[Space Style]]
 
 > **success** Success
-> Put all your `tag.define` calls in your [[CONFIG]] page so that they will be picked up during the index process.
+> Put all your `tag.define` calls in your [[CONFIG]] page so that they will be picked up during the index process. In a library page under `Library/`, put a `-- boot: true` comment line in the `space-lua` block that calls `tag.define` to get the same effect.
 
 # API
 ## tag.define(spec)
@@ -36,14 +36,14 @@ When `tag.define` is called multiple times with the same `name`, the specs will 
 ## tag.setRequired(name, attribute, required)
 Makes `attribute` required (`true`) or optional (`false`) in the schema of tag `name`, keeping its other required attributes. Because it runs each time configuration loads, it extends a schema defined elsewhere (a built-in tag, a library) without freezing that schema's own required list. The [[Workbench]] writes these calls when you change whether an attribute is required.
 
-```lua
+```space-lua
 tag.setRequired("page", "category", true)
 ```
 
 # Use cases
 ## Schema validation
 To define a [[Schema]] for validating an object (e.g. a page) tagged with `#person` ensuring that the `age` attribute is always a number, you can do the following:
-```lua
+```space-lua
 tag.define {
   name = "person",
   -- mustValidate = true,
@@ -77,7 +77,7 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
 ### Example: computing [[Page Decorations]]
 For a fixed decoration on every page with a tag, use the `pageDecoration` field instead. A `transform` can compute one from the page itself, here a status dot for pages tagged `#proposal`:
 
-```lua
+```space-lua
 tag.define {
   name = "proposal",
   transform = function(o)
@@ -103,7 +103,7 @@ And we’d like the `name` attribute to be cleaned from the deadline syntax.
 
 This can be implemented by defining a custom `transform` for tasks:
 
-```lua
+```space-lua
 local deadlinePattern = "📅%s*(%d%d%d%d%-%d%d%-%d%d)"
 
 tag.define {
@@ -147,7 +147,7 @@ A tag can replace the YAML of its objects with a custom widget in the editor, e.
 
 `ctx` is the [[#Render context|render context]]: the raw YAML (`ctx.values`, `ctx.types`, `ctx.keys`), `ctx.kind`, `ctx.readOnly`, and `ctx.set`, `ctx.remove` and `ctx.move` to change it. See [[#Render context]] for the field contracts and an editable card example.
 
-```lua
+```space-lua
 tag.define {
   name = "team",
   renderFrontmatter = function(pageMeta)
@@ -176,7 +176,7 @@ A ` ```#name ` block shows one widget per YAML document (documents are separated
 
 A block whose YAML doesn’t parse, or isn’t a key/value mapping, shows its source. Step 3 is the default form. The `liveEdit.dataBlocks` setting (**Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]]) turns it off, and so does `tag.define { name = "data", renderDataBlock = config.unset }`. Steps 1 and 2 apply either way.
 
-```lua
+```space-lua
 tag.define {
   name = "contact",
   renderDataBlock = function(contact, ctx)
@@ -201,6 +201,8 @@ a[data-tag-name="my-red-tag"] {
   background-color: red;
 }
 ```
+
+This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
 
 # Render context
 An object’s YAML is shown by a render hook from the object’s [[API/tag|tag]]:
@@ -236,7 +238,7 @@ What you can rely on:
 ## Editable card example
 A compact card for ` ```#contact ` data blocks, with an editable email and a checkbox:
 
-```lua
+```space-lua
 tag.define {
   name = "contact",
   renderDataBlock = function(contact, ctx)

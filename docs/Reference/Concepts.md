@@ -3,7 +3,7 @@ The building blocks of a SilverBullet space: pages, files, links, tasks and reus
 # Pages and files
 * [[Tag]] — categories for pages and other indexed objects, with a catalog of tag fields.
 * [[Space]] and [[Index Page]] — the workspace and its starting page.
-* [[Page]], [[Document]], [[Folder]] and [[Meta Page]] — content in a space and how it is stored.
+* [[Page]], [[Document]], [[Folder]] and [[Tool Page]] — content in a space and how it is stored.
 * [[Aspiring Pages]], [[Names]] and [[Paths]] — pages not yet created, naming rules and file locations.
 
 # Links and transclusions

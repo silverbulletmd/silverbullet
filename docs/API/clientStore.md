@@ -18,7 +18,7 @@ Deletes a client-specific value from the local key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 clientStore.delete("theme")
 ```
 
@@ -37,7 +37,7 @@ Gets a client-specific value from the local key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 local theme = clientStore.get("theme")
 ```
 
@@ -53,7 +53,7 @@ Stores a client-specific value in the local key-value store.
 
 **Example:**
 
-```lua
+```space-lua
 clientStore.set("theme", "dark")
 ```
 <!--/lua-->

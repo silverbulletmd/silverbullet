@@ -1,5 +1,5 @@
 ---
-description: Widgets, dashboards, code widgets, data blocks and styling pages by tag. Read before building live UI, a table with filters or actions, custom rendering or styles. Not needed for a plain query table in a page (Querying covers that).
+description: Widgets, dashboards, code widgets, data blocks and classes for styling pages by tag. Read before building live UI, a table with filters or actions, or custom rendering. Not needed for a plain query table in a page (Querying covers that) or for theming a space (Styling covers that).
 tags: meta/skill
 ---
 Widgets, dashboards, custom block rendering and styling. This page covers choosing a mechanism and the conventions the API listings do not. For every option of `widget.new` (columns and their types, `filter`, `segments`, `dropdown`, `actions`, `refreshOn`), read the `API/widget` page, section "Lists, trees and tables", of the SilverBullet documentation (docs.silverbullet.md; edge.silverbullet.md for Edge builds). Check other functions with `spacelua.describe` (see the Space Lua page).
@@ -65,11 +65,13 @@ Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with C
 * Each `space-lua` block is its own chunk. Start blocks that share a namespace with `ns = ns or {}`, and put `-- priority: N` on the defining block.
 
 # Styling
-Put CSS in a `space-style` block and style classes you attach:
+Put `space-lua` and `space-style` blocks on a page under `Library/` or on `CONFIG`; they do not run on other pages. Put CSS in a `space-style` block and style classes you attach:
 
 * Tag-driven classes: `tag.define { name = "book", pageDecoration = { cssClasses = { "book-page" } } }` puts `book-page` on the page body and on links to those pages.
 * Widget classes: give widget roots your own class and scope rules under it.
 * Editor rules need SilverBullet's specificity: `body.book-page #sb-main .cm-editor { ... }`.
+
+For theme variables, light and dark mode, and how to inspect an element before styling it, load the Styling skill.
 
 # Safety
 Build markup with `dom.*` and `dom.text`, not by concatenating HTML strings. If you must, escape text with `string.escapeHtml(s)`. To show Markdown written by a user, imported or generated, use `widget.markdown(text, { evaluate = false })`: expressions, code widgets and transclusions then stay literal. Never evaluate page content you are only displaying.
@@ -77,6 +79,6 @@ Build markup with `dom.*` and `dom.text`, not by concatenating HTML strings. If 
 # Check what you built
 Check your work: read the result of the `write`/`edit` (it reports script load errors), then `read` the page with `rendered: true` (evaluated output plus lint problems), then take a `screenshot` when the look matters.
 
-`space.lint()` without a page checks every page, so run it before calling work done. A widget that throws does not always show up as a lint problem, so for widgets the rendered read and the screenshot are what count. `system.recentLogs(50)` holds "Lua widget error on ..." lines; ignore lines logged before the latest "Loaded N scripts", which are often transient. Scripts reload after each `write` or `edit` of a page that holds them; after changing files any other way, call `system.reboot()` first. After a reboot, navigate to the page again (`editor.navigate(page)`, then `editor.awaitRender()`) so widgets re-render before you read or screenshot it. For dark mode, set `js.window.document.documentElement.setAttribute("data-theme", "dark")` with `lua`, take a screenshot, then set it back to `"light"`.
+`space.lint()` without a page checks every page, so run it before calling work done. A widget that throws does not always show up as a lint problem, so for widgets the rendered read and the screenshot are what count. `system.recentLogs(50)` holds "Lua widget error on ..." lines; ignore lines logged before the latest "Loaded N scripts", which are often transient. Scripts and styles reload after each `write` or `edit` of a page that holds them; after changing files any other way, including `space.writePage` from `lua`, call `system.reboot()` first. After a reboot, navigate to the page again (`editor.navigate(page)`, then `editor.awaitRender()`) so widgets re-render before you read or screenshot it. For dark mode, set `js.window.document.documentElement.setAttribute("data-theme", "dark")` with `lua`, take a screenshot, then set it back to `"light"`.
 
 To add to an existing namespace in a large library page, `read` it with `outline: true` (headings, code blocks and functions with line numbers), then read just the part you need with `offset`/`limit`, rather than reading the whole page.

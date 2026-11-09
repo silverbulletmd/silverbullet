@@ -10,7 +10,7 @@ The full API reference is at [[API/js]].
 # Accessing browser APIs
 Use `js.window` to access the browser’s `window` object:
 
-```lua
+```space-lua
 -- Get the current URL
 local url = js.window.location.href
 
@@ -23,7 +23,7 @@ end, 3000)
 # Importing JavaScript modules
 Use `js.import` to load JavaScript modules from URLs (typically via CDNs like esm.sh):
 
-```lua
+```space-lua
 local lodash = js.import("https://esm.sh/lodash@4.17.21")
 local chunks = lodash.chunk({1, 2, 3, 4, 5, 6}, 2)
 print(js.stringify(chunks))  -- [[1,2],[3,4],[5,6]]
@@ -38,14 +38,14 @@ Lua tables and JavaScript objects/arrays are different types. Space Lua converts
 # Creating JavaScript objects
 Use `js.new` to instantiate JavaScript classes:
 
-```lua
+```space-lua
 local obj = js.new(SomeConstructor, arg1, arg2)
 ```
 
 # Async transparency
 Space Lua handles JavaScript promises transparently. When a JavaScript function returns a Promise, Space Lua automatically awaits it — you don’t need to write any special async/await code:
 
-```lua
+```space-lua
 -- This just works, even though fetch() returns a Promise
 local response = js.window.fetch("https://api.example.com/data")
 ```
@@ -53,7 +53,7 @@ local response = js.window.fetch("https://api.example.com/data")
 # Iterating JavaScript async iterables
 Use `js.eachIterable` to iterate over JavaScript async iterables:
 
-```lua
+```space-lua
 for value in js.eachIterable(someAsyncIterable) do
   print(value)
 end
@@ -62,7 +62,7 @@ end
 # Logging
 Use `js.log` to write to the browser’s developer console:
 
-```lua
+```space-lua
 js.log("Debug:", {name = "test", count = 42})
 ```
 

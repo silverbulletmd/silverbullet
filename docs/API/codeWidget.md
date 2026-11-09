@@ -25,7 +25,7 @@ Refreshes all code widgets on the current page that support refreshing.
 
 **Example:**
 
-```lua
+```space-lua
 codeWidget.refreshAll()
 ```
 

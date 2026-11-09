@@ -18,7 +18,7 @@ Raises an error when a value is falsy. Otherwise completes successfully.
 
 **Example:**
 
-```lua
+```space-lua
 assert(user ~= nil, "user is required")
 ```
 
@@ -50,7 +50,7 @@ Returns a Space Lua iterator over array-like values without yielding indices.
 
 **Example:**
 
-```lua
+```space-lua
 for fruit in each({"apple", "banana"}) do
   print(fruit)
 end
@@ -99,7 +99,7 @@ Returns an iterator over consecutive integer keys starting at 1 and stopping at 
 
 **Example:**
 
-```lua
+```space-lua
 for i, fruit in ipairs({"apple", "banana"}) do
   print(i, fruit)
 end
@@ -155,7 +155,7 @@ Returns an iterator over all table key-value pairs, respecting `__pairs`.
 
 **Example:**
 
-```lua
+```space-lua
 for key, value in pairs({name = "Ada", age = 36}) do
   print(key, value)
 end
@@ -180,7 +180,7 @@ Calls a function in protected mode and returns a success flag followed by result
 
 **Example:**
 
-```lua
+```space-lua
 local ok, result = pcall(function() return mightFail() end)
 ```
 
@@ -197,7 +197,7 @@ Prints string representations of its arguments to the runtime log.
 
 **Example:**
 
-```lua
+```space-lua
 print("Hello, world!")
 ```
 
@@ -267,7 +267,7 @@ Sets a table key without invoking `__newindex` and returns the table.
 
 **Example:**
 
-```lua
+```space-lua
 local t = setmetatable({}, {__newindex = function() error("blocked") end})
 rawset(t, "name", "Ada")
 ```
@@ -322,7 +322,7 @@ Returns `nil` for empty Space Lua values and otherwise returns the value unchang
 
 **Example:**
 
-```lua
+```space-lua
 print(some("  ") or "empty")
 print(some({}) or "empty")
 print(some(0))
@@ -347,7 +347,7 @@ Converts a number or numeric string to a Lua number, optionally in a base from 2
 
 **Example:**
 
-```lua
+```space-lua
 print(tonumber("2a", 16)) -- 42
 ```
 
@@ -401,7 +401,7 @@ Calls a function in protected mode and transforms any error with an error handle
 
 **Example:**
 
-```lua
+```space-lua
 local ok, message = xpcall(riskyOperation, function(err)
   return "Operation failed: " .. tostring(err)
 end)

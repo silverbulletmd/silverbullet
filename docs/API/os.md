@@ -51,7 +51,7 @@ Formats a timestamp as a date string or date table, optionally in UTC.
 
 **Example:**
 
-```lua
+```space-lua
 print(os.date("%Y-%m-%d"))
 local utc = os.date("!*t")
 ```
@@ -86,7 +86,7 @@ Returns the current Unix timestamp or one built from a local date table.
 
 **Example:**
 
-```lua
+```space-lua
 local timestamp = os.time({year = 2020, month = 1, day = 1})
 ```
 <!--/lua-->

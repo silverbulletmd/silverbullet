@@ -69,7 +69,7 @@ ${query[[
 ]]}
 
 ## Filter groups by key value
-Only show the group where `name` is “meta”:
+Only show the group where `name` is “glossary”:
 
 ${query[[
   from
@@ -77,7 +77,7 @@ ${query[[
   group by
     name
   having
-    name == "meta"
+    name == "glossary"
 ]]}
 
 ${query[[
@@ -86,7 +86,7 @@ ${query[[
   group by
     t.name
   having
-    t.name == "meta"
+    t.name == "glossary"
 ]]}
 
 ## Multi-key having
@@ -265,7 +265,7 @@ ${query [[
   group by
     name
   having
-    key == 'meta'
+    key == 'glossary'
 ]]}
 
 ## Access `key` table for multi-key
@@ -277,6 +277,6 @@ ${query [[
     name,
     parent
   having
-    key[1] == 'meta' and
+    key[1] == 'glossary' and
     key[2] == 'page'
 ]]}

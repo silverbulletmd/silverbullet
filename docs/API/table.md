@@ -40,7 +40,7 @@ Finds the first array element accepted by a predicate and returns its index and 
 
 **Example:**
 
-```lua
+```space-lua
 local index, value = table.find({1, 2, 3, 4}, function(n) return n % 2 == 0 end)
 ```
 
@@ -72,7 +72,7 @@ Inserts a value at a position, shifting later elements, or appends it when no po
 
 **Example:**
 
-```lua
+```space-lua
 local fruits = {"apple", "orange"}
 table.insert(fruits, 2, "banana")
 print(table.concat(fruits, ", "))
@@ -172,7 +172,7 @@ Sorts a table in place using ascending order or an optional comparison function.
 
 **Example:**
 
-```lua
+```space-lua
 local numbers = {3, 1, 2}
 table.sort(numbers, function(a, b) return a > b end)
 ```
@@ -194,7 +194,7 @@ Returns the table values from index `i` through `j` as separate results.
 
 **Example:**
 
-```lua
+```space-lua
 local second, third = table.unpack({"a", "b", "c"}, 2, 3)
 ```
 <!--/lua-->

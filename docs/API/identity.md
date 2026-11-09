@@ -17,7 +17,7 @@ Accounts with access to the space are identities already and need no definition.
 ## identity.mentions(recipient?, options?)
 Returns the same open mentions and page-level recipients used by the [[Recipient#The Mention Inbox|Mention Inbox]]. Pass a name with or without `@` to filter case-insensitively. Omit it to include all recipients. Completed tasks are excluded.
 
-```lua
+```space-lua
 identity.mentions("helper", {limit = 100, offset = 0})
 ```
 
@@ -32,8 +32,8 @@ sb --space notes eval 'identity.mentions("helper", {limit=100})' --json
 ```
 
 ## Example
-Install these definitions in a `space-lua` block in your own space and reload them:
-```lua
+Install these definitions in a `space-lua` block on a page under `Library/` in your own space and reload them:
+```space-lua
 identity.define {
   name = "sales",
   description = "Sales team",

@@ -17,7 +17,7 @@ Install a library for ready-made commands and templates, write Space Lua for you
 Libraries are distributed as SilverBullet spaces themselves (typically via Git repositories), and managed through the [[Workbench/Libraries|Library Manager]].
 
 # Space Lua
-[[Space Lua]] is SilverBullet’s embedded scripting language. You can write scripts directly in `space-lua` fenced code blocks on any page. These scripts are active across your entire space and can define functions, commands, widgets, event handlers, and more.
+[[Space Lua]] is SilverBullet’s embedded scripting language. You can write scripts directly in `space-lua` fenced code blocks on any page under `Library/` (or in [[CONFIG]]). These scripts are active across your entire space and can define functions, commands, widgets, event handlers, and more.
 
 Space Lua is the foundation that libraries are built on. See [[Space Lua]] for a full guide.
 

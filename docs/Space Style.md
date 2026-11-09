@@ -5,7 +5,7 @@ references:
 - plugs/index/space_style.ts
 - client/style.ts
 ---
-Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]].
+Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]]. Like `space-lua`, a `space-style` block only applies when it’s on a [[Tool Page]]: a page under `Library/`, or [[CONFIG]]. A block on any other page is shown but not applied, and gets a lint warning. The examples on this page are inert for that reason.
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. To pick fonts, [[Fonts]] in Configuration is the easier route; a Space Style that sets a font variable wins over it.
 
@@ -34,11 +34,7 @@ somestyle {
 }
 ```
 
-The following [[Space Lua/Integrated Query]] is used to determine the order in which Space Style is loaded:
-
-```lua
-query[[from index.objects("space-style") order by _.priority desc]]
-```
+Styles load in the same order as [[Space Lua#Definition loading|Space Lua scripts]]: by priority, highest first, where a block without a priority counts as `0`. Blocks with the same priority load in page name order, and blocks on the same page load top to bottom. Later styles win when selectors are equally specific. The [[Workbench/Code/Styles|Space Style]] section of the [[Workbench/Code|Code]] tab shows the actual order.
 
 # Tone colours
 SilverBullet defines six tones as CSS variables, with values for the light and the dark theme: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in both themes:
@@ -79,7 +75,7 @@ Additionally tags written using angle brackets, such as...
 }
 ```
 # More examples
-All the actual CSS in these examples is commented out as to not affect this very website.
+All the actual CSS in these examples is commented out, so it stays harmless once you copy it into a page under `Library/`.
 ```space-style
 html {
   /* Changes to the default theme */

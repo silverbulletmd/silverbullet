@@ -18,7 +18,7 @@ Supported keys in the spec:
 
 Example:
 
-```lua
+```space-lua
 slashCommand.define {
   name = "hello-world",
   run = function()

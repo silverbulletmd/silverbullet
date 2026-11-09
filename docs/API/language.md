@@ -18,7 +18,7 @@ Lists all supported fenced-code-block languages.
 
 **Example:**
 
-```lua
+```space-lua
 local languages = language.listLanguages()
 ```
 
@@ -38,7 +38,7 @@ Parses code using a supported fenced-code-block language.
 
 **Example:**
 
-```lua
+```space-lua
 local tree = language.parseLanguage("javascript", "const answer = 42")
 ```
 <!--/lua-->

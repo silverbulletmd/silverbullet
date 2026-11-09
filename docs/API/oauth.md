@@ -14,7 +14,7 @@ The `oauth` namespace runs OAuth 2.0 sign-in flows. It is what [[API/auth|auth]]
 * `denied:` the user (or the server) denied the request.
 * `failed:` anything else, such as a network error or an unexpected response. The text after the prefix is the underlying message. An OAuth error code from the server (for example `unauthorized_client`) appears in it.
 
-```lua
+```space-lua
 local ok, err = pcall(oauth.deviceFlow, opts)
 if not ok and tostring(err):find("cancelled:", 1, true) then
   return nil
@@ -37,7 +37,7 @@ Runs an OAuth 2.0 device authorization flow (RFC 8628). Shows a modal with a cod
 
 **Example:**
 
-```lua
+```space-lua
 local token = oauth.deviceFlow {
   deviceCodeUrl = "https://github.com/login/device/code",
   tokenUrl = "https://github.com/login/oauth/access_token",

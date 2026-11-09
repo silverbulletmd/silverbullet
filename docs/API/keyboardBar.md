@@ -27,7 +27,7 @@ Appends a button to the bar. `spec` is a table that can contain:
 Contexts match by prefix against the syntax nodes enclosing the cursor, the same way as `onlyContexts`/`exceptContexts` for [[API/slashCommand|slash commands]]. Useful ones are `ListItem`, `Task`, `FencedCode`, `FrontMatter`, `Table`, `Blockquote` and `ATXHeading1`–`ATXHeading6`.
 
 # Examples
-```lua
+```space-lua
 -- A strikethrough button everywhere but in code
 keyboardBar.define {
   icon = "md-format-strikethrough",

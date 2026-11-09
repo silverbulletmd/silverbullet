@@ -20,7 +20,7 @@ In v1 there were various types of templates:
 _Live templates_ are now better expressed by simply putting `${lua expressions}` in text. Iterating and rendering queries using templates is generally done by selecting a template call in the query itself: `${query[[ from ... select someTemplate(...) ]]}`.
 
 _Live Template Widgets_ can now be implemented as a view docked above or below the page:
-```lua
+```space-lua
 view.define {
   name = "example.notice",
   dock = "page-top", -- or "page-bottom"

@@ -33,7 +33,7 @@ Drops every indexed object belonging to a file, so a re-index replaces them rath
 ## index.contentPages
 `index.contentPages(tagName?)`
 
-Returns non-meta pages, optionally filtered by a user tag, as a query collection.
+Returns non-tool pages, optionally filtered by a user tag, as a query collection.
 
 ## index.data
 `index.data(tagName?)`
@@ -67,7 +67,7 @@ Returns all indexed documents as a query collection.
 Detects files changed outside this client, such as through the HTTP API, and waits until they are indexed. Use it before querying pages you just wrote another way.
 
 Example:
-```lua
+```space-lua
 index.awaitPendingChanges()
 return query[[from p = index.pages() where p.name == "Inbox" select p.name]]
 ```
@@ -142,7 +142,7 @@ Indexes Markdown text in memory and returns the objects extracted from it.
 ## index.metaPages
 `index.metaPages(tagName?)`
 
-Returns meta pages, optionally filtered by a user tag, as a query collection.
+Deprecated alias of index.toolPages
 
 ## index.objects
 `index.objects(tagName)`
@@ -236,6 +236,11 @@ Returns all indexed tag objects as a query collection.
 `index.tasks(tagName?)`
 
 Returns all tasks, optionally filtered by a user tag, as a query collection.
+
+## index.toolPages
+`index.toolPages(tagName?)`
+
+Returns tool pages (CONFIG and everything under Library/), optionally filtered by a user tag, as a query collection.
 
 ## index.validateObjects
 `index.validateObjects(page, objects)`

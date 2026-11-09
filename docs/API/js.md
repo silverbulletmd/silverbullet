@@ -23,7 +23,7 @@ Creates a Lua iterator over a JavaScript async iterable.
 
 **Example:**
 
-```lua
+```space-lua
 for value in js.eachIterable(someJsAsyncIterable) do
   print(value)
 end
@@ -44,7 +44,7 @@ Dynamically imports a JavaScript module from a URL.
 
 **Example:**
 
-```lua
+```space-lua
 local lib = js.import("https://esm.sh/lodash@4.17.21")
 ```
 
@@ -63,7 +63,7 @@ Imports a JavaScript module from a file in the current space.
 
 **Example:**
 
-```lua
+```space-lua
 local acme = js.importFromSpace("Library/acme/acme.js")
 ```
 
@@ -78,7 +78,7 @@ Logs values to the JavaScript console.
 
 **Example:**
 
-```lua
+```space-lua
 js.log("User data:", {name = "Ada"})
 ```
 
@@ -98,7 +98,7 @@ Creates an instance of a JavaScript class.
 
 **Example:**
 
-```lua
+```space-lua
 local value = js.new(js.window.Date, "2024-03-14")
 ```
 
@@ -117,7 +117,7 @@ Serializes a value as JSON using JavaScript semantics.
 
 **Example:**
 
-```lua
+```space-lua
 print(js.stringify({1, 2, 3})) -- [1,2,3]
 ```
 
@@ -136,7 +136,7 @@ Converts a Lua value to its JavaScript representation.
 
 **Example:**
 
-```lua
+```space-lua
 local jsArray = js.tojs({1, 2, 3})
 ```
 
@@ -155,7 +155,7 @@ Converts a JavaScript value to its Lua representation.
 
 **Example:**
 
-```lua
+```space-lua
 local luaTable = js.tolua(jsArray)
 ```
 <!--/lua-->

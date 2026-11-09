@@ -10,7 +10,7 @@ Slash templates are a quick way to define [[Slash Command|slash commands]] that 
 # Creating a slash template
 1. Run the `Page: From Template` command
 2. Select “Slash Template”
-3. Pick a name, the last component of the page name (after the `/` if any) will be used as the slash command’s name. For example, a page named `Library/Slash Template/action-items` creates a `/action-items` slash command.
+3. Pick a name, the last component of the page name (after the `/` if any) will be used as the slash command’s name. For example, a page named `Library/Slash Template/action-items` creates a `/action-items` slash command. Keep slash templates under `Library/`, so they count as [[Tool Page|tool pages]]. One elsewhere still works, but shows up as regular content.
 4. Put the template content in the page body. Lua directives (`${...}`) are supported and will be evaluated when the template is inserted.
 
 Run the `System: Reload` command to activate the slash template.

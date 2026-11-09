@@ -29,9 +29,9 @@ Registers a custom syntax extension. The extension will be active after the next
 Within the body of an inline syntax extension, backslash (`\`) acts as an escape character. Use `\` before the end marker to include it literally in the body. The render callback receives the **raw** body text with escape sequences intact. The renderer is responsible for unescaping if needed.
 
 # Example
-Install the following in a `space-lua` block in your own space, then reload definitions. This illustrative renderer styles the body in italics. It does not typeset LaTeX.
+Install the following in a `space-lua` block on a page under `Library/` in your own space, then reload definitions. This illustrative renderer styles the body in italics. It does not typeset LaTeX.
 
-```lua
+```space-lua
 syntax.define {
   name = "LatexInline",
   startMarker = "\\$(?!\\{)",
@@ -57,7 +57,7 @@ This will recognize `$E=mc^2$` in your text and render the body using the provid
 
 A block-level variant using `||` fences:
 
-```lua
+```space-lua
 syntax.define {
   name = "LatexBlock",
   startMarker = "^\\|\\|$",
@@ -92,3 +92,5 @@ You can style these with [[Space Style]]:
   color: gray;
 }
 ```
+
+This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].

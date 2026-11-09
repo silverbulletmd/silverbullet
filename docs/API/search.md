@@ -19,7 +19,7 @@ Searches the space with its active search backend. A newer search from the same 
 **Parameters:**
 
 - `query` (`string`) — What to search for.
-- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`, defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker’s segments: meta pages are tagged `meta`, `meta/…` or `template`, defaults to `all`), `include`/`exclude` (exact page names, they narrow `scope` further, without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).
+- `options?` (`table`) — `mode` (one of `search.status().capabilities.modes`, defaults to the first), `scope` (`pages`, `tool` or `all`, like the page picker's segments: tool pages are `CONFIG` and everything under `Library/`; `meta` is a deprecated alias of `tool`; defaults to `all`), `include`/`exclude` (exact page names, they narrow `scope` further, without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).
 
 **Returns:**
 
@@ -27,7 +27,7 @@ Searches the space with its active search backend. A newer search from the same 
 
 **Example:**
 
-```lua
+```space-lua
 local result = search.find("garden plan", {scope = "pages"})
 for _, m in ipairs(result.items) do print(m.page, m.excerpt) end
 ```
@@ -55,7 +55,7 @@ Finds pages related to a page, leaving out pages hidden by a page decoration. Ra
 **Parameters:**
 
 - `page` (`string`) — Page name.
-- `options?` (`table`) — `limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`, defaults to `all`). A page outside the scope has no related pages: with `scope = "pages"`, a Meta page gets none.
+- `options?` (`table`) — `limit` (maximum number of pages), `scope` (`pages`, `tool` or `all`, as in `search.find`, defaults to `all`).
 
 **Returns:**
 
@@ -74,7 +74,7 @@ Reports the space’s search backend: its name, the query modes it supports (the
 ## Field weights
 `options.fields` decides what the phrase is matched against, and how much each field counts. A bare number is the weight. `{ weight, segments = true }` additionally scores the parts of a `/`-separated value, which is what makes `pro alp` find `Projects/Alpha`. Per-field scores are combined, so an object matching two weighted fields outranks one matching either alone.
 
-```lua
+```space-lua
 search.rank(objects, "pro alp", {
   fields = {
     name = { weight = 1.0, segments = true },

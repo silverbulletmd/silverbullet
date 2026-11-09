@@ -22,7 +22,7 @@ Initially the counter is 1. After one click it is 2, and the multiplication resu
 ## pageVars.get(name, page?)
 Returns one of a page’s variables. A name the page doesn’t define is an error. A variable holding `nil` returns `nil`.
 
-```lua
+```space-lua
 pageVars.get("salary", "Budget")
 pageVars.get("rate")
 ```
@@ -30,7 +30,7 @@ pageVars.get("rate")
 ## pageVars.all(page?)
 Returns a read-only table of all of a page’s variables, which you can print or iterate.
 
-```lua
+```space-lua
 pageVars.all("Budget")
 for name, value in pairs(pageVars.all()) do print(name, value) end
 ```
@@ -40,7 +40,7 @@ An expression that reads a page’s variables updates when they change. Reading 
 ## pageVars.set(name, value, page?)
 Sets a variable by rewriting its `${name = …}` in the page text, so the page shows and saves the new value and everything that uses it updates.
 
-```lua
+```space-lua
 pageVars.set("rate", 0.2)
 pageVars.set("salary", 600, "Budget")
 ```

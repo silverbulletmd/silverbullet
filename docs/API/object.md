@@ -10,7 +10,7 @@ Try these write examples in a disposable page in your own writable space. Create
 
 Each function takes an object as a query (or `object.append`) returns it. An object without an anchor is found by its position and checked against what you queried, so if its page changed since, the call fails with “object moved” instead of changing the wrong object. Query again. Objects with a `$anchor` are found wherever they moved, and can also be passed as `{ page = "…", ref = "anchor-name" }`.
 
-```lua
+```space-lua
 -- Mark a task done and set an attribute
 local t = (query[[from index.tasks() where _.page == "Projects/Harbor" limit 1]])[1]
 object.update(t, { done = true, owner = "Ada" })

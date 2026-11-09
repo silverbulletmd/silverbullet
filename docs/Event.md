@@ -11,7 +11,7 @@ SilverBullet has its own event bus that allows different parts of the system to 
 # Subscribing to events
 Use `event.listen` to subscribe to an event:
 
-```lua
+```space-lua
 event.listen {
   name = "editor:pageLoaded",
   run = function(e)
@@ -25,7 +25,7 @@ The `run` callback receives an event object with a `data` field containing event
 # Dispatching events
 You can dispatch your own custom events:
 
-```lua
+```space-lua
 event.dispatch("my-custom-event", {message = "Hello!"})
 ```
 
@@ -56,6 +56,7 @@ Here is a list of built-in events triggered by SilverBullet’s core:
 
 ## System events
 * `page:index`: A page has changed and needs to be indexed (used by [[Object]] indexing)
+* `index:ready`: The [[Object Index]] is complete and can be queried. Fires once per boot: right after scripts load when the index was already built, otherwise when the initial index or a reindex finishes. Also fires after `Space: Reindex`
 * `plugs:loaded`: Plugs were loaded
 * `cron:secondPassed`: One second has passed (useful for implementing periodic behavior)
 

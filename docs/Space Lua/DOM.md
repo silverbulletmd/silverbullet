@@ -10,7 +10,7 @@ The full API reference is at [[API/dom]].
 # Basic usage
 Every HTML tag is available as a function on the `dom` table. Call it with a table of attributes and children:
 
-```lua
+```space-lua
 dom.div {
   class = "my-container",
   dom.h2 { "Hello!" },
@@ -23,7 +23,7 @@ This creates a `<div>` with a class attribute, containing an `<h2>` and a `<p>`.
 # Attributes and content
 String keys in the table become HTML attributes. Numeric entries become children:
 
-```lua
+```space-lua
 dom.a {
   href = "https://example.com",
   "Click here"
@@ -37,7 +37,7 @@ dom.a {
 # Event handlers
 Attributes starting with `on` are registered as event listeners:
 
-```lua
+```space-lua
 dom.button {
   onclick = function()
     editor.flashNotification("Clicked!")
@@ -51,7 +51,7 @@ This is equivalent to calling `addEventListener("click", fn)` on the button elem
 # Rendering as a widget
 DOM elements need to be wrapped in a widget to display on a page. Use `widget.html` for inline or `widget.htmlBlock` for block-level:
 
-```lua
+```space-lua
 -- Inline widget (rendered within text flow)
 widget.html(dom.span { class = "badge", "New" })
 
@@ -67,7 +67,7 @@ widget.htmlBlock(dom.table {
 # Building tables dynamically
 A common pattern is building HTML tables from query results:
 
-```lua
+```space-lua
 local rows = {}
 for page in query[[ from index.pages() limit 5 ]] do
   table.insert(rows, dom.tr {
@@ -90,7 +90,7 @@ return widget.htmlBlock(dom.table {
 # Embedding widgets inside DOM
 Widget objects (like buttons from `widgets.button`, or Markdown widgets from `widget.markdown`) can be nested inside DOM elements:
 
-```lua
+```space-lua
 dom.div {
   "Status: ",
   widgets.button("Refresh", function()

@@ -8,7 +8,7 @@ references:
 ---
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 
-The [[Page Picker]], [[Meta Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
+The [[Page Picker]], [[Tool Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
 
 # Indexing
 ## Initial indexing process
@@ -29,8 +29,8 @@ The Object Index is generally queried using [[Space Lua/Integrated Query]].
 
 Entry points are:
 * [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers for each [[Tag#Root tags|root tag]], like `index.pages()`, `index.tasks()` or `index.data()`)
-* `index.contentPages(tag?)` — returns only content pages, **excluding [[Meta Page|Meta Pages]]** (pages tagged `meta` or `meta/*`).
-* `index.metaPages(tag?)` — returns only [[Meta Page|Meta Pages]], the other half of the split.
+* `index.contentPages(tag?)` — returns only content pages, **excluding [[Tool Page|Tool Pages]]** (`CONFIG` and pages under `Library/`).
+* `index.toolPages(tag?)` — returns only [[Tool Page|Tool Pages]], the other half of the split. `index.metaPages(tag?)` is a deprecated alias.
 * `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 
@@ -40,7 +40,7 @@ If a `metatable` is defined for a particular tag with [[API/tag#tag.define(spec)
 Copy these expressions into a page to display the results. See [[Space Lua/Integrated Query]] for the full clause reference:
 
 **Content pages by last modified** (most recently touched first):
-```lua
+```space-lua
 ${query[[
   from p = index.contentPages()
   order by p.lastModified desc
@@ -50,7 +50,7 @@ ${query[[
 ```
 
 **Inbound links to a page** (everything that links to `"My Page"`):
-```lua
+```space-lua
 ${query[[
   from r = index.relations("mention")
   where r.to == "My Page"
@@ -59,7 +59,7 @@ ${query[[
 ```
 
 **Dangling links in your own content**:
-```lua
+```space-lua
 ${query[[
   from t = index.aspiringPages()
   where not string.startsWith(t.page, "Library/")

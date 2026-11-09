@@ -1,5 +1,3 @@
-#meta
-
 # ADR frontmatter card
 Styling for the `adr` tag’s `renderFrontmatter` above. Open any [[ADR]] to see it.
 ```space-style

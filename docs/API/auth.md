@@ -21,7 +21,7 @@ Registers an authentication provider. Fields:
 * `expired(cred)`: returns true when the credential must be renewed. Defaults to `cred.expires_at` (milliseconds) being within a minute of now.
 * `configured(target)`: returns a credential from configuration, such as a personal access token, or nil. It is used when no credential is stored, is never stored itself, and while it returns one nothing signs in.
 
-```lua
+```space-lua
 auth.defineProvider {
   id = "example",
   connect = function(target)
@@ -45,7 +45,7 @@ auth.defineProvider {
 
 A configured credential that gets a 401 is not replaced by signing in, since only the user can fix it. Without `signIn` the request is still repeated without it.
 
-```lua
+```space-lua
 -- A write: signs in when needed
 auth.fetch("github", "https://api.github.com/gists", {method = "POST", body = gist}, true)
 -- A read: never signs in
@@ -55,7 +55,7 @@ auth.fetch("github", "https://api.github.com/gists/" .. id)
 ## auth.headers(key)
 Returns the HTTP headers for a key. It signs in when there is no credential (showing whatever the provider’s `connect` shows), renews an expired credential and signs in again if renewing fails, and stores the result. Errors from `connect` are passed on and nothing is stored.
 
-```lua
+```space-lua
 net.proxyFetch("https://api.example.com/me", {headers = auth.headers("example:https://api.example.com")})
 ```
 

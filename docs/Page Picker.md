@@ -5,7 +5,7 @@ references:
 - client/navigator/builtins.ts
 - plugs/editor/page.ts
 ---
-Use the page picker to find a note by name or create one in a writable space. For searching inside notes, use [[Search]]. The published documentation is read-only: use your own space for the creation steps below.
+Use the page picker to find a page by name or create one. For searching inside notes, use [[Search]]. The published documentation is read-only: use your own space for the creation steps below.
 
 The page picker has two main functions:
 
@@ -22,8 +22,8 @@ If the filter phrase contains `#tags` the results will be filtered based on matc
 
 If the filter phrase starts with `$`, the picker switches to navigating [[Markdown/Anchor|anchors]] instead of pages: everything after the `$` filters anchor names from across your [[Space]], and each result shows a formatted snippet of the anchored content along with the host page it lives on. Deleting the `$` returns you to the page list. This works from any of the pickers.
 
-> **note** Note
-> Any page tagged with a tag starting with `#meta`, even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Meta Picker]] instead.
+> **warning** Warning
+> [[Tool Page|Tool pages]] (`CONFIG` and every page under `Library/`), even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Tool Picker]] instead or find them in the [[File Tree]].
 
 Pressing the `Enter` key will open/create the selected page.
 Pressing `Shift-Enter` will open or create (if it doesn’t already exist) the page _exactly matching_ the filter phrase. In [[Markdown/Anchor|anchor]] and tag mode there is nothing to create, so it does nothing there.
@@ -48,7 +48,7 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
 * `Escape`: clears the filter phrase. On an empty phrase it closes the page picker
-* Typing `^` when the filter phrase is empty switches to the **Meta** segment ([[Meta Picker]]). `Tab`/`Shift-Tab` step through all four segments
+* Typing `^` when the filter phrase is empty switches to the **Tool** segment ([[Tool Picker]]). `Tab`/`Shift-Tab` step through all four segments
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.

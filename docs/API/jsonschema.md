@@ -22,7 +22,7 @@ Infers a best-effort draft 2020-12 JSON Schema from a sample value.
 
 **Example:**
 
-```lua
+```space-lua
 local schema = jsonschema.inferFromObject({name = "Widget", count = 3})
 ```
 
@@ -42,7 +42,7 @@ Validates a value against a JSON Schema.
 
 **Example:**
 
-```lua
+```space-lua
 local schema = {type = "object", properties = {name = {type = "string"}}, required = {"name"}}
 local err = jsonschema.validateObject(schema, {name = "John"})
 ```
@@ -62,7 +62,7 @@ Checks whether a JSON Schema has a supported top-level shape.
 
 **Example:**
 
-```lua
+```space-lua
 local err = jsonschema.validateSchema({type = "object"})
 ```
 <!--/lua-->

@@ -52,7 +52,7 @@ Prioritizes a file for immediate synchronization and waits for completion.
 
 **Example:**
 
-```lua
+```space-lua
 sync.performFileSync("notes/important.md")
 ```
 
@@ -67,7 +67,7 @@ Starts an immediate full-space synchronization and waits for completion.
 
 **Example:**
 
-```lua
+```space-lua
 local changes = sync.performSpaceSync()
 ```
 <!--/lua-->

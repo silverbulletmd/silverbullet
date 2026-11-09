@@ -204,7 +204,7 @@ ${query [[
 ### Null handling
 The `nulls first` and `nulls last` modifiers work inside intra-aggregate `order by` the same way they do in the query-level `order by`:
 
-```lua
+```space-lua
 query [[
   from
     p = data

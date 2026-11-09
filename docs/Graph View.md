@@ -18,7 +18,7 @@ These commands open it:
 
 The graph opens in a large window over the editor. Its dock menu moves it to the left or right sidebar or the bottom panel instead, and it stays there. Docked, the local graph follows the page you open in the editor, and opening an object from the graph leaves it open. To make a sidebar the default for a space, set `view.defaults` (see [[View]]):
 
-```lua
+```space-lua
 config.set("view.defaults", {
   ["std.graph"] = { dock = "rhs" },
 })

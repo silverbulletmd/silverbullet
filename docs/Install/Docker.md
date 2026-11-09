@@ -100,10 +100,5 @@ docker rm silverbullet
 
 Then start the container again as before.
 
-# Installing additional packages
-If you would like to install additional packages into your docker container (e.g. to call via [[API/shell]]), you can do so by creating a [[CONTAINER_BOOT]] page in your space. Whatever you put in this page, will be run as a bash script upon container boot (hence its name).
-
-In practice, you’ll likely want to put `apk add` commands install the (Alpine) packages you would like to install.
-
 # Next
 After your container is running, head over to `http://localhost:3000` (or whatever port you have configured) to setup your server.

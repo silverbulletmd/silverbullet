@@ -41,7 +41,7 @@ Generally keyboard shortcuts are single stroke, however it possible to configure
 Keyboard shortcuts can be assigned to [[Command|Commands]] with `key` or `mac`. If only `key` is defined, this keyboard shortcut will be used for all operating systems, if `mac` is set, this keyboard will be used for macOS.
 
 To (re)assign a keyboard shortcut for an _existing_ command, you can use the [[^Library/Std/APIs/Command#command.update(commandDef)]] API as follows:
-```lua
+```space-lua
 command.update {
   name = "Task: Cycle State",
   key = "Ctrl-Shift-t",
@@ -50,7 +50,7 @@ command.update {
 
 When you define your own command, you can simply make them part of your command definition:
 
-```lua
+```space-lua
 command.define {
   name = "My command",
   key = "Ctrl-Shift-t",
@@ -62,7 +62,7 @@ command.define {
 
 You can also specify multiple keyboard shortcuts by passing in a table to either `key` or `mac`:
 
-```lua
+```space-lua
 command.define {
   name = "My command",
   key = {"Ctrl-Shift-t", "Ctrl-Shift-o"},
@@ -75,7 +75,7 @@ command.define {
 # Disabling keyboard shortcuts
 You can use the [[^Library/Std/APIs/Command#command.update(commandDef)]] API to disable keyboard shortcuts of existing commands by setting them to an empty string, for example:
 
-```lua
+```space-lua
 command.update {
   name = "Task: Cycle State",
   key = "",

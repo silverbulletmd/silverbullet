@@ -1,5 +1,3 @@
-#meta
-
 This is where you configure SilverBullet to your liking. See [[^Library/Std/Config]] for a full list of configuration options. 
 
 # Site configuration
@@ -136,6 +134,12 @@ config.set("view.defaults", {
   -- The curated Navigate tree (see [[^Library/Website]]) is this site's navigation
   ["docs.navigate"] = { open = true, width = 360 },
 })
+```
+
+# Lint
+```space-lua
+-- Documentation pages hold space-lua and space-style examples on purpose
+--config.set("lint.inactiveBlocks", false)
 ```
 
 

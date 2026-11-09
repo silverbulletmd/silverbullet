@@ -116,7 +116,7 @@ Returns the cosine similarity between two equal-length numeric vectors.
 
 **Example:**
 
-```lua
+```space-lua
 print(math.cosineSimilarity({1, 2, 3}, {4, 5, 6}))
 ```
 
@@ -135,7 +135,7 @@ Converts an angle from radians to degrees.
 
 **Example:**
 
-```lua
+```space-lua
 print(math.deg(math.pi)) -- 180
 ```
 
@@ -223,7 +223,7 @@ Returns the logarithm of `x`, using the natural base unless another base is supp
 
 **Example:**
 
-```lua
+```space-lua
 print(math.log(100, 10)) -- 2
 ```
 
@@ -261,7 +261,7 @@ Splits `x` into its integral and fractional parts.
 
 **Example:**
 
-```lua
+```space-lua
 local integer, fraction = math.modf(3.14)
 ```
 
@@ -312,7 +312,7 @@ Returns a pseudo-random float or an integer in a requested inclusive range.
 
 **Example:**
 
-```lua
+```space-lua
 print(math.random())
 print(math.random(10))
 print(math.random(5, 10))
@@ -445,7 +445,7 @@ Compares two integers as unsigned 32-bit values.
 
 **Example:**
 
-```lua
+```space-lua
 print(math.ult(2, 3)) -- true
 ```
 <!--/lua-->

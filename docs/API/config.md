@@ -22,7 +22,7 @@ Defines a JSON schema for a configuration key.
 
 **Example:**
 
-```lua
+```space-lua
 config.define("shortWikiLinks", {
   description = "Render short wiki link labels",
   type = "boolean",
@@ -42,7 +42,7 @@ Defines or updates a category of the Workbench Configuration tab.
 
 **Example:**
 
-```lua
+```space-lua
 config.defineCategory {
   name = "Editor",
   description = "Page editor behavior.",
@@ -66,7 +66,7 @@ Gets a configuration value by path, with dot notation support.
 
 **Example:**
 
-```lua
+```space-lua
 local theme = config.get("theme", "light")
 ```
 
@@ -132,11 +132,11 @@ Shallow-merges a table into the table at a path: given fields replace existing o
 
 **Examples:**
 
-```lua
+```space-lua
 config.merge({"commands", "Say hello"}, {key = "Ctrl-Alt-h"})
 ```
 
-```lua
+```space-lua
 config.merge({"commands", "Say hello"}, {key = config.unset})
 ```
 
@@ -152,7 +152,7 @@ Persists one configuration value: writes or replaces its `config.set` line in th
 
 **Examples:**
 
-```lua
+```space-lua
 config.persist("share.silverbullet.spaces", {"https://example.com/notes"})
 ```
 
@@ -169,11 +169,11 @@ Sets one configuration value or multiple values at once.
 
 **Examples:**
 
-```lua
+```space-lua
 config.set("theme", "dark")
 ```
 
-```lua
+```space-lua
 config.set({theme = "dark", fontSize = 14})
 ```
 
@@ -224,7 +224,7 @@ Registered categories appear in descending `priority`, with higher values first.
 
 Lua tables can’t hold `nil`, so to remove a field set it to the special `config.unset` value:
 
-```lua
+```space-lua
 -- Removes the key binding from an earlier definition, keeps everything else
 command.define {
   name = "My custom command",
@@ -237,7 +237,7 @@ command.define {
 ## Writing the CONFIG page
 `config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page, leaves everything else untouched, and reloads configuration. If CONFIG doesn’t exist yet, it is created.
 
-```lua
+```space-lua
 config.persist("share.silverbullet.spaces", {"https://example.com/notes"})
 ```
 

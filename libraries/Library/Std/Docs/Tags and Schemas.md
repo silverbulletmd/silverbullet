@@ -5,7 +5,7 @@ tags: meta/skill
 Every object in the index (page, task, item, data object) carries tags. Tagging needs no definition: `tags: book` in frontmatter is enough to make `index.pages("book")` work. Define a tag with `tag.define` only to give it a schema, validation, computed attributes, a look, or a custom renderer.
 
 # Where it goes
-Put `tag.define` calls in a `space-lua` block on the `CONFIG` page (create it if missing). `CONFIG` loads before pages are indexed, so a `transform` defined there sees every page; one defined elsewhere misses pages indexed before it loads. Avoid names SilverBullet uses for its own objects: `page`, `task`, `item`, `paragraph`, `header`, `link`, `tag`, `data`, `table`, `anchor`, `relation`, `identity`, `document`. You can extend those, but not reuse them for your own kind.
+Put `tag.define` calls in a `space-lua` block on the `CONFIG` page (create it if missing), or on a page under `Library/`. Blocks on other pages do not run. `CONFIG` loads before pages are indexed, so a `transform` defined there sees every page. A block on a `Library/` page gets the same early run when it carries a `-- boot: true` comment line, and a block that calls `tag.define`, `config.set` or `config.define` should carry it so it applies before indexing and first render. Avoid names SilverBullet uses for its own objects: `page`, `task`, `item`, `paragraph`, `header`, `link`, `tag`, `data`, `table`, `anchor`, `relation`, `identity`, `document`. You can extend those, but not reuse them for your own kind.
 
 # tag.define fields
 All optional except `name`:
@@ -80,7 +80,7 @@ An `edit` of `CONFIG` (MCP or `sb`) reloads its scripts and reports load errors,
 A `transform` runs only when a page is indexed. A new or changed transform therefore applies to pages as they are next edited, not to the rest. To apply it everywhere, reindex the space: the `Space: Reindex` command, or `index.reindexSpace()` with `lua`. On a large space this takes a while, so tell the user, or ask before doing it. Schema and `validate` changes need no reindex for lint, but `mustValidate` filtering happens at index time.
 
 # Styling a kind of page
-To give every page with a tag its own look, style the class instead of decorating each page by hand: attach a CSS class through the tag, then target it from a `space-style` block. Put the `tag.define` in `CONFIG`, for the reason given above.
+To give every page with a tag its own look, style the class instead of decorating each page by hand: attach a CSS class through the tag, then target it from a `space-style` block. Put both blocks in `CONFIG` or on a page under `Library/`; they do not run elsewhere. Put the `tag.define` in `CONFIG`, for the reason given above.
 
 ````markdown
 ```space-lua

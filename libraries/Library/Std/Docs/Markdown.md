@@ -59,7 +59,7 @@ Tasks expose `done` and `state` in the index. Keep custom task states and nestin
 Frontmatter `recipients: ["helper"]` addresses the whole page, and `authors: ["mira"]` credits it. Page authorship does not sign every unsigned mention in the body. In an owner-only space `@self` addresses the owner. Signatures are self-declared prose, not proof of identity. See the Mentions page for working an inbox.
 
 # Dynamic content and code
-An expression in dollar-brace delimiters evaluates Space Lua when the page renders and shows its value. A `space-lua` fence defines executable, space-wide code that loads after indexing. A plain `lua` fence is for a displayed example that must not be installed as a script. Writing `space-lua` fences or live expressions into a page changes what the space runs, so only do it when asked, and read the Space Lua page first.
+An expression in dollar-brace delimiters evaluates Space Lua when the page renders and shows its value. A `space-lua` fence defines executable, space-wide code, and a `space-style` fence defines CSS. Both load only from pages under `Library/` and from `CONFIG`. Outside those, a `space-lua` or `space-style` fence is an inert example, the same as a plain `lua` fence, which is always a displayed example that is never installed as a script. Writing `space-lua` fences or live expressions into a page changes what the space runs, so only do it when asked, and read the Space Lua page first.
 
 ````markdown
 ```space-lua

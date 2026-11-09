@@ -15,7 +15,7 @@ SilverBullet uses three fonts, each picked separately in [[Workbench/Configurati
 
 Instead of using the [[Workbench/Configuration]] options, you can also set them in [[CONFIG]]:
 
-```lua
+```space-lua
 config.set("fonts.editor", "inter")
 config.set("fonts.ui", "system-sans")
 config.set("fonts.code", "ia-writer-mono")
@@ -24,7 +24,7 @@ config.set("fonts.code", "ia-writer-mono")
 # Editor font size
 **Editor font size**, also under **Appearance**, sets the size of page text in the editor, in pixels: 18 by default, from 10 to 48. Headings, code and list indents scale with it. A proportional font often looks smaller than a monospace one at the same size, so you may want to raise it after switching. In [[CONFIG]]:
 
-```lua
+```space-lua
 config.set("fonts.editorSize", 20)
 ```
 
@@ -44,7 +44,7 @@ Additional fonts can be distributed as [[Library|libraries]]. If you uninstall a
 ## Writing a font library
 A font library is an ordinary [[Library]]: a page that adds its font to `fonts.available`, with the font files listed under `files` in its frontmatter so they're installed with it.
 
-```lua
+```space-lua
 config.set("fonts.available.literata", {
   name = "Literata",                   -- shown in Configuration
   family = "Literata, Georgia, serif", -- the CSS font-family, with fallbacks

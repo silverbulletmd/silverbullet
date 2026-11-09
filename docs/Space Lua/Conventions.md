@@ -15,7 +15,7 @@ For variables and methods alike use camelCasing as opposed to snake_case. That i
 # Namespacing
 Since Space Lua has a single global namespace across your entire space, it is good practice to manually namespace functions using the following pattern:
 
-```lua
+```space-lua
 -- This initializes the stuff variable with an empty table if it's not already defined
 stuff = stuff or {}
 
@@ -26,7 +26,7 @@ end
 
 And to use `local` if you don’t need to access outside your code block:
 
-```lua
+```space-lua
 local myVariable
 
 local function myFunction()

@@ -98,7 +98,7 @@ Summarizes revision activity. Returns `{commits, topFiles, authors}`: `commits` 
 
 Example:
 
-```lua
+```space-lua
 local activity = space.getActivity(os.time() - 7 * 86400, nil, 5)
 for _, f in ipairs(activity.topFiles) do
   print(f.path .. ": " .. f.count)
@@ -122,11 +122,11 @@ Lints pages the way the editor does — frontmatter and data block YAML, `space-
 
 **Examples:**
 
-```lua
+```space-lua
 space.lint("Projects/Launch")
 ```
 
-```lua
+```space-lua
 for _, d in ipairs(space.lint()) do
   print(d.page .. ":" .. d.line .. ": " .. d.message)
 end
@@ -186,7 +186,7 @@ Three-way merges `local` and `remote` against their common `base` on the server,
 
 **Example:**
 
-```lua
+```space-lua
 local merged = space.mergeText("a\nb\n", "A\nb\n", "a\nB\n")
 if merged then
   print(merged.status, merged.text)

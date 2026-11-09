@@ -8,7 +8,7 @@ Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed us
 
 By default, paragraphs are indexed when they contain a tag or anchor. However, you can enable indexing _all_ paragraphs by adding the following to your [[CONFIG]]:
 
-```lua
+```space-lua
 config.set("index.paragraph.all", true)
 ```
 

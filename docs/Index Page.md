@@ -5,9 +5,9 @@ The default index page’s name is `index`. You can change it per space in the [
 # How to set a dynamic index page
 Some people want to set their index page to be e.g. their daily note, and the daily note changes every... day.
 
-Doing this can be achieved with some [[Space Lua]] magic (in the code below we’ve set this to the `lua` language in order not to actually activate this functionality, in your own copy be sure to use `space-lua` instead):
+Doing this can be achieved with some [[Space Lua]] magic (the code below doesn’t run on this page; in your own space, put it on a page under `Library/`):
 
-```lua
+```space-lua
 local function redirectToCustomIndex()
   if editor.getCurrentPage() == "index" then
     -- Change this to whatever page you want your index page to be

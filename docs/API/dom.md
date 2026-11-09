@@ -7,7 +7,7 @@ references:
 Build DOM elements from Lua tables.
 
 # Usage
-```lua
+```space-lua
 -- any HTML tag can be used here
 dom.span {
   -- tag attributes can be set like this:
@@ -48,7 +48,7 @@ Renders a HTML DOM.
 * [[API/widget|widgets]] are rendered in place.
 * A list of children is added in order, and `nil`/`false` children are skipped, so loops and conditions need no special handling:
 
-```lua
+```space-lua
 local items = {}
 for _, p in ipairs(query[[from p = index.pages("project")]]) do
   table.insert(items, dom.li { dom.text(p.name) })
@@ -61,7 +61,7 @@ Returns a text node holding `s` (converted with `tostring`) exactly as written.
 
 For instance:
 
-```lua
+```space-lua
 dom.span {
   class = "class-attribute",
   dom.span {

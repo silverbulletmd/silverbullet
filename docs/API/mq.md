@@ -86,7 +86,7 @@ Sends a message to a queue.
 
 **Example:**
 
-```lua
+```space-lua
 mq.send("tasks", "my task")
 ```
 
@@ -101,15 +101,15 @@ Subscribes a Space Lua callback to a message queue.
 
 **Example:**
 
-```lua
+```space-lua
 mq.subscribe { queue = "tasks", batchSize = 1, run = function(messages) print(messages[1].body) end }
 ```
 <!--/lua-->
 
 ## Example
-In your own space, install this subscriber in a `space-lua` block and reload definitions:
+In your own space, install this subscriber in a `space-lua` block on a page under `Library/` and reload definitions:
 
-```lua
+```space-lua
 mq.subscribe {
   queue = "testqueue",
   batchSize = 1,

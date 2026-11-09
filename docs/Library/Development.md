@@ -8,7 +8,7 @@ references:
 To develop your own SilverBullet library follow these steps:
 
 # Decorate your library with frontmatter
-Put all functionality you like in a [[Meta Page|Meta Page]] somewhere under `Library/`. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
+Put all functionality you like in a [[Tool Page]] somewhere under `Library/`. Scripts and styles only run from there. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
 
 Then, decorate your library page with some [[Frontmatter]]. Here is an minimal example library that defines a new “Hello world” command:
 
@@ -26,6 +26,8 @@ Then, decorate your library page with some [[Frontmatter]]. Here is an minimal e
       end
     }
     ```
+
+If your library calls `tag.define`, `config.set` or `config.define` in a `space-lua` block, add a `-- boot: true` comment line to that block so the call applies before indexing and first render. See [[Space Lua#Definition loading]].
 
 > **note** Important
 > The `name` key _has_ to match your page’s full (path) name. Otherwise a validation error will appear on the frontmatter. When another user installs your library, they will install it to the location specified here.
@@ -69,7 +71,7 @@ You can now [broadcast that your library is ready to install](https://community.
 # Create a repository
 If you develop a few libraries, it may be good to make them more discoverable. To do so, you can group them in a [[Repository|Repository]].
 
-For this, create another page in your space, this time under `Repository/`, e.g. `Repository/myuser` and tag it with `#meta/repository`.
+For this, create another page in your space, this time under `Library/Repository/`, e.g. `Library/Repository/myuser` and tag it with `#meta/repository`.
 
 In the page body, put a list of all your libraries, encoded as [[Tag/data|data objects]] as follows:
 

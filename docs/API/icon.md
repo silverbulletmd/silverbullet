@@ -23,7 +23,7 @@ Renders a Feather icon to SVG markup by name, or nil when the name isn’t a Fea
 
 **Example:**
 
-```lua
+```space-lua
 local lock = icon.feather("lock")
 ```
 

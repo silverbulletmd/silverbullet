@@ -22,7 +22,7 @@ To manually reload the `vim` section of your [[CONFIG]], use the ${widgets.comma
 # Configuration
 Using Space Lua:
 
-```lua
+```space-lua
 config.set {
   vim = {
     unmap = {

@@ -14,7 +14,7 @@ To upload documents you have a few options:
 All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
 
 By default the maximum allowed filesize for an upload is 10MB, you can change that with the `maximumDocumentSize` option.
-```lua
+```space-lua
 config.set("maximumDocumentSize", 100)
 ```
 

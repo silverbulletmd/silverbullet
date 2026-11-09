@@ -10,9 +10,9 @@ A template in SilverBullet is a string that contains `${expression}` placeholder
 They are often used in [[Slash Templates]] and [[Page Template]].
 
 # Creating templates
-Put reusable definitions in a `space-lua` block in your own space, then run `System: Reload`. Use `template.new` to create a template function from a string. By convention, template strings use `[==[` and `]==]` as delimiters:
+Put reusable definitions in a `space-lua` block on a page under `Library/` in your own space, then run `System: Reload`. Use `template.new` to create a template function from a string. By convention, template strings use `[==[` and `]==]` as delimiters:
 
-```lua
+```space-lua
 templates.greet = template.new[==[Hello, ${name}!]==]
 ```
 
@@ -29,7 +29,7 @@ Interpolated query results and lists render the way a page-level `${...}` render
 # Rendering collections
 The preferred pattern is to apply a template to each row directly in your query’s `select` clause:
 
-```lua
+```space-lua
 query[[
   from p = index.pages()
   order by p.lastModified desc

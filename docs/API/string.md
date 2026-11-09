@@ -20,7 +20,7 @@ The `string.matchRegex` and `string.matchRegexAll` extensions use JavaScript reg
 
 Examples of patterns that differ:
 
-```lua
+```space-lua
 print(string.match("1234", "(%d)+"))
 -- Space Lua prints "4" because repetition applies to the capture.
 -- Standard Lua returns nil.
@@ -106,7 +106,7 @@ Formats values according to a C-style format string.
 
 **Example:**
 
-```lua
+```space-lua
 print(string.format("Name: %s, score: %.1f", "Ada", 9.5))
 ```
 
@@ -127,7 +127,7 @@ Returns an iterator over successive Lua-pattern matches and captures.
 
 **Example:**
 
-```lua
+```space-lua
 for word in string.gmatch("hello world", "%w+") do
   print(word)
 end
@@ -152,7 +152,7 @@ Replaces Lua-pattern matches using a string, table, or function replacement.
 
 **Example:**
 
-```lua
+```space-lua
 local result, count = string.gsub("hello hello", "hello", "hi", 1)
 print(result, count) -- hi hello  1
 ```
@@ -200,7 +200,7 @@ Returns captures from the first Lua-pattern match, or `nil` when none is found.
 
 **Example:**
 
-```lua
+```space-lua
 local year, month = string.match("2024-03", "(%d+)%-(%d+)")
 ```
 
@@ -220,7 +220,7 @@ Matches a string with a JavaScript regular expression and returns the match arra
 
 **Example:**
 
-```lua
+```space-lua
 local match = string.matchRegex("hello123", "([a-z]+)([0-9]+)")
 print(match[1], match[2], match[3])
 ```
@@ -241,7 +241,7 @@ Returns an iterator over all JavaScript regular-expression matches.
 
 **Example:**
 
-```lua
+```space-lua
 for match in string.matchRegexAll("a1b2", "([a-z])([0-9])") do
   print(match[1], match[2], match[3])
 end
@@ -318,7 +318,7 @@ Splits a string on a literal separator and returns the substrings.
 
 **Example:**
 
-```lua
+```space-lua
 for part in each(string.split("a,b,c", ",")) do
   print(part)
 end

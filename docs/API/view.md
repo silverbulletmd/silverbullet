@@ -11,7 +11,7 @@ Views place widgets: `view.define` registers a named, dockable view, `view.pick`
 ## view.define(spec)
 Registers a named view and optionally a [[Command]] to open it. Pass a live `widget.new` value as `widget`, or put the content options directly in the definition. A flat row definition requires `onSelect`. A flat `content` function may return Markdown, `widget.new { markdown | html | cssClasses }`, `widget.html(…)`, or a DOM node. It can’t return a live or sandboxed widget.
 
-```lua
+```space-lua
 function projectView()
   return widget.new {
     source = function()
@@ -58,7 +58,7 @@ Each sidebar or bottom slot holds one view. Opening another temporarily displace
 ### Saved dock state
 Registered views save their dock, open, collapsed, width and height settings locally. Valid saved values override `view.defaults`, which override the definition. A space can supply defaults:
 
-```lua
+```space-lua
 config.set("view.defaults", {
   ["example.projects"] = { dock = "rhs", open = true, width = 320 },
 })
@@ -71,7 +71,7 @@ Opening a closed panel reloads its source. Reactivating an open panel or revisit
 ## view.pick(spec)
 Opens a one-off modal and suspends the script until the user chooses a row. It returns the original selected object, or `nil` if dismissed or replaced by another view.
 
-```lua
+```space-lua
 local project = view.pick {
   title = "Choose a project",
   source = function()
@@ -96,21 +96,21 @@ Opens or focuses a registered view and returns a boolean indicating whether it o
 * `focus = false`: Keep editor focus. The view still refreshes or resets as on a normal open, but reactivation does not toggle it closed.
 * `quiet = true`: Suppress the notification if the named view does not exist.
 
-```lua
+```space-lua
 view.open("example.projects", { phrase = "Garden" })
 ```
 
 ## view.focus(slot?)
 Focuses an open view panel’s input without changing selection and returns whether a panel was available. Pass `"modal"`, `"lhs"`, `"rhs"`, or `"bhs"`, or omit `slot` to focus any open panel.
 
-```lua
+```space-lua
 view.focus("rhs")
 ```
 
 ## view.moveByRename
 `view.moveByRename(obj, newName)` renames the page, document or folder represented by a tree row. Use it as `onMove` for a tree backed by space files:
 
-```lua
+```space-lua
 onMove = view.moveByRename
 ```
 

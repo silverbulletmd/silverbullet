@@ -42,7 +42,7 @@ Waits until the current page has finished rendering: widgets, `${…}` expressio
 
 **Example:**
 
-```lua
+```space-lua
 editor.navigate("index")
 editor.awaitRender()
 ```
@@ -95,7 +95,7 @@ Copies text or binary Blob data to the system clipboard. Binary clipboard access
 
 **Example:**
 
-```lua
+```space-lua
 editor.copyToClipboard("Copied text")
 ```
 
@@ -225,7 +225,7 @@ Triggers a browser download of a data URL under the given filename.
 
 **Example:**
 
-```lua
+```space-lua
 editor.downloadFile("test.txt", "data:text/plain;base64,SGVsbG8=")
 ```
 
@@ -257,14 +257,14 @@ Shows a filterable option picker similar to the page picker.
 
 **Examples:**
 
-```lua
+```space-lua
 local result = editor.filterBox("Select:", {
   {name = "Option 1", value = "1"},
   {name = "Option 2", value = "2", description = "More details"}
 })
 ```
 
-```lua
+```space-lua
 local picked = editor.filterBox("Fruit", {{name = "Apple"}, {name = "Pear"}},
   "Pick one, or type a new one", "", {allowNew = true, newHint = "Add"})
 if picked and picked.isNew then
@@ -285,7 +285,7 @@ Shows a flash notification in the editor UI.
 
 **Example:**
 
-```lua
+```space-lua
 editor.flashNotification("Update available", "warning", {
   timeout = 0,
   actions = {{
@@ -576,7 +576,7 @@ Navigates to a page reference without restoring its remembered cursor and scroll
 
 **Example:**
 
-```lua
+```space-lua
 editor.navigate("CHANGELOG@123")
 ```
 
@@ -598,7 +598,7 @@ Opens a page reference and restores its remembered cursor and scroll position wh
 
 **Example:**
 
-```lua
+```space-lua
 editor.open("CHANGELOG")
 ```
 
@@ -628,7 +628,7 @@ Opens the page picker in the requested browsing mode. Each mode maps to a segmen
 
 **Parameters:**
 
-- `mode?` (`page | meta | document | all`) — The picker mode.
+- `mode?` (`page | tool | document | all`) — The picker mode. `meta` is a deprecated alias of `tool`.
 
 ## editor.openSearchPanel
 `editor.openSearchPanel()`
@@ -908,7 +908,7 @@ Opens the browser’s native file picker and returns the selected file’s bytes
 
 **Example:**
 
-```lua
+```space-lua
 local file = editor.uploadFile(".txt")
 print(file.name)
 ```

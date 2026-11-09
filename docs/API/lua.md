@@ -23,7 +23,7 @@ Evaluates a Space Lua expression.
 
 **Example:**
 
-```lua
+```space-lua
 local result = lua.evalExpression("1 + 2 * 3")
 print(result)
 ```
@@ -44,7 +44,7 @@ Inspects a value in the live Space Lua environment and returns serializable type
 
 **Example:**
 
-```lua
+```space-lua
 local info = lua.inspect({"editor", "getText"})
 ```
 
@@ -78,7 +78,7 @@ Parses a Space Lua chunk and returns its AST. Blocks retain comments in source o
 
 **Example:**
 
-```lua
+```space-lua
 local ast = lua.parseBlock("print(\"Hello\")")
 ```
 
@@ -97,7 +97,7 @@ Parses a Space Lua expression and returns its AST.
 
 **Example:**
 
-```lua
+```space-lua
 local expression = lua.parseExpression("1 + 2 * 3")
 ```
 
@@ -117,7 +117,7 @@ Pretty-prints a parsed Space Lua block. Comments are preserved while their place
 
 **Example:**
 
-```lua
+```space-lua
 local formatted = lua.prettyPrintBlock(lua.parseBlock("if a then return 1 end"))
 ```
 
@@ -137,7 +137,7 @@ Pretty-prints a parsed Space Lua expression.
 
 **Example:**
 
-```lua
+```space-lua
 local formatted = lua.prettyPrintExpression(lua.parseExpression("{a=1,b=2}"))
 ```
 <!--/lua-->

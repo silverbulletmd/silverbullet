@@ -11,7 +11,7 @@ The toolbar has:
 
 * **Filter libraries**: narrows installed libraries by name and available ones by name, description and page.
 * **Install…**: asks for a library or plug URI (`https://…` or `github:…`) and installs it. For a plug (a URI ending in `.plug.js`) it also asks where to save it.
-* **Add repository…**: asks for a [[Repository]] URI and the page to put it on, then adds it so its libraries show up under Available.
+* **Add repository…**: asks for a [[Repository]] URI and the page to put it on (always under `Library/Repository/`), then adds it so its libraries show up under Available.
 * **Check for updates**: compares each installed library and repository with its source, and shows the result beside it (see below).
 * **Update all**: updates every installed library that can be updated, with progress. It only shows when there is something to update.
 

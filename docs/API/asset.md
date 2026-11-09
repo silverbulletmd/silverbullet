@@ -24,7 +24,7 @@ Gets metadata for an asset embedded in a plug.
 
 **Example:**
 
-```lua
+```space-lua
 local meta = asset.getFileMeta("myplug", "data.txt")
 print(meta.lastModified)
 ```
@@ -44,7 +44,7 @@ Lists the assets embedded in a plug.
 
 **Example:**
 
-```lua
+```space-lua
 for _, file in ipairs(asset.listFiles("myplug")) do
   print(file.name)
 end
@@ -66,7 +66,7 @@ Reads an asset embedded in a plug as a data URL.
 
 **Example:**
 
-```lua
+```space-lua
 local image = asset.readAsset("myplug", "image.png")
 ```
 <!--/lua-->

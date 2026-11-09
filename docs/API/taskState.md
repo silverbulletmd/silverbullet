@@ -16,8 +16,8 @@ Defines a custom task state. Options:
 Primarily used to offer code completion for custom task states for now.
 
 ## Example
-Install these definitions in a `space-lua` block in your own space and reload them:
-```lua
+Install these definitions in a `space-lua` block on a page under `Library/` in your own space and reload them:
+```space-lua
 taskState.define {
   name = "TO DO"
 }

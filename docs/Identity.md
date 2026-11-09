@@ -18,7 +18,7 @@ Everyone with access to the space is an identity, addressed by their account use
 ## API-defined identities
 Anything addressable that is not an account, but you’d still like to use as an identity, can be registered with `identity.define`:
 
-```lua
+```space-lua
 identity.define {
   name = "sales",
   description = "Sales team",

@@ -8,7 +8,7 @@ SilverBullet is _indie software_. If you use it, please help us [keep the projec
 SilverBullet helps you keep and organize your personal, family or team knowledge as (primarily) _Markdown files_ under your control. Write and connect ideas, organize information, and build useful views of your data when you need them. Customize your space as much or as little as you like.
 
 # Find your way
-* [[Getting Started|Start here]] — learn [[Markdown]], connect [[Page|Pages]], add [[Tag|Tags]] and [[Meta Page]] and try queries in [[Workbench]]. Each guide stands on its own.
+* [[Getting Started|Start here]] — learn [[Markdown]], connect [[Page|Pages]], add [[Tag|Tags]] and [[Tool Page|tool pages]] and try queries in [[Workbench]]. Each guide stands on its own.
 * [[Guides]] — practical tasks and use cases for personal knowledge, team collaboration and docs as code.
 * [[Administration|Setup and administration]] — install and operate Desktop or Server, and back up your space.
 * [[Reference]] — look up feature behavior, syntax and APIs.

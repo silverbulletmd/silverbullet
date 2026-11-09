@@ -23,7 +23,7 @@ The functions below read the shared files. They only work inside the `run` funct
 > Put your capture actions in a `space-lua` block, e.g. on your [[CONFIG]] page.
 
 # Example
-```lua
+```space-lua
 service.define {
   selector = "capture",
   match = function(data)
@@ -55,7 +55,7 @@ Reads a staged file belonging to the current capture action.
 
 **Example:**
 
-```lua
+```space-lua
 local bytes = capture.readFile(data.files[1].handle)
 ```
 
@@ -75,7 +75,7 @@ Saves a staged file without overwriting different bytes. Returns true when newly
 
 **Example:**
 
-```lua
+```space-lua
 capture.saveFile(data.files[1].handle, "Inbox/" .. data.files[1].name)
 ```
 <!--/lua-->

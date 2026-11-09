@@ -12,7 +12,7 @@ SilverBullet uses [JSON Schema](https://json-schema.org) for validation of struc
 ## Tag definitions
 When you define a tag with `tag.define`, you can provide a schema that describes the expected attributes. The schemas of the built-in tags are defined the same way, in [[^Library/Std/Infrastructure/Root Tags]]. SilverBullet validates objects against this schema and surfaces errors in the editor:
 
-```lua
+```space-lua
 tag.define {
   name = "contact",
   schema = {
@@ -31,7 +31,7 @@ Pages or objects tagged with `#contact` will be validated against this schema â€
 ## Configuration definitions
 The `config.define` function uses schemas to validate configuration values:
 
-```lua
+```space-lua
 config.define("myLibrary.config", {
   type = "object",
   properties = {

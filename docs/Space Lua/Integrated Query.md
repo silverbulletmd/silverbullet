@@ -115,9 +115,9 @@ Example:
 
 ${query[[from n = {1, 2, 3, 4, 5} where n > 2]]}
 
-Or to select 5 pages tagged with `#meta`:
+Or to select 5 pages tagged with `#glossary`:
 
-${query[[from p = index.pages() where table.includes(p.tags, "meta") limit 5]]}
+${query[[from p = index.pages() where table.includes(p.tags, "glossary") limit 5]]}
 
 Or select based on name (including folder) and a [[API/string|string function]]:
 
@@ -182,7 +182,7 @@ ${query[[
 
 Each sort key can have its own direction:
 
-```lua
+```space-lua
 query[[
   from p = data
   order by p.category asc, p.priority desc
@@ -208,13 +208,13 @@ The `using` clause specifies a custom comparator function instead of the default
 
 The comparator must accept two arguments and return `true` when the first should come strictly before the second. It can be a named function:
 
-```lua
+```space-lua
 function byLength(a, b)
   return #a < #b
 end
 ```
 
-```lua
+```space-lua
 query [[
   from p = index.pages()
   order by p.name using byLength
@@ -232,7 +232,7 @@ ${query[[
 
 The `nulls` clause works with `using`, and each sort key can independently choose `asc`/`desc` or `using`:
 
-```lua
+```space-lua
 query [[
   from p = data
   order by
@@ -254,7 +254,7 @@ A comparator must satisfy **strict weak ordering** (SWO) — if comparing A with
 
 The query engine validates this at runtime. If comparing two values in both directions both return `true`, the query fails with a clear error:
 
-```lua
+```space-lua
 query [[
   from n = {5, 1, 3, 2, 3}
   order by n using function(a, b) return a <= b end

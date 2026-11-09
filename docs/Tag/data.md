@@ -35,7 +35,7 @@ The `/data` [[Slash Command]] inserts an empty data block, with the cursor where
 ## Editing as a form
 In the editor, each object of a data block shows as a form. To edit data blocks as plain YAML instead, switch off **Edit data blocks as a form** in the [[Workbench/Configuration|Configuration tab]] or put this in your [[CONFIG]]:
 
-```lua
+```space-lua
 config.set("liveEdit", { dataBlocks = false })
 ```
 

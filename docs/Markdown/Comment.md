@@ -31,7 +31,7 @@ Everything indexed inside a comment carries `inComment = true`, so a commented-o
 
 Queries do **not** filter these out. Exclude them explicitly when you want only live content:
 
-```lua
+```space-lua
 ${query[[from t = index.tasks() where not t.inComment]]}
 ```
 

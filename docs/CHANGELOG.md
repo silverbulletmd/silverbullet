@@ -12,6 +12,10 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
+* **Breaking:** [[Space Lua]] and [[Space Style]] blocks now only run from [[Tool Page|tool pages]] (new name of “meta pages”): pages under `Library/`, plus [[CONFIG]]. A `space-lua` or `space-style` block on any other page is shown but no longer runs, and gets a lint warning. See [[ADR/012 Tooling Lives in Library]]. As part of this:
+  * “Meta pages” are now called [[Tool Page|tool pages]], and are defined by location only.
+  * Styles now load in the same order as scripts: by priority, highest first, with no priority counting as `0` (unprioritized styles used to load before all others), then by page name and position on the page.
+  * The bundled repositories moved to `Library/Repository/Std`.
 * Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).

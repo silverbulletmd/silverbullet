@@ -51,12 +51,14 @@ body.christmas-decoration #sb-top {
 }
 ```
 
-Copy the frontmatter and style to your own space to adapt the decoration.
+This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
+
+To adapt the decoration, copy the frontmatter to your own page and the style to a page under `Library/` in your space.
 
 # Apply to every page with a tag
 To decorate every page with a tag, give the tag a `pageDecoration` in [[API/tag|tag.define]] in your [[CONFIG]]:
 
-```lua
+```space-lua
 tag.define {
   name = "person",
   pageDecoration = { icon = "user", cssClasses = { "person-page" } },

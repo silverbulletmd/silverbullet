@@ -5,7 +5,7 @@ aliases:
 references:
 - client/workbench/styles/**
 ---
-The **Space Style** section of the [[Workbench/Code|Code]] tab lists every `space-style` block in your space (see [[Space Style]]), in the order they’re applied: by priority, highest first, after the blocks that set no priority.
+The **Space Style** section of the [[Workbench/Code|Code]] tab lists every `space-style` block on a [[Tool Page]] in your space (see [[Space Style]]), in the order they’re applied: by priority, highest first, where no priority counts as 0, then by page name and position.
 
 ${widgets.commandButton("Workbench: Styles")} opens the [[Workbench]] on this section.
 

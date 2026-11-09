@@ -8,7 +8,7 @@ Use the `lua` tool to query the space's index: an expression returns its value, 
 | Source | Selection |
 | --- | --- |
 | `index.pages("project")` | Pages tagged project (no argument: all pages) |
-| `index.contentPages()` / `index.metaPages()` | Non-meta / meta pages |
+| `index.contentPages()` / `index.toolPages()` | Content pages / tool pages (pages under `Library/` and `CONFIG`) |
 | `index.tasks("work")` | Tasks tagged work |
 | `index.items("decision")` | List items tagged decision |
 | `index.headers()`, `index.paragraphs()`, `index.tables()`, `index.data()` | Headings, paragraphs, table rows, data-block objects |

@@ -19,7 +19,7 @@ Search has its own index and startup behavior. [[Search#The search index]] expla
 * **An external source used by a custom widget or script:** Follow that feature’s refresh contract. External changes may not be tracked as index dependencies.
 
 # Reload definitions deliberately
-A plain `lua` code fence displays source. It installs no definitions. A `space-lua` block defines reusable code after it is loaded. `System: Reload` reloads that code through [[API/system#system.reboot]]. It also waits for indexing and incorporates external changes to the open page. An apparently successful reload does not establish that every script loaded correctly: check errors in [[Workbench/Code/Scripts]] and [[Workbench/Console]].
+A `space-lua` block on a page under `Library/` (or in [[CONFIG]]) defines reusable code after it is loaded. On other pages it only displays source and installs nothing. `System: Reload` reloads that code through [[API/system#system.reboot]]. It also waits for indexing and incorporates external changes to the open page. An apparently successful reload does not establish that every script loaded correctly: check errors in [[Workbench/Code/Scripts]] and [[Workbench/Console]].
 
 [[Space Lua/Page Lua|Page Lua]] has a separate page-local execution model. Consult its reference when a calculation depends on local variables. You do not need to create a global definition to display an ordinary query.
 

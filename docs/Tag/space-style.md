@@ -4,7 +4,7 @@ tagKind: system
 references:
 - plugs/index/space_style.ts
 ---
-Every `space-style` block across your space is indexed with the `space-style` tag, and their CSS is applied to the client, ordered by priority. See [[Space Style]] for how to write them.
+Every `space-style` block on a [[Tool Page]] is indexed with the `space-style` tag, and their CSS is applied to the client, ordered by priority. Blocks on other pages aren’t applied or indexed. See [[Space Style]] for how to write them.
 
 Like [[Tag/space-lua|space-lua]] blocks, `space-style` blocks configure SilverBullet rather than hold content, so you can’t attach tags to them. Commenting a block out turns it off.
 

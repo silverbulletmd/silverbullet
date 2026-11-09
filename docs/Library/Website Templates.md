@@ -1,5 +1,4 @@
 ---
-tags: meta
 references:
 - libraries/Library/Std/Infrastructure/Share.md
 ---

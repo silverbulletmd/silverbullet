@@ -10,9 +10,9 @@ Virtual pages are read-only pages that don’t exist as files in your space. Ins
 # How it works
 You define a virtual page by calling `virtualPage.define` with a Lua pattern and a function. When someone navigates to a page name matching the pattern, SilverBullet calls your function instead of loading a file from disk.
 
-The current standard-library dispatcher passes the first captured value from the pattern to the function. The function returns the Markdown content to display. Put definitions in a `space-lua` block in your own space, then run `System: Reload`.
+The current standard-library dispatcher passes the first captured value from the pattern to the function. The function returns the Markdown content to display. Put definitions in a `space-lua` block on a page under `Library/` in your own space, then run `System: Reload`.
 
-```lua
+```space-lua
 virtualPage.define {
   pattern = "greeting:(.+)",
   run = function(name)
@@ -37,7 +37,7 @@ Navigating to a page named `uri:https://example.com/page` fetches and displays t
 # Defining your own virtual pages
 Here’s a more complete example that queries the object index:
 
-```lua
+```space-lua
 virtualPage.define {
   pattern = "recent:(%d+)",
   run = function(count)
@@ -61,7 +61,7 @@ Navigate to `recent:10` to see the 10 most recently modified pages.
 # Multiple capture groups
 The current dispatcher passes only the first match value to `run`. If you need several values, capture the complete suffix and parse it inside the callback:
 
-```lua
+```space-lua
 virtualPage.define {
   pattern = "lookup:(.+)",
   run = function(suffix)

@@ -9,21 +9,21 @@ Space Lua is a custom dialect and implementation of the [Lua programming languag
 
 In essence, Space Lua adds a few features to SilverBullet’s [[Markdown]] language:
 
-* [[#Definitions]]: Code written in `space-lua` code blocks are enabled across your entire space.
+* [[#Definitions]]: Code written in `space-lua` code blocks on [[Tool Page|tool pages]] is enabled across your entire space.
 * [[Space Lua/Page Lua]]: Code written in `page-lua` code blocks are enabled on the page they’re defined on.
 * [[#Expressions]]: The `${expression}` syntax will [[Live Preview]] to its evaluated value. It is common to use this mechanism to render custom [[API/widget|Widgets]].
 
 Have a look at [[Space Lua/Conventions]] for best practices around code style.
 
 > **note** Note
-> A `lua` fence displays inert source. Use [[Workbench/Console]] for one-off expressions. Put reusable definitions in a `space-lua` fence in your own space and reload them. A `markdown` fence shows text to copy into a page, including its `${...}` expressions. Follow each example’s placement instructions.
+> Code fences on these docs pages are examples and don’t run. To use one, put it on a page under `Library/` (or in [[CONFIG]]). Use [[Workbench/Console]] to try a one-off expression.
 
 # Definitions
-Space Lua definitions are defined in fenced code blocks with the `space-lua` language. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
+Space Lua definitions are defined in fenced code blocks with the `space-lua` language, on a [[Tool Page]]: a page under `Library/`, or [[CONFIG]]. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
 
-To install a reusable definition, copy this example into a `space-lua` block in your own space:
+To install a reusable definition, copy this example into a `space-lua` block on a page under `Library/` in your own space:
 
-```lua
+```space-lua
 --- Adds two numbers.
 ---@param a number First number.
 ---@param b number Second number.
@@ -38,25 +38,31 @@ Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous docum
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 
 ## Definition loading
-Your `space-lua` definitions are constantly being indexed as part of the [[Object Index]] with the [[Tag/space-lua]] tag. There is nothing you have to do for this, other than be a bit patient for things to start working when you initialize a fresh client.
+`space-lua` blocks only run from tool pages. A block on any other page is shown but never runs, and gets a lint warning. To turn that warning off, add `config.set("lint.inactiveBlocks", false)` to your [[CONFIG]].
 
-When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence.
+When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence. At boot, the scripts of all tool pages load in one request, without waiting for the index. On a fresh client the index is still being built then, so a script that queries the index when it loads should run that query in an `index:ready` [[Event|event]] listener as well.
+
+Some configuration has to apply before syncing, indexing or the first render: `config.set` for sync settings, `tag.define` so the first index sees your tags and schemas, action buttons. For that, boot runs a restricted early pass over the **boot blocks**, before the client exists. A block is a boot block when it contains a `-- boot: true` comment line, and every block on [[CONFIG]] is one automatically. In this pass only configuration calls work, and a statement that fails is skipped. Boot blocks then run again with all the others as described here, so a library page that must configure early can mark its block like this:
+
+```space-lua
+-- boot: true
+tag.define { name = "book" }
+```
 
 It is possible to **control load order** of Space Lua scripts using the special `-- priority: <number>` comment in Space Lua code. For instance:
 
-```lua
+```space-lua
 -- priority: 10
 local myCodeHere
 ```
 
-Scripts are loaded in _reverse priority_ order. When you set no priority (the default) your scripts will be run last.
+Scripts run in this order:
 
-The order used is determined by this [[Space Lua/Integrated Query|query]] (the [[Workbench/Code/Scripts|Space Lua]] section of the [[Workbench/Code|Code]] tab shows the same order):
+1. By priority, highest first. A script without a priority comment counts as priority `0`.
+2. Scripts with the same priority run in page name order.
+3. Scripts on the same page run top to bottom.
 
-    query[[
-      from t = index.objects("space-lua")
-      order by t.priority desc
-    ]]
+The [[Workbench/Code/Scripts|Space Lua]] section of the [[Workbench/Code|Code]] tab shows the actual order.
 
 This means that the higher the priority, the earlier the script is loaded. That also means that if you want to override previously defined definitions you need to a set a _lower_ priority (or in most cases: simply omit the priority comment).
 
