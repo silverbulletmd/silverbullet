@@ -210,7 +210,7 @@ describe("SyncEngine bundled library conflicts", () => {
   );
 
   test.each([
-    "Repositories/Std.md",
+    "Library/Repository/Std.md",
     "Library/StdCustom.md",
     "Library/Std.conflicted-example.md",
   ])(

@@ -131,7 +131,13 @@ export function LibrariesView({ client, focusTarget, showing }: TabProps) {
   }, [showing]);
 
   const lists = useMemo(
-    () => libraryLists(state.data, phrase, state.checks),
+    () =>
+      libraryLists(
+        state.data,
+        phrase,
+        state.checks,
+        client.bootConfig.bundledRepositories,
+      ),
     [state.data, phrase, state.checks],
   );
   const { progress } = state;

@@ -137,10 +137,13 @@ describe("installing and updating", () => {
   });
 
   test("a repository is pulled into the page asked for", async () => {
-    const expressions = stubLua({ page: "Repositories/R", changed: true });
-    await addRepository("u", "Repositories/R");
+    const expressions = stubLua({
+      page: "Library/Repository/R",
+      changed: true,
+    });
+    await addRepository("u", "Library/Repository/R");
     expect(expressions[0]).toBe(
-      'share.install("u", {page = "Repositories/R"})',
+      'share.install("u", {page = "Library/Repository/R"})',
     );
   });
 
@@ -302,4 +305,36 @@ describe("updateByName", () => {
       );
     },
   );
+});
+
+describe("repositories under Library/Repository", () => {
+  test("a library several repositories list is offered once", async () => {
+    handlers["index.queryLuaObjects"] = (tag: string) =>
+      tag === "meta/library/remote"
+        ? [
+            { name: "Foo", uri: "u", page: "Library/Repository/Std" },
+            { name: "Foo", uri: "u", page: "Library/Repository/Other" },
+            { name: "Bar", uri: "v", page: "Library/Repository/Other" },
+          ]
+        : [];
+    handlers["space.listPlugs"] = () => [];
+    handlers["lua.evalExpression"] = () => null;
+    const { installable } = await listLibraries();
+    expect(installable.map((l) => [l.uri, l.repositoryPage])).toEqual([
+      ["u", "Library/Repository/Std"],
+      ["v", "Library/Repository/Other"],
+    ]);
+  });
+
+  test("adding a repository nests the page under Library/Repository", async () => {
+    const expressions = stubLua({ page: "x", changed: true });
+    await addRepository("u", "Foo");
+    expect(expressions[0]).toBe(
+      'share.install("u", {page = "Library/Repository/Foo"})',
+    );
+    await addRepository("u", "Library/Repository/Bar");
+    expect(expressions[1]).toBe(
+      'share.install("u", {page = "Library/Repository/Bar"})',
+    );
+  });
 });

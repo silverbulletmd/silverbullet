@@ -101,6 +101,10 @@ pub struct ServerState {
     /// for a server that hosts a single space.
     pub space_prefixes: SpacePrefixes,
     pub default_font: DefaultFont,
+    /// Repository pages (names without `.md`) the bundled layer ships,
+    /// reported at `/.config` so the client can mark them built in. The
+    /// bundled layer is static, so this is computed once at startup.
+    pub bundled_repositories: Vec<String>,
     /// Absolute path of the space folder, surfaced in `X-Space-Path` headers.
     pub space_folder_path: String,
     /// Server version, surfaced in `/.ping`'s `X-Server-Version`. The client

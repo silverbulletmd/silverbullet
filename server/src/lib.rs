@@ -71,6 +71,7 @@ mod test_support {
             },
             space_prefixes: Default::default(),
             default_font: Default::default(),
+            bundled_repositories: Vec::new(),
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
             host_url_prefix: String::new(),

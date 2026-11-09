@@ -57,18 +57,18 @@ const sample: LibrariesViewModel = {
       name: "Gadgets",
       description: "Gadgets from Acme",
       uri: "github:acme/gadgets.md",
-      repositoryPage: "Repositories/Acme",
+      repositoryPage: "Library/Repository/Acme",
     },
     {
       name: "Basics",
       uri: "github:std/basics.md",
-      repositoryPage: "Repositories/Std",
+      repositoryPage: "Library/Repository/Std",
     },
   ],
   repositories: [
-    { name: "Repositories/Std" },
+    { name: "Library/Repository/Std" },
     {
-      name: "Repositories/Acme",
+      name: "Library/Repository/Acme",
       uri: "https://example.com/acme.md",
       mode: "pull",
     },
@@ -200,7 +200,7 @@ describe("update checks", () => {
   test("rows carry their check", () => {
     const { installed, repositories } = libraryLists(sample, "", {
       "Library/Acme/Tools": { state: "remoteChanged" },
-      "Repositories/Acme": { state: "upToDate" },
+      "Library/Repository/Acme": { state: "upToDate" },
     });
     expect(installed[1].check).toEqual({ state: "remoteChanged" });
     expect(installed[0].check).toBeUndefined();
@@ -220,7 +220,9 @@ describe("lists", () => {
   });
 
   test("rows get their badge and what they allow", () => {
-    const { installed, repositories } = libraryLists(sample, "");
+    const { installed, repositories } = libraryLists(sample, "", {}, [
+      "Library/Repository/Std",
+    ]);
     expect(installed.map((r) => [r.name, r.badge])).toEqual([
       ["Library/Std/Core", "built-in"],
       ["Library/Acme/Tools", "installed"],
@@ -236,8 +238,8 @@ describe("lists", () => {
     expect(
       repositories.map((r) => [r.name, r.badge, r.updatable, r.removable]),
     ).toEqual([
-      ["Repositories/Std", "built-in", false, false],
-      ["Repositories/Acme", undefined, true, true],
+      ["Library/Repository/Std", "built-in", false, false],
+      ["Library/Repository/Acme", undefined, true, true],
     ]);
   });
 
@@ -247,13 +249,15 @@ describe("lists", () => {
         ...sample,
         repositories: [
           {
-            name: "Repositories/SilverBulletMD",
+            name: "Library/Repository/SilverBulletMD",
             uri: "https://e/SilverBulletMD.md",
             mode: "pull",
           },
         ],
       },
       "",
+      {},
+      ["Library/Repository/SilverBulletMD"],
     );
     expect(
       repositories.map((r) => [r.badge, r.updatable, r.removable]),
@@ -277,18 +281,25 @@ describe("lists", () => {
     expect(lists.updatable).toBe(1);
   });
 
-  test("available libraries group by repository, Std first", () => {
-    const { groups } = libraryLists(sample, "");
+  test("available libraries group by repository, bundled ones first", () => {
+    const { groups } = libraryLists(sample, "", {}, ["Library/Repository/Std"]);
     expect(groups.map((g) => [g.repo, g.label, g.libraries.length])).toEqual([
-      ["Repositories/Std", "Recommended (Std)", 1],
-      ["Repositories/Acme", "Acme", 1],
+      ["Library/Repository/Std", "Std", 1],
+      ["Library/Repository/Acme", "Acme", 1],
+    ]);
+    // Without a bundled list everything sorts alphabetically
+    expect(libraryLists(sample, "").groups.map((g) => g.label)).toEqual([
+      "Acme",
+      "Std",
     ]);
   });
 
   test("the filter narrows installed and available, not repositories", () => {
     const lists = libraryLists(sample, "acme");
     expect(lists.installed.map((r) => r.name)).toEqual(["Library/Acme/Tools"]);
-    expect(lists.groups.map((g) => g.repo)).toEqual(["Repositories/Acme"]);
+    expect(lists.groups.map((g) => g.repo)).toEqual([
+      "Library/Repository/Acme",
+    ]);
     expect(lists.repositories).toHaveLength(2);
   });
 });
@@ -327,7 +338,7 @@ describe("row actions", () => {
   test("other states keep Update, and repositories never get Revert", () => {
     const lists = libraryLists(sample, "", {
       "Library/Acme/Tools": { state: "bothChanged" },
-      "Repositories/Acme": { state: "localChanged" },
+      "Library/Repository/Acme": { state: "localChanged" },
     });
     expect(
       rowActions(lists.installed[1], true, deps()).map((a) => a.label),
@@ -485,7 +496,7 @@ describe("confirming", () => {
       'Remove plug "_plug/stray.plug.js"?',
     );
     expect(removeMessage(repositories[1])).toBe(
-      'Remove repository "Repositories/Acme"?',
+      'Remove repository "Library/Repository/Acme"?',
     );
     expect(revertMessage(installed[1])).toBe(
       'Discard your changes to "Library/Acme/Tools" and restore the installed version?',
@@ -495,7 +506,7 @@ describe("confirming", () => {
   test("a row's actions share one busy key", () => {
     const { installed, repositories } = libraryLists(sample, "");
     expect(rowKey(installed[1])).toBe("library:Library/Acme/Tools");
-    expect(rowKey(repositories[1])).toBe("repository:Repositories/Acme");
+    expect(rowKey(repositories[1])).toBe("repository:Library/Repository/Acme");
   });
 });
 

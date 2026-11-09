@@ -231,6 +231,8 @@ export type BootConfig = {
   defaultFont?: string;
   /** Every other space root on this origin, e.g. ["/private", "/work"]. */
   spacePrefixes?: string[];
+  /** Repository pages (names without .md) the server ships, e.g. "Library/Repository/Std". */
+  bundledRepositories?: string[];
 };
 
 /**

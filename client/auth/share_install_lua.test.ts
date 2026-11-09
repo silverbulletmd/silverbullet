@@ -58,11 +58,23 @@ describe("share.install", () => {
     expect(await install()).toBe(
       "THREW Library frontmatter missing required 'name'",
     );
-    expect(await install({ page: "Repositories/R" })).toMatchObject({
-      page: "Repositories/R",
+    expect(await install({ page: "Library/Repository/R" })).toMatchObject({
+      page: "Library/Repository/R",
       changed: true,
     });
-    expect(w.pages.get("Repositories/R")).toContain("No frontmatter");
+    expect(w.pages.get("Library/Repository/R")).toContain("No frontmatter");
+  });
+
+  test("a page outside Library/ is nested under it", async () => {
+    w.other.set(URI, REMOTE_V1.replace("Library/Widgets", "Widgets"));
+    expect(await install()).toMatchObject({
+      page: "Library/Widgets",
+      changed: true,
+    });
+    expect(await install({ page: "Elsewhere/R" })).toMatchObject({
+      page: "Library/Elsewhere/R",
+    });
+    expect(w.pages.has("Widgets")).toBe(false);
   });
 
   test("never overwrites an existing page on a first install", async () => {
@@ -78,6 +90,15 @@ describe("share.install", () => {
 
   describe("updating an installed page", () => {
     const update = (force = false) => install({ installed: PAGE, force });
+
+    test("writes the installed page, not the remote's name", async () => {
+      const remote = REMOTE_V1.replace("Library/Widgets", "Widgets");
+      await installed(remote, { hash: true });
+      w.other.set(URI, remote.replace("Body one", "Body two"));
+      expect(await update()).toMatchObject({ page: PAGE, changed: true });
+      expect(w.pages.get(PAGE)).toContain("Body two");
+      expect(w.pages.has("Widgets")).toBe(false);
+    });
 
     test("an identical remote is a no-op", async () => {
       await installed(REMOTE_V1);

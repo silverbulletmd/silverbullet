@@ -1,9 +1,3 @@
----
-share:
-  uri: "github:silverbulletmd/silverbullet@main/libraries/Repositories/Std.md"
-  mode: pull
-  hash: "910e8fad"
----
 #meta/repository
 
 Here are a few vetted libraries to get you started.

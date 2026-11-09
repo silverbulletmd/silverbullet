@@ -1,12 +1,13 @@
 // Pure naming helpers for libraries and repositories
 
-export const REPOSITORY_PAGE_PREFIX = "Repositories/";
-export const STD_REPOSITORY = "Repositories/Std";
-/** Shipped with SilverBullet: they update, but deleting one brings the shipped version back. */
-export const BUNDLED_REPOSITORIES = new Set([
-  STD_REPOSITORY,
-  "Repositories/SilverBulletMD",
-]);
+export const REPOSITORY_PAGE_PREFIX = "Library/Repository/";
+
+/** The page a repository named `name` is installed to. */
+export function repositoryPage(name: string): string {
+  return name.startsWith(REPOSITORY_PAGE_PREFIX)
+    ? name
+    : REPOSITORY_PAGE_PREFIX + name;
+}
 
 export function suggestRepoNameFromUri(uri: string): string {
   const parts = uri.split(":");

@@ -1,5 +1,3 @@
-#meta
-
 # Implementation
 ```space-lua
 -- priority: 10
@@ -82,8 +80,12 @@ function share.isManaged(name, text)
   end)
 end
 
--- Library pages (tagged meta or meta/*) are shared as they are
+-- Tool Pages, and pages tagged meta or meta/* (such as templates), are shared
+-- as they are
 function share.isExempt(name, text)
+  if name == "CONFIG" or name:startsWith("Library/") then
+    return true
+  end
   return pageHasTag(name, text, function(tag)
     return tag == "meta" or tag:startsWith("meta/")
   end)
@@ -539,9 +541,12 @@ function share.install(uri, opts)
     error("Could not fetch " .. uri)
   end
   local fm = index.extractFrontmatter(remoteText).frontmatter
-  local page = opts.page or fm.name
+  local page = opts.installed or opts.page or fm.name
   if not page then
     error("Library frontmatter missing required 'name'")
+  end
+  if not opts.installed and not page:startsWith("Library/") then
+    page = "Library/" .. page
   end
   remoteText = share.cleanFrontmatter(remoteText)
   local result = {page = page, files = fm.files, changed = false}

@@ -137,7 +137,7 @@ mod tests {
     fn copy_on_write_prefixes_are_rw() {
         let space = EmbeddedSpace::<BaseFsAssets>::new().with_copy_on_write(BUNDLED_COPY_ON_WRITE);
         assert_eq!(
-            space.get_file_meta("Repositories/Std.md").unwrap().perm,
+            space.get_file_meta("Library/Repository/Std.md").unwrap().perm,
             "rw"
         );
         assert_eq!(

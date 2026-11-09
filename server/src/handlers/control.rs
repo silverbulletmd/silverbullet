@@ -26,6 +26,7 @@ struct ConfigResponse<'a> {
     space_prefixes: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     default_font: Option<String>,
+    bundled_repositories: &'a [String],
     share_owner_id: String,
 }
 
@@ -50,6 +51,7 @@ pub(crate) async fn handle_config(
             boot_config: &boot_config,
             space_prefixes: state.space_prefixes.current(),
             default_font: state.default_font.current(),
+            bundled_repositories: &state.bundled_repositories,
             share_owner_id: silverbullet_server_common::revision::sha256_hex(
                 format!(
                     "{}\0{}",

@@ -1,8 +1,8 @@
-import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { cp, rm } from "node:fs/promises";
-import { parseArgs } from "node:util";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import * as esbuild from "esbuild";
 
 import { compileManifests } from "../client/plugos/plug_compile.ts";
@@ -25,11 +25,9 @@ export async function buildPlugsAndLibraries(options?: {
   mkdirSync("dist", { recursive: true });
 
   await rm(`${plugBundlePath}/Library`, { recursive: true, force: true });
+  // Left over from builds that still bundled libraries/Repositories
   await rm(`${plugBundlePath}/Repositories`, { recursive: true, force: true });
   await cp("libraries/Library", `${plugBundlePath}/Library`, {
-    recursive: true,
-  });
-  await cp("libraries/Repositories", `${plugBundlePath}/Repositories`, {
     recursive: true,
   });
 

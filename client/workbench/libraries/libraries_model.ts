@@ -6,14 +6,11 @@ import {
   type InstallableLibrary,
   isBuiltinLibrary,
   isUpdatable,
+  isUpdatableRepository,
   type LibrariesViewModel,
   type LibraryCheck,
 } from "./libraries_backend.ts";
-import {
-  BUNDLED_REPOSITORIES,
-  REPOSITORY_PAGE_PREFIX,
-  STD_REPOSITORY,
-} from "./library_names.ts";
+import { REPOSITORY_PAGE_PREFIX } from "./library_names.ts";
 
 export type SectionKey = "installed" | "available" | "repositories";
 
@@ -252,7 +249,10 @@ export function libraryLists(
   data: LibrariesViewModel,
   query: string,
   checks: Record<string, LibraryCheck> = {},
+  /** Repository pages the server ships (`bootConfig.bundledRepositories`) */
+  bundledRepositories: readonly string[] = [],
 ): LibraryLists {
+  const bundled = new Set(bundledRepositories);
   const q = query.trim().toLowerCase();
   const has = (s: string | undefined) =>
     !q || (s ?? "").toLowerCase().includes(q);
@@ -302,33 +302,30 @@ export function libraryLists(
   }
   const groups = [...byRepo.entries()]
     .sort(([a], [b]) => {
-      if (a === STD_REPOSITORY) return -1;
-      if (b === STD_REPOSITORY) return 1;
+      if (bundled.has(a) !== bundled.has(b)) return bundled.has(a) ? -1 : 1;
       return a.localeCompare(b);
     })
     .map(([repo, libraries]) => ({
       repo,
-      label:
-        repo === STD_REPOSITORY
-          ? "Recommended (Std)"
-          : repo.startsWith(REPOSITORY_PAGE_PREFIX)
-            ? repo.slice(REPOSITORY_PAGE_PREFIX.length)
-            : repo,
+      label: repo.startsWith(REPOSITORY_PAGE_PREFIX)
+        ? repo.slice(REPOSITORY_PAGE_PREFIX.length)
+        : repo,
       libraries,
     }));
 
-  const repositories = data.repositories.map(
-    (r): LibraryRow => ({
+  const repositories = data.repositories.map((r): LibraryRow => {
+    const isBundled = bundled.has(r.name);
+    return {
       kind: "repository",
       name: r.name,
       uri: r.uri,
-      badge: BUNDLED_REPOSITORIES.has(r.name) ? "built-in" : undefined,
+      badge: isBundled ? "built-in" : undefined,
       check: checks[r.name],
-      updatable: !!r.uri,
-      removable: !!r.uri && !BUNDLED_REPOSITORIES.has(r.name),
+      updatable: isUpdatableRepository(r),
+      removable: !!r.uri && !isBundled,
       openable: true,
-    }),
-  );
+    };
+  });
 
   return {
     installed: [...libraries, ...plugs],
@@ -376,7 +373,11 @@ export function rowActions(
     actions.push({ label: "Copy URI", icon: "copy", run: deps.copy });
   }
   if (writable && row.removable) {
-    actions.push({ label: "Remove", icon: "remove", run: deps.remove });
+    actions.push({
+      label: "Remove",
+      icon: "remove",
+      run: deps.remove,
+    });
   }
   return actions;
 }

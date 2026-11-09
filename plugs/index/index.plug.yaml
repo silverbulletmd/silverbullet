@@ -187,8 +187,6 @@ functions:
       page: ""
       requireMode: rw
       requireEditor: page
-  batchRenameFiles:
-    path: "./refactor.ts:batchRenameFiles"
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:

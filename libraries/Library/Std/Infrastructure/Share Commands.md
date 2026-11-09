@@ -1,5 +1,3 @@
-#meta
-
 The page-facing side of [[Share]]: opening and copying web links, onboarding a page to a share provider, unsharing, and the Share commands.
 
 # Implementation

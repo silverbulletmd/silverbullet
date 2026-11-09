@@ -8,6 +8,7 @@ import { base64Decode } from "../../../plug-api/lib/crypto.ts";
 import { reloadConfig } from "../../config_management/reload.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { luaString } from "../shared/lua_string.ts";
+import { repositoryPage } from "./library_names.ts";
 
 // What the Libraries tab does to the space. Pulls go through the share core
 // in Lua (share.install, share.sharePage, share.check), which keeps the
@@ -40,6 +41,9 @@ export type RepositoryInfo = {
   uri?: string;
   mode?: ShareMode;
 };
+
+/** Update and Check for updates apply: it has a source. */
+export const isUpdatableRepository = (r: RepositoryInfo): boolean => !!r.uri;
 
 export type LibraryCheck = {
   state:
@@ -92,19 +96,27 @@ export async function listLibraries(): Promise<LibrariesViewModel> {
     installed.map((l) => l.uri).filter((u): u is string => !!u),
   );
 
+  // Overlapping repositories list a library more than once
+  const seenUris = new Set<string>();
+  const uniqueInstallable = installableRaw.filter((lib: any) => {
+    if (!lib.uri || installedUris.has(lib.uri) || seenUris.has(lib.uri)) {
+      return false;
+    }
+    seenUris.add(lib.uri);
+    return true;
+  });
+
   const installable: InstallableLibrary[] = await Promise.all(
-    installableRaw
-      .filter((lib: any) => lib.uri && !installedUris.has(lib.uri))
-      .map(async (lib: any) => ({
-        name: lib.name,
-        uri: lib.uri,
-        description: lib.description,
-        website:
-          lib.website ||
-          ((await lua.evalExpression(`share.webUrl(${luaString(lib.uri)})`)) ??
-            undefined),
-        repositoryPage: lib.page,
-      })),
+    uniqueInstallable.map(async (lib: any) => ({
+      name: lib.name,
+      uri: lib.uri,
+      description: lib.description,
+      website:
+        lib.website ||
+        ((await lua.evalExpression(`share.webUrl(${luaString(lib.uri)})`)) ??
+          undefined),
+      repositoryPage: lib.page,
+    })),
   );
 
   const repositories: RepositoryInfo[] = repositoriesRaw.map((r: any) => ({
@@ -269,7 +281,7 @@ export async function removePlug(path: string): Promise<void> {
 }
 
 export async function addRepository(uri: string, page: string): Promise<void> {
-  await shareInstall(uri, { page });
+  await shareInstall(uri, { page: repositoryPage(page) });
   await reloadConfig();
 }
 
@@ -307,7 +319,7 @@ export async function updateAllRepositories(): Promise<{
   errors: string[];
 }> {
   const names = (await listLibraries()).repositories
-    .filter((r) => r.uri)
+    .filter(isUpdatableRepository)
     .map((r) => r.name);
   const results: Record<
     string,
@@ -340,7 +352,7 @@ export async function checkUpdates(): Promise<Record<string, LibraryCheck>> {
   const { installed, repositories } = await listLibraries();
   const queue = [
     ...installed.filter(isUpdatable).map((l) => l.name),
-    ...repositories.filter((r) => r.uri).map((r) => r.name),
+    ...repositories.filter(isUpdatableRepository).map((r) => r.name),
   ];
   const checks: Record<string, LibraryCheck> = {};
   const worker = async () => {

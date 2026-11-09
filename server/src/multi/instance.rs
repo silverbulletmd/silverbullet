@@ -362,10 +362,10 @@ fn try_build_parts(
     };
     // Search indexes only the space's own files, not the bundled fallback.
     let search_space = disk.clone();
-    let space: Arc<dyn SpacePrimitives> = Arc::new(FallthroughSpacePrimitives::new(
-        Box::new(disk),
-        (deps.assets.base_fs)(),
-    ));
+    let base_fs = (deps.assets.base_fs)();
+    let bundled_repositories = silverbullet_server_common::space::bundled_repositories(&*base_fs);
+    let space: Arc<dyn SpacePrimitives> =
+        Arc::new(FallthroughSpacePrimitives::new(Box::new(disk), base_fs));
 
     // Authentication establishes identity. Account-managed servers share that
     // identity across every prefix; each space still grades it against its
@@ -620,6 +620,7 @@ fn try_build_parts(
             let font = deps.default_font.clone();
             crate::DefaultFont::from_fn(move || font.read().unwrap().clone())
         },
+        bundled_repositories,
         space_folder_path: folder_str,
         version: ServerVersion::Static(deps.version.clone()),
         host_url_prefix: prefix.to_string(),
@@ -1036,6 +1037,53 @@ mod tests {
             other => panic!("expected errored, got {other:?}"),
         }
         assert!(inst.router.is_none());
+    }
+
+    #[tokio::test]
+    async fn config_lists_the_bundled_repositories_and_not_the_spaces_own() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let deps = InstanceDeps {
+            auth: InstanceAuth::Single(None),
+            assets: AssetFactories {
+                client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
+                base_fs: Box::new(|| {
+                    let base = MemorySpacePrimitives::new();
+                    base.write_file("Library/Repository/Shipped.md", b"x", None)
+                        .unwrap();
+                    Box::new(base)
+                }),
+            },
+            ..test_deps(dir.path())
+        };
+        let folder = dir.path().join("open");
+        std::fs::create_dir_all(folder.join("Library/Repository")).unwrap();
+        std::fs::write(folder.join("Library/Repository/Mine.md"), "x").unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/o".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.access = None;
+        let state = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        let response = crate::build_router(Arc::new(state))
+            .oneshot(
+                Request::builder()
+                    .uri("/.config")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let config: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(
+            config["bundledRepositories"],
+            serde_json::json!(["Library/Repository/Shipped"])
+        );
     }
 
     #[tokio::test]

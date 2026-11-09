@@ -18,7 +18,26 @@ fn build_timestamp_millis() -> i64 {
 
 /// The bundled base_fs paths users may change: bundled repositories, so they
 /// update through share like any installed one.
-pub const BUNDLED_COPY_ON_WRITE: &[&str] = &["Repositories/"];
+pub const BUNDLED_COPY_ON_WRITE: &[&str] = &["Library/Repository/"];
+
+/// Where repository pages live, bundled or installed.
+const REPOSITORY_DIR: &str = "Library/Repository/";
+
+/// The repositories a bundled layer ships, as page names (`.md` stripped,
+/// sorted): what the Library Manager marks as built in.
+pub fn bundled_repositories(base: &dyn SpacePrimitives) -> Vec<String> {
+    let mut names: Vec<String> = base
+        .fetch_file_list()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|file| {
+            let name = file.name.strip_suffix(".md")?;
+            name.starts_with(REPOSITORY_DIR).then(|| name.to_string())
+        })
+        .collect();
+    names.sort();
+    names
+}
 
 /// The `perm` of a file in a read-only layer: `"rw"` under one of the
 /// `copy_on_write` prefixes, which tells [`FallthroughSpacePrimitives`] to
@@ -341,6 +360,24 @@ impl SpacePrimitives for EmptySpacePrimitives {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bundled_repositories_lists_markdown_pages_under_the_repository_folder() {
+        let base = crate::space::MemorySpacePrimitives::new();
+        for path in [
+            "Library/Repository/Std.md",
+            "Library/Repository/Extra.md",
+            "Library/Repository/logo.png",
+            "Library/Std/Thing.md",
+            "Repositories/Old.md",
+        ] {
+            base.write_file(path, b"x", None).unwrap();
+        }
+        assert_eq!(
+            bundled_repositories(&base),
+            vec!["Library/Repository/Extra", "Library/Repository/Std"]
+        );
+    }
     use crate::space::disk::DiskSpacePrimitives;
     use tempfile::TempDir;
 
@@ -538,50 +575,65 @@ mod tests {
         std::fs::write(&full_path, contents).unwrap();
         let p = ReadOnlyDirSpacePrimitives::new(td.path())
             .unwrap()
-            .with_copy_on_write(&["Repositories/"]);
+            .with_copy_on_write(&["Library/Repository/"]);
         (td, Box::new(p))
     }
 
     #[test]
     fn read_only_dir_marks_copy_on_write_prefixes_rw() {
-        let (_td, p) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
-        assert_eq!(p.get_file_meta("Repositories/Foo.md").unwrap().perm, "rw");
+        let (_td, p) = make_copy_on_write_with_file("Library/Repository/Foo.md", b"v1");
+        assert_eq!(
+            p.get_file_meta("Library/Repository/Foo.md").unwrap().perm,
+            "rw"
+        );
         assert_eq!(p.fetch_file_list().unwrap()[0].perm, "rw");
-        assert!(p.write_file("Repositories/Foo.md", b"v2", None).is_err());
+        assert!(p
+            .write_file("Library/Repository/Foo.md", b"v2", None)
+            .is_err());
 
-        let (_td, p) = make_readonly_with_file("Repositories/Foo.md", b"v1");
-        assert_eq!(p.get_file_meta("Repositories/Foo.md").unwrap().perm, "ro");
+        let (_td, p) = make_copy_on_write_with_file("Library/Std/Foo.md", b"v1");
+        assert_eq!(p.get_file_meta("Library/Std/Foo.md").unwrap().perm, "ro");
+
+        let (_td, p) = make_readonly_with_file("Library/Repository/Foo.md", b"v1");
+        assert_eq!(
+            p.get_file_meta("Library/Repository/Foo.md").unwrap().perm,
+            "ro"
+        );
     }
 
     #[test]
     fn fallthrough_copies_copy_on_write_file_on_first_write() {
         let primary_td = TempDir::new().unwrap();
         let primary = make_disk(&primary_td);
-        let (_fallback_td, fallback) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
+        let (_fallback_td, fallback) =
+            make_copy_on_write_with_file("Library/Repository/Foo.md", b"v1");
         let ft = FallthroughSpacePrimitives::new(primary, fallback);
 
-        ft.write_file("Repositories/Foo.md", b"v2", None).unwrap();
+        ft.write_file("Library/Repository/Foo.md", b"v2", None)
+            .unwrap();
         assert_eq!(
-            std::fs::read(primary_td.path().join("Repositories/Foo.md")).unwrap(),
+            std::fs::read(primary_td.path().join("Library/Repository/Foo.md")).unwrap(),
             b"v2"
         );
-        assert_eq!(ft.read_file("Repositories/Foo.md").unwrap().0, b"v2");
+        assert_eq!(ft.read_file("Library/Repository/Foo.md").unwrap().0, b"v2");
     }
 
     #[test]
     fn fallthrough_delete_of_copied_file_restores_bundled() {
         let primary_td = TempDir::new().unwrap();
         let primary = make_disk(&primary_td);
-        let (_fallback_td, fallback) = make_copy_on_write_with_file("Repositories/Foo.md", b"v1");
+        let (_fallback_td, fallback) =
+            make_copy_on_write_with_file("Library/Repository/Foo.md", b"v1");
         let ft = FallthroughSpacePrimitives::new(primary, fallback);
 
         assert!(matches!(
-            ft.delete_file("Repositories/Foo.md"),
+            ft.delete_file("Library/Repository/Foo.md"),
             Err(SpaceError::ReadOnly(_))
         ));
-        ft.write_file("Repositories/Foo.md", b"v2", None).unwrap();
-        ft.delete_file("Repositories/Foo.md").unwrap();
-        assert_eq!(ft.read_file("Repositories/Foo.md").unwrap().0, b"v1");
+        ft.write_file("Library/Repository/Foo.md", b"v2", None)
+            .unwrap();
+        ft.delete_file("Library/Repository/Foo.md").unwrap();
+        assert_eq!(ft.read_file("Library/Repository/Foo.md").unwrap().0, b"v1");
     }
 
     #[test]
