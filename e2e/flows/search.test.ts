@@ -26,7 +26,7 @@ test.describe("search", () => {
   test("finds a page by its words and opens it at the match", async ({
     sbPage: page,
   }) => {
-    const frame = await openPicker(page, shiftChord("f"), "Pages");
+    const frame = await openPicker(page, shiftChord("f"), "Content");
     await navInput(page).fill("basil morning");
     const row = frame.locator(".sb-nav-row", { hasText: "Garden" }).first();
     await expect(row).toBeVisible({ timeout: 20_000 });
@@ -38,7 +38,7 @@ test.describe("search", () => {
     await expect(currentPage(page)).toHaveValue("Garden");
 
     // Reopening brings back the query, selected, and its results.
-    const again = await openPicker(page, shiftChord("f"), "Pages");
+    const again = await openPicker(page, shiftChord("f"), "Content");
     const input = navInput(page);
     await expect(input).toHaveValue("basil morning");
     await expect(
@@ -57,7 +57,7 @@ test.describe("search", () => {
   test("exact phrase mode is available from the dropdown", async ({
     sbPage: page,
   }) => {
-    const frame = await openPicker(page, shiftChord("f"), "Pages");
+    const frame = await openPicker(page, shiftChord("f"), "Content");
     await frame
       .locator("select.sb-nav-dropdown")
       .selectOption({ label: "Exact phrase" });
@@ -89,7 +89,7 @@ test.describe("search in a read-only published space", () => {
     });
     expect(refused.status()).toBe(404);
 
-    const frame = await openPicker(page, shiftChord("f"), "Pages");
+    const frame = await openPicker(page, shiftChord("f"), "Content");
     await expect(frame.locator("select.sb-nav-dropdown option")).toHaveText([
       "All words",
       "Exact phrase",
@@ -241,7 +241,7 @@ test.describe("semantic search on a multi-user server", () => {
       { ...sbServer, url: `${base}/garden` },
       "index",
     );
-    const frame = await openPicker(page, shiftChord("f"), "Pages");
+    const frame = await openPicker(page, shiftChord("f"), "Content");
     await expect(frame.locator("select.sb-nav-dropdown option")).toHaveText([
       "Semantic",
       "All words",
