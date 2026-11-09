@@ -1,19 +1,19 @@
 ---
-description: "A page under Library/, or CONFIG, that configures or extends your space."
+description: "A page under Library/ that configures or extends your space."
 tags: glossary
 references:
 - plug-api/lib/tool_pages.ts
 ---
-Tool pages are pages not core to your content, but function as a way to configure, or extend your [[Space]]. Every page whose name starts with `Library/` is a tool page, and so is [[CONFIG]].
+Tool pages are pages not core to your content, but function as a way to configure, or extend your [[Space]]. Every page whose name starts with `Library/` is a tool page. That includes your configuration page, [[^Library/Config]].
 
 The most obvious examples are part of SilverBullet’s [[^Library/Std]] library and include generally useful [[^Library/Std/Infrastructure/Slash Templates]].
 
-[[Space Lua]] and [[Space Style]] blocks only run from tool pages. Put your own scripts and styles on pages under `Library/`, for instance `Library/myname/Styles`. A `space-lua` or `space-style` block on any other page is shown, but never runs, and gets a lint warning.
+[[Space Lua]] and [[Space Style]] blocks only run from tool pages. Put your own scripts and styles on pages under `Library/`, for instance `Library/myname/Styles`. Configuration lives on `Library/Config`, whose blocks always run at boot. A `space-lua` or `space-style` block on any other page is shown, but never runs, and gets a lint warning.
 
 A `space-lua` block that must configure the space before syncing, indexing or first render can opt in with a `-- boot: true` line, see [[Space Lua#Definition loading]].
 
 # How are tool pages identified?
-By location alone: a page named `CONFIG`, or with a name starting with `Library/`. Tags play no part. A page called `Library` (without a slash) or `LibraryNotes/x` is not a tool page.
+By location alone: a page whose name starts with `Library/`. Tags play no part. A page called `Library` (without a slash) or `LibraryNotes/x` is not a tool page, and neither is a page called `CONFIG`, the old location of the configuration page.
 
 At a technical level tool pages are [[Page|pages]] like any other, and they are indexed like any other page: tags, links, tasks, items and data blocks all end up in the [[Object Index]]. Their location decides only two things: which `space-lua` and `space-style` blocks run, and whether a page counts as tooling or content. The [[Page Picker]], [[Tool Picker]], [[File Tree]] and [[Search]] use that split, as does `index.contentPages()`.
 

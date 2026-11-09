@@ -1,7 +1,7 @@
 /**
  * Unsaved schema edits per tag, kept for the whole session like the
  * Configuration tab's pending edits, and how saving turns them into
- * statements of CONFIG's managed schemas block.
+ * statements of Library/Config's managed schemas block.
  */
 import { deepEqual } from "@silverbulletmd/silverbullet/lib/json";
 import { isBuiltinTag } from "@silverbulletmd/silverbullet/lib/tags";
@@ -38,7 +38,7 @@ export type SaveResult =
   | {
       ok: false;
       error: string;
-      /** CONFIG was written, but reloading it failed */
+      /** Library/Config was written, but reloading it failed */
       savedButNotApplied?: boolean;
       /** Problems per attribute name */
       fieldErrors?: Record<string, string>;
@@ -295,7 +295,7 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
       ) {
         return {
           ok: false,
-          error: `The schema of #${tag} changed in CONFIG since you started editing it. Discard your changes to see the new version.`,
+          error: `The schema of #${tag} changed in Library/Config since you started editing it. Discard your changes to see the new version.`,
         };
       }
       const expected = this.expectedProperties(tag);
@@ -487,7 +487,7 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
   }
 
   protected override loadErrorMessage(e: any): string {
-    return `Couldn't read CONFIG: ${e?.message ?? e}`;
+    return `Couldn't read Library/Config: ${e?.message ?? e}`;
   }
 
   protected loaded(source: SchemaDraftSource): void {

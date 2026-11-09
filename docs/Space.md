@@ -18,4 +18,4 @@ A space consists of
 A space belongs to whoever runs the server it lives on. Often that is a single person — but nothing about a space assumes it. A space may just as well be held by a handful of people, each with their own account and [[Dashboard#Access|access level]], together with scripts writing to the same files.
 
 # Folder layout
-Every space in SilverBullet at the very least has an index page (by default named `index.md`) and a [[CONFIG]] page (named `CONFIG.md`). If you use [[Library]], you will likely have a `Library/` folder as well.
+Every space in SilverBullet at the very least has an index page (by default named `index.md`). Once you configure something, it also has a configuration page, [[^Library/Config]] (the file `Library/Config.md`), so most spaces have a `Library/` folder. [[Library|Libraries]] you install go there too. Spaces from before this change had a root `CONFIG.md`; the server moves it to `Library/Config.md` the first time it starts.

@@ -466,7 +466,7 @@ function routerWithToolPage(): ProxyRouter {
   const router = new ProxyRouter("", "http://localhost/", {});
   router.localSpacePrimitives = {
     fetchFileList: async () => [
-      { name: "CONFIG.md", lastModified: 5 },
+      { name: "Library/Config.md", lastModified: 5 },
       { name: "Notes.md", lastModified: 6 },
     ],
     readFile: async (name: string) => ({
@@ -487,7 +487,11 @@ test("/.tooling is answered locally once full sync is confirmed", async () => {
     const resp = await onFetchTooling(router);
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(await resp.json()).toEqual([
-      { path: "CONFIG.md", lastModified: 5, text: "text of CONFIG.md" },
+      {
+        path: "Library/Config.md",
+        lastModified: 5,
+        text: "text of Library/Config.md",
+      },
     ]);
   } finally {
     vi.unstubAllGlobals();
@@ -501,7 +505,9 @@ test("/.tooling is answered locally when the server is unreachable", async () =>
   try {
     const resp = await onFetchTooling(router);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect((await resp.json()).map((f: any) => f.path)).toEqual(["CONFIG.md"]);
+    expect((await resp.json()).map((f: any) => f.path)).toEqual([
+      "Library/Config.md",
+    ]);
   } finally {
     vi.unstubAllGlobals();
   }

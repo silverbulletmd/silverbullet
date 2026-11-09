@@ -1,5 +1,5 @@
 /**
- * The managed schemas block of CONFIG: tag schemas the Workbench's Data tab
+ * The managed schemas block of Library/Config: tag schemas the Workbench's Data tab
  * owns (`tag.define`) and its targeted changes to schemas defined elsewhere
  * (`config.set`, `tag.setRequired`).
  */
@@ -90,7 +90,7 @@ export function readSchemaBlock(configText: string): OwnedSchemas {
 }
 
 /**
- * Applies changes to the schemas block of CONFIG, statement by statement
+ * Applies changes to the schemas block of Library/Config, statement by statement
  * (see editManagedBlock): a change replaces the statement for its tag, path
  * or requirement; resets remove them. A define that has other fields or
  * comments keeps them: only its schema is replaced.
@@ -107,7 +107,6 @@ export function applySchemaChanges(
       writes: [
         ...Object.entries(changes.define).map(([tag, schema]) => ({
           key: defineKey(tag),
-          // CONFIG blocks are boot blocks, so no `-- boot: true` marker is needed
           statement: defineStatement(tag, schema),
           replace: (st: ScannedStatement, inner: string) =>
             st.kind === "define" &&

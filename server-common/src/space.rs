@@ -2,12 +2,14 @@
 
 pub mod case;
 pub mod conditional;
+pub mod config_migration;
 pub mod disk;
 pub mod embed;
 pub mod http;
 pub mod readonly;
 
 pub use conditional::{ConditionalSpacePrimitives, WritePrecondition};
+pub use config_migration::{migrate_config_page, ConfigMigration};
 pub use disk::{DiskSpacePrimitives, GitignoreMatcher};
 pub use embed::{
     bundled_repositories, layer_perm, EmptySpacePrimitives, FallthroughSpacePrimitives,

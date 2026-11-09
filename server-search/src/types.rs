@@ -11,7 +11,7 @@ pub enum QueryMode {
 }
 
 /// Which pages a query searches, by the page's location: Tool Pages are
-/// `CONFIG` and everything under `Library/`, Pages are all others.
+/// everything under `Library/`, Pages are all others.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchScope {

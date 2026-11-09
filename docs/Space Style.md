@@ -5,7 +5,7 @@ references:
 - plugs/index/space_style.ts
 - client/style.ts
 ---
-Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]]. Like `space-lua`, a `space-style` block only applies when it’s on a [[Tool Page]]: a page under `Library/`, or [[CONFIG]]. A block on any other page is shown but not applied, and gets a lint warning. The examples on this page are inert for that reason.
+Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]]. Like `space-lua`, a `space-style` block only applies when it’s on a [[Tool Page]]: a page under `Library/`. A block on any other page is shown but not applied, and gets a lint warning. The examples on this page are inert for that reason.
 
 This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. To pick fonts, [[Fonts]] in Configuration is the easier route; a Space Style that sets a font variable wins over it.
 

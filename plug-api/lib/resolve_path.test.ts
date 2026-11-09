@@ -586,3 +586,16 @@ test("collisionIndex answers writeLinkPath exactly like the full index", () => {
     }
   }
 });
+
+test("a [[CONFIG]] link follows the config page to Library/Config", () => {
+  // Std's own Library/Std/Config makes the bare name ambiguous; the
+  // shallower Library/Config wins
+  const idx = index("index.md", "Library/Config.md", "Library/Std/Config.md");
+  for (const from of ["index.md", "Notes/Deep/Page.md"] as Path[]) {
+    expect(resolvePath("CONFIG.md", from, idx)).toMatchObject({
+      path: "Library/Config.md",
+      exists: true,
+      ambiguous: true,
+    });
+  }
+});

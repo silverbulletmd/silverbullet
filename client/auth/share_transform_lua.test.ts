@@ -153,7 +153,8 @@ describe("Share Transforms.md", () => {
 
     // Tool Pages by location, untagged
     expect(await resolved(plain, "Library/Mine")).toBe(plain);
-    expect(await resolved(plain, "CONFIG")).toBe(plain);
+    expect(await resolved(plain, "Library/Config")).toBe(plain);
+    expect(await resolved(plain, "CONFIG")).toBe("Other \n");
     expect(await resolved(plain, "Libraryish")).toBe("Other \n");
   });
 

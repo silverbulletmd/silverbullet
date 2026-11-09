@@ -23,7 +23,7 @@ If the filter phrase contains `#tags` the results will be filtered based on matc
 If the filter phrase starts with `$`, the picker switches to navigating [[Markdown/Anchor|anchors]] instead of pages: everything after the `$` filters anchor names from across your [[Space]], and each result shows a formatted snippet of the anchored content along with the host page it lives on. Deleting the `$` returns you to the page list. This works from any of the pickers.
 
 > **warning** Warning
-> [[Tool Page|Tool pages]] (`CONFIG` and every page under `Library/`), even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Tool Picker]] instead or find them in the [[File Tree]].
+> [[Tool Page|Tool pages]] (every page under `Library/`), even though technically regular pages, will **not** appear in the page picker. To navigate to them, use the [[Tool Picker]] instead or find them in the [[File Tree]].
 
 Pressing the `Enter` key will open/create the selected page.
 Pressing `Shift-Enter` will open or create (if it doesn’t already exist) the page _exactly matching_ the filter phrase. In [[Markdown/Anchor|anchor]] and tag mode there is nothing to create, so it does nothing there.

@@ -1,14 +1,14 @@
 import { findNodeOfType, type ParseTree, traverseTree } from "./tree.ts";
 
 export const TOOL_PAGE_PREFIX = "Library/";
-export const CONFIG_PAGE_NAME = "CONFIG";
+export const CONFIG_PAGE_NAME = "Library/Config";
 
 export function isToolPage(name: string): boolean {
-  return name === CONFIG_PAGE_NAME || name.startsWith(TOOL_PAGE_PREFIX);
+  return name.startsWith(TOOL_PAGE_PREFIX);
 }
 
 export function toolPageLua(varName: string): string {
-  return `${varName}.name == "${CONFIG_PAGE_NAME}" or string.startsWith(${varName}.name, "${TOOL_PAGE_PREFIX}")`;
+  return `string.startsWith(${varName}.name, "${TOOL_PAGE_PREFIX}")`;
 }
 
 export type ToolFence = "space-lua" | "space-style";
@@ -73,8 +73,15 @@ export function findToolBlocks(tree: ParseTree): FencedToolBlock[] {
 
 /**
  * Whether a `space-lua` block on `page` also runs in the restricted boot
- * pre-pass: every block on CONFIG, and blocks with a `-- boot: true` line.
+ * pre-pass: every block on Library/Config, and blocks with a `-- boot: true` line.
  */
 export function isBootScript(page: string, code: string): boolean {
-  return page === CONFIG_PAGE_NAME || /^\s*--\s*boot:\s*true\s*$/m.test(code);
+  return page === CONFIG_PAGE_NAME || hasBootMarker(code);
+}
+
+/** The line that makes a `space-lua` block a boot block */
+export const BOOT_MARKER = "-- boot: true";
+
+export function hasBootMarker(code: string): boolean {
+  return /^\s*--\s*boot:\s*true\s*$/m.test(code);
 }

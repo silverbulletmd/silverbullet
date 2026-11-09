@@ -455,7 +455,9 @@ describe("state", () => {
     );
     await ready(drafts);
     expect(drafts.ready).toBe(false);
-    expect(drafts.loadError).toBe("Couldn't read CONFIG: Network error");
+    expect(drafts.loadError).toBe(
+      "Couldn't read Library/Config: Network error",
+    );
     fail = false;
     reload();
     await new Promise((r) => setTimeout(r, 0));

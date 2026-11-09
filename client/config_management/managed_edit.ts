@@ -1,4 +1,8 @@
 import {
+  BOOT_MARKER,
+  hasBootMarker,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
+import {
   CONFIG_BLOCK,
   findManagedBlock,
   invalidManagedBlockMessage,
@@ -20,7 +24,7 @@ export type OverrideChanges<T> = {
 };
 
 /**
- * Changes to the managed block of CONFIG. Overrides not mentioned are left
+ * Changes to the managed block of Library/Config. Overrides not mentioned are left
  * untouched, so a value written elsewhere meanwhile (e.g. by Share) survives.
  */
 export type ManagedChanges = {
@@ -91,12 +95,13 @@ export type BlockChanges = {
 };
 
 /**
- * Apply changes to a managed block of a CONFIG text by editing statements in
- * place: a write replaces the first statement with its key (removing any
- * duplicates) or is appended, a removal removes them all. Every other line
- * and block is left untouched. The block is created when needed and removed
- * once it holds nothing but its header. Refuses (throws) to edit a block that
- * is not valid Lua.
+ * Apply changes to a managed block of a Library/Config text by editing
+ * statements in place: a write replaces the first statement with its key
+ * (removing any duplicates) or is appended, a removal removes them all. Every
+ * other line and block is left untouched, except that a block without a
+ * `-- boot: true` line gets one after its marker. The block is created when
+ * needed and removed once it holds nothing but its header. Refuses (throws)
+ * to edit a block that is not valid Lua.
  */
 export function editManagedBlock(
   text: string,
@@ -153,13 +158,29 @@ export function editManagedBlock(
         ? removeRange(updated, start, end)
         : updated.slice(0, start) + replacement + updated.slice(end);
   }
-  updated = [updated.replace(/\n+$/, ""), ...appended].join("\n");
+  updated = withBootMarker(
+    [updated.replace(/\n+$/, ""), ...appended].join("\n"),
+    kind,
+  );
 
   const header = new Set(kind.header.split("\n"));
   const onlyHeader = updated
     .split("\n")
     .every((line) => !line.trim() || header.has(line.trim()));
   return replaceManagedBlock(text, onlyHeader ? "" : updated, kind);
+}
+
+/** Adds a `-- boot: true` line right after the block's marker, when missing */
+function withBootMarker(inner: string, kind: ManagedBlockKind): string {
+  if (hasBootMarker(inner)) return inner;
+  const lines = inner.split("\n");
+  // The same test findManagedBlock uses, so trailing text on the marker line
+  // doesn't push the boot line above it
+  const at = lines.findIndex((line) =>
+    line.trimStart().startsWith(kind.marker),
+  );
+  lines.splice(at + 1, 0, BOOT_MARKER);
+  return lines.join("\n");
 }
 
 const configKey = (path: string) => `config:${path}`;
@@ -180,8 +201,8 @@ function commandStatement(name: string, override: CommandOverride): string {
 }
 
 /**
- * Apply changes to the managed configuration block of a CONFIG text (see
- * editManagedBlock): a set replaces the statement for its config path or
+ * Apply changes to the managed configuration block of a Library/Config text
+ * (see editManagedBlock): a set replaces the statement for its config path or
  * command, an unset removes them all.
  */
 export function applyManagedChanges(
@@ -192,7 +213,6 @@ export function applyManagedChanges(
     writes: [
       ...Object.entries(changes.config?.set ?? {}).map(([path, value]) => ({
         key: configKey(path),
-        // CONFIG blocks are boot blocks, so no `-- boot: true` marker is needed
         statement: `config.set(${toLua(path)}, ${toLua(value)})`,
       })),
       ...Object.entries(changes.commands?.set ?? {}).map(

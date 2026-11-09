@@ -2,7 +2,7 @@
 description: Theming a space with CSS in space-style blocks (colours, fonts, spacing), SilverBullet's theme variables, light and dark mode. Read before writing or changing a space-style block. Not needed to attach a class to a widget or a tag (Building Interfaces covers that).
 tags: meta/skill
 ---
-Styles are CSS in `space-style` fenced blocks, on a page under `Library/` or on `CONFIG`; they do not apply from other pages. A dedicated page such as `Library/Theme` keeps them together. They apply to the whole space. A `write` or `edit` of that page reloads them; after `space.writePage` from `lua`, call `system.reboot()`.
+Styles are CSS in `space-style` fenced blocks, on a page under `Library/`; they do not apply from other pages. A dedicated page such as `Library/Theme` keeps them together. They apply to the whole space. A `write` or `edit` of that page reloads them; after `space.writePage` from `lua`, call `system.reboot()`.
 
 # Steps
 1. **Read the theme.** List the theme variables with their light and dark values (snippet below). Most colours and fonts are a variable away; set the variable before reaching for a selector.

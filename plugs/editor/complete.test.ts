@@ -53,43 +53,43 @@ test("page completions carry the page decoration icon without changing their lab
 describe("pageComplete tool-page caret prefix", () => {
   test("[[^ returns only tool pages", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", []);
+    await indexPageMeta("Library/Config", []);
     await indexPageMeta("Library/Std", []);
     await indexPageMeta("RegularPage", []);
 
     const result = await pageComplete(makeCompleteEvent("[[^"));
     expect(result).toBeTruthy();
     const labels = result!.options.map((o) => o.label);
-    expect(labels).toContain("^CONFIG");
+    expect(labels).toContain("^Library/Config");
     expect(labels).toContain("^Library/Std");
     expect(labels).not.toContain("RegularPage");
     expect(labels).not.toContain("^RegularPage");
   });
 
-  test("[[^CON keeps the caret prefix on labels and `from` covers it", async () => {
+  test("[[^Lib keeps the caret prefix on labels and `from` covers it", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", []);
+    await indexPageMeta("Library/Config", []);
 
-    const linePrefix = "[[^CON";
+    const linePrefix = "[[^Lib";
     const result = await pageComplete(makeCompleteEvent(linePrefix));
     expect(result).toBeTruthy();
     // `from` must be the position right before the caret so CodeMirror
-    // filters `^CON` against `^CONFIG` (a direct prefix match).
-    expect(result!.from).toBe(linePrefix.length - "^CON".length);
-    expect(result!.options.map((o) => o.label)).toContain("^CONFIG");
+    // filters `^Lib` against `^Library/Config` (a direct prefix match).
+    expect(result!.from).toBe(linePrefix.length - "^Lib".length);
+    expect(result!.options.map((o) => o.label)).toContain("^Library/Config");
   });
 
   test("[[ without caret excludes tool pages", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", []);
+    await indexPageMeta("Library/Config", []);
     await indexPageMeta("RegularPage", []);
 
     const result = await pageComplete(makeCompleteEvent("[["));
     expect(result).toBeTruthy();
     const labels = result!.options.map((o) => o.label);
     expect(labels).toContain("RegularPage");
-    expect(labels).not.toContain("CONFIG");
-    expect(labels).not.toContain("^CONFIG");
+    expect(labels).not.toContain("Library/Config");
+    expect(labels).not.toContain("^Library/Config");
   });
 });
 

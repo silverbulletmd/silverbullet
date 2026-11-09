@@ -190,7 +190,7 @@ export function SchemaView({
                     </Fragment>
                   ))
                 : "a script"}
-              ; your changes are kept separately in CONFIG
+              ; your changes are kept separately in Library/Config
             </>
           ) : (
             "No schema yet"
@@ -254,7 +254,7 @@ export function SchemaView({
               void openRef(client, { path: `${CONFIG_PAGE}.md` });
             }}
           >
-            Open CONFIG
+            Open {CONFIG_PAGE}
           </a>
         </div>
       ) : null}
@@ -342,7 +342,7 @@ export function SchemaView({
               void openRef(client, { path: `${CONFIG_PAGE}.md` });
             }}
           >
-            CONFIG
+            {CONFIG_PAGE}
           </a>
         </span>
       </div>

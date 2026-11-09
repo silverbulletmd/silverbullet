@@ -38,7 +38,7 @@ Contacts body text.
 
 const spaceFiles = {
   "index.md": "Welcome",
-  "CONFIG.md": tagsConfig,
+  "Library/Config.md": tagsConfig,
   "Contacts.md": contacts,
   "Empty.md": "```#contact\n\n```\nAfter.\n",
 };
@@ -290,7 +290,7 @@ test.describe("data block form setting", () => {
   test.use({
     spaceFiles: {
       ...spaceFiles,
-      "CONFIG.md": `${tagsConfig}
+      "Library/Config.md": `${tagsConfig}
 \`\`\`space-lua
 config.set("liveEdit", { dataBlocks = false })
 tag.define {

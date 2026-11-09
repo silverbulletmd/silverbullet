@@ -12,6 +12,7 @@ describe("collectTooling", () => {
   it("only takes blocks from Tool Pages", () => {
     const { scripts } = collectTooling([
       f("Notes.md", lua("a=1")),
+      f("CONFIG.md", lua("legacy=1")),
       f("Library/A.md", lua("b=1")),
     ]);
     expect(scripts.map((s) => s.page)).toEqual(["Library/A"]);
@@ -19,7 +20,7 @@ describe("collectTooling", () => {
 
   it("skips commented-out blocks", () => {
     const { scripts } = collectTooling([
-      f("CONFIG.md", "<!--\n" + lua("x=1") + "-->\n"),
+      f("Library/Config.md", "<!--\n" + lua("x=1") + "-->\n"),
     ]);
     expect(scripts).toEqual([]);
   });
@@ -78,8 +79,8 @@ describe("boot marker", () => {
     expect(bootOf("Library/A", "-- boot:  true \nx=1")).toBe(true);
   });
 
-  it("treats every CONFIG block as a boot block", () => {
-    expect(bootOf("CONFIG", "x=1")).toBe(true);
+  it("treats every Library/Config block as a boot block", () => {
+    expect(bootOf("Library/Config", "x=1")).toBe(true);
   });
 
   it("leaves other blocks alone", () => {
@@ -102,12 +103,12 @@ describe("bootBlocks", () => {
       f("Library/B.md", lua("-- boot: true\nb=1")),
       f("Library/A.md", lua("a=1")),
       f("Library/C.md", lua("-- boot: true\n-- priority: 5\nc=1")),
-      f("CONFIG.md", lua("cfg=1")),
+      f("Library/Config.md", lua("cfg=1")),
     ]);
     expect(bootBlocks(scripts).map((b) => b.page)).toEqual([
       "Library/C",
-      "CONFIG",
       "Library/B",
+      "Library/Config",
     ]);
   });
 });

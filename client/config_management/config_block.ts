@@ -1,11 +1,16 @@
+import { BOOT_MARKER } from "@silverbulletmd/silverbullet/lib/tool_pages";
+
 export const MANAGED_MARKER = "-- managed-by: configuration-manager";
 export const SCHEMAS_MARKER = "-- managed-by: workbench-schemas";
 
-/** A kind of space-lua block in CONFIG that the Workbench maintains */
+/** A kind of space-lua block in Library/Config that the Workbench maintains */
 export type ManagedBlockKind = {
   /** First line of the block, which identifies it */
   marker: string;
-  /** What a new block starts with */
+  /**
+   * What a new block starts with. Blocks on Library/Config boot anyway; the
+   * boot marker is there for readers.
+   */
   header: string;
   /** Names the block in messages */
   label: string;
@@ -15,7 +20,7 @@ export type ManagedBlockKind = {
 
 export const CONFIG_BLOCK: ManagedBlockKind = {
   marker: MANAGED_MARKER,
-  header: MANAGED_MARKER,
+  header: `${MANAGED_MARKER}\n${BOOT_MARKER}`,
   label: "configuration",
 };
 
@@ -25,7 +30,7 @@ export const CONFIG_BLOCK: ManagedBlockKind = {
  */
 export const SCHEMAS_BLOCK: ManagedBlockKind = {
   marker: SCHEMAS_MARKER,
-  header: `${SCHEMAS_MARKER}\n-- priority: -10`,
+  header: `${SCHEMAS_MARKER}\n${BOOT_MARKER}\n-- priority: -10`,
   label: "schemas",
   after: CONFIG_BLOCK,
 };
@@ -40,7 +45,7 @@ export type ManagedBlock = {
 };
 
 /**
- * Find the managed space-lua block of a kind in a CONFIG.md text.
+ * Find the managed space-lua block of a kind in a Library/Config text.
  * Returns null if no such block exists.
  */
 export function findManagedBlock(
@@ -63,7 +68,7 @@ export function findManagedBlock(
 }
 
 /**
- * Replace the managed block of a kind in CONFIG.md text, or add one if none
+ * Replace the managed block of a kind in Library/Config text, or add one if none
  * exists: right after the `kind.after` block when there is one, else at
  * the end. If newContent is empty, the block is removed.
  */
@@ -111,5 +116,5 @@ export function invalidManagedBlockMessage(
   detail: string,
   kind: ManagedBlockKind = CONFIG_BLOCK,
 ): string {
-  return `The managed ${kind.label} block in CONFIG is not valid Lua, fix it there first: ${detail}`;
+  return `The managed ${kind.label} block in Library/Config is not valid Lua, fix it there first: ${detail}`;
 }

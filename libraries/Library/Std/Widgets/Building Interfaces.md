@@ -65,7 +65,7 @@ Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with C
 * Each `space-lua` block is its own chunk. Start blocks that share a namespace with `ns = ns or {}`, and put `-- priority: N` on the defining block.
 
 # Styling
-Put `space-lua` and `space-style` blocks on a page under `Library/` or on `CONFIG`; they do not run on other pages. Put CSS in a `space-style` block and style classes you attach:
+Put `space-lua` and `space-style` blocks on a page under `Library/`; they do not run on other pages. Put CSS in a `space-style` block and style classes you attach:
 
 * Tag-driven classes: `tag.define { name = "book", pageDecoration = { cssClasses = { "book-page" } } }` puts `book-page` on the page body and on links to those pages.
 * Widget classes: give widget roots your own class and scope rules under it.

@@ -12,7 +12,7 @@ Enables customization of [[Tag|tags]] and its [[Object|objects]] in a few ways:
 * Tweak styling of tags in the editor using [[Space Style]]
 
 > **success** Success
-> Put all your `tag.define` calls in your [[CONFIG]] page so that they will be picked up during the index process. In a library page under `Library/`, put a `-- boot: true` comment line in the `space-lua` block that calls `tag.define` to get the same effect.
+> Put all your `tag.define` calls in your [[^Library/Config]] page so that they will be picked up during the index process. In a library page under `Library/`, put a `-- boot: true` comment line in the `space-lua` block that calls `tag.define` to get the same effect.
 
 # API
 ## tag.define(spec)
@@ -69,7 +69,7 @@ Based on your page’s markdown, an indexer produces a list of objects to be ind
   **Note:** one of the returned objects _must_ have the same `ref` attribute as the object passed in.
 
 > **warning** Warning
-> For custom `transform` functions to be picked up during the initial client indexing phase they **have to be defined** in your [[CONFIG]] page.
+> For custom `transform` functions to be picked up during the initial client indexing phase they **have to be defined** in your [[^Library/Config]] page.
 
 > **note** Note
 > `transform` will only be invoked when a page is indexed. This generally happens after making a change. To apply newly defined `transform` functionality to all pages in your space, you have to reindex the entire space using `Space: Reindex`.

@@ -190,12 +190,14 @@ test("with an index, the rows are the indexed objects", async () => {
 test("pages are classified by location, not by the meta tag", () => {
   const tagged = { name: "Notes/T", tag: "page", tags: ["meta"] };
   const library = { name: "Library/X", tag: "page", tags: [] };
-  const config = { name: "CONFIG", tag: "page", tags: [] };
+  const config = { name: "Library/Config", tag: "page", tags: [] };
+  const legacyConfig = { name: "CONFIG", tag: "page", tags: [] };
   expect(pageScopes.pages(tagged)).toBe(true);
   expect(pageScopes.tool(tagged)).toBe(false);
   expect(pageScopes.pages(library)).toBe(false);
   expect(pageScopes.tool(library)).toBe(true);
   expect(pageScopes.tool(config)).toBe(true);
+  expect(pageScopes.tool(legacyConfig)).toBe(false);
   expect(pageScopes.tool({ ...library, pageDecoration: { hide: true } })).toBe(
     false,
   );

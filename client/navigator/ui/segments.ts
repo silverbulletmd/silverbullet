@@ -48,7 +48,7 @@ export function applySegment(
 
 /**
  * The row named exactly `phrase` when the active segment filters it out, and
- * the segment it lives in instead. Typing a name you know exists ("CONFIG", a
+ * the segment it lives in instead. Typing a name you know exists ("Library/Config", a
  * meta page, while on Pages) would otherwise show nothing at all -- and offer
  * no create either, since the name is taken.
  *

@@ -51,7 +51,7 @@ In _push_ mode the page is not sent as it is. Its `share.*` keys are always remo
 * **SilverBullet space:** **links** on, **comments** on, **bake** off.
 * **GitHub file, Gist, anything else:** **links** on, **comments** on, **bake** on.
 
-[[Tool Page|Tool Pages]] (`CONFIG` and pages under `Library/`) and pages tagged `meta` or `meta/...` (such as templates) are published as they are, except that their `share.*` keys are removed.
+[[Tool Page|Tool Pages]] (pages under `Library/`) and pages tagged `meta` or `meta/...` (such as templates) are published as they are, except that their `share.*` keys are removed.
 
 To publish a page unchanged (apart from its `share.*` keys), add `share.transform: false` to its frontmatter. To turn off single steps, use a table:
 

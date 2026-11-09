@@ -799,7 +799,7 @@ describe("ObjectIndex content and tool pages", () => {
       page("Notes", []),
       page("Recipes", ["food"]),
       page("Tagged", ["meta"]),
-      page("CONFIG", []),
+      page("Library/Config", []),
       page("Library/Style", []),
       page("Library/Food Template", ["food"]),
     ]) {
@@ -811,7 +811,7 @@ describe("ObjectIndex content and tool pages", () => {
       "Tagged",
     ]);
     expect(await names(objectIndex.toolPages())).toEqual([
-      "CONFIG",
+      "Library/Config",
       "Library/Food Template",
       "Library/Style",
     ]);

@@ -87,7 +87,7 @@ pub fn schema() -> (Schema, Fields) {
     )
 }
 
-/// `kind` of a Tool Page: `CONFIG` or under `Library/`.
+/// `kind` of a Tool Page: anything under `Library/`.
 pub const KIND_TOOL: &str = "tool";
 /// `kind` of every other page.
 pub const KIND_CONTENT: &str = "content";
@@ -184,7 +184,8 @@ mod tests {
             doc.get_first(f.kind).unwrap().as_str().unwrap().to_string()
         };
         assert_eq!(kind_for("Library/X.md"), KIND_TOOL);
-        assert_eq!(kind_for("CONFIG.md"), KIND_TOOL);
+        assert_eq!(kind_for("Library/Config.md"), KIND_TOOL);
+        assert_eq!(kind_for("CONFIG.md"), KIND_CONTENT);
         assert_eq!(kind_for("Notes.md"), KIND_CONTENT);
     }
 }

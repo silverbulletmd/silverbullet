@@ -6,7 +6,7 @@ references:
 ---
 Top-level paragraphs (that is: paragraphs not embedded in a list) are indexed using the `paragraph` tag, any additional tags can be added using [[Tag]].
 
-By default, paragraphs are indexed when they contain a tag or anchor. However, you can enable indexing _all_ paragraphs by adding the following to your [[CONFIG]]:
+By default, paragraphs are indexed when they contain a tag or anchor. However, you can enable indexing _all_ paragraphs by adding the following to your [[^Library/Config]]:
 
 ```space-lua
 config.set("index.paragraph.all", true)

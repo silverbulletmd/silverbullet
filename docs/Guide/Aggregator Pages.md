@@ -23,7 +23,7 @@ Adding a matching page or task brings it into the collection after saving and in
 If something is missing, check its tag scope and the query’s root, filters and content scope. [[Guide/When Results Update]] explains refresh behavior.
 
 # Open an overview from a tag
-You can make a tag open your overview by defining a `tagPage` mapping with [[API/tag#tag.define(spec)]]. Put the definition in [[CONFIG]] and run **System: Reload**. This is optional. The aggregator works without a custom tag page.
+You can make a tag open your overview by defining a `tagPage` mapping with [[API/tag#tag.define(spec)]]. Put the definition in [[^Library/Config]] and run **System: Reload**. This is optional. The aggregator works without a custom tag page.
 
 # Keep a portable copy
 Live queries render in SilverBullet. Use [[Baked Sections]] if you also need stored Markdown that other tools can display. Update the baked section when you want to refresh that snapshot.

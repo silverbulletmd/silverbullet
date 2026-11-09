@@ -1,9 +1,9 @@
 ---
 description: Defines the schemas and built-in values of built-in configuration options
 ---
-SilverBullet uses the [config APIs](https://docs.silverbullet.md/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your `CONFIG` page for this purpose.
+SilverBullet uses the [config APIs](https://docs.silverbullet.md/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your `Library/Config` page for this purpose.
 
-This tool page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your CONFIG page (use `space-lua` instead of `lua` in your actual page):
+This tool page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your `Library/Config` page (use `space-lua` instead of `lua` in your actual page):
 
 ```lua
 config.set("sync.documents", true)
@@ -206,7 +206,7 @@ config.define("shortWikiLinks", {
 })
 
 config.define("lint.inactiveBlocks", {
-  description = "Warn about space-lua and space-style blocks on pages outside Library/ and CONFIG, where they are not loaded",
+  description = "Warn about space-lua and space-style blocks on pages outside Library/, where they are not loaded",
   type = "boolean",
   default = true,
   ui = { category = "Editor", label = "Warn about scripts outside Library/" },
@@ -646,6 +646,12 @@ config.set("actionButtons", {
     description = "Run command",
     command = "Open Command Palette",
     priority = 1,
+  },
+  {
+    icon = "tool",
+    description = "Toggle the Workbench",
+    command = "Workbench: Toggle",
+    priority = 0.5,
   },
   {
     icon = "chevron-left",

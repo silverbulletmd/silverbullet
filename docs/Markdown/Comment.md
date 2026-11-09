@@ -36,6 +36,6 @@ ${query[[from t = index.tasks() where not t.inComment]]}
 ```
 
 # Scripts stay off
-A `space-lua` or `space-style` block inside a comment is _not_ indexed, and the pages read at boot ([[CONFIG]], [[Library|libraries]]) skip it as well, so commenting a script out is how you disable it.
+A `space-lua` or `space-style` block inside a comment is _not_ indexed, and the pages read at boot ([[Library|libraries]] and [[^Library/Config]]) skip it as well, so commenting a script out is how you disable it.
 
 What a comment does not switch off is live evaluation in the open editor: `${...}` [[Space Lua#Expressions|expressions]] and Lua-registered [[API/codeWidget|code widgets]] inside a comment still run and render, and a commented-out `space-lua` block is still linted for syntax errors.

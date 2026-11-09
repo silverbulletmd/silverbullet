@@ -301,7 +301,7 @@ safeRun(async () => {
 
 /**
  * Augments the boot config with values from the page's search params
- * as well as well as Lua-based configuration from CONFIG
+ * as well as Lua-based configuration from Library/Config
  */
 async function augmentBootConfig(bootConfig: BootConfig, config: Config) {
   bootConfig.syncDocuments = config.get<boolean>(["sync", "documents"], false);

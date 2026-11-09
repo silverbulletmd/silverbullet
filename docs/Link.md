@@ -57,7 +57,7 @@ Candidates are ranked relative to the page the link is written on:
 Every ambiguous link to a page is indexed as an [[Tag/ambiguous-link|ambiguous-link]] object.
 
 # Link write format
-The `linkWriteFormat` option in your [[CONFIG]] controls how SilverBullet writes wiki links _it_ generates (through auto complete, and the backlink rewriting that happens when you rename a page). It has no effect on [[#Link resolution|resolution]]: all formats resolve identically, so a space mixing them works fine.
+The `linkWriteFormat` option in your [[^Library/Config]] controls how SilverBullet writes wiki links _it_ generates (through auto complete, and the backlink rewriting that happens when you rename a page). It has no effect on [[#Link resolution|resolution]]: all formats resolve identically, so a space mixing them works fine.
 
 Options:
 

@@ -2,6 +2,7 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 
 # Site configuration
 ```space-lua
+-- boot: true
 actionButton.define {
   icon = "search",
   description = "Search",
@@ -33,6 +34,7 @@ actionButton.define {
 # Custom tag definitions
 (further detailed in [[API/tag#Use cases]])
 ```space-lua
+-- boot: true
 tag.define {
   name = "glossary",
   schema = {
@@ -130,6 +132,7 @@ tag.define {
 
 # View defaults
 ```space-lua
+-- boot: true
 config.set("view.defaults", {
   -- The curated Navigate tree (see [[^Library/Website]]) is this site's navigation
   ["docs.navigate"] = { open = true, width = 360 },
@@ -145,6 +148,7 @@ config.set("lint.inactiveBlocks", false)
 
 ```space-lua
 -- managed-by: configuration-manager
+-- boot: true
 config.set("fonts.ui", "inter")
 config.set("fonts.editor", "inter")
 config.set("workbench.pinnedTags", {
@@ -155,6 +159,7 @@ config.set("workbench.pinnedTags", {
 
 ```space-lua
 -- managed-by: workbench-schemas
+-- boot: true
 -- priority: -10
 tag.define {
   name = "api/lua",

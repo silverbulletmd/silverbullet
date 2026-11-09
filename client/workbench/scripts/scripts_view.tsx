@@ -36,7 +36,7 @@ const FILTERS: { value: ScriptFilter; label: string }[] = [
 ];
 
 const BOOT_TITLE =
-  "Runs early, before the client starts (`-- boot: true` or CONFIG)";
+  "Runs early, before the client starts (`-- boot: true` or Library/Config)";
 
 /** What rows need besides their record; stable across renders. */
 type RowContext = {

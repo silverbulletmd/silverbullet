@@ -122,7 +122,7 @@ mod tests {
             ("index.md", "# Home"),
             ("Field Notes.md", "---\ntags: glossary\n---\n# Notes"),
             ("Library/Guide.md", "# Guide"),
-            ("CONFIG.md", "# Config"),
+            ("Library/Config.md", "# Config"),
             ("Settings.md", "#meta/config"),
             ("Weekly Review.md", "---\ntags: template\n---\n# Review"),
             ("Photo.png", "image"),
@@ -185,7 +185,7 @@ mod tests {
         );
         assert!(body.contains("/wiki/Field%20Notes</loc>"), "{body}");
         assert!(!body.contains("Library/Guide"), "{body}");
-        assert!(!body.contains("CONFIG"), "{body}");
+        assert!(!body.contains("Library/Config"), "{body}");
         // Tags no longer classify pages; only location does.
         assert!(body.contains("/wiki/Settings</loc>"), "{body}");
         assert!(body.contains("/wiki/Weekly%20Review</loc>"), "{body}");

@@ -20,7 +20,7 @@ Both `match` and `run` receive the draft as a table with:
 The functions below read the shared files. They only work inside the `run` function of the capture action that is running. `capture.saveFile` raises an error for an invalid path, a file larger than `maximumDocumentSize`, or an existing file with different content.
 
 > **success** Success
-> Put your capture actions in a `space-lua` block, e.g. on your [[CONFIG]] page.
+> Put your capture actions in a `space-lua` block, e.g. on your [[^Library/Config]] page.
 
 # Example
 ```space-lua

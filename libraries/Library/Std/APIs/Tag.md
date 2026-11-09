@@ -8,7 +8,7 @@ Functions for defining tags and accessing their objects. See [API/tag](https://s
 # API
 
 ## tag.define(spec)
-Defines a tag, or extends an existing definition. Put `tag.define` calls in your [[CONFIG]] page so they are in place when the index runs.
+Defines a tag, or extends an existing definition. Put `tag.define` calls in your [[Library/Config]] page so they are in place when the index runs.
 
 `spec` is a table with these fields, all optional except `name`:
 * `name` (string): the tag's name, without `#`.

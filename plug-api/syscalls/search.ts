@@ -32,7 +32,7 @@ export function status(): Promise<SearchStatus> {
 
 /**
  * Searches the space's pages on the server. `options.scope` limits the search
- * to Pages or Tool (`CONFIG` and everything under `Library/`; `meta` is a
+ * to Pages or Tool (everything under `Library/`; `meta` is a
  * deprecated alias), classified by the server, so it works before the client's index is ready;
  * `include`/`exclude` narrow it further. Without `include`, pages hidden by
  * a page decoration are left out once the client knows about them.

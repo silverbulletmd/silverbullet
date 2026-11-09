@@ -381,7 +381,9 @@ test.describe("query builder tag filter", () => {
     await expect(rows.nth(2)).toHaveText(/^book/);
     await expect
       .poll(() =>
-        readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
+        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+          () => "",
+        ),
       )
       .toMatch(
         /config\.set\("workbench\.pinnedTags", \{\s*"page",\s*"task",\s*"book",?\s*\}\)/,

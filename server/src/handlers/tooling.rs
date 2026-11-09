@@ -121,7 +121,8 @@ mod tests {
         let state = Arc::new(test_state());
         for (p, t) in [
             ("Library/A.md", "a"),
-            ("CONFIG.md", "c"),
+            ("Library/Config.md", "c"),
+            ("CONFIG.md", "legacy"),
             ("Notes.md", "n"),
             ("Library/img.png", "i"),
         ] {
@@ -136,7 +137,7 @@ mod tests {
             .iter()
             .map(|f| (f["path"].as_str().unwrap(), f["text"].as_str().unwrap()))
             .collect();
-        assert_eq!(got, vec![("CONFIG.md", "c"), ("Library/A.md", "a")]);
+        assert_eq!(got, vec![("Library/A.md", "a"), ("Library/Config.md", "c")]);
     }
 
     fn collect_files(root: &Path, dir: &Path, out: &mut Vec<(String, Vec<u8>)>) {

@@ -65,7 +65,7 @@ function setup(initial: ConfigurationSource) {
     model,
     deps,
     saved,
-    // A config reload with CONFIG now holding `text`
+    // A config reload with Library/Config now holding `text`
     reloadWith: async (text: string) => {
       current = { ...current, configText: text };
       reload();
@@ -117,7 +117,7 @@ describe("ConfigurationModel", () => {
     const { model, saved } = setup(source(managed('config.set("a", {')));
     await ready(model);
     expect(model.managedBlockError).toMatch(
-      /^The managed configuration block in CONFIG is not valid Lua/,
+      /^The managed configuration block in Library\/Config is not valid Lua/,
     );
     model.setField("example.toggle", true);
     await model.save();
@@ -197,7 +197,9 @@ describe("ConfigurationModel", () => {
     const model = new ConfigurationModel(deps);
     model.subscribe(() => {});
     await vi.waitFor(() =>
-      expect(model.loadError).toBe("Couldn't read CONFIG: Network error"),
+      expect(model.loadError).toBe(
+        "Couldn't read Library/Config: Network error",
+      ),
     );
     expect(model.ready).toBe(false);
   });

@@ -341,6 +341,9 @@ fn try_build_parts(
         return Err(format!("space folder does not exist: {}", folder.display()));
     }
     let folder_str = folder.to_string_lossy().to_string();
+    // Read-only spaces migrate too: their configuration would otherwise stop
+    // loading, since CONFIG is no longer a Tool Page
+    silverbullet_server_common::space::migrate_config_page(&folder, &config.space_ignore);
 
     let disk = DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
         .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;
@@ -975,6 +978,27 @@ mod tests {
         let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
         assert!(folder.join(".git").exists());
         assert!(state.revisions.is_some());
+    }
+
+    #[tokio::test]
+    async fn building_a_space_moves_its_config_into_library() {
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path());
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("CONFIG.md"), "cfg").unwrap();
+        let cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        try_build_state("x", &cfg, "/work", &deps).unwrap();
+        assert!(!folder.join("CONFIG.md").exists());
+        assert_eq!(
+            std::fs::read_to_string(folder.join("Library/Config.md")).unwrap(),
+            "cfg"
+        );
     }
 
     #[tokio::test]

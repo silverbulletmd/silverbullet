@@ -174,7 +174,10 @@ function lintYamlBlock(
  * Lint Lua code in fenced code blocks
  * @returns A list of LintDiagnostics for any errors found
  */
-export async function lintLua({ tree, name }: LintEvent): Promise<LintDiagnostic[]> {
+export async function lintLua({
+  tree,
+  name,
+}: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FencedCode") {
@@ -658,7 +661,7 @@ export async function lintInactiveBlocks({
         to: lineEnd === -1 || lineEnd > to ? to : lineEnd,
         severity: "warning",
         message:
-          "Not loaded: scripts and styles only run from pages under Library/ or CONFIG.",
+          "Not loaded: scripts and styles only run from pages under Library/.",
       };
     }),
   );

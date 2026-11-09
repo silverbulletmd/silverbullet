@@ -1,11 +1,15 @@
 import { editor, mq, space, sync } from "@silverbulletmd/silverbullet/syscalls";
+import {
+  BOOT_MARKER,
+  CONFIG_PAGE_NAME,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
 import { notFoundError } from "../../plug-api/constants.ts";
-import { MANAGED_MARKER } from "./config_block.ts";
+import { CONFIG_BLOCK } from "./config_block.ts";
 import { applyManagedChanges, type ManagedChanges } from "./managed_edit.ts";
 import { reloadConfig } from "./reload.ts";
 import { applySchemaChanges, type SchemaChanges } from "./schema_block.ts";
 
-export const CONFIG_PAGE = "CONFIG";
+export const CONFIG_PAGE = CONFIG_PAGE_NAME;
 
 const CONFIG_TEMPLATE = `This page holds configuration for your SilverBullet space. See [[^Library/Std/Config]] for all options and defaults.
 
@@ -15,6 +19,7 @@ Run \${widgets.commandButton "System: Reload"} to reload.
 Anything you add to the block below is yours, edit freely.
 
 \`\`\`space-lua
+${BOOT_MARKER}
 -- Add custom configuration here, e.g.:
 -- config.set("shortWikiLinks", false)
 \`\`\`
@@ -23,12 +28,12 @@ Anything you add to the block below is yours, edit freely.
 The block below is maintained by the \${widgets.commandButton("Configuration", "Configuration: Open")} tab of the Workbench. Prefer editing it there, although simple hand edits should survive.
 
 \`\`\`space-lua
-${MANAGED_MARKER}
+${CONFIG_BLOCK.header}
 \`\`\``;
 
 /**
- * The text of CONFIG, or "" when there is none yet. Any other read error is
- * thrown: treating it as missing would let a save replace CONFIG.
+ * The text of Library/Config, or "" when there is none yet. Any other read
+ * error is thrown: treating it as missing would let a save replace it.
  */
 export async function readConfigPage(): Promise<string> {
   try {
@@ -40,30 +45,30 @@ export async function readConfigPage(): Promise<string> {
 }
 
 /**
- * Applies changes to the managed block of CONFIG (creating the page from a
- * template if needed) and reloads configuration. Throws, writing nothing,
- * when the managed block is not valid Lua.
+ * Applies changes to the managed block of Library/Config (creating the page
+ * from a template if needed) and reloads configuration. Throws, writing
+ * nothing, when the managed block is not valid Lua.
  */
 export function saveManagedChanges(changes: ManagedChanges): Promise<void> {
   return writeConfigAndReload((text) => applyManagedChanges(text, changes));
 }
 
-/** Thrown when CONFIG was written but reloading it failed */
+/** Thrown when Library/Config was written but reloading it failed */
 export class ConfigReloadError extends Error {}
 
 /**
- * Applies changes to the managed schemas block of CONFIG and reloads. Throws,
- * writing nothing, when that block is not valid Lua; an error thrown after
- * the write is a ConfigReloadError.
+ * Applies changes to the managed schemas block of Library/Config and reloads.
+ * Throws, writing nothing, when that block is not valid Lua; an error thrown
+ * after the write is a ConfigReloadError.
  */
 export function saveSchemaChanges(changes: SchemaChanges): Promise<void> {
   return writeConfigAndReload((text) => applySchemaChanges(text, changes));
 }
 
 /**
- * Edits CONFIG (created from the template if needed), writes it and reloads
- * configuration. An open CONFIG with unsaved edits is saved first, so the
- * edit applies to them rather than overwriting them.
+ * Edits Library/Config (created from the template if needed), writes it and
+ * reloads configuration. An open Library/Config with unsaved edits is saved
+ * first, so the edit applies to them rather than overwriting them.
  */
 export async function writeConfigAndReload(
   edit: (text: string) => string,
@@ -71,24 +76,23 @@ export async function writeConfigAndReload(
   const configOpen = (await editor.getCurrentPage()) === CONFIG_PAGE;
   if (configOpen) await editor.save();
   const text = (await readConfigPage()) || CONFIG_TEMPLATE;
-  // Only ever written to CONFIG, whose blocks are boot blocks without a marker
   await space.writePage(CONFIG_PAGE, edit(text));
   // The editor doesn't follow a write it didn't make: show the new text
   if (configOpen) await editor.reloadPage();
   try {
-    // Index CONFIG before reloading, so the reload runs the block just written
+    // Index the page before reloading, so the reload runs the block just written
     await sync.performFileSync(`${CONFIG_PAGE}.md`);
     await mq.send("indexQueue", `${CONFIG_PAGE}.md`);
     await reloadConfig();
     await editor.rebuildEditorState();
   } catch (e: any) {
     throw new ConfigReloadError(
-      `Saved to CONFIG, but reloading failed: ${e?.message ?? e}`,
+      `Saved to Library/Config, but reloading failed: ${e?.message ?? e}`,
     );
   }
 }
 
-/** Writes or replaces exactly one `config.set(path, value)` line in CONFIG. */
+/** Writes or replaces one `config.set(path, value)` line in Library/Config. */
 export function persistConfigValue(
   path: string,
   value: unknown,

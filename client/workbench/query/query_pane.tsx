@@ -120,9 +120,9 @@ const PAGE_SCOPES: {
   {
     scope: "content",
     label: "Content",
-    tooltip: "Pages outside Library/ and CONFIG",
+    tooltip: "Pages outside Library/",
   },
-  { scope: "tool", label: "Tool", tooltip: "Pages under Library/ and CONFIG" },
+  { scope: "tool", label: "Tool", tooltip: "Pages under Library/" },
 ];
 
 /** Narrows pages to content pages or tool pages; absent for other objects */

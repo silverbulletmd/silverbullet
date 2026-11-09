@@ -26,7 +26,7 @@ test.describe("Lua-defined views", () => {
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
-      "CONFIG.md": viewConfig,
+      "Library/Config.md": viewConfig,
       "routes.js": `export function rows() {
         return new Promise(resolve => {
           globalThis.finishRoutes = () => resolve([{ name: "Open Destination", ref: "Destination", details: { label: "Weekend routes", text: "A quiet walking route through pine forest.", highlights: [[8, 15]] } }]);
@@ -74,7 +74,7 @@ test.describe("frontmatter live preview", () => {
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
-      "CONFIG.md": `# Configuration
+      "Library/Config.md": `# Configuration
 \`\`\`space-lua
 tag.define {
   name = "team",
@@ -158,7 +158,7 @@ tag.define {
     await preview.hover();
     await preview.locator('button[data-button="menu"]').click();
     await sbPage.getByRole("menuitem", { name: "Go to definition" }).click();
-    await expect(currentPage(sbPage)).toHaveValue("CONFIG");
+    await expect(currentPage(sbPage)).toHaveValue("Library/Config");
   });
 
   test("empty and failing renderers keep Edit available", async ({
@@ -209,7 +209,7 @@ test.describe("Lua picker", () => {
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
-      "CONFIG.md": pickConfig,
+      "Library/Config.md": pickConfig,
     },
   });
 
@@ -249,7 +249,7 @@ syntax.define { name = "FixtureMark", bodyClass = "fixture-mark" }
 
 test.describe("merged define calls", () => {
   test.use({
-    spaceFiles: { "index.md": "Welcome", "CONFIG.md": mergeConfig },
+    spaceFiles: { "index.md": "Welcome", "Library/Config.md": mergeConfig },
   });
 
   test("repeated *.define calls merge fields and config.unset removes them", async ({
@@ -363,7 +363,7 @@ const inlineViewPage =
 test.describe("inline view values", () => {
   test.use({
     spaceFiles: {
-      "CONFIG.md": inlineViewConfig,
+      "Library/Config.md": inlineViewConfig,
       "index.md": inlineViewPage,
       "Destination.md": "# Destination",
     },
@@ -578,7 +578,7 @@ view.define {name = "fixture.table", widget = projectTable(true), command = "Fix
 test.describe("table views", () => {
   test.use({
     spaceFiles: {
-      "CONFIG.md": tableConfig,
+      "Library/Config.md": tableConfig,
       "index.md":
         "# Projects\n\n${projectTable(false)}\n\n${automaticTable()}\n\nEnd.",
       "Destination.md": "# Destination",
@@ -833,7 +833,7 @@ end
 test.describe("inline view filters", () => {
   test.use({
     spaceFiles: {
-      "CONFIG.md": inlineFilterConfig,
+      "Library/Config.md": inlineFilterConfig,
       "index.md":
         "# Views\n\n${clientFilteredTable()}\n\n${secondFilteredTable()}\n\n${sourceFilteredTable()}\n\n${clientFilteredList()}",
     },

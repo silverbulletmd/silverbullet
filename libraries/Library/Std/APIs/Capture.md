@@ -21,7 +21,7 @@ service.define {
 
 An action's `run` function receives the edited draft. Within `run`, `capture.readFile(handle)` returns the file bytes and `capture.saveFile(handle, path)` writes a document after checking the path and size. Handles work only while that capture action is running. `saveFile` returns `true` when it creates a file, returns `false` when identical bytes already exist, and rejects a conflicting file. A failed action leaves the draft pending so it can be retried; a successful action removes the pending draft.
 
-The bundled **Save as Quick Note** action is itself a Space Lua capture service. It creates an `Inbox/` page and links saved files. Set `capture.quickNote` to `false` in `CONFIG.md` to hide it:
+The bundled **Save as Quick Note** action is itself a Space Lua capture service. It creates an `Inbox/` page and links saved files. Set `capture.quickNote` to `false` in `Library/Config` to hide it:
 
 ```lua
 config.set("capture.quickNote", false)

@@ -35,7 +35,7 @@ test("fetchTooling collects the payload's blocks in collectTooling order", async
   expect(tooling.files).toEqual(files);
   expect(tooling.scripts.map((s) => s.ref)).toEqual([
     "Library/Z@0",
-    "CONFIG@0",
+    "Library/Config@0",
   ]);
   expect(tooling).toEqual({ ...collectTooling(files), files });
 });

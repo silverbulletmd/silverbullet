@@ -447,6 +447,7 @@ docsRedirects = {
   ["Object/"] = "Tag/",
   ["Meta Page"] = "Tool Page",
   ["Meta Picker"] = "Tool Picker",
+  ["CONFIG"] = "Library/Config",
 }
 
 local function isPrefix(from)

@@ -26,9 +26,9 @@ When multiple clients change the same file around the same time, the server merg
 You can tweak what files are synced locally via a few `config.*` configuration options.
 
 > **note** Note
-> Sync related configuration **need** to be done in the [[CONFIG]] page specifically. If they are configured elsewhere they will not be picked up.
+> Sync related configuration **need** to be done in the [[^Library/Config]] page specifically. If they are configured elsewhere they will not be picked up.
 
-By default all your pages are synced, but [[Document]] are not. They are fetched on demand. If you would also like to sync documents (so you can access them when offline), you can do so by setting the following in a Space Lua block in [[CONFIG]]:
+By default all your pages are synced, but [[Document]] are not. They are fetched on demand. If you would also like to sync documents (so you can access them when offline), you can do so by setting the following in a Space Lua block in [[^Library/Config]]:
 
     config.set("sync.documents", true)
 

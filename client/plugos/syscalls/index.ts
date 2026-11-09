@@ -93,7 +93,7 @@ export function indexSyscalls(
         return objectIndex.toolPages(tagName);
       },
       description:
-        "Returns tool pages (CONFIG and everything under Library/), optionally filtered by a user tag, as a query collection.",
+        "Returns tool pages (everything under Library/), optionally filtered by a user tag, as a query collection.",
       signatures: ["index.toolPages(tagName?)"],
     },
     "index.metaPages": {

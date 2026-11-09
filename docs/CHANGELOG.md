@@ -7,19 +7,22 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
   * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
   * [[Workbench/Configuration]]: the [[Configuration Manager]] moved into the Workbench.
-  * [[Workbench/Data]]: for each tag, **Objects** builds queries visually (exportable as [[Space Lua/Integrated Query]] to paste in your page) and **Schema** shows and edits its attributes, saved to CONFIG.
+  * [[Workbench/Data]]: for each tag, **Objects** builds queries visually (exportable as [[Space Lua/Integrated Query]] to paste in your page) and **Schema** shows and edits its attributes, saved to [[^Library/Config]].
   * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with Page Lua variables and functions. Also logs a lot of useful stuff.
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
-* **Breaking:** [[Space Lua]] and [[Space Style]] blocks now only run from [[Tool Page|tool pages]] (new name of “meta pages”): pages under `Library/`, plus [[CONFIG]]. A `space-lua` or `space-style` block on any other page is shown but no longer runs, and gets a lint warning. See [[ADR/012 Tooling Lives in Library]]. As part of this:
+* **Breaking:** [[Space Lua]] and [[Space Style]] blocks now **only** run from `Library/`. A `space-lua` or `space-style` block on any other page is shown but no longer runs, and gets a lint warning. See [[ADR/012 Tooling Lives in Library]] for the reasons. As part of this:
+  * The `CONFIG` page moves to `Library/Config`. The server renames an existing `CONFIG.md` to `Library/Config.md` the first time it starts. Every `space-lua` block on `Library/Config` still runs at boot.
   * “Meta pages” are now called [[Tool Page|tool pages]], and are defined by location only.
   * Styles now load in the same order as scripts: by priority, highest first, with no priority counting as `0` (unprioritized styles used to load before all others), then by page name and position on the page.
   * The bundled repositories moved to `Library/Repository/Std`.
-* Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
+  * Repository maintainers: move your repository paths to `Library/Repository/*` as well
+  * Library maintainers: make sure your libraries live under `Library/*`
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
+* Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * [[Fonts]]: pick the interface, editor and code fonts in [[Workbench/Configuration]] (Appearance), **including proportional** ones, and the editor's text size. A server-wide **Default font** (Dashboard → Server) sets the dashboard and every space that doesn’t pick its own.
   * **Potentially breaking for themes:** code (inline and fenced, frontmatter, tables being edited, `${...}`) now uses `--editor-monospace-font` instead of `--editor-font`. See [[Fonts#Notes for theme authors]].
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
@@ -48,7 +51,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Performance: `pairs()` no longer copies the whole table on each iteration, reducing pauses in views that loop over many pages.
   * Performance: queries with a `from x = ...` binding now evaluate the parts of `where` that don’t depend on `x` (such as expensive function calls) once per query instead of once per row (function calls in `where` are assumed to have no side effects, since they may now run once per query).
   * Eligible queries with a `limit` stop reading once enough rows are collected, and Workbench query previews avoid loading unnecessary rows.
-  * New APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]), and `config.persist` writes one configuration value to the managed block of [[CONFIG]] (see [[API/config]]).
+  * New APIs: `net.listURI` and `net.deleteURI` list and delete files at a URI through the provider that serves it (see [[API/net]]), `crypto.sha1` computes SHA-1 digests (see [[API/crypto]]), `editor.pickMany` shows a checklist to tick items from (see [[API/editor]]), and `config.persist` writes one configuration value to the managed block of [[^Library/Config]] (see [[API/config]]).
   * `index.metaPages` now accepts an optional `tag` argument to filter meta pages by an additional tag, like `index.contentPages`. See [[API/index]].
   * `net.proxyFetch` now sets `ok` from the remote server’s status (2xx), as its `status` already was. It used to be true for any response the proxy relayed. Reading an `https:`, `github:`, `ghr:` or GitHub URI now fails with the status for anything but a missing page (which still reads as `nil`), instead of returning an error page as content. GitHub downloads and update checks are anonymous again, so stale credentials cannot make public libraries appear missing. Publishing still authenticates. See [[API/net]].
   * New `index.awaitPendingChanges()` picks up files changed outside the client, such as through the HTTP API, and waits until they are indexed. See [[API/index]].

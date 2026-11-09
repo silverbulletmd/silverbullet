@@ -6,10 +6,10 @@ pub enum PageKind {
     Tool,
 }
 
-/// Whether a page (name without `.md`) is a Tool Page: `CONFIG` or anything
-/// under `Library/`. Agrees with `isToolPage` in `plug-api/lib/tool_pages.ts`.
+/// Whether a page (name without `.md`) is a Tool Page: anything under
+/// `Library/`. Agrees with `isToolPage` in `plug-api/lib/tool_pages.ts`.
 pub fn is_tool_page(name: &str) -> bool {
-    name == "CONFIG" || name.starts_with("Library/")
+    name.starts_with("Library/")
 }
 
 pub fn page_kind(name: &str) -> PageKind {
@@ -355,12 +355,19 @@ mod tests {
     }
 
     #[test]
-    fn tool_pages_are_config_and_the_library() {
-        for name in ["Library/Std/Config", "Library/X", "CONFIG"] {
+    fn tool_pages_are_the_library() {
+        for name in ["Library/Std/Config", "Library/X", "Library/Config"] {
             assert!(is_tool_page(name), "{name}");
             assert_eq!(page_kind(name), PageKind::Tool, "{name}");
         }
-        for name in ["Library", "LibraryNotes/x", "config", "CONFIG/sub", "Notes"] {
+        for name in [
+            "Library",
+            "LibraryNotes/x",
+            "config",
+            "CONFIG",
+            "CONFIG/sub",
+            "Notes",
+        ] {
             assert!(!is_tool_page(name), "{name}");
             assert_eq!(page_kind(name), PageKind::Content, "{name}");
         }

@@ -10,7 +10,7 @@ const PATH = ["tags", "page", "schema", "properties", "category"];
 const none = { define: {}, set: [], reset: [], require: [] };
 
 describe("applySchemaChanges", () => {
-  test("a new block goes right after the configuration block, with priority -10", () => {
+  test("a new block goes right after the configuration block, with the boot marker and priority -10", () => {
     const text = applySchemaChanges(CONFIG, {
       ...none,
       define: { meeting: { type: "object", properties: {} } },
@@ -19,7 +19,9 @@ describe("applySchemaChanges", () => {
     const schemas = text.indexOf(SCHEMAS_MARKER);
     expect(schemas).toBeGreaterThan(config);
     expect(schemas).toBeLessThan(text.indexOf("## Notes"));
-    expect(text).toContain(`${SCHEMAS_MARKER}\n-- priority: -10\n`);
+    expect(text).toContain(
+      `${SCHEMAS_MARKER}\n-- boot: true\n-- priority: -10\n`,
+    );
     expect(readSchemaBlock(text).defines.meeting).toEqual({
       type: "object",
       properties: {},
@@ -211,7 +213,25 @@ describe("removing statements", () => {
       resetRequire: [{ tag: "page", attribute: "x" }],
     });
     expect(out).toContain(
-      `${SCHEMAS_MARKER}\n-- priority: -10\n-- keep me\n\`\`\``,
+      `${SCHEMAS_MARKER}\n-- boot: true\n-- priority: -10\n-- keep me\n\`\`\``,
     );
+  });
+});
+
+describe("boot marker", () => {
+  test("an existing block without it gets it once, right after its marker", () => {
+    const text = `${CONFIG}\n${fence(`${SCHEMAS_MARKER}\n-- priority: -10\ntag.setRequired("page", "x", true)`)}\n`;
+    let out = applySchemaChanges(text, {
+      ...none,
+      require: [{ tag: "page", attribute: "y", required: true }],
+    });
+    expect(out).toContain(
+      `${SCHEMAS_MARKER}\n-- boot: true\n-- priority: -10\n`,
+    );
+    out = applySchemaChanges(out, {
+      ...none,
+      require: [{ tag: "page", attribute: "z", required: true }],
+    });
+    expect(out.match(/-- boot: true/g)).toHaveLength(1);
   });
 });

@@ -143,7 +143,7 @@ config.merge({"commands", "Say hello"}, {key = config.unset})
 ## config.persist
 `config.persist(path, value)`
 
-Persists one configuration value: writes or replaces its `config.set` line in the managed block of CONFIG, then reloads configuration.
+Persists one configuration value: writes or replaces its `config.set` line in the managed block of Library/Config, then reloads configuration.
 
 **Parameters:**
 
@@ -209,7 +209,7 @@ The control shown depends on the schema `type`:
 * `string` with `enum`: dropdown
 * `string`: text input, or password input when `ui.inputType` is `"password"`
 * `number`: number input
-* Anything else: a “Configure manually in CONFIG” hint. The user must edit the [[CONFIG]] page directly
+* Anything else: a “Configure manually in Library/Config” hint. The user must edit the [[^Library/Config]] page directly
 
 The field’s `description` is shown as helper text below the label.
 
@@ -234,8 +234,8 @@ command.define {
 
 `config.set(path, config.unset)` removes the value at `path` altogether.
 
-## Writing the CONFIG page
-`config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[CONFIG]] page, leaves everything else untouched, and reloads configuration. If CONFIG doesn’t exist yet, it is created.
+## Writing the Library/Config page
+`config.set` only changes the running configuration. To persist a value, use `config.persist(path, value)`: it writes or replaces exactly one `config.set(path, value)` line in the managed block of the [[^Library/Config]] page, leaves everything else untouched, and reloads configuration. If `Library/Config` doesn’t exist yet, it is created.
 
 ```space-lua
 config.persist("share.silverbullet.spaces", {"https://example.com/notes"})

@@ -14,17 +14,17 @@ Search has its own index and startup behavior. [[Search#The search index]] expla
 * **A paragraph, task, tag or frontmatter value:** Allow saving and indexing to finish. Queries consume indexed page data.
 * **A query’s filters, columns or rendering:** Use **Update page** in its builder, or finish editing the expression. The page contains the query instructions.
 * **A reusable `space-lua` definition:** Run `System: Reload`, then inspect Workbench’s **Scripts** and **Console** tabs. Space-wide definitions need to be loaded again.
-* **A tag transform that changes indexed objects:** Put the definition in `CONFIG`, reload it and run `Space: Reindex`. Existing records must be rebuilt under the new transform.
+* **A tag transform that changes indexed objects:** Put the definition in `Library/Config`, reload it and run `Space: Reindex`. Existing records must be rebuilt under the new transform.
 * **A baked section’s input data:** Use its **Update** menu or `Baked Sections: Update`. Baking writes a stored Markdown snapshot.
 * **An external source used by a custom widget or script:** Follow that feature’s refresh contract. External changes may not be tracked as index dependencies.
 
 # Reload definitions deliberately
-A `space-lua` block on a page under `Library/` (or in [[CONFIG]]) defines reusable code after it is loaded. On other pages it only displays source and installs nothing. `System: Reload` reloads that code through [[API/system#system.reboot]]. It also waits for indexing and incorporates external changes to the open page. An apparently successful reload does not establish that every script loaded correctly: check errors in [[Workbench/Code/Scripts]] and [[Workbench/Console]].
+A `space-lua` block on a page under `Library/` defines reusable code after it is loaded. On other pages it only displays source and installs nothing. `System: Reload` reloads that code through [[API/system#system.reboot]]. It also waits for indexing and incorporates external changes to the open page. An apparently successful reload does not establish that every script loaded correctly: check errors in [[Workbench/Code/Scripts]] and [[Workbench/Console]].
 
 [[Space Lua/Page Lua|Page Lua]] has a separate page-local execution model. Consult its reference when a calculation depends on local variables. You do not need to create a global definition to display an ordinary query.
 
 # Reindex after changing transforms
-A transform runs while an object is indexed. Changing a transform does not retroactively rewrite every stored object. Define `tag.define` transforms in [[CONFIG]], which loads before indexing, then explicitly reindex existing content after reloading the definition. See [[API/tag]] for transforms and [[Reference/Indexing Internals]] for the lifecycle. Do this in a writable space. Published readers cannot rebuild someone else’s index.
+A transform runs while an object is indexed. Changing a transform does not retroactively rewrite every stored object. Define `tag.define` transforms in [[^Library/Config]], which loads before indexing, then explicitly reindex existing content after reloading the definition. See [[API/tag]] for transforms and [[Reference/Indexing Internals]] for the lifecycle. Do this in a writable space. Published readers cannot rebuild someone else’s index.
 
 # Baked output is a snapshot
 A live `${…}` expression computes a result in the editor. [[Baked Sections]] stores that result as Markdown alongside its source, so other tools can read it. The stored output changes only when you update the baked section. Reopening a page or changing a source task does not automatically rebake it. The baked-section menu offers only read operations to a read-only reader.

@@ -97,7 +97,7 @@ test.describe("with document syncing enabled", () => {
   test.use({
     spaceFiles: {
       "index.md": "Synced media notebook",
-      "CONFIG.md": [
+      "Library/Config.md": [
         "```space-lua",
         'config.set("sync.documents", true)',
         "```",

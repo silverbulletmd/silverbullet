@@ -221,7 +221,7 @@ test.describe("no ghost with liveEdit.frontmatter off", () => {
   test.use({
     spaceFiles: {
       ...spaceFiles,
-      "CONFIG.md":
+      "Library/Config.md":
         '```space-lua\nconfig.set("liveEdit", { frontmatter = false })\n```\n',
     },
   });

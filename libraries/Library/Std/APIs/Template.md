@@ -31,7 +31,7 @@ or directly in a query’s `select` clause:
 ${query[[from p = index.contentPages() limit 3 select templates.greet(p)]]}
 ```
 
-Resulting in something along the lines of `Hello index!Hello CONFIG!...`
+Resulting in something along the lines of `Hello index!Hello Inbox!...`
 
 
 ## template.each(collection, fn)

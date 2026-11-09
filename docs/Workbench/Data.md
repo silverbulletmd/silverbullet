@@ -11,7 +11,7 @@ The Data tab shows the objects in your space by [[Tag]]: your pages, tasks, and 
 ${widgets.commandButton("Workbench: Data")} opens this tab in the [[Workbench]], and ${widgets.commandButton("Workbench: Schema")} opens it on Schema.
 
 # The tag list
-* **Pinned** tags come first: `page` and `task` unless you change them. Hover a tag and click its pin to pin or unpin it. Pins are kept in the `workbench.pinnedTags` option of your [[CONFIG]], so everyone using the space sees the same ones.
+* **Pinned** tags come first: `page` and `task` unless you change them. Hover a tag and click its pin to pin or unpin it. Pins are kept in the `workbench.pinnedTags` option of your [[^Library/Config]], so everyone using the space sees the same ones.
 * **Defined**: your tags that have a [[Schema]], most objects first. A tag with objects that don't match its schema shows a ⚠ count. A tag that's defined but not used yet is greyed out.
 * **No schema**: your tags without one, most objects first, so the list reads as a to-do list.
 * **Built-in**: the tags SilverBullet indexes itself (`item`, `link`, `header`, …), collapsed until you open it.
@@ -64,7 +64,7 @@ For a tag without a schema, tick the inferred attributes to keep and click **Cre
 Renaming or removing an attribute changes only the schema, never your pages: an attribute you removed shows up again as inferred while objects still have it.
 
 ## Where schemas are saved
-The Data tab saves to its own block in your [[CONFIG]], marked `-- managed-by: workbench-schemas`, next to the block the [[Workbench/Configuration|Configuration]] tab keeps. It's ordinary [[Space Lua]] you can read and edit:
+The Data tab saves to its own block in your [[^Library/Config]], marked `-- managed-by: workbench-schemas`, next to the block the [[Workbench/Configuration|Configuration]] tab keeps. It's ordinary [[Space Lua]] you can read and edit:
 
 * A schema created here is a `tag.define`.
 * Changes to a schema defined elsewhere, such as adding an attribute to `page` or to a library's tag, are kept as separate `config.set` and `tag.setRequired` calls. The original definition is left alone, so later changes to it still take effect.

@@ -27,6 +27,30 @@ impl GitignoreMatcher {
     }
 }
 
+impl GitignoreMatcher {
+    /// The matcher for space-ignore `patterns` of the space at `root`, without
+    /// opening the space.
+    pub fn from_patterns(root: &Path, patterns: &str) -> Self {
+        GitignoreMatcher(build_gitignore(root, patterns))
+    }
+}
+
+fn build_gitignore(root: &Path, patterns: &str) -> Option<ignore::gitignore::Gitignore> {
+    let mut builder = GitignoreBuilder::new(root);
+    let mut has_pattern = false;
+    for line in patterns.lines() {
+        let line = line.trim();
+        if !line.is_empty() {
+            let _ = builder.add_line(None, line);
+            has_pattern = true;
+        }
+    }
+    if !has_pattern {
+        return None;
+    }
+    builder.build().ok()
+}
+
 /// The "is this a listed space file" rule shared by `fetch_file_list` and
 /// `get_file_meta_if_listable`: not a directory, and has a file extension.
 fn is_listable_file(is_dir: bool, relative: &str) -> bool {
@@ -207,19 +231,7 @@ impl DiskSpacePrimitives {
     /// ordinary space file that happens to be about git, not configuration for
     /// SilverBullet.
     fn build_gitignore(&self) -> Option<ignore::gitignore::Gitignore> {
-        let mut builder = GitignoreBuilder::new(&self.root_path);
-        let mut has_pattern = false;
-        for line in self.gitignore_patterns.lines() {
-            let line = line.trim();
-            if !line.is_empty() {
-                let _ = builder.add_line(None, line);
-                has_pattern = true;
-            }
-        }
-        if !has_pattern {
-            return None;
-        }
-        builder.build().ok()
+        build_gitignore(&self.root_path, &self.gitignore_patterns)
     }
 
     /// Walk every listable, non-ignored file (the same traversal and filters

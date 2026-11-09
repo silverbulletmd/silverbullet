@@ -62,7 +62,7 @@ Call one in the `select` clause of a query in page Markdown; the rows render as 
 ${query[[from t = index.tasks("garden") where not t.done select templates.taskItem(t)]]}
 ```
 
-To define your own, assign `template.new` to a key of `templates` in a `space-lua` block (on a page under `Library/`, or in `CONFIG`):
+To define your own, assign `template.new` to a key of `templates` in a `space-lua` block (on a page under `Library/`, such as `Library/Config`):
 
 ```lua
 --- Renders a book with its author.

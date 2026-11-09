@@ -13,7 +13,7 @@ SilverBullet uses three fonts, each picked separately in [[Workbench/Configurati
 * **Editor font**: the text of your pages.
 * **Code font**: anything code-like: inline code, [[Markdown/Fenced Code Block|code blocks]], frontmatter and tables while you edit them, and `${...}` expressions while the cursor is in them. It should be a monospace font.
 
-Instead of using the [[Workbench/Configuration]] options, you can also set them in [[CONFIG]]:
+Instead of using the [[Workbench/Configuration]] options, you can also set them in [[^Library/Config]]:
 
 ```space-lua
 config.set("fonts.editor", "inter")
@@ -22,7 +22,7 @@ config.set("fonts.code", "ia-writer-mono")
 ```
 
 # Editor font size
-**Editor font size**, also under **Appearance**, sets the size of page text in the editor, in pixels: 18 by default, from 10 to 48. Headings, code and list indents scale with it. A proportional font often looks smaller than a monospace one at the same size, so you may want to raise it after switching. In [[CONFIG]]:
+**Editor font size**, also under **Appearance**, sets the size of page text in the editor, in pixels: 18 by default, from 10 to 48. Headings, code and list indents scale with it. A proportional font often looks smaller than a monospace one at the same size, so you may want to raise it after switching. In [[^Library/Config]]:
 
 ```space-lua
 config.set("fonts.editorSize", 20)

@@ -8,7 +8,7 @@ import {
 
 type Handler = (...args: any[]) => any;
 
-const MARKER = "-- managed-by: configuration-manager";
+const MARKER = "-- managed-by: configuration-manager\n-- boot: true";
 
 let handlers: Record<string, Handler>;
 let calls: string[];
@@ -95,8 +95,8 @@ describe("saveManagedChanges", () => {
   });
 });
 
-describe("reading CONFIG fails", () => {
-  test("writes nothing when CONFIG can't be read", async () => {
+describe("reading Library/Config fails", () => {
+  test("writes nothing when Library/Config can't be read", async () => {
     handlers["space.readPage"] = () => {
       throw new Error("Network error");
     };
@@ -108,7 +108,7 @@ describe("reading CONFIG fails", () => {
 });
 
 describe("persistConfigValue", () => {
-  test("creates CONFIG from the template", async () => {
+  test("creates Library/Config from the template", async () => {
     handlers["space.readPage"] = () => {
       throw new Error("Not found");
     };
@@ -122,12 +122,28 @@ describe("persistConfigValue", () => {
       `\`\`\`space-lua\n${MARKER}\nconfig.set("share.silverbullet.spaces", {"https://example.com"})\n\`\`\``,
     );
   });
+
+  test("writes to Library/Config, with the boot marker on both template blocks", async () => {
+    const pages: string[] = [];
+    handlers["space.readPage"] = () => {
+      throw new Error("Not found");
+    };
+    handlers["space.writePage"] = (name: string, text: string) => {
+      pages.push(name);
+      written.push(text);
+    };
+    await persistConfigValue("a", 1);
+    expect(pages).toEqual(["Library/Config"]);
+    const fences = written[0].match(/```space-lua\n[^\n]*\n[^\n]*/g) ?? [];
+    expect(fences).toHaveLength(2);
+    for (const fence of fences) expect(fence).toContain("-- boot: true");
+  });
 });
 
-describe("saving with CONFIG open", () => {
-  test("an open CONFIG is saved before it is read", async () => {
+describe("saving with Library/Config open", () => {
+  test("an open Library/Config is saved before it is read", async () => {
     configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
-    handlers["editor.getCurrentPage"] = () => "CONFIG";
+    handlers["editor.getCurrentPage"] = () => "Library/Config";
     await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
     expect(calls.indexOf("editor.save")).toBeGreaterThan(-1);
     expect(calls.indexOf("editor.save")).toBeLessThan(
@@ -135,9 +151,9 @@ describe("saving with CONFIG open", () => {
     );
   });
 
-  test("an open CONFIG is reloaded in the editor after the write", async () => {
+  test("an open Library/Config is reloaded in the editor after the write", async () => {
     configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
-    handlers["editor.getCurrentPage"] = () => "CONFIG";
+    handlers["editor.getCurrentPage"] = () => "Library/Config";
     await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
     expect(calls.indexOf("editor.reloadPage")).toBeGreaterThan(
       calls.indexOf("space.writePage"),

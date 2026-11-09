@@ -95,7 +95,7 @@ export function getCategories(): Promise<
 
 /**
  * Persists one config value: writes or replaces its `config.set(path, value)`
- * line in the managed block of the CONFIG page, then reloads configuration.
+ * line in the managed block of the Library/Config page, then reloads configuration.
  */
 export function persist(path: string, value: unknown): Promise<void> {
   return syscall("config.persist", path, value);

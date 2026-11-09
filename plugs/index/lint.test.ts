@@ -534,7 +534,7 @@ describe("lintInactiveBlocks", () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].severity).toBe("warning");
     expect(diagnostics[0].message).toBe(
-      "Not loaded: scripts and styles only run from pages under Library/ or CONFIG.",
+      "Not loaded: scripts and styles only run from pages under Library/.",
     );
     expect(diagnostics[0].from).toBe(7);
     expect(diagnostics[0].to).toBe(7 + "```space-style".length);
@@ -542,7 +542,11 @@ describe("lintInactiveBlocks", () => {
 
   test("is silent on tool pages", async () => {
     expect(await lintBlocks("Library/A", block)).toEqual([]);
-    expect(await lintBlocks("CONFIG", block)).toEqual([]);
+    expect(await lintBlocks("Library/Config", block)).toEqual([]);
+  });
+
+  test("warns on a legacy CONFIG page, which is no longer a tool page", async () => {
+    expect(await lintBlocks("CONFIG", block)).toHaveLength(1);
   });
 
   test("can be turned off", async () => {

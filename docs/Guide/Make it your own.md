@@ -36,9 +36,9 @@ Use **Filter libraries** to narrow the list, as shown above for diagrams. Librar
 When you find one you want, click **Install** and follow its instructions. Libraries can run code in your space, so choose sources you trust. Use the installed library’s ⋯ menu to **Remove** it later. **Check for updates** looks for newer versions. Built-in libraries cannot be removed. [[Workbench/Libraries]] covers the controls in detail.
 
 # Where your changes live
-Configuration saves your settings and shortcuts in a page called [[CONFIG]]. They belong to the space, so in a shared space they also affect other people using it.
+Configuration saves your settings and shortcuts in a page called [[^Library/Config]]. They belong to the space, so in a shared space they also affect other people using it.
 
-Workbench writes the configuration as [[Space Lua]] for you. You can inspect CONFIG when you’re curious.
+Workbench writes the configuration as [[Space Lua]] for you. You can inspect [[^Library/Config]] when you’re curious.
 
 # Go further
 * [[Page Template]] and [[Slash Templates]] let you reuse content when creating pages or inserting sections.

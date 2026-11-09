@@ -60,7 +60,7 @@ const longText =
 
 const spaceFiles = {
   "index.md": "Welcome",
-  "CONFIG.md": tagsConfig,
+  "Library/Config.md": tagsConfig,
   "Person/Alice.md": "---\ntags: person\nrole: Engineer\n---\nAlice",
   "Person/Bob.md": "---\ntags: person\nrole: Designer\n---\nBob",
   "Projects/Apollo.md": apollo,
@@ -769,7 +769,7 @@ test.describe("frontmatter form opt-out", () => {
   test.use({
     spaceFiles: {
       ...spaceFiles,
-      "CONFIG.md": `${tagsConfig}
+      "Library/Config.md": `${tagsConfig}
 \`\`\`space-lua
 config.set("liveEdit", { frontmatter = false })
 \`\`\`

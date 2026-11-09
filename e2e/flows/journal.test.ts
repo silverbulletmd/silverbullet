@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { currentPage, runCommandViaPalette } from "../fixtures/actions.ts";
 import { expect, test, waitForPersistedContent } from "../fixtures/core.ts";
 
@@ -9,7 +11,8 @@ function today(): string {
   return `${year}-${month}-${day}`;
 }
 
-// Asserts on the raw YAML, so the frontmatter form is turned off
+// Asserts on the raw YAML, so the frontmatter form is turned off. Seeded as a
+// legacy root CONFIG.md, which the server moves to Library/Config.md on start
 test.use({
   spaceFiles: {
     "index.md": "# Welcome\n",
@@ -22,6 +25,10 @@ test("today's journal starts from the template and saves an entry", async ({
   sbPage,
   sbServer,
 }) => {
+  expect(existsSync(join(sbServer.spaceDir, "CONFIG.md"))).toBe(false);
+  expect(existsSync(join(sbServer.spaceDir, "Library", "Config.md"))).toBe(
+    true,
+  );
   await runCommandViaPalette(sbPage, "Journal: Today");
   const pageName = `Journal/${today()}`;
   await expect(currentPage(sbPage)).toHaveValue(pageName);

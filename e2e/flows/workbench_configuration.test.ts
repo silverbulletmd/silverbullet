@@ -18,7 +18,7 @@ test.describe("configuration tab", () => {
   const shortWikiLinks = (page: Page) =>
     tab(page).getByRole("checkbox", { name: "Short wiki links" });
 
-  test("configuration tab saves an option to CONFIG", async ({
+  test("configuration tab saves an option to Library/Config", async ({
     page,
     sbServer,
   }) => {
@@ -55,14 +55,18 @@ test.describe("configuration tab", () => {
     await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
       .poll(() =>
-        readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
+        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+          () => "",
+        ),
       )
-      .toContain(`${MARKER}\nconfig.set("shortWikiLinks", false)`);
+      .toContain(
+        `${MARKER}\n-- boot: true\nconfig.set("shortWikiLinks", false)`,
+      );
     expect(
-      await readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8"),
+      await readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8"),
     ).toContain('config.set("fonts.editor", "inter")');
     expect(
-      await readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8"),
+      await readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8"),
     ).toContain('config.set("fonts.editorSize", 22)');
     await expect(
       tab(page).getByRole("button", { name: "Save and apply" }),
@@ -264,7 +268,9 @@ test.describe("configuration tab", () => {
     await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
       .poll(() =>
-        readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
+        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+          () => "",
+        ),
       )
       .toMatch(/name = "Workbench: Toggle", key = "[^"]+", mac = ""/);
     await expect(
@@ -292,7 +298,9 @@ test.describe("configuration tab", () => {
     await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
       .poll(() =>
-        readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => ""),
+        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+          () => "",
+        ),
       )
       .toContain('name = "Workbench: Toggle", key = "", mac = ""');
     await expect(
@@ -308,7 +316,7 @@ test.describe("configuration tab", () => {
     test.use({
       spaceFiles: {
         "index.md": "Welcome",
-        "CONFIG.md": `\`\`\`space-lua\n${MARKER}\nconfig.set(\n\`\`\`\n`,
+        "Library/Config.md": `\`\`\`space-lua\n${MARKER}\nconfig.set(\n\`\`\`\n`,
       },
     });
 
@@ -316,7 +324,7 @@ test.describe("configuration tab", () => {
       await gotoSilverBulletPage(page, sbServer, "index");
       await runCommandViaPalette(page, "Configuration: Open");
       await expect(tab(page)).toContainText(
-        "The managed configuration block in CONFIG is not valid Lua",
+        "The managed configuration block in Library/Config is not valid Lua",
       );
       await shortWikiLinks(page).uncheck();
       await expect(
@@ -339,9 +347,11 @@ test.describe("data tab schemas", () => {
   });
 
   const config = (sbServer: { spaceDir: string }) =>
-    readFile(join(sbServer.spaceDir, "CONFIG.md"), "utf8").catch(() => "");
+    readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+      () => "",
+    );
 
-  test("creates a schema from inferred attributes, extends page, and keeps unsaved CONFIG edits", async ({
+  test("creates a schema from inferred attributes, extends page, and keeps unsaved Library/Config edits", async ({
     page,
     sbServer,
   }) => {
@@ -373,8 +383,8 @@ test.describe("data tab schemas", () => {
         /config\.set\(\{\s*"tags",\s*"page",\s*"schema",\s*"properties",\s*"category",?\s*\}/,
       );
 
-    // An unsaved edit in the open CONFIG survives a save from the Workbench
-    await gotoSilverBulletPage(page, sbServer, "CONFIG");
+    // An unsaved edit in the open Library/Config survives a save from the Workbench
+    await gotoSilverBulletPage(page, sbServer, "Library/Config");
     await page.locator("#sb-editor .cm-content").click();
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.type("\nA note typed by hand.");

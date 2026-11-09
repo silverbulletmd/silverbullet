@@ -78,7 +78,7 @@ const NO_OVERRIDES: Overrides = { config: {}, commands: {} };
  * The Configuration tab's state. It outlives the tab's view, so edits stay
  * pending while the Workbench is closed. The managed block is parsed once per
  * load into the saved overrides; the user's edits are kept apart and laid
- * over them, so a CONFIG changed meanwhile shows through everywhere else.
+ * over them, so a Library/Config changed meanwhile shows through everywhere else.
  */
 export class ConfigurationModel extends ReloadingStore<ConfigurationSource> {
   source?: ConfigurationSource;
@@ -90,7 +90,7 @@ export class ConfigurationModel extends ReloadingStore<ConfigurationSource> {
   saving = false;
   saveError?: string;
 
-  // As written in CONFIG; saving diffs against it
+  // As written in Library/Config; saving diffs against it
   private saved: Overrides = NO_OVERRIDES;
   // With old manager output repaired; what counts as unchanged
   private repaired: Overrides = NO_OVERRIDES;
@@ -226,7 +226,7 @@ export class ConfigurationModel extends ReloadingStore<ConfigurationSource> {
   }
 
   protected override loadErrorMessage(e: any): string {
-    return `Couldn't read CONFIG: ${e?.message ?? e}`;
+    return `Couldn't read Library/Config: ${e?.message ?? e}`;
   }
 
   protected loaded(source: ConfigurationSource): void {

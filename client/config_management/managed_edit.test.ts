@@ -3,7 +3,8 @@ import { findManagedBlock } from "./config_block.ts";
 import { applyManagedChanges, diffOverrides } from "./managed_edit.ts";
 import { parseManagedBlock, toLua } from "./managed_lua.ts";
 
-const MARKER = "-- managed-by: configuration-manager";
+// Blocks the Workbench writes carry the boot marker right after their own
+const MARKER = "-- managed-by: configuration-manager\n-- boot: true";
 
 const setLine = (text: string, path: string, value: unknown) =>
   applyManagedChanges(text, { config: { set: { [path]: value }, unset: [] } });
@@ -282,5 +283,40 @@ describe("diffOverrides", () => {
     expect(
       diffOverrides({ a: undefined }, { a: undefined, b: undefined }),
     ).toEqual({ set: {}, unset: [] });
+  });
+});
+
+describe("boot marker", () => {
+  const BARE = "-- managed-by: configuration-manager";
+
+  test("a new block carries it", () => {
+    const out = setLine("# Config\n", "a", 1);
+    expect(out).toContain(`${BARE}\n-- boot: true\nconfig.set("a", 1)`);
+  });
+
+  test("an existing block without it gets it right after its marker", () => {
+    const text = `\`\`\`space-lua\n${BARE}\nconfig.set("a", 1)\n\`\`\`\n`;
+    expect(setLine(text, "b", 2)).toBe(
+      `\`\`\`space-lua\n${BARE}\n-- boot: true\nconfig.set("a", 1)\nconfig.set("b", 2)\n\`\`\`\n`,
+    );
+  });
+
+  test("is never duplicated, wherever it is in the block", () => {
+    const text = `\`\`\`space-lua\n${BARE}\nconfig.set("a", 1)\n--boot:true\n\`\`\`\n`;
+    const out = setLine(setLine(text, "b", 2), "c", 3);
+    expect(out.match(/boot:\s*true/g)).toHaveLength(1);
+  });
+});
+
+describe("boot marker with trailing text on the managed marker line", () => {
+  test("two saves keep exactly one managed block", () => {
+    const marker = "-- managed-by: configuration-manager (edited by hand)";
+    const text = `\`\`\`space-lua\n${marker}\nconfig.set("a", 1)\n\`\`\`\n`;
+    const once = setLine(text, "b", 2);
+    expect(once).toContain(`${marker}\n-- boot: true\n`);
+    const twice = setLine(once, "c", 3);
+    expect(twice.match(/managed-by: configuration-manager/g)).toHaveLength(1);
+    expect(twice.match(/boot: true/g)).toHaveLength(1);
+    expect(twice).toContain('config.set("c", 3)');
   });
 });

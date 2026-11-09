@@ -44,7 +44,7 @@ Many existing plugs _should_ keep working, but some may need updating. Plug inst
 
 # Other changes
 * Since no database is kept on the server, you can safely delete any `.silverbullet.db` file from your space — this isn’t used anymore.
-* Since space config is no longer a thing, `SETTINGS`  is now gone. Instead the [[CONFIG]] page is now the preferred place to configure things. However, this is just a convention. You can use the `config.set` [[Space Lua]] API in any [[Space Lua]] block.
+* Since space config is no longer a thing, `SETTINGS`  is now gone. Instead the configuration page (now [[^Library/Config]]) is the preferred place to configure things. However, this is just a convention. You can use the `config.set` [[Space Lua]] API in any [[Space Lua]] block.
 
 # Removed features
 Certain features have been removed:

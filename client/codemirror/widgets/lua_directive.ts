@@ -116,7 +116,7 @@ export function luaDirectivePlugin(client: Client) {
 
     let shouldRender = true;
 
-    const renderMode = widgetRenderMode(client);
+    const renderMode = widgetRenderMode(client, state);
     if (renderMode === "disabled") {
       return Decoration.none;
     }

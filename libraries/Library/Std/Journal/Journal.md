@@ -9,7 +9,7 @@ The journal feature can be configured via the `journal` config key:
 * `journal.tag` — tag used to mark journal pages (defaults to `journal`). The template, Prev/Next commands, and the default index page all key off this tag.
 
 # Configuration
-The schema, helpers, and command definitions live in two fenced blocks. The first (`priority: 10`) registers the config schema and defines helpers attached to the `journal` namespace. The second (`priority: -1`) runs after user CONFIG has loaded, so `config.get("journal.enabled")` reflects the user's override.
+The schema, helpers, and command definitions live in two fenced blocks. The first (`priority: 10`) registers the config schema and defines helpers attached to the `journal` namespace. The second (`priority: -1`) runs after the user's `Library/Config` has loaded, so `config.get("journal.enabled")` reflects the user's override.
 
 ```space-lua
 -- priority: 10

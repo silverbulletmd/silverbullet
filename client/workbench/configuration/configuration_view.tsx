@@ -191,7 +191,7 @@ export function ConfigurationView({
                   void openRef(client, { path: `${CONFIG_PAGE}.md` });
                 }}
               >
-                CONFIG
+                {CONFIG_PAGE}
               </a>
             </span>
           </div>

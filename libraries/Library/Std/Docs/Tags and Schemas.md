@@ -5,7 +5,7 @@ tags: meta/skill
 Every object in the index (page, task, item, data object) carries tags. Tagging needs no definition: `tags: book` in frontmatter is enough to make `index.pages("book")` work. Define a tag with `tag.define` only to give it a schema, validation, computed attributes, a look, or a custom renderer.
 
 # Where it goes
-Put `tag.define` calls in a `space-lua` block on the `CONFIG` page (create it if missing), or on a page under `Library/`. Blocks on other pages do not run. `CONFIG` loads before pages are indexed, so a `transform` defined there sees every page. A block on a `Library/` page gets the same early run when it carries a `-- boot: true` comment line, and a block that calls `tag.define`, `config.set` or `config.define` should carry it so it applies before indexing and first render. Avoid names SilverBullet uses for its own objects: `page`, `task`, `item`, `paragraph`, `header`, `link`, `tag`, `data`, `table`, `anchor`, `relation`, `identity`, `document`. You can extend those, but not reuse them for your own kind.
+Put `tag.define` calls in a `space-lua` block on the `Library/Config` page (create it if missing), or on another page under `Library/`. Blocks on other pages do not run. `Library/Config` loads before pages are indexed, so a `transform` defined there sees every page. A block on a `Library/` page gets the same early run when it carries a `-- boot: true` comment line, and a block that calls `tag.define`, `config.set` or `config.define` should carry it so it applies before indexing and first render. Avoid names SilverBullet uses for its own objects: `page`, `task`, `item`, `paragraph`, `header`, `link`, `tag`, `data`, `table`, `anchor`, `relation`, `identity`, `document`. You can extend those, but not reuse them for your own kind.
 
 # tag.define fields
 All optional except `name`:
@@ -39,7 +39,7 @@ tag.define {
 }
 ```
 
-Without writing Lua, the Workbench's Data tab (`Workbench: Schema`) shows a tag's attributes, creates a schema from the ones its objects use, and edits schemas in place, saving them to a managed block in `CONFIG`.
+Without writing Lua, the Workbench's Data tab (`Workbench: Schema`) shows a tag's attributes, creates a schema from the ones its objects use, and edits schemas in place, saving them to a managed block in `Library/Config`.
 
 # Schema helpers
 The `schema` table builds JSON Schema values; a plain table such as `{type = "string"}` works too.
@@ -58,7 +58,7 @@ The `schema` table builds JSON Schema values; a plain table such as `{type = "st
 Use `type = "object"` with `properties` at the top, as above. The same helpers describe settings in `config.define(key, schema)`.
 
 # Check the result
-After saving `CONFIG`, check that the definition took effect and what it does:
+After saving `Library/Config`, check that the definition took effect and what it does:
 
 ```lua
 index.tagSchema("book")
@@ -74,13 +74,13 @@ query[[from b = index.pages("book") limit 3 select b]]
 
 `index.tagSchema` returns the schema as loaded (nil when none is declared). `space.lint` lists schema violations on a page with `source` `objects`; run it on a page you expect to be invalid as well as one you expect to pass. The sample query shows attributes added by a `transform`.
 
-An `edit` of `CONFIG` (MCP or `sb`) reloads its scripts and reports load errors, so a typo in `tag.define` shows up in that result. Then `read` a tagged page with `rendered: true` for its lint problems, and take a `screenshot` when the look matters.
+An `edit` of `Library/Config` (MCP or `sb`) reloads its scripts and reports load errors, so a typo in `tag.define` shows up in that result. Then `read` a tagged page with `rendered: true` for its lint problems, and take a `screenshot` when the look matters.
 
 # Changing a transform
 A `transform` runs only when a page is indexed. A new or changed transform therefore applies to pages as they are next edited, not to the rest. To apply it everywhere, reindex the space: the `Space: Reindex` command, or `index.reindexSpace()` with `lua`. On a large space this takes a while, so tell the user, or ask before doing it. Schema and `validate` changes need no reindex for lint, but `mustValidate` filtering happens at index time.
 
 # Styling a kind of page
-To give every page with a tag its own look, style the class instead of decorating each page by hand: attach a CSS class through the tag, then target it from a `space-style` block. Put both blocks in `CONFIG` or on a page under `Library/`; they do not run elsewhere. Put the `tag.define` in `CONFIG`, for the reason given above.
+To give every page with a tag its own look, style the class instead of decorating each page by hand: attach a CSS class through the tag, then target it from a `space-style` block. Put both blocks on a page under `Library/`; they do not run elsewhere. Put the `tag.define` in `Library/Config`, for the reason given above.
 
 ````markdown
 ```space-lua

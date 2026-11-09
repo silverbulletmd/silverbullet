@@ -99,8 +99,8 @@ async function createSnapshot(): Promise<void> {
 
 /**
  * A client's own dock/open/collapsed/width choices win over the space's
- * `view.defaults`, so clearing them is the only way to see a later CONFIG
- * edit on a client that has already moved or closed a view.
+ * `view.defaults`, so clearing them is the only way to see a later
+ * Library/Config edit on a client that has already moved or closed a view.
  */
 async function resetAllViews(): Promise<void> {
   const confirmed = await editor.confirm(

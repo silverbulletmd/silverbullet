@@ -1,13 +1,13 @@
 [
   {
-    "path": "CONFIG.md",
-    "lastModified": 0,
-    "text": "```space-lua\nconfig.set(\"x\", 1)\n```\n"
-  },
-  {
     "path": "Library/A.md",
     "lastModified": 0,
     "text": "# A\n\n```space-style\n.a { color: red; }\n```\n"
+  },
+  {
+    "path": "Library/Config.md",
+    "lastModified": 0,
+    "text": "```space-lua\nconfig.set(\"x\", 1)\n```\n"
   },
   {
     "path": "Library/Sub/B.md",

@@ -1,16 +1,16 @@
 ---
-description: "Edit your space’s configuration and key bindings in CONFIG."
+description: "Edit your space’s configuration and key bindings in Library/Config."
 references:
 - client/workbench/configuration/**
 - client/workbench/shared/section_sidebar.tsx
 ---
-The Configuration tab edits your space’s configuration without hand-editing [[Space Lua]] in [[CONFIG]]. `Configuration: Open` (`Cmd-,` or `Ctrl-,`) opens the [[Workbench]] on this tab, and `Configuration: Keyboard Shortcuts` opens it on its Key bindings section. On Desktop, *Settings…* in the app menu does the same.
+The Configuration tab edits your space’s configuration without hand-editing [[Space Lua]] in [[^Library/Config]]. `Configuration: Open` (`Cmd-,` or `Ctrl-,`) opens the [[Workbench]] on this tab, and `Configuration: Keyboard Shortcuts` opens it on its Key bindings section. On Desktop, *Settings…* in the app menu does the same.
 
 ${widgets.commandButton("Workbench: Configuration")} opens this tab in the [[Workbench]].
 
 A sidebar on the left lists two sections. In a narrow panel it becomes a drop-down above the list.
 
-* **Configuration**: every option registered with [[API/config#config.define(key, schema)]] that has a `ui` annotation, grouped by category. The categories are listed under the section in the sidebar. Click one to jump to it. Each option shows its label, description and a control that fits its schema: a checkbox, a drop-down, a text, password or number field. Options the tab can’t edit say so. Change those in [[CONFIG]] directly.
+* **Configuration**: every option registered with [[API/config#config.define(key, schema)]] that has a `ui` annotation, grouped by category. The categories are listed under the section in the sidebar. Click one to jump to it. Each option shows its label, description and a control that fits its schema: a checkbox, a drop-down, a text, password or number field. Options the tab can’t edit say so. Change those in [[^Library/Config]] directly.
 * **Key bindings**: every [[Command]] with its keyboard shortcuts. Click a shortcut, then press the keys you want: chords of several strokes, like `Ctrl-q q`, work too. Enter keeps it, Esc cancels and Backspace undoes the last key. `+` adds an alternate shortcut. A shortcut that’s already taken, or that another shortcut would make unreachable, is refused, with the reason shown under the row.
 
 The filter in the toolbar narrows the section showing: options by label, description and path, key bindings by command name.
@@ -24,8 +24,8 @@ A dot marks an option or command you changed from its default. Its ⋯ menu offe
 # Saving
 Changes stay pending until you click **Save and apply**, or press `Cmd-s`/`Ctrl-s` while the tab has focus. **Discard** drops them. While anything is pending, the tab’s label shows a `•`. Pending changes survive switching tabs and closing the Workbench, but not reloading the page.
 
-Saving writes only what you changed into a managed `space-lua` block in [[CONFIG]], then reloads your configuration. Everything outside that block is left alone, and so are values in it that you didn’t touch here, such as those [[Share]] remembers. Simple hand edits to the managed block survive a round trip through this tab. If the block isn’t valid Lua, the tab shows the error and refuses to save until you fix it in CONFIG.
+Saving writes only what you changed into a managed `space-lua` block in [[^Library/Config]], then reloads your configuration. Everything outside that block is left alone, and so are values in it that you didn’t touch here, such as those [[Share]] remembers. Simple hand edits to the managed block survive a round trip through this tab. If the block isn’t valid Lua, the tab shows the error and refuses to save until you fix it in `Library/Config`.
 
-The footer counts the options or commands, how many you changed, and how many changes are unsaved, and links to CONFIG.
+The footer counts the options or commands, how many you changed, and how many changes are unsaved, and links to `Library/Config`.
 
 In a read-only space the tab shows the configuration but can’t change it.

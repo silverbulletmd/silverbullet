@@ -224,7 +224,8 @@ mod tests {
         let lua = "```space-lua\nx = 1\n```\n";
         assert!(needs_reload("Library/Tools.md", None, lua));
         assert!(needs_reload("Library/Tools.md", Some(lua), "plain"));
-        assert!(needs_reload("CONFIG.md", None, lua));
+        assert!(needs_reload("Library/Config.md", None, lua));
+        assert!(!needs_reload("CONFIG.md", None, lua));
         assert!(!needs_reload("Library/Tools.md", Some("plain"), "plain"));
         assert!(!needs_reload("Tools.md", None, lua));
         assert!(!needs_reload("Library/tools.lua", None, lua));

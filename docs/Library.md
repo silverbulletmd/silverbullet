@@ -20,7 +20,7 @@ A [[Repository]] is a **discovery and curation mechanism** for libraries. They a
 
 To make discovery and installation of libraries easier, SilverBullet includes a [[Workbench/Libraries|Library Manager]].
 
-Libraries live under the `Library/` prefix (folder) in your space. This is a rule, not a convention: [[Space Lua]] and [[Space Style]] blocks only run from pages under `Library/` (and [[CONFIG]]), so installing a library always puts it there.
+Libraries live under the `Library/` prefix (folder) in your space. This is a rule, not a convention: [[Space Lua]] and [[Space Style]] blocks only run from pages under `Library/`, so installing a library always puts it there.
 
 # What’s in a library
 Here are some things that a library may provide:

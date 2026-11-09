@@ -244,8 +244,8 @@ export function postScriptPrefacePlugin(editor: Client) {
     if (!editor.clientSystem.scriptsLoaded) {
       return Decoration.none;
     }
-    // Like every widget host: nothing runs until the index and page list are in
-    const slotsReady = widgetRenderMode(editor) !== "loading";
+    // Like every widget host: nothing runs until scripts and a page list are in
+    const slotsReady = widgetRenderMode(editor, state) !== "loading";
     const widgets: any[] = [];
 
     // side -2/2 puts the navigator's page slots outside the legacy Lua top and bottom widgets

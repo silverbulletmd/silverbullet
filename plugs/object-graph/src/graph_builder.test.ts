@@ -95,13 +95,16 @@ describe("isHiddenTag", () => {
 describe("splitToolPages", () => {
   it("separates Tool Pages by location, not by tag", () => {
     const { pages, toolPageNames } = splitToolPages([
-      { name: "CONFIG" },
+      { name: "Library/Config" },
       { name: "Library/Std/Config" },
       { name: "Notes", tags: ["meta/template"] },
       { name: "Libraryish" },
     ]);
     expect(pages.map((p) => p.name)).toEqual(["Notes", "Libraryish"]);
-    expect([...toolPageNames]).toEqual(["CONFIG", "Library/Std/Config"]);
+    expect([...toolPageNames]).toEqual([
+      "Library/Config",
+      "Library/Std/Config",
+    ]);
   });
 });
 

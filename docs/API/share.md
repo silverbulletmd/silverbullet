@@ -101,7 +101,7 @@ After the built-in steps the `share:transform` services run (see below) when `ex
 Returns the `steps` table for a page: the `defaults` of the target, switched off for pages that are exempt, and for the steps `override` turns off. `override` is the page’s `share.transform` value: `false` switches every step off, a table such as `{bake = false}` switches the listed steps off. It can only turn steps off, never on. `extensions` is on unless the page is exempt or `override` is `false`.
 
 ## share.isExempt(name, text)
-Returns true for Tool Pages (`CONFIG` and pages under `Library/`) and for pages tagged `meta` or `meta/...`, such as templates: they are published as they are apart from removing their `share.*` keys, with no step and no `share:transform` service applied.
+Returns true for Tool Pages (pages under `Library/`) and for pages tagged `meta` or `meta/...`, such as templates: they are published as they are apart from removing their `share.*` keys, with no step and no `share:transform` service applied.
 
 ## share.target(uri)
 Returns the descriptor of the provider that serves a URI, found through the `share:target:<uri>` services, or `share.genericTarget` when none claims it.

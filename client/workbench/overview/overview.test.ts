@@ -120,22 +120,22 @@ describe("loadOverview", () => {
     expect(Object.values(stats).filter(Number.isNaN)).toEqual([]);
   });
 
-  test("rows from tool pages (CONFIG and Library/) are excluded from pages, tasks and tags", async () => {
+  test("rows from tool pages (under Library/) are excluded from pages, tasks and tags", async () => {
     const stats = await loadOverview(
       fakeDeps({
         pages: async () => [
           { name: "Library/Std/X", created: now.toISOString() },
-          { name: "CONFIG", created: now.toISOString() },
+          { name: "Library/Config", created: now.toISOString() },
           { name: "Mine", created: now.toISOString() },
         ],
         tasks: async () => [
           { page: "Library/Std/X", done: false },
-          { page: "CONFIG", done: false },
+          { page: "Library/Config", done: false },
           { page: "Mine", done: true },
         ],
         tagRows: async () => [
           { name: "libtag", page: "Library/Std/X", tag: "tag" },
-          { name: "configtag", page: "CONFIG", tag: "tag" },
+          { name: "configtag", page: "Library/Config", tag: "tag" },
           { name: "mytag", page: "Mine", tag: "tag" },
         ],
       }),

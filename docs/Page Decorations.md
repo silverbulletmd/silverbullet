@@ -56,7 +56,7 @@ This block doesn’t run here, because this isn’t a [[Tool Page]]. The live co
 To adapt the decoration, copy the frontmatter to your own page and the style to a page under `Library/` in your space.
 
 # Apply to every page with a tag
-To decorate every page with a tag, give the tag a `pageDecoration` in [[API/tag|tag.define]] in your [[CONFIG]]:
+To decorate every page with a tag, give the tag a `pageDecoration` in [[API/tag|tag.define]] in your [[^Library/Config]]:
 
 ```space-lua
 tag.define {

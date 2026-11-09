@@ -11,7 +11,7 @@ You can open the panel via ${widgets.commandButton("Workbench: Toggle")}.
 The workbench has the following tabs:
 
 * [[Workbench/Overview|Overview]]: your space at a glance: page, task and link counts, top tags, activity and runtime state.
-* [[Workbench/Configuration|Configuration]]: your space’s configuration options and key bindings, saved to [[CONFIG]].
+* [[Workbench/Configuration|Configuration]]: your space’s configuration options and key bindings, saved to [[^Library/Config]].
 * [[Workbench/Data|Data]]: browse the objects in your space by tag, shape them into a [[Space Lua/Integrated Query|query]] without writing it, and define the tags' [[Schema|schemas]].
 * [[Workbench/Code|Code]]: every `space-lua` block on a [[Tool Page]] and how loading it went ([[Workbench/Code/Scripts|Space Lua]]), and every such `space-style` block and whether the browser could make sense of it ([[Workbench/Code/Styles|Space Style]]).
 * [[Workbench/Libraries|Libraries]]: install, update and remove [[Library|libraries]] and [[Repository|repositories]], and check what has an update.

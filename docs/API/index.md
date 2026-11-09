@@ -240,7 +240,7 @@ Returns all tasks, optionally filtered by a user tag, as a query collection.
 ## index.toolPages
 `index.toolPages(tagName?)`
 
-Returns tool pages (CONFIG and everything under Library/), optionally filtered by a user tag, as a query collection.
+Returns tool pages (everything under Library/), optionally filtered by a user tag, as a query collection.
 
 ## index.validateObjects
 `index.validateObjects(page, objects)`

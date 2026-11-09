@@ -1,5 +1,5 @@
 /**
- * Conversion between JS values and the Lua source of CONFIG's managed blocks,
+ * Conversion between JS values and the Lua source of Library/Config's managed blocks,
  * which are read structurally, never evaluated.
  */
 import type {
@@ -255,7 +255,7 @@ export function scanStatements(
 }
 
 /**
- * Parse the body of the managed block of CONFIG back into the structured
+ * Parse the body of the managed block of Library/Config back into the structured
  * form the UI consumes: `config.set` with a string path (its value undefined
  * when not a literal) and `command.update`. A block that is not valid Lua
  * yields no overrides and the parse error in `error`; callers must then not

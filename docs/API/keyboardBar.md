@@ -12,7 +12,7 @@ On phones and tablets, the keyboard bar shows editing shortcuts above the on-scr
 The bar is on by default. **Editor: Toggle Keyboard Bar** turns it off or on again. The choice is remembered per device. Setting `keyboardBar` to an empty list hides it everywhere.
 
 > **success** Success
-> Put your `keyboardBar.define` calls in your [[CONFIG]] page.
+> Put your `keyboardBar.define` calls in your [[^Library/Config]] page.
 
 # API
 ## keyboardBar.define(spec)

@@ -197,7 +197,7 @@ export function configWriteSyscalls(): SysCallMapping {
         return persistConfigValue(path, value);
       },
       description:
-        "Persists one configuration value: writes or replaces its `config.set` line in the managed block of CONFIG, then reloads configuration.",
+        "Persists one configuration value: writes or replaces its `config.set` line in the managed block of Library/Config, then reloads configuration.",
       parameters: [
         { name: "path", type: "string", description: "Configuration path." },
         { name: "value", description: "Value to persist." },

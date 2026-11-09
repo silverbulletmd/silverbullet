@@ -96,7 +96,7 @@ function OptionRow(props: {
     {
       label: "Copy as Lua",
       icon: "copy",
-      // Meant for CONFIG, whose blocks are boot blocks without a marker
+      // Meant for Library/Config, whose blocks always boot
       run: ({ client, model, path }) =>
         copyText(
           client,
@@ -210,5 +210,7 @@ function Control(props: {
       />
     );
   }
-  return <span className="sb-wb-muted">Configure manually in CONFIG</span>;
+  return (
+    <span className="sb-wb-muted">Configure manually in Library/Config</span>
+  );
 }

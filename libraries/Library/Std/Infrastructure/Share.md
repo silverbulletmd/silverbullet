@@ -83,7 +83,7 @@ end
 -- Tool Pages, and pages tagged meta or meta/* (such as templates), are shared
 -- as they are
 function share.isExempt(name, text)
-  if name == "CONFIG" or name:startsWith("Library/") then
+  if name:startsWith("Library/") then
     return true
   end
   return pageHasTag(name, text, function(tag)
