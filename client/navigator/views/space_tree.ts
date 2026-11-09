@@ -8,7 +8,7 @@ import {
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
-import { isHiddenPage, isMetaPage, spaceContents } from "./pages.ts";
+import { isHiddenPage, isToolPageObj, spaceContents } from "./pages.ts";
 import { type BuiltinView, baseMeta, type Segment } from "./types.ts";
 
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
@@ -38,14 +38,14 @@ const spaceTreeSegments: Segment<TreeObj>[] = [
     icon: "layers",
     default: true,
     placeholder: "Page or document",
-    // Meta pages are reachable only via the Meta segment.
-    where: (obj) => !isMetaPage(obj),
+    // Tool pages are reachable only via the Tool segment.
+    where: (obj) => !isToolPageObj(obj),
   },
   {
     label: "Pages",
     icon: "file-text",
     placeholder: "Page",
-    where: (obj) => obj.tag === "page" && !isMetaPage(obj),
+    where: (obj) => obj.tag === "page" && !isToolPageObj(obj),
   },
   {
     label: "Documents",
@@ -54,10 +54,10 @@ const spaceTreeSegments: Segment<TreeObj>[] = [
     where: (obj) => obj.tag === "document",
   },
   {
-    label: "Meta",
-    icon: "settings",
-    placeholder: "Meta page",
-    where: isMetaPage,
+    label: "Tool",
+    icon: "tool",
+    placeholder: "Tool page",
+    where: isToolPageObj,
   },
 ];
 

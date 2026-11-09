@@ -3,6 +3,7 @@ import {
   isBuiltinTag,
   isMetaTag,
 } from "@silverbulletmd/silverbullet/lib/tags";
+import { isToolPage } from "@silverbulletmd/silverbullet/lib/tool_pages";
 import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   Edge,
@@ -303,6 +304,24 @@ export async function expandObject(ref: string): Promise<ExpansionResult> {
   return { object, neighbors, edges };
 }
 
+/** Equivalent of `index.contentPages()`: Tool Pages go, by name. */
+export function splitToolPages(allPages: IndexedObject[]): {
+  pages: IndexedObject[];
+  toolPageNames: Set<string>;
+} {
+  const pages: IndexedObject[] = [];
+  const toolPageNames = new Set<string>();
+  for (const p of allPages) {
+    const name = String(p.name ?? "");
+    if (isToolPage(name)) {
+      toolPageNames.add(name);
+    } else {
+      pages.push(p);
+    }
+  }
+  return { pages, toolPageNames };
+}
+
 /**
  * Build the data for the global view: every page + every relation in the
  * space. The caller is expected to default the label filter to "mention
@@ -313,16 +332,7 @@ export async function buildGlobalGraph(
   rootRef: string | null,
 ): Promise<ExpansionResult | null> {
   const { relations, pagesByName } = await ensureCache();
-  const allPages = [...pagesByName.values()];
-  // Equivalent of `index.contentPages()`: drop meta-tagged pages.
-  const isMeta = (p: IndexedObject) => {
-    const tags = Array.isArray(p.tags) ? (p.tags as string[]) : [];
-    return tags.some((t) => t === "meta" || t.startsWith("meta/"));
-  };
-  const pages = allPages.filter((p) => !isMeta(p));
-  const metaRefs = new Set(
-    allPages.filter(isMeta).map((p) => String(p.name ?? "")),
-  );
+  const { pages, toolPageNames } = splitToolPages([...pagesByName.values()]);
   if (pages.length === 0) return null;
   const rows = relations;
 
@@ -345,8 +355,8 @@ export async function buildGlobalGraph(
     }))
     .filter(
       (e) =>
-        !metaRefs.has(e.source) &&
-        !metaRefs.has(e.target) &&
+        !toolPageNames.has(e.source) &&
+        !toolPageNames.has(e.target) &&
         nodeByRef.has(e.source) &&
         nodeByRef.has(e.target),
     );

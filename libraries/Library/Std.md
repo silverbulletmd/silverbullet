@@ -32,8 +32,8 @@ ${template.each(query[[
     * [[${_.name}]]: ${_.description}
 ]==])}
 
-# Meta pages 
-The SilverBullet ships with a few generally useful meta pages (pages tagged with `#meta`) you can use:
+# Tool pages 
+The SilverBullet ships with a few generally useful tool pages (pages under `Library/`) you can use:
 
 ${template.each(query[[
   from index.tag "page"

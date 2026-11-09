@@ -3,10 +3,8 @@
  * of a root tag that carry a user tag. A query always reads them through an
  * `index.*()` helper.
  */
-import {
-  builtinTagKind,
-  metaPageLua,
-} from "@silverbulletmd/silverbullet/lib/tags";
+import { builtinTagKind } from "@silverbulletmd/silverbullet/lib/tags";
+import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
 
 export type QuerySource = {
   /** Root tag; `data` also stands for the root tags data blocks define */
@@ -18,16 +16,16 @@ export type QuerySource = {
   tag: string | null;
   /** Which of the two was picked from the tag list; the other narrows it */
   by: "root" | "tag";
-  /** With root `page`: only content pages, or only meta pages; all when absent */
+  /** With root `page`: only content pages, or only tool pages; all when absent */
   scope?: PageScope;
 };
 
-export type PageScope = "content" | "meta";
+export type PageScope = "content" | "tool";
 
 /** The helper reading each page scope's pages, narrowed by a user tag like `index.pages` */
 const SCOPE_HELPERS: Record<PageScope, string> = {
   content: "contentPages",
-  meta: "metaPages",
+  tool: "toolPages",
 };
 
 /** Root tags whose helper takes a user tag (or, for relations, a kind) to narrow by */
@@ -111,7 +109,11 @@ export function sourceFromCall(
   if (helper === "objects" || helper === "tag") {
     return arg === null ? null : sourceFor(arg);
   }
-  const scope = keyOf(SCOPE_HELPERS, helper) as PageScope | undefined;
+  // `metaPages` is the deprecated name of `toolPages`.
+  const scope = keyOf(
+    SCOPE_HELPERS,
+    helper === "metaPages" ? "toolPages" : helper,
+  ) as PageScope | undefined;
   if (scope) return { root: "page", tag: arg, by: "root", scope };
   const narrowing = keyOf(NARROWING_HELPERS, helper);
   if (narrowing) return { root: narrowing, tag: arg, by: "root" };
@@ -154,7 +156,7 @@ export function sampleQuery(s: QuerySource): { key: string; where?: string } {
   if (s.root === null) return { key: s.tag ?? "" };
   if (s.scope) {
     const scoped =
-      s.scope === "meta" ? metaPageLua("o") : `not ${metaPageLua("o")}`;
+      s.scope === "tool" ? toolPageLua("o") : `not (${toolPageLua("o")})`;
     if (s.tag === null) return { key: s.root, where: scoped };
     return { key: s.tag, where: `o.tag == "page" and ${scoped}` };
   }

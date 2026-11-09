@@ -1,3 +1,4 @@
+import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
 import { describe, expect, test } from "vitest";
 import {
   canNarrow,
@@ -20,7 +21,7 @@ const contentPages: QuerySource = {
   by: "root",
   scope: "content",
 };
-const metaPages: QuerySource = { ...contentPages, scope: "meta" };
+const toolPages: QuerySource = { ...contentPages, scope: "tool" };
 
 describe("sourceLua", () => {
   test("a root tag reads through its own helper, narrowed by a user tag", () => {
@@ -33,14 +34,14 @@ describe("sourceLua", () => {
     );
   });
 
-  test("pages can be only content pages or only meta pages", () => {
+  test("pages can be only content pages or only tool pages", () => {
     expect(sourceLua(contentPages)).toBe("index.contentPages()");
     expect(sourceLua({ ...contentPages, tag: "adr" })).toBe(
       'index.contentPages("adr")',
     );
-    expect(sourceLua(metaPages)).toBe("index.metaPages()");
-    expect(sourceLua({ ...metaPages, tag: "food" })).toBe(
-      'index.metaPages("food")',
+    expect(sourceLua(toolPages)).toBe("index.toolPages()");
+    expect(sourceLua({ ...toolPages, tag: "food" })).toBe(
+      'index.toolPages("food")',
     );
   });
 
@@ -75,7 +76,7 @@ describe("sourceLua", () => {
       rootSource("anchor"),
       tagSource("work"),
       contentPages,
-      { ...metaPages, tag: "food" },
+      { ...toolPages, tag: "food" },
     ]) {
       const m = /^index\.(\w+)\((?:"(.*)")?\)$/.exec(sourceLua(s))!;
       expect(sourceFromCall(m[1], m[2] ?? null)).toEqual(s);
@@ -95,14 +96,14 @@ test("listedSource: page in the tag list means content pages", () => {
 
 test("sameSource tells the page scopes apart", () => {
   expect(sameSource(contentPages, rootSource("page"))).toBe(false);
-  expect(sameSource(contentPages, metaPages)).toBe(false);
+  expect(sameSource(contentPages, toolPages)).toBe(false);
   expect(sameSource(contentPages, { ...contentPages })).toBe(true);
 });
 
 test("sourceLabel", () => {
   expect(sourceLabel(contentPages)).toBe("content page");
-  expect(sourceLabel({ ...metaPages, tag: "food" })).toBe(
-    "meta page tagged #food",
+  expect(sourceLabel({ ...toolPages, tag: "food" })).toBe(
+    "tool page tagged #food",
   );
   expect(sourceLabel(rootSource("task"))).toBe("task");
   expect(sourceLabel(tagSource("work"))).toBe("#work");
@@ -126,15 +127,14 @@ describe("sampleQuery", () => {
   });
 
   test("samples only the page scope's pages", () => {
-    const meta =
-      'table.find(o.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)';
+    const tool = toolPageLua("o");
     expect(sampleQuery(contentPages)).toEqual({
       key: "page",
-      where: `not ${meta}`,
+      where: `not (${tool})`,
     });
-    expect(sampleQuery({ ...metaPages, tag: "food" })).toEqual({
+    expect(sampleQuery({ ...toolPages, tag: "food" })).toEqual({
       key: "food",
-      where: `o.tag == "page" and ${meta}`,
+      where: `o.tag == "page" and ${tool}`,
     });
   });
 });

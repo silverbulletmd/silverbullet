@@ -5,6 +5,7 @@ import {
 import { type Path, parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { folderName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { collisionIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
+import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
 import {
   editor,
   index,
@@ -34,17 +35,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
       `not string.startsWith(_.name, "_") and not string.endsWith(_.name, ".plug.js")`,
     ),
   };
-  const isMetaPageQuery = {
+  const isToolPageQuery = {
     objectVariable: "_",
-    where: await lua.parseExpression(`table.find(_.tags, function(tag)
-           return tag == "meta" or string.startsWith(tag, "meta/")
-          end)`),
+    where: await lua.parseExpression(toolPageLua("_")),
   };
-  const isntMetaPageQuery = {
+  const isntToolPageQuery = {
     objectVariable: "_",
-    where: await lua.parseExpression(`not table.find(_.tags, function(tag)
-           return tag == "meta" or string.startsWith(tag, "meta/")
-          end)`),
+    where: await lua.parseExpression(`not (${toolPageLua("_")})`),
   };
   // Try to match [[wikilink]]
   let isWikilink = true;
@@ -64,8 +61,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   let allPages: (PageMeta | DocumentMeta)[] = [];
 
   if (prefix.startsWith("^")) {
-    // A carrot prefix means we're looking for a meta page
-    allPages = await index.queryLuaObjects<PageMeta>("page", isMetaPageQuery);
+    // A carrot prefix means we're looking for a tool page
+    allPages = await index.queryLuaObjects<PageMeta>("page", isToolPageQuery);
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
@@ -75,8 +72,8 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     // This is the most common case, we're combining three types of completions here:
     allPages = (
       await Promise.all([
-        // All non-meta pages
-        index.queryLuaObjects<PageMeta>("page", isntMetaPageQuery),
+        // All non-tool pages
+        index.queryLuaObjects<PageMeta>("page", isntToolPageQuery),
         // All documents
         index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery),
         // And all links to non-existing pages (to augment the existing ones)

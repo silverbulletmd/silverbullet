@@ -79,12 +79,12 @@ if modes then
       search = "source",
       dock = "modal",
       supportedDocks = { "modal", "lhs", "rhs", "bhs" },
-      placeholder = "Pages",
+      placeholder = "Content",
       refreshOnOpen = true,
       rememberPhrase = true,
       segments = {
-        { label = "Pages", default = true, placeholder = "Pages" },
-        { label = "Meta", placeholder = "Meta Pages" },
+        { label = "Content", default = true, placeholder = "Content" },
+        { label = "Tool", placeholder = "Tool Pages" },
         { label = "All", placeholder = "All Pages" },
       },
       dropdown = {
@@ -108,7 +108,9 @@ if modes then
       source = function(ctx)
         local q = trim(ctx.phrase)
         if q == "" then return {} end
+        -- The "Content" segment covers the backend's "pages" scope.
         local scope = ctx.segment and ctx.segment:lower()
+        if scope == "content" then scope = "pages" end
         -- A remembered mode the backend no longer lists runs as the default.
         local mode = resolve(ctx.dropdown)
         local ok, result = pcall(find, q, mode, scope)

@@ -117,11 +117,15 @@ const PAGE_SCOPES: {
   tooltip: string;
 }[] = [
   { scope: undefined, label: "All", tooltip: "Every page" },
-  { scope: "content", label: "Content", tooltip: "Pages not tagged #meta" },
-  { scope: "meta", label: "Meta", tooltip: "Pages tagged #meta or #meta/…" },
+  {
+    scope: "content",
+    label: "Content",
+    tooltip: "Pages outside Library/ and CONFIG",
+  },
+  { scope: "tool", label: "Tool", tooltip: "Pages under Library/ and CONFIG" },
 ];
 
-/** Narrows pages to content pages or meta pages; absent for other objects */
+/** Narrows pages to content pages or tool pages; absent for other objects */
 function PageScopeControl({
   source,
   onNarrow,

@@ -1,4 +1,4 @@
-import { rank, type RankOptions } from "../../../plug-api/lib/fuzzy.ts";
+import { type RankOptions, rank } from "../../../plug-api/lib/fuzzy.ts";
 import type {
   QueryOptions,
   RelatedOptions,
@@ -68,7 +68,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "`mode` (one of `search.status().capabilities.modes`, defaults to the first), `scope` (`pages`, `meta` or `all`, like the page picker's segments: meta pages are tagged `meta`, `meta/…` or `template`, defaults to `all`), `include`/`exclude` (exact page names, they narrow `scope` further, without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).",
+            "`mode` (one of `search.status().capabilities.modes`, defaults to the first), `scope` (`pages`, `tool` or `all`, like the page picker's segments: tool pages are `CONFIG` and everything under `Library/`; `meta` is a deprecated alias of `tool`; defaults to `all`), `include`/`exclude` (exact page names, they narrow `scope` further, without `include`, pages hidden by a page decoration are left out), `limit` (maximum pages).",
           optional: true,
         },
       ],
@@ -96,7 +96,7 @@ export function searchSyscalls(search: ServerSearch): SysCallMapping {
           name: "options",
           type: "table",
           description:
-            "`limit` (maximum number of pages), `scope` (`pages`, `meta` or `all`, as in `search.find`, defaults to `all`).",
+            "`limit` (maximum number of pages), `scope` (`pages`, `tool` or `all`, as in `search.find`, defaults to `all`).",
           optional: true,
         },
       ],

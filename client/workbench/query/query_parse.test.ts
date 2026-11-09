@@ -411,12 +411,14 @@ describe("querySource", () => {
       by: "root",
       scope: "content",
     });
-    expect(querySource("query[[from p = index.metaPages()]]")).toEqual({
-      root: "page",
-      tag: null,
-      by: "root",
-      scope: "meta",
-    });
+    for (const helper of ["toolPages", "metaPages"]) {
+      expect(querySource(`query[[from p = index.${helper}()]]`)).toEqual({
+        root: "page",
+        tag: null,
+        by: "root",
+        scope: "tool",
+      });
+    }
   });
 
   test("the older index.tag form still opens", () => {

@@ -242,10 +242,6 @@ test.describe("space tree", () => {
       "Projects/Beta.md": "# Beta",
       "Files/report.txt": "Report text",
       "Journal/Today.md": "# Today\n\nPlanning notes.",
-      // A folder in both the All and Meta segments, so the Meta segment has
-      // an open folder after "Expand all" without relying on bundled Library pages.
-      "Setup/Notes.md": "# Notes",
-      "Setup/Config.md": "---\ntags: meta\n---\n# Config",
       ...Object.fromEntries(
         Array.from({ length: 80 }, (_, index) => [
           `Archive ${index}/Note.md`,
@@ -395,9 +391,11 @@ test.describe("space tree", () => {
     await expandAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
     await expect(expandAll).toBeDisabled();
-    await tree.getByRole("radio", { name: "Meta" }).click();
+    // The buttons follow the segment: All leaves Library/ out, so its
+    // folder is still collapsed in Tool
+    await tree.getByRole("radio", { name: "Tool" }).click();
     await expect(expandAll).toBeEnabled();
-    await expect(collapseAll).toBeEnabled();
+    await expect(collapseAll).toBeDisabled();
     await tree.getByRole("radio", { name: "All" }).click();
     await collapseAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);

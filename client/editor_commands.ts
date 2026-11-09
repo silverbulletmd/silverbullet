@@ -65,9 +65,9 @@ import {
   reloadDirective,
 } from "./codemirror/widgets/directive_actions.ts";
 import { directiveAt } from "./codemirror/widgets/directive_at.ts";
-import { broadcastReload } from "./sandbox/widget_sandbox_iframe.ts";
-import type { CommandHook } from "./plugos/hooks/command.ts";
 import { evaluateExpression } from "./markdown_renderer/compose_client.ts";
+import type { CommandHook } from "./plugos/hooks/command.ts";
+import { broadcastReload } from "./sandbox/widget_sandbox_iframe.ts";
 import {
   decodeSafetyText,
   formatSafetyLabel,
@@ -583,7 +583,7 @@ export function registerEditorCommands(
     },
   });
   hook.registerCommand({
-    name: "Navigate: Meta Picker",
+    name: "Navigate: Tool Picker",
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
     priority: 2,
@@ -591,10 +591,10 @@ export function registerEditorCommands(
       location: "navigate",
       group: "2_picker",
       order: 4,
-      label: "Meta Page...",
+      label: "Tool Page...",
     },
     run: async () => {
-      await client.startPageNavigate("meta");
+      await client.startPageNavigate("tool");
       return false;
     },
   });

@@ -84,16 +84,24 @@ export function indexSyscalls(
         return objectIndex.contentPages(tagName);
       },
       description:
-        "Returns non-meta pages, optionally filtered by a user tag, as a query collection.",
+        "Returns non-tool pages, optionally filtered by a user tag, as a query collection.",
       signatures: ["index.contentPages(tagName?)"],
+    },
+    "index.toolPages": {
+      dependsOn: () => [tagChangedEvent("page")],
+      callback: (_ctx, tagName?: string): LuaQueryCollection => {
+        return objectIndex.toolPages(tagName);
+      },
+      description:
+        "Returns tool pages (CONFIG and everything under Library/), optionally filtered by a user tag, as a query collection.",
+      signatures: ["index.toolPages(tagName?)"],
     },
     "index.metaPages": {
       dependsOn: () => [tagChangedEvent("page")],
       callback: (_ctx, tagName?: string): LuaQueryCollection => {
-        return objectIndex.metaPages(tagName);
+        return objectIndex.toolPages(tagName);
       },
-      description:
-        "Returns meta pages, optionally filtered by a user tag, as a query collection.",
+      description: "Deprecated alias of index.toolPages",
       signatures: ["index.metaPages(tagName?)"],
     },
     "index.tasks": {

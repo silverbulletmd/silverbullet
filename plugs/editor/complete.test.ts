@@ -50,11 +50,11 @@ test("page completions carry the page decoration icon without changing their lab
   });
 });
 
-describe("pageComplete meta-page caret prefix", () => {
-  test("[[^ returns only meta-tagged pages", async () => {
+describe("pageComplete tool-page caret prefix", () => {
+  test("[[^ returns only tool pages", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", ["meta"]);
-    await indexPageMeta("Library/Std", ["meta/library"]);
+    await indexPageMeta("CONFIG", []);
+    await indexPageMeta("Library/Std", []);
     await indexPageMeta("RegularPage", []);
 
     const result = await pageComplete(makeCompleteEvent("[[^"));
@@ -68,7 +68,7 @@ describe("pageComplete meta-page caret prefix", () => {
 
   test("[[^CON keeps the caret prefix on labels and `from` covers it", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", ["meta"]);
+    await indexPageMeta("CONFIG", []);
 
     const linePrefix = "[[^CON";
     const result = await pageComplete(makeCompleteEvent(linePrefix));
@@ -79,9 +79,9 @@ describe("pageComplete meta-page caret prefix", () => {
     expect(result!.options.map((o) => o.label)).toContain("^CONFIG");
   });
 
-  test("[[ without caret excludes meta pages", async () => {
+  test("[[ without caret excludes tool pages", async () => {
     createMockSystem();
-    await indexPageMeta("CONFIG", ["meta"]);
+    await indexPageMeta("CONFIG", []);
     await indexPageMeta("RegularPage", []);
 
     const result = await pageComplete(makeCompleteEvent("[["));

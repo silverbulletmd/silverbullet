@@ -81,7 +81,7 @@ const { EXPAND_ROW } = await import("./views/types.ts");
 const { closePreview, currentPreview } = await import(
   "./views/revision_preview.ts"
 );
-const { spaceContents } = await import("./views/pages.ts");
+const { pageScopes, spaceContents } = await import("./views/pages.ts");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -187,6 +187,20 @@ test("with an index, the rows are the indexed objects", async () => {
   ]);
 });
 
+test("pages are classified by location, not by the meta tag", () => {
+  const tagged = { name: "Notes/T", tag: "page", tags: ["meta"] };
+  const library = { name: "Library/X", tag: "page", tags: [] };
+  const config = { name: "CONFIG", tag: "page", tags: [] };
+  expect(pageScopes.pages(tagged)).toBe(true);
+  expect(pageScopes.tool(tagged)).toBe(false);
+  expect(pageScopes.pages(library)).toBe(false);
+  expect(pageScopes.tool(library)).toBe(true);
+  expect(pageScopes.tool(config)).toBe(true);
+  expect(pageScopes.tool({ ...library, pageDecoration: { hide: true } })).toBe(
+    false,
+  );
+});
+
 test("indexed space contents hide documents whose paths start with an underscore", async () => {
   index.isAvailable.mockResolvedValue(true);
   index.queryLuaObjects.mockImplementation((tag) =>
@@ -229,13 +243,11 @@ test("without one, the rows come from the space's own file listing", async () =>
       tag: "page",
       tags: [],
     },
-    // ...including the `Library/` -> meta heuristic the client's own
-    // pre-index page-list cache uses, so the Meta segment isn't just empty.
     {
       name: "Library/Std/Config",
       lastModified: "2026-08-01",
       tag: "page",
-      tags: ["meta"],
+      tags: [],
     },
     { name: "assets/logo.png", extension: "png", tag: "document" },
   ]);
@@ -583,7 +595,7 @@ test("std.spaceTree's meta carries hasMove, file actions, and the Space keymap",
     "All",
     "Pages",
     "Documents",
-    "Meta",
+    "Tool",
   ]);
 });
 

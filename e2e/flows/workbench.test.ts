@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   navigateViaPagePicker,
@@ -231,16 +231,16 @@ test.describe("query builder", () => {
 });
 
 test.describe("query builder page scope", () => {
-  // A made-up content page and a meta page
+  // A made-up content page and a tool page
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
       "Garden Notes.md": "Tomatoes by the fence.",
-      "House Style.md": "---\ntags: meta\n---\nWidgets stay small.",
+      "Library/House Style.md": "Widgets stay small.",
     },
   });
 
-  test("pages read content pages by default; Meta and All switch the scope", async ({
+  test("pages read content pages by default; Tool and All switch the scope", async ({
     page,
     sbServer,
   }) => {
@@ -260,8 +260,8 @@ test.describe("query builder page scope", () => {
     await expect(results).toContainText("Garden Notes");
     await expect(results).not.toContainText("House Style");
 
-    await scope.getByRole("radio", { name: "Meta" }).click();
-    await expect(code).toContainText("index.metaPages()");
+    await scope.getByRole("radio", { name: "Tool" }).click();
+    await expect(code).toContainText("index.toolPages()");
     await expect(results).toContainText("House Style");
     await expect(results).not.toContainText("Garden Notes");
 
@@ -731,7 +731,7 @@ test.describe("query builder list templates", () => {
     spaceFiles: {
       "index.md": "Welcome",
       "Work.md": "- [ ] Send quarterly report\n- [ ] Update team wiki",
-      "My Templates.md": [
+      "Library/My Templates.md": [
         "```space-lua",
         "--- A task and nothing else.",
         "--- @param t task",
@@ -822,8 +822,9 @@ test.describe("query builder refresh", () => {
     const results = page.getByRole("region", { name: "Results" });
     // Not defined yet
     await expect(results).toContainText("isNotes");
+    await mkdir(join(sbServer.spaceDir, "Library"), { recursive: true });
     await writeFile(
-      join(sbServer.spaceDir, "Lib.md"),
+      join(sbServer.spaceDir, "Library/Lib.md"),
       '```space-lua\nfunction isNotes(p) return p.name == "Notes" end\n```\n',
     );
     await expect

@@ -6,6 +6,7 @@ import {
   endpointMatchesRef,
   isHiddenTag,
   type RelationRow,
+  splitToolPages,
   stripPagePos,
 } from "./graph_builder.ts";
 
@@ -88,6 +89,19 @@ describe("isHiddenTag", () => {
   it("shows user tags", () => {
     expect(isHiddenTag("driver")).toBe(false);
     expect(isHiddenTag("project")).toBe(false);
+  });
+});
+
+describe("splitToolPages", () => {
+  it("separates Tool Pages by location, not by tag", () => {
+    const { pages, toolPageNames } = splitToolPages([
+      { name: "CONFIG" },
+      { name: "Library/Std/Config" },
+      { name: "Notes", tags: ["meta/template"] },
+      { name: "Libraryish" },
+    ]);
+    expect(pages.map((p) => p.name)).toEqual(["Notes", "Libraryish"]);
+    expect([...toolPageNames]).toEqual(["CONFIG", "Library/Std/Config"]);
   });
 });
 

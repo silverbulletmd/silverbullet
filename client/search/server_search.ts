@@ -3,6 +3,7 @@ import type {
   QueryOptions,
   RelatedOptions,
   SearchResult,
+  SearchScope,
   SearchStatus,
 } from "../../plug-api/types/search.ts";
 import type { Client } from "../client.ts";
@@ -46,6 +47,10 @@ const emptyResult = (): SearchResult => ({
   partial: false,
   notice: null,
 });
+
+/** The server takes `tool`; `meta` is the old name Lua callers may still pass. */
+const serverScope = (scope: SearchScope | undefined) =>
+  scope === "meta" ? "tool" : scope;
 
 /** `result` without the matches in `hidden` pages, counted out of `total`. */
 function withoutHidden(
@@ -116,7 +121,7 @@ export function createServerSearch(
       query: string,
       options: QueryOptions = {},
     ): Promise<SearchResult> {
-      // The server classifies Pages and Meta by each page's tags; scope and
+      // The server classifies Pages and Tool by each page's location; scope and
       // the explicit lists combine. Hidden pages are left out (see
       // `excludeHidden`), except that an explicit `include` asks for those
       // pages, hidden or not. The minimum query length is server
@@ -128,7 +133,7 @@ export function createServerSearch(
       return post<SearchResult>("query", {
         query,
         mode: options.mode,
-        scope: options.scope,
+        scope: serverScope(options.scope),
         include: options.include,
         exclude,
         limit: options.limit,
@@ -152,7 +157,7 @@ export function createServerSearch(
       const result = await post<SearchResult>("related", {
         page,
         limit,
-        scope,
+        scope: serverScope(scope),
         exclude: excludeHidden(),
       });
       return withoutHidden(result, hiddenPages());

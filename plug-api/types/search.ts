@@ -1,7 +1,7 @@
 export type SearchMode = "words" | "natural" | "phrase";
 
-/** Which pages a search covers, like the page picker's Pages/Meta/All segments. */
-export type SearchScope = "pages" | "meta" | "all";
+/** Which pages a search covers, like the page picker's Pages/Tool/All segments. `meta` is a deprecated alias of `tool`. */
+export type SearchScope = "pages" | "tool" | "meta" | "all";
 
 export type SearchStatus = {
   backend: string | null;

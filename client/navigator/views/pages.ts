@@ -3,7 +3,7 @@ import {
   isValidName,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { isMetaTag } from "@silverbulletmd/silverbullet/lib/tags";
+import { isToolPage } from "@silverbulletmd/silverbullet/lib/tool_pages";
 import {
   editor,
   index,
@@ -26,20 +26,18 @@ import { type BuiltinView, baseMeta } from "./types.ts";
  * decoration adds. */
 type PageObj = ObjectValue<Record<string, any>>;
 
-/** Also used by `space_tree.ts`'s segments -- a meta page is the same thing
- * whichever view is asking. Takes only what it reads (`tag`/`tags`), not the
- * full `ref`-guaranteed `PageObj`: `space_tree.ts` also calls this with a
- * synthesized tree folder, which has neither `ref` nor (usually) `tag`. */
-export function isMetaPage(obj: { tag?: string; tags?: string[] }): boolean {
-  if (obj.tag !== "page") return false;
-  for (const tag of obj.tags ?? []) {
-    if (tag === "template" || isMetaTag(tag)) return true;
-  }
-  return false;
+/** Also used by `space_tree.ts`'s segments -- a tool page is the same thing
+ * whichever view is asking. It is classified by location alone. Takes only
+ * what it reads (`name`/`tag`), not the full `ref`-guaranteed `PageObj`:
+ * `space_tree.ts` also calls this with a synthesized tree folder, which has no
+ * `ref` and usually no `tag`. */
+export function isToolPageObj(obj: { name?: string; tag?: string }): boolean {
+  if (obj.tag !== undefined && obj.tag !== "page") return false;
+  return obj.name !== undefined && isToolPage(obj.name);
 }
 
 /** Also used by `space_tree.ts`: a page hidden from navigation is hidden
- * there too. Loosely typed for the same reason `isMetaPage` is --
+ * there too. Loosely typed for the same reason `isToolPageObj` is --
  * `space_tree.ts` calls it with a synthesized tree folder as well. */
 export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
@@ -59,6 +57,7 @@ export function hiddenPageNames(
 /** What `pageScopes` reads of a page; the picker's index rows carry no
  * typed `name`, so it is not required here. */
 type PageClassFields = {
+  name?: string;
   tag?: string;
   tags?: string[];
   pageDecoration?: { hide?: boolean };
@@ -66,11 +65,11 @@ type PageClassFields = {
 
 export type PageInfo = PageClassFields & { name: string };
 
-/** The picker's Pages and Meta segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
+/** The picker's Pages and Tool segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
 export const pageScopes = {
   pages: (p: PageClassFields) =>
-    p.tag === "page" && !isMetaPage(p) && !isHiddenPage(p),
-  meta: (p: PageClassFields) => isMetaPage(p) && !isHiddenPage(p),
+    p.tag === "page" && !isToolPageObj(p) && !isHiddenPage(p),
+  tool: (p: PageClassFields) => isToolPageObj(p) && !isHiddenPage(p),
 } satisfies Record<string, (p: PageInfo) => boolean>;
 
 let documentCapabilities = new Map<string, DocumentCapability>();
@@ -109,14 +108,7 @@ export async function spaceContents(): Promise<PageObj[]> {
     space.listDocuments(),
   ]);
   return [
-    // The same heuristic the client's pre-index fallback uses: without the
-    // index there are no tags to sort meta pages by, and everything shipped
-    // under Library/ is one.
-    ...pages.map((page) => ({
-      ...page,
-      tag: "page",
-      tags: page.name.startsWith("Library/") ? ["meta"] : [],
-    })),
+    ...pages.map((page) => ({ ...page, tag: "page", tags: [] })),
     ...documents.map((document) => ({ ...document, tag: "document" })),
   ];
 }
@@ -260,13 +252,13 @@ export const pagePicker: BuiltinView<PageObj> = {
       where: pageScopes.pages,
     },
     {
-      label: "Meta",
-      icon: "settings",
-      placeholder: "Meta page",
+      label: "Tool",
+      icon: "tool",
+      placeholder: "Tool page",
       helpText:
-        "Press Shift-Enter to create a new meta page with this exact name.",
+        "Press Shift-Enter to create a new tool page with this exact name.",
       prefix: "^",
-      where: pageScopes.meta,
+      where: pageScopes.tool,
     },
     {
       label: "Documents",

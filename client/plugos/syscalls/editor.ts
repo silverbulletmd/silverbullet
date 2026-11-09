@@ -446,11 +446,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.reloadConfigAndCommands": {
       callback: async () => {
-        await client.clientSystem.system.localSyscall("system.loadScripts", []);
-        await client.clientSystem.system.localSyscall(
-          "system.loadSpaceStyles",
-          [],
-        );
+        await client.clientSystem.reloadTooling();
         client.rebuildEditorState();
       },
       description:
@@ -1385,15 +1381,19 @@ export function editorSyscalls(client: Client): SysCallMapping {
         "Configures CodeMirror Vim mode from the current SilverBullet Vim settings.",
     },
     "editor.openPageNavigator": {
-      callback: (_ctx, mode: "page" | "meta" | "document" | "all" = "page") => {
-        void client.startPageNavigate(mode);
+      callback: (
+        _ctx,
+        mode: "page" | "tool" | "meta" | "document" | "all" = "page",
+      ) => {
+        void client.startPageNavigate(mode === "meta" ? "tool" : mode);
       },
       description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` view.`,
       parameters: [
         {
           name: "mode",
-          type: "page | meta | document | all",
-          description: "The picker mode.",
+          type: "page | tool | document | all",
+          description:
+            "The picker mode. `meta` is a deprecated alias of `tool`.",
           optional: true,
         },
       ],
