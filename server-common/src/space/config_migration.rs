@@ -21,10 +21,52 @@ pub enum ConfigMigration {
 }
 
 /// Renames `<root>/CONFIG.md` to `<root>/Library/Config.md` when only the
-/// former exists. Works on the space folder directly, so bundled layers are
-/// never involved. `space_ignore` holds the space's ignore patterns. Safe to
-/// run on every start.
+/// former exists, and logs the outcome. Works on the space folder directly, so
+/// bundled layers are never involved. `space_ignore` holds the space's ignore
+/// patterns. Safe to run on every start.
 pub fn migrate_config_page(root: &Path, space_ignore: &str) -> ConfigMigration {
+    let outcome = migrate(root, space_ignore);
+    if let Some((level, message)) = outcome.report(root) {
+        if level == tracing::Level::INFO {
+            tracing::info!(space = %root.display(), "{message}");
+        } else {
+            tracing::warn!(space = %root.display(), "{message}");
+        }
+    }
+    outcome
+}
+
+impl ConfigMigration {
+    /// What to log about this outcome for the space at `root`, if anything
+    pub fn report(&self, root: &Path) -> Option<(tracing::Level, String)> {
+        let space = root.display();
+        let message = match self {
+            ConfigMigration::NotNeeded => return None,
+            ConfigMigration::Moved => {
+                return Some((
+                    tracing::Level::INFO,
+                    format!(
+                        "Moved {LEGACY_CONFIG_FILE} to {CONFIG_FILE} in {space} (configuration now lives in Library/)"
+                    ),
+                ));
+            }
+            ConfigMigration::BothExist => format!(
+                "Both {LEGACY_CONFIG_FILE} and {CONFIG_FILE} exist in {space}, nothing was moved. Merge {LEGACY_CONFIG_FILE} into {CONFIG_FILE} by hand: only {CONFIG_FILE} is loaded."
+            ),
+            ConfigMigration::Skipped(reason) => format!(
+                "Not moving {LEGACY_CONFIG_FILE} to {CONFIG_FILE} in {space}: {reason}. Move it by hand: only {CONFIG_FILE} is loaded."
+            ),
+            ConfigMigration::Failed(error) => format!(
+                "Could not move {} to {}: {error}",
+                root.join(LEGACY_CONFIG_FILE).display(),
+                root.join(CONFIG_FILE).display()
+            ),
+        };
+        Some((tracing::Level::WARN, message))
+    }
+}
+
+fn migrate(root: &Path, space_ignore: &str) -> ConfigMigration {
     let Ok(entries) = std::fs::read_dir(root) else {
         return ConfigMigration::NotNeeded;
     };
@@ -43,7 +85,7 @@ pub fn migrate_config_page(root: &Path, space_ignore: &str) -> ConfigMigration {
     }
     if legacy_type.is_symlink() {
         // Renaming moves the link itself, and a relative link breaks under Library/
-        return skip(root, format!("{LEGACY_CONFIG_FILE} is a symbolic link"));
+        return ConfigMigration::Skipped(format!("{LEGACY_CONFIG_FILE} is a symbolic link"));
     }
     // create_dir_all("Library") would land in a differently cased folder on a
     // case-insensitive filesystem, and create a second folder on another
@@ -55,63 +97,27 @@ pub fn migrate_config_page(root: &Path, space_ignore: &str) -> ConfigMigration {
             && e.file_type().is_ok_and(|t| t.is_dir())
     }) {
         if !has_library {
-            return skip(
-                root,
-                format!(
-                    "the space has a folder named {}, not Library",
-                    other.file_name().to_string_lossy()
-                ),
-            );
+            return ConfigMigration::Skipped(format!(
+                "the space has a folder named {}, not Library",
+                other.file_name().to_string_lossy()
+            ));
         }
     }
     let target = root.join(CONFIG_FILE);
     if target.symlink_metadata().is_ok() {
-        tracing::warn!(
-            space = %root.display(),
-            "Both {LEGACY_CONFIG_FILE} and {CONFIG_FILE} exist in {}, nothing was moved. Merge {LEGACY_CONFIG_FILE} into {CONFIG_FILE} by hand: only {CONFIG_FILE} is loaded.",
-            root.display()
-        );
         return ConfigMigration::BothExist;
     }
     if GitignoreMatcher::from_patterns(root, space_ignore).is_ignored(CONFIG_FILE, false) {
-        return skip(
-            root,
-            format!("the space's ignore rules exclude {CONFIG_FILE}"),
-        );
+        return ConfigMigration::Skipped(format!("the space's ignore rules exclude {CONFIG_FILE}"));
     }
-    let legacy = root.join(LEGACY_CONFIG_FILE);
     let result = target
         .parent()
         .map_or(Ok(()), std::fs::create_dir_all)
-        .and_then(|()| std::fs::rename(&legacy, &target));
+        .and_then(|()| std::fs::rename(root.join(LEGACY_CONFIG_FILE), &target));
     match result {
-        Ok(()) => {
-            tracing::info!(
-                space = %root.display(),
-                "Moved {LEGACY_CONFIG_FILE} to {CONFIG_FILE} in {} (configuration now lives in Library/)",
-                root.display()
-            );
-            ConfigMigration::Moved
-        }
-        Err(e) => {
-            tracing::warn!(
-                space = %root.display(),
-                "Could not move {} to {}: {e}",
-                legacy.display(),
-                target.display()
-            );
-            ConfigMigration::Failed(e.to_string())
-        }
+        Ok(()) => ConfigMigration::Moved,
+        Err(e) => ConfigMigration::Failed(e.to_string()),
     }
-}
-
-fn skip(root: &Path, reason: String) -> ConfigMigration {
-    tracing::warn!(
-        space = %root.display(),
-        "Not moving {LEGACY_CONFIG_FILE} to {CONFIG_FILE} in {}: {reason}. Move it by hand: only {CONFIG_FILE} is loaded.",
-        root.display()
-    );
-    ConfigMigration::Skipped(reason)
 }
 
 #[cfg(test)]
@@ -122,65 +128,42 @@ mod tests {
         std::fs::read_to_string(root.join(path)).unwrap()
     }
 
-    #[derive(Clone, Default)]
-    struct Captured(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
-
-    impl std::io::Write for Captured {
-        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-            self.0.lock().unwrap().extend_from_slice(buf);
-            Ok(buf.len())
-        }
-        fn flush(&mut self) -> std::io::Result<()> {
-            Ok(())
-        }
-    }
-
-    /// Runs the migration and returns its result plus what it logged.
-    fn migrate_logged(root: &Path) -> (ConfigMigration, String) {
-        let captured = Captured::default();
-        let writer = captured.clone();
-        let subscriber = tracing_subscriber::fmt()
-            .with_writer(move || writer.clone())
-            .with_ansi(false)
-            .with_max_level(tracing::Level::INFO)
-            .finish();
-        let result =
-            tracing::subscriber::with_default(subscriber, || migrate_config_page(root, ""));
-        let log = String::from_utf8(captured.0.lock().unwrap().clone()).unwrap();
-        (result, log)
+    /// The level and message logged for an outcome in `root`
+    fn reported(root: &Path, outcome: &ConfigMigration) -> (tracing::Level, String) {
+        outcome.report(root).expect("an outcome worth logging")
     }
 
     #[test]
-    fn logs_the_move_at_info() {
+    fn reports_the_move_at_info() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("CONFIG.md"), "cfg").unwrap();
-        let (result, log) = migrate_logged(dir.path());
-        assert_eq!(result, ConfigMigration::Moved);
-        assert!(log.contains("INFO"), "{log}");
+        let (level, message) = reported(dir.path(), &ConfigMigration::Moved);
+        assert_eq!(level, tracing::Level::INFO);
         assert!(
-            log.contains("Moved CONFIG.md to Library/Config.md"),
-            "{log}"
+            message.contains("Moved CONFIG.md to Library/Config.md"),
+            "{message}"
         );
-        assert!(log.contains(&dir.path().display().to_string()), "{log}");
+        assert!(
+            message.contains(&dir.path().display().to_string()),
+            "{message}"
+        );
     }
 
     #[test]
     fn warns_naming_both_files_when_both_exist() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir(dir.path().join("Library")).unwrap();
-        std::fs::write(dir.path().join("CONFIG.md"), "old").unwrap();
-        std::fs::write(dir.path().join("Library/Config.md"), "new").unwrap();
-        let (_, log) = migrate_logged(dir.path());
-        assert!(log.contains("WARN"), "{log}");
-        assert!(log.contains("CONFIG.md and Library/Config.md"), "{log}");
-        assert!(log.contains("nothing was moved"), "{log}");
+        let (level, message) = reported(dir.path(), &ConfigMigration::BothExist);
+        assert_eq!(level, tracing::Level::WARN);
+        assert!(
+            message.contains("CONFIG.md and Library/Config.md"),
+            "{message}"
+        );
+        assert!(message.contains("nothing was moved"), "{message}");
     }
 
     #[test]
-    fn logs_nothing_without_config() {
+    fn reports_nothing_without_config() {
         let dir = tempfile::tempdir().unwrap();
-        let (_, log) = migrate_logged(dir.path());
-        assert_eq!(log, "");
+        assert_eq!(ConfigMigration::NotNeeded.report(dir.path()), None);
     }
 
     #[test]
@@ -257,12 +240,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("real.md"), "cfg").unwrap();
         std::os::unix::fs::symlink("real.md", dir.path().join("CONFIG.md")).unwrap();
-        let (result, log) = migrate_logged(dir.path());
+        let result = migrate_config_page(dir.path(), "");
         assert!(matches!(result, ConfigMigration::Skipped(_)), "{result:?}");
-        assert!(
-            log.contains("WARN") && log.contains("Move it by hand"),
-            "{log}"
-        );
+        let (level, message) = reported(dir.path(), &result);
+        assert_eq!(level, tracing::Level::WARN);
+        assert!(message.contains("Move it by hand"), "{message}");
         assert!(dir.path().join("CONFIG.md").symlink_metadata().is_ok());
         assert!(!dir.path().join("Library").exists());
     }
@@ -292,9 +274,9 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("library")).unwrap();
         std::fs::write(dir.path().join("CONFIG.md"), "cfg").unwrap();
-        let (result, log) = migrate_logged(dir.path());
+        let result = migrate_config_page(dir.path(), "");
         assert!(matches!(result, ConfigMigration::Skipped(_)), "{result:?}");
-        assert!(log.contains("library"), "{log}");
+        assert!(reported(dir.path(), &result).1.contains("library"));
         assert_eq!(read(dir.path(), "CONFIG.md"), "cfg");
     }
 
