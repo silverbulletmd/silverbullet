@@ -152,7 +152,9 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   ).toBe(false);
   const other = await page.context().newPage();
   await other.goto(`${server.url}/notes/HTTP%20Note`);
-  await expect(other.locator("#sb-editor .cm-content")).toBeVisible();
+  await expect(
+    other.locator('#sb-editor .cm-content[contenteditable="true"]'),
+  ).toBeVisible();
   await page.locator("#sb-top button:has(.sb-profile-avatar)").click();
   await page.getByRole("button", { name: "Log out", exact: true }).click();
   await expect(

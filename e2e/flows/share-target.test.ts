@@ -100,6 +100,11 @@ test("two incoming shares stay queued independently", async ({
     await expect(page.getByLabel("Text")).toHaveValue(text);
   }
   await expect(page.getByText("2 pending captures")).toBeVisible();
+  // The dialog opens while the client is still booting; finishing the boot
+  // must not move focus to the editor behind it.
+  await page.getByLabel("Text").focus();
+  await page.waitForFunction(() => (window as any).client?.systemReady);
+  await expect(page.getByLabel("Text")).toBeFocused();
   await page.getByLabel("Text").fill("Edited second item");
   await page.getByRole("button", { name: "Next capture" }).click();
   await expect(page.getByLabel("Text")).toHaveValue("First shared item");
