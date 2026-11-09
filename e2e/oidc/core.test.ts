@@ -60,9 +60,10 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
         url.origin === oidc.centralOrigin && url.pathname === "/team/Deep",
     );
     await expect(page.locator("#sb-editor .cm-editor")).toBeVisible();
-    expect(await page.evaluate(() => (window as any).sbRuntime.headless)).toBe(
-      true,
-    );
+    // The editor can show before boot has read the URL's `headless` flag
+    await expect
+      .poll(() => page.evaluate(() => (window as any).sbRuntime.headless))
+      .toBe(true);
     expect(
       await page.evaluate(async () =>
         (await fetch("/.dashboard/api/session")).json(),
