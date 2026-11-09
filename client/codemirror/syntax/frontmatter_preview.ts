@@ -1,7 +1,6 @@
 import type { EditorState, Extension } from "@codemirror/state";
-import YAML from "js-yaml";
 import type { Client } from "../../client.ts";
-import { findFrontmatterBlock } from "./frontmatter_block.ts";
+import { findFrontmatterBlock, parseFrontmatter } from "./frontmatter_block.ts";
 import {
   hookLookup,
   normalizeTags,
@@ -26,32 +25,24 @@ export type FrontmatterPreviewSource = {
   context: YamlContext;
 };
 
-/** The opening fence with its line break, then the YAML */
-const FENCED = /^(---\r?\n)([\s\S]*?)\r?\n---$/;
-
 export function parseFrontmatterPreview(
   state: EditorState,
   pageName: string,
 ): FrontmatterPreviewSource | undefined {
-  const block = findFrontmatterBlock(state);
-  if (!block) return;
-  const source = state.sliceDoc(block.from, block.to);
-  const fenced = FENCED.exec(source);
-  if (!fenced) return;
-
+  const frontmatter = parseFrontmatter(state);
+  const loaded = frontmatter?.data;
+  if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
+    return;
+  }
   try {
-    const loaded = YAML.load(fenced[2]);
-    if (!loaded || typeof loaded !== "object" || Array.isArray(loaded)) {
-      return;
-    }
     const { context, parsed } = yamlContext(
       loaded as Record<string, unknown>,
-      fenced[2],
+      frontmatter.yaml,
     );
     return {
-      from: block.from,
-      to: block.to,
-      source,
+      from: frontmatter.from,
+      to: frontmatter.to,
+      source: frontmatter.source,
       pageMeta: {
         ...parsed,
         name: pageName,
@@ -82,12 +73,10 @@ const frontmatterHost: ObjectPreviewHost = {
   label: "Frontmatter preview",
   cornerLabel: "frontmatter",
   documents: (state) => {
-    const block = findFrontmatterBlock(state);
-    if (!block) return;
-    const fenced = FENCED.exec(state.sliceDoc(block.from, block.to));
-    return fenced
-      ? [{ from: block.from + fenced[1].length, text: fenced[2] }]
-      : undefined;
+    const frontmatter = parseFrontmatter(state);
+    return (
+      frontmatter && [{ from: frontmatter.yamlFrom, text: frontmatter.yaml }]
+    );
   },
   // The frontmatter with the line break after it
   removal: (state) => {
@@ -101,7 +90,7 @@ export function frontmatterPreviewForState(
   state: EditorState,
   client: Client,
 ): ObjectPreview | undefined {
-  if (!previewsEnabled(client)) return;
+  if (!previewsEnabled(client, state)) return;
   const page = client.currentName();
   const source = parseFrontmatterPreview(state, page);
   if (!source || selectionShowsSource(state, source.from, source.to)) {

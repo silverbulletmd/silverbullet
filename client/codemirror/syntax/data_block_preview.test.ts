@@ -102,7 +102,7 @@ function client(
     },
     systemReady: true,
     fullIndexCompleted: true,
-    pageListLoaded: true,
+    pageListSource: "index",
   };
 }
 

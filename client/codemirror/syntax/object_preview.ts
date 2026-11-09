@@ -325,9 +325,9 @@ export function hookLookup(client: Client, kind: PreviewKind): RendererLookup {
 }
 
 /** Whether previews may replace source at all right now */
-export function previewsEnabled(client: Client): boolean {
+export function previewsEnabled(client: Client, state: EditorState): boolean {
   return (
-    widgetRenderMode(client) === "ready" &&
+    widgetRenderMode(client, state) === "ready" &&
     !client.ui.viewState.uiOptions.markdownSyntaxRendering
   );
 }

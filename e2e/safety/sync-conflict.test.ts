@@ -55,7 +55,9 @@ test("conflicting offline edits preserve both versions until an explicit resolut
   await waitForPersistedContent(sbServer, "Shared.md", resolved);
   await page.goto(`${sbServer.url}/Shared`);
   await expect(page.locator(".cm-editor")).toBeVisible();
-  await page.evaluate(() => (window as any).client.widgetsReady);
+  // The server's static shell already has a .cm-editor; the client boots later
+  await page.waitForFunction(() => !!(window as any).client);
+  await page.evaluate(() => (window as any).client.indexedRenderReady);
   await expect
     .poll(() =>
       page.evaluate(() =>

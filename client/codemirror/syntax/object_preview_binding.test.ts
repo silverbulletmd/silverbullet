@@ -85,7 +85,7 @@ function harness(localSyscall: (...args: unknown[]) => Promise<unknown>) {
     ui: { viewState: { uiOptions: { markdownSyntaxRendering: false } } },
     systemReady: true,
     fullIndexCompleted: true,
-    pageListLoaded: true,
+    pageListSource: "index",
   };
   const mount = (text: string) => {
     const parent = document.createElement("div");

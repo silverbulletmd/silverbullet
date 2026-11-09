@@ -169,6 +169,9 @@ const SYNC_PROGRESS_MESSAGES = new Set([
   "sync-status",
 ]);
 
+/** Where the client's page list came from, see `Client.pageListSource` */
+export type PageListSource = "none" | "listing" | "index";
+
 export class Client {
   eventHook: EventHook;
   // The event names rendered results depend on (see event_interest.ts)
@@ -226,15 +229,22 @@ export class Client {
   public systemReady: boolean = false;
   // Set to true once the object index has been fully built at least once
   public fullIndexCompleted: boolean = false;
-  // Set to true once viewState.allPages has been populated from the index
-  public pageListLoaded: boolean = false;
-  // Guard so we only fire the loading→ready editor:reloadState once.
+  // Where viewState.allPages came from. "listing" is the plain file listing
+  // a cold client shows before the index exists: page meta without
+  // pageDecoration (no link prefixes, icons, or `renderWidgets: false`).
+  public pageListSource: PageListSource = "none";
+  // Guard so we only do the loading→ready editor rebuild once.
   private widgetReadyDispatched: boolean = false;
-  // Resolves once the widget-ready transition has been dispatched and the
-  // resulting editor state rebuild has settled. Headless tests wait on
-  // this to avoid typing into the editor mid-rebuild.
+  // Resolves once widgets may render and the editor was rebuilt for it. On a
+  // cold client that is before the initial index: queries may still see
+  // partial data, and the editor is rebuilt again when the index completes.
   public widgetsReady!: Promise<void>;
   private resolveWidgetsReady!: () => void;
+  // Resolves once the editor was rebuilt with an index-backed page list:
+  // widgets render complete data and page decorations. Headless readiness,
+  // awaitRender and tests that must not type mid-rebuild wait on this.
+  public indexedRenderReady!: Promise<void>;
+  private resolveIndexedRenderReady!: () => void;
   private pageNavigator!: PathPageNavigator;
   private onLoadRef: Ref;
   dbPrefix?: string;
@@ -257,6 +267,9 @@ export class Client {
     this.onLoadRef = parseRefFromURI() || this.getIndexRef();
     this.widgetsReady = new Promise<void>((resolve) => {
       this.resolveWidgetsReady = resolve;
+    });
+    this.indexedRenderReady = new Promise<void>((resolve) => {
+      this.resolveIndexedRenderReady = resolve;
     });
   }
 
@@ -311,12 +324,6 @@ export class Client {
     // sync + version confirmation. See `ObjectIndex.isIndexAvailable`.
     this.fullIndexCompleted = await this.objectIndex.isIndexAvailable();
 
-    // After the initial index completes (object_index.ts dispatches this),
-    // mark the flag and — if the page list cache previously took the
-    // fallback branch (so `pageListLoaded` stayed false) — re-run it
-    // so it reflects the now-indexed, transform-applied values. The
-    // editor itself will be rebuilt by client_system's listener for
-    // the same event; we don't need to dispatch a fresh one here.
     // Results of expressions an edit removed must not linger until the next
     // page switch
     let sweepTimer: ReturnType<typeof setTimeout> | undefined;
@@ -325,19 +332,9 @@ export class Client {
       sweepTimer = setTimeout(() => this.widgetCache.sweepPrewarm(), 1000);
     });
 
-    this.eventHook.addLocalListener("editor:reloadState", () => {
-      this.fullIndexCompleted = true;
-      if (!this.pageListLoaded) {
-        this.updatePageListCache().catch(console.error);
-      }
-    });
-
-    // If widget rendering is still gated waiting on a full index, the
-    // initial-index handler in ObjectIndex may have unsubscribed or never
-    // fired for this client — the index may have been completed by another
-    // window, which produces no event here at all. Poll until the page list
-    // cache can take its index-backed branch, then stop for good.
-    void this.pollForWidgetReadiness();
+    // The initial index may be completed by another window, which fires no
+    // `editor:reloadState` here (see `ClientSystem.afterIndexCompleted`)
+    void this.pollForIndexCompletion();
 
     this.clientSystem = new ClientSystem(
       this,
@@ -828,7 +825,7 @@ export class Client {
   private initHeadlessRuntime() {
     globalThis.sbRuntime.awaitRender = (timeoutMs: number) =>
       awaitRenderSettled({
-        ready: this.widgetsReady,
+        ready: this.indexedRenderReady,
         isBusy: () => !!this.editorView.dom.querySelector(renderBusySelector),
         timeoutMs,
       });
@@ -860,10 +857,10 @@ export class Client {
       evalLuaCode(`return ${expr}`);
     globalThis.sbRuntime.evalLuaScript = evalLuaCode;
 
-    // Signal readiness after widgets are fully ready (index complete +
-    // editor state rebuild settled). Waiting on the widget-ready
-    // transition ensures tests don't type into the editor mid-rebuild.
-    void this.widgetsReady.then(() => {
+    // Signal readiness once the editor renders from a complete index, so
+    // Runtime API calls see complete data and tests don't type into the
+    // editor mid-rebuild.
+    void this.indexedRenderReady.then(() => {
       console.log(
         "[RuntimeAPI] Ready (eval functions exposed + widgets ready)",
       );
@@ -920,19 +917,16 @@ export class Client {
         );
         return;
       }
+      // An index-backed list landed while this listing was in flight
+      if (this.pageListSource === "index") return;
     }
 
-    // Only flip the readiness flag if allPages reflects the indexed,
-    // transform-applied values (the index branch). The fallback branch
-    // produces raw page meta without pageDecoration, so we keep
-    // showing loading widgets until the index is back.
-    // Flipped before the view dispatch below: widgets shouldn't wait for the
-    // page-list reducer + UI re-render.
-    if (indexAvailable) {
-      this.pageListLoaded = true;
-      recordMark("sb:page-list-loaded");
-      this.maybeDispatchWidgetsReady();
-    }
+    // Widgets render from either source; `adoptIndexedPageList` replaces a
+    // listing once the index completes. Set before the view dispatch below:
+    // widgets shouldn't wait for the page-list reducer + UI re-render.
+    if (this.pageListSource === "none") recordMark("sb:page-list-loaded");
+    this.pageListSource = indexAvailable ? "index" : "listing";
+    this.maybeDispatchWidgetsReady();
 
     this.ui.viewDispatch({
       type: "update-page-list",
@@ -942,36 +936,52 @@ export class Client {
     void this.space.spacePrimitives.fetchFileList();
   }
 
-  private async pollForWidgetReadiness() {
-    while (!this.widgetReadyDispatched && !this.pageListLoaded) {
+  /**
+   * Dispatches `editor:reloadState` once the initial index is found complete
+   * without this window having heard of it, then stops.
+   */
+  private async pollForIndexCompletion() {
+    while (!this.fullIndexCompleted) {
       await sleep(2000);
-      if (this.widgetReadyDispatched || this.pageListLoaded) {
-        return;
-      }
+      if (this.fullIndexCompleted) return;
       if (await this.objectIndex.hasFullIndexCompleted()) {
-        this.fullIndexCompleted = true;
-        await this.updatePageListCache();
+        await this.eventHook.dispatchEvent("editor:reloadState");
+        return;
       }
     }
   }
 
   /**
+   * Swaps a page list fetched before the index existed for the index-backed
+   * one, before the editor rebuild that follows the initial index, so the
+   * rebuilt widgets get page decorations.
+   */
+  async adoptIndexedPageList(): Promise<void> {
+    if (this.pageListSource === "index") return;
+    try {
+      await this.updatePageListCache();
+    } catch (e) {
+      console.error("Could not load the indexed page list", e);
+    }
+  }
+
+  /**
    * If we just transitioned from "loading" to "ready" for widget
-   * rendering, dispatch editor:reloadState so the editor rebuilds and
-   * the loading placeholders get replaced with real widgets. Fires at
-   * most once per session.
+   * rendering, rebuild the editor so the loading placeholders get replaced
+   * with real widgets. Doesn't wait for the index: see `widgetRenderMode`.
+   * Fires at most once per session.
    */
   public maybeDispatchWidgetsReady() {
     if (this.widgetReadyDispatched) return;
     if (
       this.systemReady &&
       this.clientSystem.scriptsLoaded &&
-      this.fullIndexCompleted &&
-      this.pageListLoaded
+      this.pageListSource !== "none"
     ) {
       this.widgetReadyDispatched = true;
       this.rebuildEditorState();
       this.resolveWidgetsReady();
+      this.settleIndexedRender();
       recordMark("sb:widgets-ready");
       const marks = performance
         .getEntriesByType("mark")
@@ -1054,6 +1064,17 @@ export class Client {
 
   reconfigureLanguage() {
     this.contentManager.reconfigureLanguage();
+  }
+
+  /**
+   * Resolves `indexedRenderReady` if the editor's last rebuild drew widgets
+   * from an index-backed page list. Called after the two rebuilds that can be
+   * the first such: the widget-ready one, and the one after the index.
+   */
+  public settleIndexedRender() {
+    if (this.widgetReadyDispatched && this.pageListSource === "index") {
+      this.resolveIndexedRenderReady();
+    }
   }
 
   rebuildEditorState() {
@@ -1163,10 +1184,11 @@ export class Client {
         viewState.showConfirm,
         viewState.showPrompt,
       ].some(Boolean) ||
-      // A palette or picker opened while the client was still loading keeps
+      // A palette, picker or modal dialog (such as a share capture) opened
+      // while the client was still loading keeps
       // its focus: the load's own focus call comes after it.
       isModalOpen() ||
-      document.querySelector(".sb-anchored-menu")
+      document.querySelector('.sb-anchored-menu, [aria-modal="true"]')
     ) {
       return;
     }

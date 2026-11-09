@@ -23,7 +23,7 @@ export function frontmatterGhostEnabled(
 ): boolean {
   return (
     !findFrontmatterBlock(state) &&
-    previewsEnabled(client) &&
+    previewsEnabled(client, state) &&
     !state.readOnly &&
     !client.isReadOnlyMode() &&
     hookLookup(client, "page")("page") !== undefined

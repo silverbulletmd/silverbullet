@@ -121,6 +121,7 @@ test("awaitRender reports whether the editor finished rendering in time", async 
   try {
     const client = {
       widgetsReady: Promise.resolve(),
+      indexedRenderReady: Promise.resolve(),
       editorView: { dom: { querySelector } },
     } as unknown as Client;
     const system = new System();
@@ -132,6 +133,28 @@ test("awaitRender reports whether the editor finished rendering in time", async 
     busy = false;
     await expect(system.localSyscall("editor.awaitRender", [])).resolves.toBe(
       true,
+    );
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("awaitRender waits for the editor to render from a complete index", async () => {
+  vi.stubGlobal("requestAnimationFrame", (callback: () => void) =>
+    setTimeout(callback, 1),
+  );
+  try {
+    const client = {
+      // A cold client renders widgets before its initial index completes
+      widgetsReady: Promise.resolve(),
+      indexedRenderReady: new Promise<void>(() => {}),
+      editorView: { dom: { querySelector: () => null } },
+    } as unknown as Client;
+    const system = new System();
+    system.registerSyscalls([], editorSyscalls(client));
+
+    await expect(system.localSyscall("editor.awaitRender", [50])).resolves.toBe(
+      false,
     );
   } finally {
     vi.unstubAllGlobals();

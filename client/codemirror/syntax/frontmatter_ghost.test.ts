@@ -49,7 +49,7 @@ describe("add-attribute ghost on a page without frontmatter", () => {
       },
       systemReady: true,
       fullIndexCompleted: true,
-      pageListLoaded: true,
+      pageListSource: "index",
     };
   }
   const at = (text: string, anchor = text.length, readOnly = false) =>

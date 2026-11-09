@@ -34,7 +34,7 @@ export function inlineContentPlugin(client: Client) {
   return decoratorStateField((state: EditorState) => {
     const widgets: Range<Decoration>[] = [];
     const keys = new OccurrenceKeys();
-    const renderMode = widgetRenderMode(client);
+    const renderMode = widgetRenderMode(client, state);
     if (renderMode === "disabled") {
       return Decoration.set([]);
     }

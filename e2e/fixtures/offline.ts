@@ -20,7 +20,7 @@ export async function openLivePage(page: Page, url: string, content: string) {
   await expect(page.locator("#sb-editor .cm-content")).toContainText(content);
   await page.waitForFunction(() => !!navigator.serviceWorker.controller);
   await page.evaluate(() => (window as any).__initialSync);
-  await page.evaluate(() => (window as any).client.widgetsReady);
+  await page.evaluate(() => (window as any).client.indexedRenderReady);
 }
 
 export async function localContent(page: Page, path: string) {

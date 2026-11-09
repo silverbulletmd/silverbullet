@@ -49,13 +49,13 @@ for (const uploadBlocked of [false, true]) {
           await popup;
           await expect(page.locator("#sb-editor .cm-editor")).toBeVisible();
           await page.waitForFunction(() => !!(window as any).client);
-          await page.evaluate(() => (window as any).client.widgetsReady);
+          await page.evaluate(() => (window as any).client.indexedRenderReady);
           await expect.poll(() => context.pages().length).toBe(1);
           const other = await context.newPage();
           await other.goto(`${fixture.oidc.researchOrigin}/Draft`);
           await expect(other.locator("#sb-editor .cm-editor")).toBeVisible();
           await other.waitForFunction(() => !!(window as any).client);
-          await other.evaluate(() => (window as any).client.widgetsReady);
+          await other.evaluate(() => (window as any).client.indexedRenderReady);
           expect(
             await other.evaluate(() => !!navigator.serviceWorker.controller),
           ).toBe(true);

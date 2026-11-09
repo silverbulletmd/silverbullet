@@ -14,6 +14,7 @@ import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { Client } from "../client.ts";
 import { createIconElement } from "../lib/icon.ts";
 import { pointerPreviewHeld } from "./editing/pointer_preview.ts";
+import { frontmatterDisablesWidgets } from "./syntax/frontmatter_block.ts";
 
 type LinkOptions = {
   text: string;
@@ -435,19 +436,30 @@ export type WidgetRenderMode = "ready" | "loading" | "disabled";
  * Returns the render mode for widgets on the current page:
  *  - "disabled": user/page opted out of widget rendering — show raw source.
  *  - "loading":  widget rendering is wanted but required state isn't ready
- *                yet (system ready, scripts loaded, full index, page list).
+ *                yet (system ready, scripts loaded, some page list).
  *                Callers should render LoadingWidget placeholders.
  *  - "ready":    render real widgets.
+ *
+ * The full index isn't required: on a cold client widgets render from the
+ * plain file listing and converge when the index completes.
  */
-export function widgetRenderMode(client: Client): WidgetRenderMode {
+export function widgetRenderMode(
+  client: Client,
+  state: EditorState,
+): WidgetRenderMode {
   if (client.currentPageMeta()?.pageDecoration?.renderWidgets === false) {
+    return "disabled";
+  }
+  // pageDecoration comes from the index. Until the page list does, honor the
+  // page's own frontmatter; a decoration a tag applies still waits for the
+  // initial index
+  if (client.pageListSource !== "index" && frontmatterDisablesWidgets(state)) {
     return "disabled";
   }
   if (
     !client.systemReady ||
     !client.clientSystem.scriptsLoaded ||
-    !client.fullIndexCompleted ||
-    !client.pageListLoaded
+    client.pageListSource === "none"
   ) {
     return "loading";
   }

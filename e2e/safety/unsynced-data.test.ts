@@ -27,7 +27,8 @@ test("failed saving preserves edits until explicit force logout deletes local da
   const editor = await context.newPage();
   await editor.goto(`${base}/RecoveryDraft`);
   await expect(editor.locator("#sb-editor .cm-editor")).toBeVisible();
-  await editor.evaluate(() => (window as any).client.widgetsReady);
+  await editor.waitForFunction(() => !!(window as any).client);
+  await editor.evaluate(() => (window as any).client.indexedRenderReady);
   await editor.evaluate(() => {
     const client = (window as any).client;
     client.contentManager.save = async () => {

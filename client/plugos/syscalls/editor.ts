@@ -388,7 +388,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.awaitRender": {
       callback: (_ctx, timeout = 10000): Promise<boolean> =>
         awaitRenderSettled({
-          ready: client.widgetsReady,
+          ready: client.indexedRenderReady,
           isBusy: () =>
             !!client.editorView.dom.querySelector(renderBusySelector),
           timeoutMs: timeout,

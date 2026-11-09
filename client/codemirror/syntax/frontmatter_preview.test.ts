@@ -195,7 +195,7 @@ describe("frontmatter preview policy", () => {
       },
       systemReady: true,
       fullIndexCompleted: true,
-      pageListLoaded: true,
+      pageListSource: "index",
     };
   }
 
@@ -368,7 +368,7 @@ describe("frontmatter preview widget focus", () => {
       ui: { viewState: { uiOptions: { markdownSyntaxRendering: false } } },
       systemReady: true,
       fullIndexCompleted: true,
-      pageListLoaded: true,
+      pageListSource: "index",
       currentPageMeta: () => ({}),
     };
     const parent = document.createElement("div");
@@ -623,7 +623,7 @@ describe("undo and redo from inside the widget", () => {
       ui: { viewState: { uiOptions: { markdownSyntaxRendering: false } } },
       systemReady: true,
       fullIndexCompleted: true,
-      pageListLoaded: true,
+      pageListSource: "index",
       currentPageMeta: () => ({}),
     };
     const parent = document.createElement("div");
@@ -729,7 +729,7 @@ describe("undo and redo from inside the widget", () => {
       ui: { viewState: { uiOptions: { markdownSyntaxRendering: false } } },
       systemReady: true,
       fullIndexCompleted: true,
-      pageListLoaded: true,
+      pageListSource: "index",
       currentPageMeta: () => ({}),
     };
     const parent = document.createElement("div");

@@ -26,7 +26,7 @@ export function fencedCodePlugin(client: Client) {
           }
           const text = state.sliceDoc(from, to);
           const [_, lang] = text.match(/^(?:```+|~~~+)(\S+)?/)!;
-          const renderMode = widgetRenderMode(client);
+          const renderMode = widgetRenderMode(client, state);
           // The data block preview renders it (a tag's own renderDataBlock
           // beats code widgets); when it doesn't, a code widget still can
           if (dataBlockPreviewShows(state, client, from)) return true;

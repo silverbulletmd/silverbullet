@@ -260,7 +260,7 @@ export function dataBlockPreviewsForState(
   state: EditorState,
   client: Client,
 ): ObjectPreview[] {
-  if (!previewsEnabled(client)) return [];
+  if (!previewsEnabled(client, state)) return [];
   return findDataBlocks(state).flatMap((block) => {
     const preview = blockPreview(state, client, block);
     return preview ? [preview] : [];
@@ -273,7 +273,7 @@ export function dataBlockPreviewShows(
   client: Client,
   from: number,
 ): boolean {
-  if (!previewsEnabled(client)) return false;
+  if (!previewsEnabled(client, state)) return false;
   const block = dataBlockAt(state, from);
   return !!block && block.from === from && !!blockPreview(state, client, block);
 }

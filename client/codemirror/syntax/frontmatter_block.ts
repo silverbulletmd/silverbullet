@@ -1,5 +1,6 @@
 import { ensureSyntaxTree, syntaxTree } from "@codemirror/language";
-import type { EditorState } from "@codemirror/state";
+import type { EditorState, Text } from "@codemirror/state";
+import YAML from "js-yaml";
 
 export type FrontmatterBlock = {
   from: number;
@@ -37,6 +38,52 @@ export function findFrontmatterBlock(
     },
   });
   return block;
+}
+
+export type Frontmatter = FrontmatterBlock & {
+  /** The block's text, fences included */
+  source: string;
+  /** Where the YAML between the fences starts */
+  yamlFrom: number;
+  yaml: string;
+  /** The YAML loaded, or undefined when it doesn't parse */
+  data: unknown;
+};
+
+/** The opening fence with its line break, then the YAML */
+const FENCED = /^(---\r?\n)([\s\S]*?)\r?\n---$/;
+const parsed = new WeakMap<Text, Frontmatter>();
+
+/** The page's frontmatter with its YAML loaded once per document */
+export function parseFrontmatter(state: EditorState): Frontmatter | undefined {
+  const known = parsed.get(state.doc);
+  if (known) return known;
+  const block = findFrontmatterBlock(state);
+  if (!block) return;
+  const source = state.sliceDoc(block.from, block.to);
+  const fenced = FENCED.exec(source);
+  if (!fenced) return;
+  let data: unknown;
+  try {
+    data = YAML.load(fenced[2]);
+  } catch {
+    // Invalid YAML: callers treat it as no data
+  }
+  const frontmatter: Frontmatter = {
+    ...block,
+    source,
+    yamlFrom: block.from + fenced[1].length,
+    yaml: fenced[2],
+    data,
+  };
+  parsed.set(state.doc, frontmatter);
+  return frontmatter;
+}
+
+/** Whether the page's own frontmatter sets `pageDecoration.renderWidgets: false` */
+export function frontmatterDisablesWidgets(state: EditorState): boolean {
+  const data = parseFrontmatter(state)?.data as any;
+  return data?.pageDecoration?.renderWidgets === false;
 }
 
 /** Whether a selection range overlaps the half-open range `from`–`to` */

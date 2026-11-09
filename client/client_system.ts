@@ -247,10 +247,9 @@ export class ClientSystem {
 
     // Scripts and styles don't come from the index, so a finished index only
     // needs the editor's index-backed parts redone.
-    this.eventHook.addLocalListener("editor:reloadState", async () => {
-      this.pageScopes.clear();
-      await this.refreshAfterIndex();
-    });
+    this.eventHook.addLocalListener("editor:reloadState", () =>
+      this.afterIndexCompleted(),
+    );
     this.watchScriptDefinitions(this.client.config);
 
     const onPageChanged = (page: string) => this.pageScopes.pageChanged(page);
@@ -298,7 +297,7 @@ export class ClientSystem {
     const search = createServerSearch(this.client, {
       hiddenPages: () =>
         hiddenPageNames(
-          this.client.pageListLoaded,
+          this.client.pageListSource === "index",
           this.client.ui?.viewState.allPages ?? [],
         ),
     });
@@ -543,6 +542,20 @@ export class ClientSystem {
     // Before the docks: opening a docked view can be slow or fail, and the
     // page shouldn't wait unstyled for it
     this.client.loadCustomStyles(tooling);
+  }
+
+  /**
+   * The one handler for the initial index completing, in this window or
+   * (found by `Client.pollForIndexCompletion`) another. The page list is
+   * adopted before the rebuild: a cold client's listing lacks page
+   * decorations.
+   */
+  public async afterIndexCompleted() {
+    this.client.fullIndexCompleted = true;
+    this.pageScopes.clear();
+    await this.client.adoptIndexedPageList();
+    await this.refreshAfterIndex();
+    this.client.settleIndexedRender();
   }
 
   /** What `reloadState` does once scripts and styles are loaded. */
