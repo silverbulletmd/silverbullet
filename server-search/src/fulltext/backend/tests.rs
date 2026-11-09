@@ -174,17 +174,11 @@ async fn the_similar_tier_answers_without_a_notice() {
 }
 
 #[tokio::test]
-async fn scope_limits_queries_to_pages_or_meta_by_tags() {
+async fn scope_limits_queries_to_pages_or_tool_pages_by_location() {
     let fx = ready(TestView::with(&[
         ("Garden/Fern.md", "Ferns like shade.\n"),
-        (
-            "Config/Fern style.md",
-            "#meta/config\nFern colours for the theme.\n",
-        ),
-        (
-            "Templates/Fern log.md",
-            "---\ntags: template\n---\nFern log for the week.\n",
-        ),
+        ("Library/Fern style.md", "Fern colours for the theme.\n"),
+        ("Library/Fern log.md", "Fern log for the week.\n"),
     ]))
     .await;
     let scoped = |q: &str, scope| {
@@ -203,7 +197,7 @@ async fn scope_limits_queries_to_pages_or_meta_by_tags() {
             out
         }
     };
-    let all = ["Config/Fern style", "Garden/Fern", "Templates/Fern log"];
+    let all = ["Garden/Fern", "Library/Fern log", "Library/Fern style"];
     assert_eq!(found(scoped("fern", None)).await, all);
     assert_eq!(found(scoped("fern", Some(SearchScope::All))).await, all);
     assert_eq!(
@@ -211,8 +205,8 @@ async fn scope_limits_queries_to_pages_or_meta_by_tags() {
         ["Garden/Fern"]
     );
     assert_eq!(
-        found(scoped("fern", Some(SearchScope::Meta))).await,
-        ["Config/Fern style", "Templates/Fern log"]
+        found(scoped("fern", Some(SearchScope::Tool))).await,
+        ["Library/Fern log", "Library/Fern style"]
     );
     // Phrase mode and the similar tier are scoped too.
     let mut phrase = scoped("fern log", Some(SearchScope::Pages));
@@ -223,11 +217,11 @@ async fn scope_limits_queries_to_pages_or_meta_by_tags() {
         ["Garden/Fern"]
     );
     // Scope and the explicit lists intersect.
-    let mut both = scoped("fern", Some(SearchScope::Meta));
-    both.exclude = Some(vec!["Templates/Fern log".into()]);
-    assert_eq!(found(both).await, ["Config/Fern style"]);
+    let mut both = scoped("fern", Some(SearchScope::Tool));
+    both.exclude = Some(vec!["Library/Fern log".into()]);
+    assert_eq!(found(both).await, ["Library/Fern style"]);
     let mut both = scoped("fern", Some(SearchScope::Pages));
-    both.include = Some(vec!["Config/Fern style".into()]);
+    both.include = Some(vec!["Library/Fern style".into()]);
     assert!(found(both).await.is_empty());
 }
 
@@ -641,16 +635,16 @@ async fn ranked_passages_are_the_ones_words_mode_returns() {
 #[tokio::test]
 async fn admitted_applies_scope_include_and_exclude() {
     let view = TestView::with(GARDEN);
-    view.write("Meta/Config.md", "#meta\nsettings for the garden");
+    view.write("Library/Config.md", "settings for the garden");
     let fx = ready(view).await;
     assert_eq!(fx.backend.admitted(&PageFilter::default()).unwrap(), None);
     let meta = PageFilter {
-        scope: SearchScope::Meta,
+        scope: SearchScope::Tool,
         ..PageFilter::default()
     };
     assert_eq!(
         fx.backend.admitted(&meta).unwrap(),
-        Some(set(&["Meta/Config.md"]))
+        Some(set(&["Library/Config.md"]))
     );
     let pages_but_deploy = PageFilter {
         scope: SearchScope::Pages,

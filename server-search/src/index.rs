@@ -15,7 +15,7 @@ use crate::report::IndexKind;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Location {
     /// The space's search directory (`.../<space-id>`); each index adds its
-    /// own schema directory (`fulltext-v3`, `semantic-v1`).
+    /// own schema directory (`fulltext-v4`, `semantic-v1`).
     Disk(PathBuf),
     Memory,
 }

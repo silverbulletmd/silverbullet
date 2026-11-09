@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
 use crate::handlers::{http_date, seo};
-use silverbullet_server_common::page::{parse_page, PageKind};
+use silverbullet_server_common::page::{is_tool_page, parse_page};
 
 #[derive(Default)]
 struct PageHead {
@@ -284,7 +284,7 @@ async fn server_side_content(
                 });
             let text = String::from_utf8_lossy(&data);
             let parsed = parse_page(&text);
-            head.noindex = parsed.metadata.kind() == PageKind::Meta;
+            head.noindex = is_tool_page(&page_name);
             head.description = parsed
                 .metadata
                 .description

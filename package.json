@@ -29,6 +29,7 @@
     "./lib/native_fetch": "./plug-api/lib/native_fetch.ts",
     "./lib/query_expression": "./plug-api/lib/query_expression.ts",
     "./lib/panel_styles": "./plug-api/lib/panel_styles.ts",
+    "./lib/tool_pages": "./plug-api/lib/tool_pages.ts",
     "./type/client": "./plug-api/types/client.ts",
     "./type/config": "./plug-api/types/config.ts",
     "./type/manifest": "./plug-api/types/manifest.ts",

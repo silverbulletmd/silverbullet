@@ -1,5 +1,7 @@
 //! Page text helpers: outlines, numbered line ranges and closest matches.
 
+use silverbullet_server_common::page::is_tool_page;
+
 const LEVENSHTEIN_CHARS: usize = 200;
 
 /// Whether `text` has a `space-lua` or `space-style` block, which the runtime
@@ -14,9 +16,10 @@ pub fn has_scripts(text: &str) -> bool {
 
 /// Whether writing `new` over `old` (`None` when there was no page) to
 /// `path` needs a script reload: removing a script needs one as much as
-/// adding one.
+/// adding one. Only Tool Pages load scripts.
 pub fn needs_reload(path: &str, old: Option<&str>, new: &str) -> bool {
-    path.ends_with(".md") && (old.is_some_and(has_scripts) || has_scripts(new))
+    path.strip_suffix(".md").is_some_and(is_tool_page)
+        && (old.is_some_and(has_scripts) || has_scripts(new))
 }
 
 pub fn numbered(line_no: usize, line: &str) -> String {
@@ -219,10 +222,12 @@ mod tests {
     #[test]
     fn reload_follows_scripts_in_old_or_new_pages() {
         let lua = "```space-lua\nx = 1\n```\n";
-        assert!(needs_reload("Tools.md", None, lua));
-        assert!(needs_reload("Tools.md", Some(lua), "plain"));
-        assert!(!needs_reload("Tools.md", Some("plain"), "plain"));
-        assert!(!needs_reload("tools.lua", None, lua));
+        assert!(needs_reload("Library/Tools.md", None, lua));
+        assert!(needs_reload("Library/Tools.md", Some(lua), "plain"));
+        assert!(needs_reload("CONFIG.md", None, lua));
+        assert!(!needs_reload("Library/Tools.md", Some("plain"), "plain"));
+        assert!(!needs_reload("Tools.md", None, lua));
+        assert!(!needs_reload("Library/tools.lua", None, lua));
     }
 
     #[test]

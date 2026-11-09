@@ -29,7 +29,7 @@ use tantivy::schema::{Field, IndexRecordOption, Value};
 use tantivy::{Index, Searcher, TantivyDocument, Term};
 
 use super::analysis::Lang;
-use super::schema::{Fields, KIND_CONTENT, KIND_META};
+use super::schema::{Fields, KIND_CONTENT, KIND_TOOL};
 pub use super::words::Tier;
 use super::words::{lone_cjk, may_fold, phrase_words, Alt, Part, QueryWords, Tok, WordList};
 use crate::error::SearchError;
@@ -302,7 +302,7 @@ pub(super) fn filtered(f: &Fields, core: Box<dyn Query>, filter: &PageFilter) ->
     }
     let kind = match filter.scope {
         SearchScope::Pages => Some(KIND_CONTENT),
-        SearchScope::Meta => Some(KIND_META),
+        SearchScope::Tool => Some(KIND_TOOL),
         SearchScope::All => None,
     };
     let mut clauses: Vec<(Occur, Box<dyn Query>)> = vec![(Occur::Must, core)];

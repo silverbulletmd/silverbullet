@@ -10,13 +10,14 @@ pub enum QueryMode {
     Phrase,
 }
 
-/// Which pages a query searches, by the page's own tags: Meta pages are
-/// tagged `meta`, `meta/…` or `template`, Pages are all others.
+/// Which pages a query searches, by the page's location: Tool Pages are
+/// `CONFIG` and everything under `Library/`, Pages are all others.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SearchScope {
     Pages,
-    Meta,
+    #[serde(alias = "meta")]
+    Tool,
     #[default]
     All,
 }
@@ -27,7 +28,7 @@ pub struct QueryRequest {
     pub query: String,
     #[serde(default)]
     pub mode: Option<QueryMode>,
-    /// Pages, Meta or (the default) all pages; combines with `include` and
+    /// Pages, Tool or (the default) all pages; combines with `include` and
     /// `exclude`.
     #[serde(default)]
     pub scope: Option<SearchScope>,
@@ -88,7 +89,7 @@ pub struct RelatedRequest {
     /// Exact page names (no `.md`) to leave out, as in queries.
     #[serde(default)]
     pub exclude: Vec<String>,
-    /// Which pages may be related: Pages or Meta only; absent means all.
+    /// Which pages may be related: Pages or Tool only; absent means all.
     #[serde(default)]
     pub scope: Option<SearchScope>,
 }
@@ -168,7 +169,8 @@ mod tests {
         assert_eq!(req.scope, None);
         for (json, scope) in [
             ("pages", SearchScope::Pages),
-            ("meta", SearchScope::Meta),
+            ("tool", SearchScope::Tool),
+            ("meta", SearchScope::Tool),
             ("all", SearchScope::All),
         ] {
             let req: QueryRequest =
@@ -193,9 +195,9 @@ mod tests {
         assert_eq!(limit(Some(500)), crate::limits::MAX_RESULTS);
         assert!(QueryRequest::default().filter().is_unrestricted());
         let req: QueryRequest =
-            serde_json::from_str(r#"{"query":"x","scope":"meta","include":["Fern"]}"#).unwrap();
+            serde_json::from_str(r#"{"query":"x","scope":"tool","include":["Fern"]}"#).unwrap();
         let filter = req.filter();
-        assert_eq!(filter.scope, SearchScope::Meta);
+        assert_eq!(filter.scope, SearchScope::Tool);
         assert_eq!(filter.include.as_deref(), Some(&["Fern".to_string()][..]));
         assert!(!filter.is_unrestricted());
     }

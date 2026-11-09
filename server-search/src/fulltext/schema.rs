@@ -2,7 +2,7 @@
 //! phrases and exact words, accent-folded copies of them, and per-language
 //! stemmed fields for ranking.
 
-use silverbullet_server_common::page::{parse_page, PageKind};
+use silverbullet_server_common::page::{page_kind as classify, PageKind};
 use tantivy::schema::{
     Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, FAST, STORED, STRING,
 };
@@ -29,7 +29,7 @@ pub struct Fields {
     pub name_fold: Field,
     pub body_fold: Field,
     pub lang: Field,
-    /// [`KIND_CONTENT`] or [`KIND_META`], by the page's tags.
+    /// [`KIND_CONTENT`] or [`KIND_TOOL`], by the page's location.
     pub kind: Field,
     pub modified: Field,
     pub size: Field,
@@ -87,16 +87,16 @@ pub fn schema() -> (Schema, Fields) {
     )
 }
 
-/// `kind` of a page tagged `meta`, `meta/…` or `template`.
-pub const KIND_META: &str = "meta";
+/// `kind` of a Tool Page: `CONFIG` or under `Library/`.
+pub const KIND_TOOL: &str = "tool";
 /// `kind` of every other page.
 pub const KIND_CONTENT: &str = "content";
 
-/// The `kind` value of a page with this text, by the classifier the server
-/// shares with SEO and the bundle.
-pub fn page_kind(text: &str) -> &'static str {
-    match parse_page(text).metadata.kind() {
-        PageKind::Meta => KIND_META,
+/// The `kind` value of the page at `path` (with `.md`), by the classifier the
+/// server shares with SEO and the bundle.
+pub fn page_kind(path: &str) -> &'static str {
+    match classify(path.strip_suffix(".md").unwrap_or(path)) {
+        PageKind::Tool => KIND_TOOL,
         PageKind::Content => KIND_CONTENT,
     }
 }
@@ -113,7 +113,7 @@ pub fn document(fields: &Fields, path: &str, text: &str, stamp: FileStamp) -> Ta
     doc.add_text(fields.name_fold, name);
     doc.add_text(fields.body_fold, text);
     doc.add_text(fields.lang, lang.code());
-    doc.add_text(fields.kind, page_kind(text));
+    doc.add_text(fields.kind, page_kind(path));
     doc.add_i64(fields.modified, stamp.modified);
     doc.add_u64(fields.size, stamp.size);
     doc.add_text(fields.name_stem[lang.idx()], name);
@@ -179,13 +179,12 @@ mod tests {
             doc.get_first(f.name_raw).unwrap().as_str(),
             Some("Notes/Garden")
         );
-        let kind = |text: &str| {
-            let doc = document(&f, "Notes/Garden.md", text, stamp);
+        let kind_for = |path: &str| {
+            let doc = document(&f, path, "x", stamp);
             doc.get_first(f.kind).unwrap().as_str().unwrap().to_string()
         };
-        assert_eq!(kind("x"), KIND_CONTENT);
-        assert_eq!(kind("#meta/config\n"), KIND_META);
-        assert_eq!(kind("---\ntags: template\n---\nWeekly"), KIND_META);
-        assert_eq!(kind("Body with #meta inline"), KIND_CONTENT);
+        assert_eq!(kind_for("Library/X.md"), KIND_TOOL);
+        assert_eq!(kind_for("CONFIG.md"), KIND_TOOL);
+        assert_eq!(kind_for("Notes.md"), KIND_CONTENT);
     }
 }

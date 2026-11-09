@@ -332,13 +332,14 @@ async fn readers_can_query() {
 async fn queries_accept_a_scope() {
     let dir = tempfile::tempdir().unwrap();
     std::fs::write(dir.path().join("Fern.md"), "fern fronds\n").unwrap();
-    std::fs::write(
-        dir.path().join("Fern template.md"),
-        "---\ntags: template\n---\nfern log\n",
-    )
-    .unwrap();
+    std::fs::create_dir(dir.path().join("Library")).unwrap();
+    std::fs::write(dir.path().join("Library/Fern template.md"), "fern log\n").unwrap();
     let state = disk_state(dir.path(), Grant(Some(AccessLevel::Read), Some("reader"))).await;
-    for (scope, page) in [("pages", "Fern"), ("meta", "Fern template")] {
+    for (scope, page) in [
+        ("pages", "Fern"),
+        ("tool", "Library/Fern template"),
+        ("meta", "Library/Fern template"),
+    ] {
         let (status, body) = call(
             state.clone(),
             Method::POST,

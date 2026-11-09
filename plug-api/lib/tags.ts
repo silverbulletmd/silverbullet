@@ -1,11 +1,6 @@
-/** Check if a tag marks a page as a meta page (exact "meta" or "meta/..." subtag) */
+/** Check if a tag is the `meta` tag or a `meta/...` subtag. It says nothing about page classification, which is by location (`isToolPage`). */
 export function isMetaTag(tag: string): boolean {
   return tag === "meta" || tag.startsWith("meta/");
-}
-
-/** Lua that holds when the page in `varName` is a meta page: `isMetaTag` over its tags */
-export function metaPageLua(varName: string): string {
-  return `table.find(${varName}.tags, function(tag) return tag == "meta" or string.startsWith(tag, "meta/") end)`;
 }
 
 /** Extract the name from hashtag text, removing # prefix and <angle brackets> if necessary */

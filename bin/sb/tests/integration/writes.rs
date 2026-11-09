@@ -13,7 +13,15 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
     let cfg = tempfile::tempdir().unwrap();
     let out = run_sb_with_input(
         &[
-            "--url", &base, "--text", "fs", "write", "Tools.md", "--create", "--file", "-",
+            "--url",
+            &base,
+            "--text",
+            "fs",
+            "write",
+            "Library/Tools.md",
+            "--create",
+            "--file",
+            "-",
         ],
         cfg.path(),
         Some(SCRIPT_PAGE),
@@ -21,7 +29,7 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
     assert_eq!(out.code, 0, "stderr: {}", out.stderr);
     let stdout = out.stdout_text();
     assert!(
-        stdout.starts_with("Wrote Tools.md (revision \""),
+        stdout.starts_with("Wrote Library/Tools.md (revision \""),
         "{stdout}"
     );
     assert!(stdout.ends_with("\")\n"), "{stdout}");
@@ -30,7 +38,7 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
         "The page has Space Lua or Space Style; it takes effect when the space reloads.\n"
     );
     assert_eq!(
-        std::fs::read(space.path().join("Tools.md")).unwrap(),
+        std::fs::read(space.path().join("Library/Tools.md")).unwrap(),
         SCRIPT_PAGE
     );
 
@@ -41,7 +49,7 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
             "--json",
             "fs",
             "edit",
-            "Tools.md",
+            "Library/Tools.md",
             "--old",
             "return 1",
             "--new",
@@ -59,7 +67,7 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
     );
 
     let revision = stdout
-        .trim_start_matches("Wrote Tools.md (revision ")
+        .trim_start_matches("Wrote Library/Tools.md (revision ")
         .trim_end_matches(")\n");
     let json = run_sb_with_input(
         &[
@@ -68,7 +76,7 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
             "--json",
             "fs",
             "write",
-            "Tools.md",
+            "Library/Tools.md",
             "--revision",
             revision,
             "--file",
@@ -85,7 +93,15 @@ fn script_write_without_runtime_succeeds_and_reports_no_runtime() {
 
     let edit = run_sb(
         &[
-            "--url", &base, "--json", "fs", "edit", "Tools.md", "--old", "any more", "--new",
+            "--url",
+            &base,
+            "--json",
+            "fs",
+            "edit",
+            "Library/Tools.md",
+            "--old",
+            "any more",
+            "--new",
             "at all",
         ],
         cfg.path(),
@@ -112,7 +128,7 @@ fn no_reload_skips_the_reload() {
             "--json",
             "fs",
             "write",
-            "Tools.md",
+            "Library/Tools.md",
             "--create",
             "--no-reload",
             "--file",
@@ -132,7 +148,7 @@ fn no_reload_skips_the_reload() {
             "--text",
             "fs",
             "edit",
-            "Tools.md",
+            "Library/Tools.md",
             "--old",
             "return 1",
             "--new",
@@ -145,7 +161,7 @@ fn no_reload_skips_the_reload() {
     assert!(edit.stderr.is_empty(), "{}", edit.stderr);
     assert!(
         edit.stdout_text()
-            .starts_with("1 replacement(s) in Tools.md (revision \""),
+            .starts_with("1 replacement(s) in Library/Tools.md (revision \""),
         "{}",
         edit.stdout_text()
     );
@@ -311,7 +327,7 @@ fn desktop_folder_space_reload_waits_for_the_runtime_then_reports_no_runtime() {
             "--json",
             "fs",
             "write",
-            "Tools.md",
+            "Library/Tools.md",
             "--create",
             "--file",
             "-",
@@ -332,7 +348,8 @@ fn desktop_folder_space_reload_waits_for_the_runtime_then_reports_no_runtime() {
     );
     let seen = seen.lock().unwrap().clone();
     assert!(
-        seen.iter().any(|r| r.starts_with("PUT /.fs/Tools.md ")),
+        seen.iter()
+            .any(|r| r.starts_with("PUT /.fs/Library/Tools.md ")),
         "{seen:?}"
     );
     assert!(

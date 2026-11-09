@@ -444,11 +444,11 @@ mod tests {
     #[tokio::test]
     async fn removing_a_script_needs_a_reload() {
         let api = OneFile::new("```space-lua\nx = 1\n```\n");
-        let written = write_page(&api, "Tools.md", "plain", Precondition::Any)
+        let written = write_page(&api, "Library/Tools.md", "plain", Precondition::Any)
             .await
             .unwrap();
         assert!(written.scripts);
-        let written = write_page(&api, "Tools.md", "still plain", Precondition::Any)
+        let written = write_page(&api, "Library/Tools.md", "still plain", Precondition::Any)
             .await
             .unwrap();
         assert!(!written.scripts);

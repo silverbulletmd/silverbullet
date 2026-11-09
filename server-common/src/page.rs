@@ -3,7 +3,21 @@ use pulldown_cmark::{Event, Parser, Tag};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageKind {
     Content,
-    Meta,
+    Tool,
+}
+
+/// Whether a page (name without `.md`) is a Tool Page: `CONFIG` or anything
+/// under `Library/`. Agrees with `isToolPage` in `plug-api/lib/tool_pages.ts`.
+pub fn is_tool_page(name: &str) -> bool {
+    name == "CONFIG" || name.starts_with("Library/")
+}
+
+pub fn page_kind(name: &str) -> PageKind {
+    if is_tool_page(name) {
+        PageKind::Tool
+    } else {
+        PageKind::Content
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -13,20 +27,6 @@ pub struct PageMetadata {
 }
 
 impl PageMetadata {
-    /// Meta when tagged `meta`, `meta/…` or `template`, as the client's
-    /// `isMetaPage` classifies pages.
-    pub fn kind(&self) -> PageKind {
-        if self
-            .tags
-            .iter()
-            .any(|tag| tag == "meta" || tag.starts_with("meta/") || tag == "template")
-        {
-            PageKind::Meta
-        } else {
-            PageKind::Content
-        }
-    }
-
     fn add_tag(&mut self, tag: &str) {
         let tag = tag.strip_prefix('#').unwrap_or(tag);
         if !tag.is_empty() && !self.tags.iter().any(|existing| existing == tag) {
@@ -289,7 +289,6 @@ mod tests {
         );
         assert_eq!(page.metadata.tags, ["meta/api", "glossary"]);
         assert_eq!(page.metadata.description.as_deref(), Some("A & B"));
-        assert_eq!(page.metadata.kind(), PageKind::Meta);
         assert_eq!(page.body, "# Notes\r\n");
         assert_eq!(
             parse_page("---\ntags: [meta, '#meta', api/syscall]\n---\n")
@@ -300,7 +299,14 @@ mod tests {
     }
 
     #[test]
-    fn only_standalone_top_level_tags_classify_pages() {
+    fn only_standalone_top_level_tags_are_page_tags() {
+        let tagged = |text: &str| {
+            parse_page(text)
+                .metadata
+                .tags
+                .iter()
+                .any(|tag| tag == "meta" || tag.starts_with("meta/") || tag == "template")
+        };
         for text in [
             "#meta",
             "#meta\nPlain prose",
@@ -313,7 +319,7 @@ mod tests {
             "---\ntags: template\n---\nBody",
             "---\ntags: [glossary, template]\n---\n",
         ] {
-            assert_eq!(parse_page(text).metadata.kind(), PageKind::Meta, "{text}");
+            assert!(tagged(text), "{text}");
         }
         for text in [
             "Text #meta",
@@ -336,11 +342,7 @@ mod tests {
             "#template/page",
             "Text #template",
         ] {
-            assert_eq!(
-                parse_page(text).metadata.kind(),
-                PageKind::Content,
-                "{text}"
-            );
+            assert!(!tagged(text), "{text}");
         }
         assert_eq!(
             parse_page("#glossary\n  #meta/api").metadata.tags,
@@ -350,6 +352,18 @@ mod tests {
             parse_page("#glossary\n#meta/api").metadata.tags,
             ["glossary", "meta/api"]
         );
+    }
+
+    #[test]
+    fn tool_pages_are_config_and_the_library() {
+        for name in ["Library/Std/Config", "Library/X", "CONFIG"] {
+            assert!(is_tool_page(name), "{name}");
+            assert_eq!(page_kind(name), PageKind::Tool, "{name}");
+        }
+        for name in ["Library", "LibraryNotes/x", "config", "CONFIG/sub", "Notes"] {
+            assert!(!is_tool_page(name), "{name}");
+            assert_eq!(page_kind(name), PageKind::Content, "{name}");
+        }
     }
 
     fn texts(text: &str) -> Vec<String> {

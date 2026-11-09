@@ -323,11 +323,17 @@ mod tests {
     #[test]
     fn reload_runs_only_for_pages_with_scripts() {
         let lua = "```space-lua\nx = 1\n```\n";
-        assert!(wants_reload("Tools.md", false, None, lua));
-        assert!(wants_reload("Tools.md", false, Some(lua), "plain"));
-        assert!(!wants_reload("Tools.md", false, Some("plain"), "plain"));
-        assert!(!wants_reload("Tools.md", true, Some(lua), lua));
-        assert!(!wants_reload("tools.lua", false, None, lua));
+        assert!(wants_reload("Library/Tools.md", false, None, lua));
+        assert!(wants_reload("Library/Tools.md", false, Some(lua), "plain"));
+        assert!(!wants_reload(
+            "Library/Tools.md",
+            false,
+            Some("plain"),
+            "plain"
+        ));
+        assert!(!wants_reload("Library/Tools.md", true, Some(lua), lua));
+        assert!(!wants_reload("Library/tools.lua", false, None, lua));
+        assert!(!wants_reload("Tools.md", false, None, lua));
     }
 
     #[test]

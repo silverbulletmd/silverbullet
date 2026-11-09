@@ -8,7 +8,7 @@ use axum::{
 };
 use chrono::{TimeZone, Utc};
 use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
-use silverbullet_server_common::page::{parse_page, PageKind};
+use silverbullet_server_common::page::is_tool_page;
 
 use crate::{router::run_blocking, state::ServerState};
 
@@ -81,12 +81,7 @@ pub async fn handle_sitemap(State(state): State<Arc<ServerState>>, headers: Head
         for file in files {
             let Some(page) = file.name.strip_suffix(".md") else { continue; };
             if file.name.split('/').any(|part| part.starts_with('.')) { continue; }
-            let data = match state.space.read_file(&file.name) {
-                Ok((data, _)) => data,
-                Err(silverbullet_server_common::SpaceError::NotFound) => continue,
-                Err(error) => return Err(error),
-            };
-            if parse_page(&String::from_utf8_lossy(&data)).metadata.kind() != PageKind::Content { continue; }
+            if is_tool_page(page) { continue; }
             let loc = page_url(&state, &origin, page).replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
             xml.push_str(&format!("  <url><loc>{loc}</loc>"));
             if file.last_modified > 0 {
@@ -127,6 +122,7 @@ mod tests {
             ("index.md", "# Home"),
             ("Field Notes.md", "---\ntags: glossary\n---\n# Notes"),
             ("Library/Guide.md", "# Guide"),
+            ("CONFIG.md", "# Config"),
             ("Settings.md", "#meta/config"),
             ("Weekly Review.md", "---\ntags: template\n---\n# Review"),
             ("Photo.png", "image"),
@@ -179,7 +175,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sitemap_discovers_content_not_meta_pages() {
+    async fn sitemap_discovers_content_not_tool_pages() {
         let (status, content_type, body) = request(public_state(), "/sitemap.xml").await;
         assert_eq!(status, 200);
         assert!(content_type.starts_with("application/xml"));
@@ -188,9 +184,11 @@ mod tests {
             "{body}"
         );
         assert!(body.contains("/wiki/Field%20Notes</loc>"), "{body}");
-        assert!(body.contains("/wiki/Library/Guide</loc>"), "{body}");
-        assert!(!body.contains("Settings"));
-        assert!(!body.contains("Weekly%20Review"), "{body}");
+        assert!(!body.contains("Library/Guide"), "{body}");
+        assert!(!body.contains("CONFIG"), "{body}");
+        // Tags no longer classify pages; only location does.
+        assert!(body.contains("/wiki/Settings</loc>"), "{body}");
+        assert!(body.contains("/wiki/Weekly%20Review</loc>"), "{body}");
         assert!(!body.contains("Photo"));
         assert!(!body.contains("/index</loc>"));
     }
@@ -230,12 +228,12 @@ mod tests {
         state
             .space
             .write_file(
-                "Field Notes.md",
-                b"---\ndescription: 'A & B <notes>'\ntags: meta/config\n---\n# Published",
+                "Library/Field Notes.md",
+                b"---\ndescription: 'A & B <notes>'\n---\n# Published",
                 None,
             )
             .unwrap();
-        let (status, _, body) = request(state, "/Field%20Notes?view=1").await;
+        let (status, _, body) = request(state, "/Library/Field%20Notes?view=1").await;
         assert_eq!(status, 200);
         assert!(
             body.contains("content=\"A &amp; B &lt;notes&gt;\" name=\"description\""),
@@ -243,7 +241,7 @@ mod tests {
         );
         assert!(
             body.replace("&#x2f;", "/")
-                .contains("https://notes.example/wiki/Field%20Notes"),
+                .contains("https://notes.example/wiki/Library/Field%20Notes"),
             "{body}"
         );
         assert!(body
@@ -252,10 +250,10 @@ mod tests {
         assert!(body.contains("noindex, follow"));
         assert!(!body.contains("description:"));
         assert!(body.contains("Published"));
-        // Templates are meta pages too, as the client classifies them.
+        // Tags no longer make a page noindex.
         let (status, _, body) = request(public_state_with_shell(), "/Weekly%20Review?view=1").await;
         assert_eq!(status, 200);
-        assert!(body.contains("noindex, follow"), "{body}");
+        assert!(!body.contains("noindex"), "{body}");
         let (_, _, body) = request(public_state_with_shell(), "/Field%20Notes?view=1").await;
         assert!(!body.contains("noindex"), "{body}");
     }

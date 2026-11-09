@@ -4084,6 +4084,7 @@ dependencies = [
  "axum",
  "base64 0.23.1",
  "percent-encoding",
+ "png",
  "schemars 1.2.2",
  "serde",
  "serde_json",
@@ -4155,6 +4156,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "silverbullet-server-common",
  "similar",
  "tokio",
 ]

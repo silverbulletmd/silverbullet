@@ -1,5 +1,5 @@
 //! The full-text index store: one Tantivy index per space, on disk under
-//! `<space dir>/fulltext-v3/` or in RAM.
+//! `<space dir>/fulltext-v4/` or in RAM.
 //!
 //! The disk index heals itself. A directory whose `version.json` names another
 //! schema or Tantivy version, that has segment files but no `version.json`, or
@@ -41,7 +41,7 @@ pub(crate) use crate::index::SinkError as StoreError;
 
 /// Name of the index directory inside the space's search directory. Bump it
 /// when the schema or analyzers change, so old indexes are rebuilt.
-pub const SCHEMA_DIR: &str = "fulltext-v3";
+pub const SCHEMA_DIR: &str = "fulltext-v4";
 /// Indexing memory budget of the (single-threaded) writer.
 pub const WRITER_MEMORY: usize = 32_000_000;
 /// Marker written after the first successful commit.

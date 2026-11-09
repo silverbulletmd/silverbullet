@@ -12,6 +12,7 @@ workspace = true
 
 [dependencies]
 async-trait = { workspace = true }
+silverbullet-server-common = { path = "../server-common" }
 http = "1"
 percent-encoding = { workspace = true }
 serde = { workspace = true }

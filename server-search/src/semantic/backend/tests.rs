@@ -17,8 +17,8 @@ const PAGES: &[(&str, &str)] = &[
     ("Bike/Chain.md", "# Chain\nOil the chain after rain."),
     ("Kitchen/Coffee.md", "# Coffee\nGrind the beans fresh."),
     (
-        "Meta/Ride Template.md",
-        "#template\n# Ride log\nDistance and weather.",
+        "Library/Ride Template.md",
+        "# Ride log\nDistance and weather.",
     ),
 ];
 
@@ -550,10 +550,10 @@ async fn related_appears_once_ready_and_leaves_the_page_out() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn related_in_the_pages_scope_leaves_meta_pages_out() {
+async fn related_in_the_pages_scope_leaves_tool_pages_out() {
     let fx = ready(FakeEmbedder::new()).await;
     let r = fx.backend.related(about("Bike/Chain"), cx()).await.unwrap();
-    assert!(pages(&r).contains(&"Meta/Ride Template"));
+    assert!(pages(&r).contains(&"Library/Ride Template"));
     let req = RelatedRequest {
         scope: Some(SearchScope::Pages),
         ..about("Bike/Chain")
@@ -563,28 +563,28 @@ async fn related_in_the_pages_scope_leaves_meta_pages_out() {
     got.sort();
     assert_eq!(got, ["Bike/Puncture", "Kitchen/Coffee"]);
     // A page outside the scope relates to nothing in it: a regular page in
-    // the meta scope, a Meta page in the pages scope.
+    // the meta scope, a Tool Page in the pages scope.
     let req = RelatedRequest {
-        scope: Some(SearchScope::Meta),
+        scope: Some(SearchScope::Tool),
         ..about("Bike/Chain")
     };
     let r = fx.backend.related(req, cx()).await.unwrap();
     assert!(pages(&r).is_empty());
     let r = fx
         .backend
-        .related(about("Meta/Ride Template"), cx())
+        .related(about("Library/Ride Template"), cx())
         .await
         .unwrap();
     assert!(
         !pages(&r).is_empty(),
-        "all scopes: a Meta page has related pages"
+        "all scopes: a Tool Page has related pages"
     );
     let req = RelatedRequest {
         scope: Some(SearchScope::Pages),
-        ..about("Meta/Ride Template")
+        ..about("Library/Ride Template")
     };
     let r = fx.backend.related(req, cx()).await.unwrap();
-    assert!(pages(&r).is_empty(), "on a Meta page, no related pages");
+    assert!(pages(&r).is_empty(), "on a Tool Page, no related pages");
     assert_eq!(r.total, 0);
 }
 
@@ -613,16 +613,16 @@ async fn scope_include_and_exclude_apply_to_meaning_results() {
     };
     let r = fx
         .backend
-        .query(ask(SearchScope::Meta, None), cx())
+        .query(ask(SearchScope::Tool, None), cx())
         .await
         .unwrap();
-    assert_eq!(pages(&r), ["Meta/Ride Template"]);
+    assert_eq!(pages(&r), ["Library/Ride Template"]);
     let r = fx
         .backend
         .query(ask(SearchScope::Pages, None), cx())
         .await
         .unwrap();
-    assert!(!pages(&r).contains(&"Meta/Ride Template"));
+    assert!(!pages(&r).contains(&"Library/Ride Template"));
     let r = fx
         .backend
         .query(

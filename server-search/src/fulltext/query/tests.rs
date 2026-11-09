@@ -446,12 +446,12 @@ fn literal_stopwords_find_the_pages_they_appear_in() {
 fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
     let fx = fixture(&[
         (
-            "Config/Bike theme.md".into(),
-            "#meta/config\nColours for the bike pages.".into(),
+            "Library/Bike theme.md".into(),
+            "Colours for the bike pages.".into(),
         ),
         (
-            "Templates/Bike log.md".into(),
-            "---\ntags: template\n---\nBike log for the week.".into(),
+            "Library/Bike log.md".into(),
+            "Bike log for the week.".into(),
         ),
     ]);
     let scoped = |scope| PageFilter {
@@ -464,7 +464,7 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
         (hits, tier)
     };
     let pages = scoped(SearchScope::Pages);
-    let meta = scoped(SearchScope::Meta);
+    let meta = scoped(SearchScope::Tool);
     assert_eq!(
         sorted("bike", &pages),
         (
@@ -479,8 +479,8 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
         sorted("bike", &meta),
         (
             vec![
-                "Config/Bike theme.md".to_string(),
-                "Templates/Bike log.md".to_string()
+                "Library/Bike log.md".to_string(),
+                "Library/Bike theme.md".to_string()
             ],
             Tier::Exact
         )
@@ -491,8 +491,8 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
         sorted("biek", &meta),
         (
             vec![
-                "Config/Bike theme.md".to_string(),
-                "Templates/Bike log.md".to_string()
+                "Library/Bike log.md".to_string(),
+                "Library/Bike theme.md".to_string()
             ],
             Tier::Similar
         )
@@ -509,14 +509,14 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
     assert_eq!(run(&fx.searcher, &fx.fields, &plan, 50).unwrap().total, 1);
     // With include/exclude: the intersection.
     let filter = PageFilter {
-        scope: SearchScope::Meta,
-        exclude: Some(vec!["Config/Bike theme".into()]),
+        scope: SearchScope::Tool,
+        exclude: Some(vec!["Library/Bike theme".into()]),
         ..PageFilter::default()
     };
-    assert_eq!(sorted("bike", &filter).0, ["Templates/Bike log.md"]);
+    assert_eq!(sorted("bike", &filter).0, ["Library/Bike log.md"]);
     let filter = PageFilter {
         scope: SearchScope::Pages,
-        include: Some(vec!["Config/Bike theme".into(), "Bike/Chain care".into()]),
+        include: Some(vec!["Library/Bike theme".into(), "Bike/Chain care".into()]),
         ..PageFilter::default()
     };
     assert_eq!(sorted("bike", &filter).0, ["Bike/Chain care.md"]);
