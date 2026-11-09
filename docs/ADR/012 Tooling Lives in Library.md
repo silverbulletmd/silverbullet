@@ -1,6 +1,6 @@
 ---
 tags: adr
-status: proposed
+status: accepted
 date: "2026-11-09"
 deciders: "[[Zef Hemel]]"
 owner: "[[Zef Hemel]]"
