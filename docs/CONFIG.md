@@ -139,7 +139,7 @@ config.set("view.defaults", {
 # Lint
 ```space-lua
 -- Documentation pages hold space-lua and space-style examples on purpose
---config.set("lint.inactiveBlocks", false)
+config.set("lint.inactiveBlocks", false)
 ```
 
 

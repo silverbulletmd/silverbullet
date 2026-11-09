@@ -1,11 +1,7 @@
 ---
 tags: guide
 ---
-Choose a guide for what you want to do: write pages, connect information, add attributes, build a query or customize your space.
-
-These guides assume you have a [[Space]] in [[Install/Desktop|SilverBullet Desktop]] or an [[Install|SilverBullet Server]] already.
-
-Start with [[Guide/Reading These Docs|Reading these docs]] — a basic introduction on how to _read these particular docs_ and the conventions used:
+Start with [[Guide/Reading These Docs|Reading these docs]] — a basic introduction on how to _read these particular docs_ and the conventions used. Once we’re past the formalities, let’s get cracking with these guides:
 
 * [[Guide/My First Markdown Page|Your first Markdown page]] — write a photo-walk plan with headings, bullets and tasks.
 * [[Guide/Find and Connect Pages|Find and connect pages]] — create a linked hiking plan, discover backlinks and explore Graph View.
