@@ -433,10 +433,11 @@ mod tests {
     use std::io::{BufRead, BufReader, Read};
     use std::net::TcpListener;
 
-    const BUILT_IN: [&str; 7] = [
+    const BUILT_IN: [&str; 8] = [
         "Markdown",
         "Querying",
         "Space Lua",
+        "Styling",
         "Tags and Schemas",
         "Templates",
         "Mentions",
@@ -740,7 +741,7 @@ mod tests {
         let value: serde_json::Value = serde_json::from_str(&run.out).unwrap();
         assert_eq!(value["selected"], serde_json::Value::Null);
         assert_eq!(value["help"], serde_json::Value::Null);
-        assert_eq!(value["builtIn"].as_array().unwrap().len(), 7);
+        assert_eq!(value["builtIn"].as_array().unwrap().len(), BUILT_IN.len());
 
         let run = help(&flags(None, true), &config(vec![]), &["Querying"]);
         let value: serde_json::Value = serde_json::from_str(&run.out).unwrap();

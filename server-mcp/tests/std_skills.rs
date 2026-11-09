@@ -30,10 +30,11 @@ fn all_pages() -> Vec<(String, String)> {
     out
 }
 
-const NEW_PAGES: [&str; 7] = [
+const NEW_PAGES: [&str; 8] = [
     "Docs/Markdown",
     "Docs/Querying",
     "Docs/Space Lua",
+    "Docs/Styling",
     "Docs/Tags and Schemas",
     "Docs/Templates",
     "Widgets/Building Interfaces",
