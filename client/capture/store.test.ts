@@ -106,3 +106,22 @@ test("destroy removes the capture database after sign-out", async () => {
   ).toBe(false);
   await anotherTab.destroy();
 });
+
+test("the store keeps working after another context deletes its database", async () => {
+  const scriptUrl = scope();
+  const store = await openCaptureStore(scriptUrl);
+  await store.configure("owner-a", true);
+  // A client wipe deletes the database while the service worker holds it open.
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(captureDatabaseName(scriptUrl));
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+  await store.configure("owner-a", true);
+  expect(await store.getConfiguration()).toEqual({
+    ownerId: "owner-a",
+    eligible: true,
+  });
+  await store.clear();
+  expect(await store.getConfiguration()).toBeUndefined();
+});

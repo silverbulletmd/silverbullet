@@ -1,4 +1,4 @@
-import { deleteDB, openDB } from "idb";
+import { deleteDB, type IDBPDatabase, openDB } from "idb";
 import type { CaptureDraft, CaptureRecord } from "./types.ts";
 
 export type CaptureConfiguration = { ownerId: string; eligible: boolean };
@@ -40,29 +40,48 @@ export async function pendingCaptureCount(
 export async function openCaptureStore(
   scriptUrl: string,
 ): Promise<CaptureStore> {
-  const db = await openDB(captureDatabaseName(scriptUrl), 1, {
-    upgrade(database) {
-      database.createObjectStore("captures", { keyPath: "id" });
-      database.createObjectStore("config");
-    },
-  });
-  db.addEventListener("versionchange", () => db.close());
+  // Another context (a client wipe, a logout) may delete this database while
+  // the service worker holds it open. Release the connection so the delete can
+  // proceed, and open a fresh one on next use.
+  let connection: Promise<IDBPDatabase> | undefined;
+  const database = (): Promise<IDBPDatabase> => {
+    if (connection) return connection;
+    const opened = openDB(captureDatabaseName(scriptUrl), 1, {
+      upgrade(db) {
+        db.createObjectStore("captures", { keyPath: "id" });
+        db.createObjectStore("config");
+      },
+    }).then((db) => {
+      const release = () => {
+        db.close();
+        if (connection === opened) connection = undefined;
+      };
+      db.addEventListener("versionchange", release);
+      db.addEventListener("close", release);
+      return db;
+    });
+    connection = opened;
+    return opened;
+  };
+  await database();
 
   const configuration = async (): Promise<StoredConfiguration | undefined> =>
-    db.get("config", "current");
+    (await database()).get("config", "current");
 
   const owned = async (
     id: string,
     ownerId: string,
   ): Promise<StoredCapture | undefined> => {
-    const record = (await db.get("captures", id)) as StoredCapture | undefined;
+    const record = (await (await database()).get("captures", id)) as
+      | StoredCapture
+      | undefined;
     return record?.ownerId === ownerId ? record : undefined;
   };
 
   return {
     async configure(ownerId, eligible) {
       const previous = await configuration();
-      await db.put(
+      await (await database()).put(
         "config",
         {
           ownerId,
@@ -79,7 +98,7 @@ export async function openCaptureStore(
       );
     },
     async countAll() {
-      return db.count("captures");
+      return (await database()).count("captures");
     },
     async stage(fields, files) {
       const blobs: Record<string, ArrayBuffer> = {};
@@ -90,7 +109,10 @@ export async function openCaptureStore(
           return { handle, name: file.name, type: file.type, size: file.size };
         }),
       );
-      const transaction = db.transaction(["captures", "config"], "readwrite");
+      const transaction = (await database()).transaction(
+        ["captures", "config"],
+        "readwrite",
+      );
       const config = (await transaction.objectStore("config").get("current")) as
         | StoredConfiguration
         | undefined;
@@ -118,7 +140,9 @@ export async function openCaptureStore(
       return owned(id, ownerId);
     },
     async list(ownerId) {
-      const records = (await db.getAll("captures")) as StoredCapture[];
+      const records = (await (
+        await database()
+      ).getAll("captures")) as StoredCapture[];
       return records
         .filter((record) => record.ownerId === ownerId)
         .sort((a, b) => a.order - b.order)
@@ -135,16 +159,21 @@ export async function openCaptureStore(
     async remove(id, ownerId) {
       if (!(await owned(id, ownerId)))
         throw new Error("Capture is unavailable");
-      await db.delete("captures", id);
+      await (await database()).delete("captures", id);
     },
     async clear() {
-      const transaction = db.transaction(["captures", "config"], "readwrite");
+      const transaction = (await database()).transaction(
+        ["captures", "config"],
+        "readwrite",
+      );
       await transaction.objectStore("captures").clear();
       await transaction.objectStore("config").clear();
       await transaction.done;
     },
     async destroy() {
-      db.close();
+      const open = connection;
+      connection = undefined;
+      (await open)?.close();
       await deleteDB(captureDatabaseName(scriptUrl));
     },
   };
