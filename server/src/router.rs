@@ -12,7 +12,7 @@ use tower_http::compression::predicate::{DefaultPredicate, NotForContentType, Pr
 use tower_http::compression::CompressionLayer;
 
 use crate::auth::{AccessLevel, AuthOutcome};
-use crate::handlers::{accounts, bundle, control, fs, merge, revisions, search};
+use crate::handlers::{accounts, bundle, control, fs, merge, revisions, search, tooling};
 use crate::state::ServerState;
 
 /// Run a synchronous `SpacePrimitives` operation on the blocking thread pool so
@@ -275,6 +275,10 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         .route_layer(middleware::from_fn(refuse_hidden_fs_paths));
     let protected = Router::new()
         .route("/.config", get(control::handle_config))
+        .route(
+            "/.tooling",
+            get(tooling::handle_tooling).layer(CompressionLayer::new()),
+        )
         .route("/.client/manifest.json", get(control::handle_manifest))
         .route("/.accounts", get(accounts::handle_accounts))
         .route(

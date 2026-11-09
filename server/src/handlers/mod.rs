@@ -14,6 +14,7 @@ pub mod revisions;
 pub mod runtime;
 pub mod search;
 pub mod shell;
+pub mod tooling;
 
 use axum::body::Body;
 use axum::http::StatusCode;
