@@ -1,5 +1,3 @@
-#meta
-
 Implements general purpose widgets: buttons, sub-page lists, and docked views (table of contents, linked mentions and linked tasks).
 
 ## Docked widgets

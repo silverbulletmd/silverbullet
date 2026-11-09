@@ -1,6 +1,5 @@
 ---
 description: Client-side credential store and pluggable authentication providers.
-tags: meta
 ---
 Stores credentials (tokens) for remote services on this device and hands out the HTTP headers needed to talk to them.
 

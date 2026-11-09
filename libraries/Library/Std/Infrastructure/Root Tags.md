@@ -1,6 +1,5 @@
 ---
 description: Defines the schemas of root tags.
-tags: meta
 ---
 Defined via [[^Library/Std/APIs/Tag]].
 

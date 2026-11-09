@@ -1,6 +1,5 @@
 ---
 description: Wikilink parsing, completion ranking and indexed reference candidates.
-tags: meta
 ---
 Wikilink parsing, completion ranking and indexed reference candidates. Internal implementation of [[Library/Std/Widgets/Inputs]].
 

@@ -1,6 +1,5 @@
 ---
 description: Integration with Github repositories and gists.
-tags: meta
 ---
 Support for [SilverBullet Share](https://docs.silverbullet.md/Share) for:
 

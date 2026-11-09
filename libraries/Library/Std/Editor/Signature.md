@@ -1,5 +1,3 @@
-#meta
-
 Sign the current block: append your username, or `-- @self` on an owner-only deployment without account usernames, marking the text as written by you rather than addressed to you.
 
 ```space-lua

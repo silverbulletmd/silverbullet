@@ -1,6 +1,5 @@
 ---
 description: Renders an object's YAML (page frontmatter, data block documents) as an editable, schema-driven form.
-tags: meta
 ---
 Shows an object's YAML attributes as a form: a page's frontmatter, or each document of a data block (` ```#contact ` or ` ```data `). Each attribute gets an input chosen from its schema: the schema of the first of the object's tags that declares it, then the schema of its root tag (`page` for frontmatter, `data` for a data block).
 

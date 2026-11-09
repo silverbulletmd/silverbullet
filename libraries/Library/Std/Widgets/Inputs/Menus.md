@@ -1,6 +1,5 @@
 ---
 description: Input dropdowns and context menu interaction.
-tags: meta
 ---
 Input dropdowns and context menu interaction. Internal implementation of [[Library/Std/Widgets/Inputs]].
 

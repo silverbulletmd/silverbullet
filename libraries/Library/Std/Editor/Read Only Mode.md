@@ -1,5 +1,3 @@
-#meta
-
 Adds commands and an action button (on mobile) for toggling read-only mode.
 
 ```space-lua

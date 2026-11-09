@@ -1,6 +1,5 @@
 ---
 description: Implements generally useful query templates.
-tags: meta
 ---
 A work-in-progress library of generally useful templates for rendering queries.
 

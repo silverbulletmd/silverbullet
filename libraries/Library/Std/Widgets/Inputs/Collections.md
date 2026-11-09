@@ -1,6 +1,5 @@
 ---
 description: List editing and chips for tags, identities and references.
-tags: meta
 ---
 List editing and chips for tags, identities and references. Internal implementation of [[Library/Std/Widgets/Inputs]].
 

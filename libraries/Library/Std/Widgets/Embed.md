@@ -1,5 +1,3 @@
-#meta
-
 Implements useful embed widgets.
 
 # Youtube

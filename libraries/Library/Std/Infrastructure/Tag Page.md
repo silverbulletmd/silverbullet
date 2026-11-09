@@ -1,9 +1,8 @@
 ---
 description: Implements the tag page
-tags: meta
 ---
 
-Implements a virtual tag page, that renders when navigating to a hashtag: #meta based on the `tag:` prefix.
+Implements a virtual tag page, that renders when navigating to a hashtag: `#meta` based on the `tag:` prefix.
 
 # Overriding
 You can override the tag page with a custom implementation as follows:

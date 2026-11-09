@@ -1,5 +1,3 @@
-#meta
-
 Surfaces open recipient mentions in the right-hand sidebar. Open the Mention Inbox with ${widgets.commandButton("Navigate: Mentions")}.
 
 # Implementation

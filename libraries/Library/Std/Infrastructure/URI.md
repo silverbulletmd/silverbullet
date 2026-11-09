@@ -1,6 +1,5 @@
 ---
 description: Implements the infrastructure for reading and writing to URIs
-tags: meta
 ---
 
 # Implementation

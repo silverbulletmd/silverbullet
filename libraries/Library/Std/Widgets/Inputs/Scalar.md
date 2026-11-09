@@ -1,6 +1,5 @@
 ---
 description: Scalar controls and shared text editing behavior.
-tags: meta
 ---
 Scalar controls and shared text editing behavior. Internal implementation of [[Library/Std/Widgets/Inputs]].
 

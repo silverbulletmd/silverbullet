@@ -1,5 +1,3 @@
-#meta
-
 This page implements the built-in daily journal feature: four commands (`Journal: Today`, `Journal: Previous Day`, `Journal: Next Day`, `Journal: Picker`) and a default template at [[^Library/Std/Journal/Template]].
 
 # Configuration

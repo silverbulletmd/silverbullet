@@ -1,5 +1,3 @@
-#meta
-
 Some convenient slash commands for editing Markdown files.
 
 ```space-lua

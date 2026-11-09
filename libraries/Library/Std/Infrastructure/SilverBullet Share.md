@@ -1,6 +1,5 @@
 ---
 description: Share pages to another SilverBullet space.
-tags: meta
 ---
 Lets [SilverBullet Share](https://docs.silverbullet.md/Share) publish pages to (and sync them with) a page in another SilverBullet space (local or remote).
 
