@@ -460,7 +460,10 @@ fn script_write_reports_its_load_error() {
         code, 9,
         "stdout={stdout:?} stderr={stderr:?}\n--- server log ---\n{log}"
     );
-    assert!(stdout.starts_with("Wrote Library/Broken.md (revision "), "{stdout}");
+    assert!(
+        stdout.starts_with("Wrote Library/Broken.md (revision "),
+        "{stdout}"
+    );
     assert!(
         stderr.contains("reloaded, but have problems") && stderr.contains("Load errors:"),
         "{stderr}\n--- server log ---\n{log}"
