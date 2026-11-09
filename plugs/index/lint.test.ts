@@ -288,13 +288,13 @@ describe("lintYAML on data blocks", () => {
   });
 });
 
-describe("lintLua on page-lua blocks", () => {
-  async function lintLuaFor(text: string) {
+describe("lintLua", () => {
+  async function lintLuaFor(text: string, name = defaultPageMeta.name) {
     createMockSystem();
     const { lintLua } = await import("./lint.ts");
     return lintLua({
       tree: parseMarkdown(text),
-      name: defaultPageMeta.name,
+      name,
       pageMeta: defaultPageMeta,
       text,
     });
@@ -304,6 +304,30 @@ describe("lintLua on page-lua blocks", () => {
     const diagnostics = await lintLuaFor("```page-lua\nfunction (\n```\n");
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].severity).toBe("error");
+  });
+
+  test("ignores a parse error in space-lua on a regular page", async () => {
+    const diagnostics = await lintLuaFor(
+      "```space-lua\nfunction (\n```\n",
+      "Notes",
+    );
+    expect(diagnostics).toEqual([]);
+  });
+
+  test("reports a parse error in space-lua on a Tool Page", async () => {
+    const diagnostics = await lintLuaFor(
+      "```space-lua\nfunction (\n```\n",
+      "Library/A",
+    );
+    expect(diagnostics).toHaveLength(1);
+  });
+
+  test("still checks page-lua on any page", async () => {
+    const diagnostics = await lintLuaFor(
+      "```page-lua\nfunction (\n```\n",
+      "Notes",
+    );
+    expect(diagnostics).toHaveLength(1);
   });
 });
 
@@ -482,5 +506,50 @@ describe("lintRefTags", () => {
       { "Person/Zed": "Just a page" },
     );
     expect(diags).toEqual([]);
+  });
+});
+
+describe("lintInactiveBlocks", () => {
+  const block = "```space-style\nbody { color: red; }\n```";
+
+  async function lintBlocks(
+    name: string,
+    text: string,
+    inactiveSetting?: boolean,
+  ) {
+    const { config } = createMockSystem();
+    if (inactiveSetting !== undefined) {
+      config.set("lint.inactiveBlocks", inactiveSetting);
+    }
+    const { lintInactiveBlocks } = await import("./lint.ts");
+    return lintInactiveBlocks({
+      tree: parseMarkdown(text),
+      name,
+      text,
+    } as LintEvent);
+  }
+
+  test("warns on the opening fence of a block outside tool pages", async () => {
+    const diagnostics = await lintBlocks("Notes", `Intro\n\n${block}\n`);
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe("warning");
+    expect(diagnostics[0].message).toBe(
+      "Not loaded: scripts and styles only run from pages under Library/ or CONFIG.",
+    );
+    expect(diagnostics[0].from).toBe(7);
+    expect(diagnostics[0].to).toBe(7 + "```space-style".length);
+  });
+
+  test("is silent on tool pages", async () => {
+    expect(await lintBlocks("Library/A", block)).toEqual([]);
+    expect(await lintBlocks("CONFIG", block)).toEqual([]);
+  });
+
+  test("can be turned off", async () => {
+    expect(await lintBlocks("Notes", block, false)).toEqual([]);
+  });
+
+  test("ignores blocks inside HTML comments", async () => {
+    expect(await lintBlocks("Notes", `<!--\n${block}\n-->\n`)).toEqual([]);
   });
 });

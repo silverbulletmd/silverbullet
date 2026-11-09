@@ -495,6 +495,67 @@ describe("ObjectIndex initial-index completion verification", () => {
   });
 });
 
+describe("index:ready", () => {
+  const countReady = (eventHook: EventHook) => {
+    let fired = 0;
+    eventHook.addLocalListener("index:ready", () => {
+      fired++;
+    });
+    return () => fired;
+  };
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  test("fires once a fresh client's initial index completes, not again at boot", async () => {
+    const { objectIndex, eventHook } = makeFreshSetup();
+    const fired = countReady(eventHook);
+    await tick();
+    await objectIndex.announceIndexReady();
+    expect(fired()).toBe(0);
+
+    await eventHook.dispatchEvent("file:listed", []);
+    await tick();
+    expect(fired()).toBe(1);
+
+    await objectIndex.announceIndexReady();
+    expect(fired()).toBe(1);
+  });
+
+  test("fires once on a warm boot", async () => {
+    const ds = new DataStore(new MemoryKvPrimitives());
+    const eventHook = new EventHook();
+    new System<EventHookT>(undefined).addHook(eventHook);
+    const mq = new DataStoreMQ(ds, eventHook);
+    // An earlier session built the index
+    await new ObjectIndex(
+      ds,
+      new Config(),
+      new EventHook(),
+      mq,
+    ).markFullIndexComplete();
+    const objectIndex = new ObjectIndex(ds, new Config(), eventHook, mq);
+    const fired = countReady(eventHook);
+
+    await Promise.all([
+      objectIndex.announceIndexReady(),
+      objectIndex.announceIndexReady(),
+    ]);
+    await eventHook.dispatchEvent("file:listed", []);
+    await eventHook.dispatchEvent("mq:emptyQueue:indexQueue");
+    await tick();
+    expect(fired()).toBe(1);
+  });
+
+  test("fires after a manual reindex", async () => {
+    const { objectIndex, eventHook } = makeFreshSetup();
+    const fired = countReady(eventHook);
+    await objectIndex.reindexSpace({
+      deduplicatedFileList: async () => [],
+    } as any);
+    await tick();
+    expect(fired()).toBe(1);
+  });
+});
+
 describe("ObjectIndex clearFileIndex", () => {
   test("clears entries written by an earlier session, not just this one", async () => {
     const makeIndex = makeSharedStoreIndexes();
@@ -718,7 +779,7 @@ describe("ObjectIndex.countTag", () => {
   });
 });
 
-describe("ObjectIndex content and meta pages", () => {
+describe("ObjectIndex content and tool pages", () => {
   const page = (name: string, tags: string[]) =>
     ({
       ref: name,
@@ -732,27 +793,31 @@ describe("ObjectIndex content and meta pages", () => {
       .map((p: any) => p.name)
       .sort();
 
-  test("split pages on the meta tag, each optionally narrowed by a user tag", async () => {
+  test("split pages by location, each optionally narrowed by a user tag", async () => {
     const objectIndex = makeObjectIndex();
     for (const p of [
       page("Notes", []),
       page("Recipes", ["food"]),
-      page("Style", ["meta"]),
-      page("Food Template", ["meta/template", "food"]),
+      page("Tagged", ["meta"]),
+      page("CONFIG", []),
+      page("Library/Style", []),
+      page("Library/Food Template", ["food"]),
     ]) {
       await objectIndex.indexObjects(p.name, [p]);
     }
     expect(await names(objectIndex.contentPages())).toEqual([
       "Notes",
       "Recipes",
+      "Tagged",
     ]);
-    expect(await names(objectIndex.metaPages())).toEqual([
-      "Food Template",
-      "Style",
+    expect(await names(objectIndex.toolPages())).toEqual([
+      "CONFIG",
+      "Library/Food Template",
+      "Library/Style",
     ]);
     expect(await names(objectIndex.contentPages("food"))).toEqual(["Recipes"]);
-    expect(await names(objectIndex.metaPages("food"))).toEqual([
-      "Food Template",
+    expect(await names(objectIndex.toolPages("food"))).toEqual([
+      "Library/Food Template",
     ]);
   });
 });

@@ -1,4 +1,4 @@
-import { type OutputUnit, Validator, format } from "@cfworker/json-schema";
+import { format, type OutputUnit, Validator } from "@cfworker/json-schema";
 import { stripFunctions } from "./plugos/util.ts";
 
 format.email = (data: string) => data.includes("@");
@@ -89,7 +89,15 @@ export class Config {
    */
   public categories: Record<string, CategoryDefinition> = {};
 
+  private changeListeners = new Set<(path: string[]) => void>();
+
   constructor(public values: Record<string, any> = {}) {}
+
+  /** Calls `listener` after each write to a path, with that path. Returns an unsubscribe function. */
+  public onChange(listener: (path: string[]) => void): () => void {
+    this.changeListeners.add(listener);
+    return () => this.changeListeners.delete(listener);
+  }
 
   public clear() {
     this.schemas = {
@@ -228,6 +236,7 @@ export class Config {
       }
 
       this.validatePath(key);
+      for (const listener of this.changeListeners) listener(key);
     } else {
       for (const [key, val] of Object.entries(keyOrValues)) {
         this.set(key, val);

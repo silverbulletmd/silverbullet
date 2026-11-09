@@ -8,15 +8,16 @@ const record = (over: Record<string, unknown>): ScriptRecord =>
     ref: "Sample@0",
     source: "x = 1",
     priority: 0,
+    boot: false,
     status: "loaded",
     ms: 2,
     ...over,
   }) as ScriptRecord;
 
 const scripts = [
-  record({ ref: "Library/Std/Config@0", priority: 100 }),
+  record({ ref: "Library/Std/Config@0", priority: 100, boot: true }),
   record({ ref: "Scratch/Helpers@0", status: "failed", error: "boom" }),
-  record({ ref: "Scratch/Helpers@212" }),
+  record({ ref: "Scratch/Helpers@212", boot: true }),
   record({ ref: "Scratch/Slow@0", status: "stopped", ms: 5000 }),
   record({ ref: "Scratch/Loop@0", status: "quarantined", ms: 0 }),
 ];
@@ -37,12 +38,23 @@ test("filters keep load order; quarantined covers stopped scripts", () => {
   ]);
 });
 
+test("boot filter keeps only boot scripts", () => {
+  expect(refs(filterScripts(scripts, "", "boot"))).toEqual([
+    "Library/Std/Config@0",
+    "Scratch/Helpers@212",
+  ]);
+  expect(refs(filterScripts(scripts, "helpers", "boot"))).toEqual([
+    "Scratch/Helpers@212",
+  ]);
+});
+
 test("counts per filter", () => {
   expect(scriptCounts(scripts)).toEqual({
     all: 5,
     loaded: 2,
     failed: 1,
     quarantined: 2,
+    boot: 2,
   });
 });
 

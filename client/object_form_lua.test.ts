@@ -1,6 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import { beforeAll, expect, test } from "vitest";
-import { extractSpaceLuaFromPageText } from "./boot_config.ts";
+import { extractSpaceLuaFromPageText } from "./space_lua_blocks_test_util.ts";
 import { wikiLink } from "./lib/wiki_link.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import { parseBlock } from "./space_lua/parse.ts";

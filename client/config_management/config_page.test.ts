@@ -116,7 +116,8 @@ describe("persistConfigValue", () => {
       "https://example.com",
     ]);
     expect(written).toHaveLength(1);
-    expect(written[0].startsWith("#meta\n")).toBe(true);
+    expect(written[0].startsWith("This page holds configuration")).toBe(true);
+    expect(written[0]).not.toContain("#meta");
     expect(written[0]).toContain(
       `\`\`\`space-lua\n${MARKER}\nconfig.set("share.silverbullet.spaces", {"https://example.com"})\n\`\`\``,
     );

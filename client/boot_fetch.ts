@@ -22,50 +22,31 @@ type Fetched =
   | { kind: "unreachable" };
 
 /**
- * Fetch the boot config (`.config`, which must parse as a JSON object) and the
- * bootstrap pages, falling back to the copies cached by the last good boot.
+ * Fetch the boot config (`.config`, which must parse as a JSON object),
+ * falling back to the copy cached by the last good boot.
  *
  * The server is only trusted when `.config` comes back as valid JSON. While a
  * server restarts, a reverse proxy in front of it answers 404 or 503 for
- * everything; treating those 404s as empty files used to fail with "Unexpected
- * end of JSON input" and overwrite the good cached copies with "". Instead, a
- * boot whose `.config` is not usable reads every file from the cache and
- * caches nothing.
+ * everything; treating that 404 as an empty file used to fail with
+ * "Unexpected end of JSON input" and overwrite the good cached copy with "".
+ * Instead, a boot whose `.config` is not usable reads the cache and caches
+ * nothing.
  */
 export async function loadBootFiles(
   configPath: string,
-  pagePaths: string[],
   deps: BootFetchDeps,
-): Promise<{ configText: string; pageTexts: string[] }> {
-  const paths = [configPath, ...pagePaths];
-  const key = (path: string) => `${deps.cacheKeyPrefix}${path}`;
-  // Set once a fetch must navigate away (auth redirect or service-worker
-  // reset). That navigation aborts the sibling fetches; the flag makes them
-  // report the redirect instead of looking offline.
-  const navigation = { redirectingAway: false };
-  const results = await Promise.all(
-    paths.map((path) => fetchBootFile(path, deps, navigation)),
-  );
-  const config = results[0];
+): Promise<{ configText: string }> {
+  const key = `${deps.cacheKeyPrefix}${configPath}`;
+  const config = await fetchBootFile(configPath, deps);
 
   if (config.kind === "served" && isJSONObject(config.text)) {
-    const texts = results.map((result, i) => {
-      if (result.kind === "served") {
-        // A 404 is cached as "" so an offline boot can still serve it.
-        deps.storage.setItem(key(paths[i]), result.text);
-        return result.text;
-      }
-      const cached = deps.storage.getItem(key(paths[i]));
-      if (cached === null) throw offlineError;
-      console.info("Falling back to cache for", paths[i]);
-      return cached;
-    });
-    return { configText: texts[0], pageTexts: texts.slice(1) };
+    deps.storage.setItem(key, config.text);
+    return { configText: config.text };
   }
 
   // The server is not serving this space right now (unreachable, restarting
-  // behind a proxy, or no space bound here): boot from the last good copies.
-  const cachedConfig = deps.storage.getItem(key(configPath));
+  // behind a proxy, or no space bound here): boot from the last good copy.
+  const cachedConfig = deps.storage.getItem(key);
   if (cachedConfig === null || !isJSONObject(cachedConfig)) {
     if (config.kind === "unreachable") throw offlineError;
     throw new Error(
@@ -75,16 +56,12 @@ export async function loadBootFiles(
   console.info(
     "Server did not return a usable boot config, booting from cached copies",
   );
-  return {
-    configText: cachedConfig,
-    pageTexts: pagePaths.map((path) => deps.storage.getItem(key(path)) ?? ""),
-  };
+  return { configText: cachedConfig };
 }
 
 async function fetchBootFile(
   path: string,
   deps: BootFetchDeps,
-  navigation: { redirectingAway: boolean },
 ): Promise<Fetched> {
   try {
     const response = await deps.fetch(path, {
@@ -109,7 +86,6 @@ async function fetchBootFile(
       console.log(
         "Got opaque redirect, going to unregister service workers and reload",
       );
-      navigation.redirectingAway = true;
       await deps.resetAndReload();
       throw notAuthenticatedError;
     }
@@ -119,12 +95,7 @@ async function fetchBootFile(
         "Received an (authentication) redirect, redirecting to URL: " +
           redirectHeader,
       );
-      // Only the first fetch to see the redirect navigates; its siblings just
-      // report the authentication failure.
-      if (!navigation.redirectingAway) {
-        navigation.redirectingAway = true;
-        deps.navigate(redirectHeader);
-      }
+      deps.navigate(redirectHeader);
       throw notAuthenticatedError;
     }
     return {
@@ -135,11 +106,6 @@ async function fetchBootFile(
   } catch (e: any) {
     if (e.message === notAuthenticatedError.message) {
       throw e;
-    }
-    if (navigation.redirectingAway) {
-      // Our own redirect-to-login (or reload) navigation aborted this fetch —
-      // that's an authentication situation, not an offline one.
-      throw notAuthenticatedError;
     }
     return { kind: "unreachable" };
   }

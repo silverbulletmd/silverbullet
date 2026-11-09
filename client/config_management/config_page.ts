@@ -7,9 +7,7 @@ import { applySchemaChanges, type SchemaChanges } from "./schema_block.ts";
 
 export const CONFIG_PAGE = "CONFIG";
 
-const CONFIG_TEMPLATE = `#meta
-
-This page holds configuration for your SilverBullet space. See [[^Library/Std/Config]] for all options and defaults.
+const CONFIG_TEMPLATE = `This page holds configuration for your SilverBullet space. See [[^Library/Std/Config]] for all options and defaults.
 
 Run \${widgets.commandButton "System: Reload"} to reload.
 
@@ -73,6 +71,7 @@ export async function writeConfigAndReload(
   const configOpen = (await editor.getCurrentPage()) === CONFIG_PAGE;
   if (configOpen) await editor.save();
   const text = (await readConfigPage()) || CONFIG_TEMPLATE;
+  // Only ever written to CONFIG, whose blocks are boot blocks without a marker
   await space.writePage(CONFIG_PAGE, edit(text));
   // The editor doesn't follow a write it didn't make: show the new text
   if (configOpen) await editor.reloadPage();

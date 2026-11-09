@@ -1,6 +1,5 @@
 ---
 description: Implements the infrastructure of Page Templates.
-tags: meta
 ---
 Page templates can be used to automate or simplify the creation of pages based on a template.
 
@@ -153,33 +152,42 @@ function template.createPageFromTemplate(templatePage, pageName, openIfExists)
   editor.insertAtPos(tpl(), #initialText, true)
 end
 
--- Create commands for all page templates with a command key in frontmatter
-for pt in query[[
-    from tp = index.pages("meta/template/page")
-    where tp.command
-    order by tp.priority desc
-  ]] do
-  command.define {
-    name = pt.command,
-    key = pt.key,
-    mac = pt.mac,
-    requireMode = "rw",
-    run = function()
-      local pageName
-      if pt.suggestedName then
-        pageName = (template.new(pt.suggestedName))()
+-- Create commands for all page templates with a command key in frontmatter,
+-- again on index:ready: on a fresh client the index is still empty at load
+local function definePageTemplateCommands()
+  for pt in query[[
+      from tp = index.pages("meta/template/page")
+      where tp.command
+      order by tp.priority desc
+    ]] do
+    command.define {
+      name = pt.command,
+      key = pt.key,
+      mac = pt.mac,
+      requireMode = "rw",
+      run = function()
+        local pageName
+        if pt.suggestedName then
+          pageName = (template.new(pt.suggestedName))()
+        end
+        if pt.confirmName != false then
+          pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
+        end
+        if pageName == "" then
+          editor.flashNotification("No page name given for '" .. pt.command .. "', unable to continue.", "error")
+          return
+        end
+        template.createPageFromTemplate(pt.name, pageName, pt.openIfExists)
       end
-      if pt.confirmName != false then
-        pageName = string.trim(some(editor.prompt("Page name", pageName)) or "")
-      end
-      if pageName == "" then
-        editor.flashNotification("No page name given for '" .. pt.command .. "', unable to continue.", "error")
-        return
-      end
-      template.createPageFromTemplate(pt.name, pageName, pt.openIfExists)
-    end
-  }
+    }
+  end
 end
+
+definePageTemplateCommands()
+event.listen {
+  name = "index:ready",
+  run = definePageTemplateCommands
+}
 
 local function cleanName(path)
   local parts = path:split("/")

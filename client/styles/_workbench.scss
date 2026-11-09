@@ -425,6 +425,10 @@
   }
 
   .sb-wb-block-name {
+    .sb-wb-chip {
+      margin-left: 6px;
+    }
+
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

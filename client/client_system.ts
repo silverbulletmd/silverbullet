@@ -1,3 +1,4 @@
+import { throttle } from "@silverbulletmd/silverbullet/lib/async";
 import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type { SilverBulletHooks } from "@silverbulletmd/silverbullet/type/manifest";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
@@ -86,6 +87,7 @@ import type { ILuaFunction } from "./space_lua/runtime.ts";
 import { setBoundaryBudgetFactory } from "./space_lua/runtime.ts";
 import { luaSyscalls } from "./space_lua/syscalls.ts";
 import { SpaceLuaEnvironment } from "./space_lua.ts";
+import type { Tooling } from "./tooling_fetch.ts";
 import type { Command } from "./types/command.ts";
 import {
   querySlashCommand,
@@ -114,6 +116,9 @@ export function wirePerFileEvents(hook: EventHook): void {
     );
   }
 }
+
+/** Config keys `applyScriptDefinitions` reads. */
+const definitionKeys = new Set(["commands", "slashCommands", "codeWidgets"]);
 
 export class ClientSystem {
   system!: System<SilverBulletHooks>;
@@ -160,11 +165,7 @@ export class ClientSystem {
       ),
     });
 
-    this.spaceLuaEnv = new SpaceLuaEnvironment(
-      this.system,
-      objectIndex,
-      this.client,
-    );
+    this.spaceLuaEnv = new SpaceLuaEnvironment(this.system, this.client);
     this.pageScopes = new PageScopes({
       readPageText: async (name) => {
         try {
@@ -244,10 +245,13 @@ export class ClientSystem {
 
     this.system.addHook(new SyscallHook());
 
+    // Scripts and styles don't come from the index, so a finished index only
+    // needs the editor's index-backed parts redone.
     this.eventHook.addLocalListener("editor:reloadState", async () => {
       this.pageScopes.clear();
-      await this.reloadState();
+      await this.refreshAfterIndex();
     });
+    this.watchScriptDefinitions(this.client.config);
 
     const onPageChanged = (page: string) => this.pageScopes.pageChanged(page);
     this.eventHook.addLocalListener("page:saved", (page: string) =>
@@ -343,13 +347,16 @@ export class ClientSystem {
     }
   }
 
-  async loadLuaScripts(): Promise<void> {
+  /** Runs `tooling`'s scripts; without it, fetches `/.tooling` first. */
+  async loadLuaScripts(tooling?: Tooling): Promise<void> {
     if (this.loadLuaScriptsInFlight) {
       return this.loadLuaScriptsInFlight;
     }
-    this.loadLuaScriptsInFlight = this.loadLuaScriptsImpl().finally(() => {
-      this.loadLuaScriptsInFlight = undefined;
-    });
+    this.loadLuaScriptsInFlight = this.loadLuaScriptsImpl(tooling).finally(
+      () => {
+        this.loadLuaScriptsInFlight = undefined;
+      },
+    );
     return this.loadLuaScriptsInFlight;
   }
 
@@ -359,21 +366,17 @@ export class ClientSystem {
     await this.loadLuaScripts();
   }
 
-  private async loadLuaScriptsImpl() {
+  private async loadLuaScriptsImpl(tooling?: Tooling) {
     if (this.client.bootConfig.disableSpaceLua) {
       console.info("Space Lua scripts are disabled, skipping loading scripts");
       return;
     }
-    if (!(await this.objectIndex.isIndexAvailable())) {
-      console.info(
-        "Not loading space scripts, since no index is available yet",
-      );
-      return;
-    }
+    const scripts =
+      (tooling ?? (await this.client.fetchTooling()))?.scripts ?? [];
     this.client.config.clear();
     clearScriptViews();
     try {
-      await this.spaceLuaEnv.reload();
+      await this.spaceLuaEnv.reload(scripts);
       // Only after a complete reload: a partial config would look like removed decorations
       this.objectIndex.reindexChangedTagDecorations().catch((e) => {
         console.error("Could not re-index pages for tag decorations:", e);
@@ -407,6 +410,35 @@ export class ClientSystem {
       this.lastNotifiedQuarantineRefs = null;
     }
 
+    this.applyScriptDefinitions();
+    this.mqHook.throttledReloadQueues();
+
+    setViewDefaults(resolveViewDefaults(this.client.config));
+
+    this.scriptsLoaded = true;
+    recordMark("sb:scripts-loaded");
+    this.client.maybeDispatchWidgetsReady();
+  }
+
+  /**
+   * Definitions made after a load (from `index:ready` or any other listener,
+   * a command, the console) go live without a reload, in one throttled
+   * rebuild. A load in flight applies them itself when done.
+   */
+  private watchScriptDefinitions(config: Config) {
+    const apply = throttle(() => {
+      if (!this.loadLuaScriptsInFlight) this.applyScriptDefinitions();
+    }, 200);
+    config.onChange((path) => {
+      if (definitionKeys.has(path[0])) apply();
+    });
+  }
+
+  /**
+   * Makes the commands, slash commands and code widgets scripts defined live,
+   * including those defined after loading.
+   */
+  applyScriptDefinitions() {
     this.scriptCommands.clear();
     for (const [name, command] of Object.entries(
       this.client.config.get<Record<string, Command>>("commands", {}),
@@ -427,13 +459,6 @@ export class ClientSystem {
 
     this.commandHook.throttledBuildAllCommandsAndEmit();
     this.slashCommandHook.throttledBuildAllCommands();
-    this.mqHook.throttledReloadQueues();
-
-    setViewDefaults(resolveViewDefaults(this.client.config));
-
-    this.scriptsLoaded = true;
-    recordMark("sb:scripts-loaded");
-    this.client.maybeDispatchWidgetsReady();
   }
 
   async loadPlugFromPath(path: string, lastModified: number) {
@@ -507,10 +532,21 @@ export class ClientSystem {
     console.log(
       "Now loading space scripts, custom styles and rebuilding editor state",
     );
-    await this.loadLuaScripts();
+    await this.reloadTooling();
+    await this.refreshAfterIndex();
+  }
+
+  /** Fetches `/.tooling` once, then loads its scripts and applies its styles. */
+  public async reloadTooling() {
+    const tooling = await this.client.fetchTooling();
+    await this.loadLuaScripts(tooling);
     // Before the docks: opening a docked view can be slow or fail, and the
     // page shouldn't wait unstyled for it
-    await this.client.loadCustomStyles();
+    this.client.loadCustomStyles(tooling);
+  }
+
+  /** What `reloadState` does once scripts and styles are loaded. */
+  public async refreshAfterIndex() {
     await restoreDocks().catch((e) =>
       console.error("Could not restore docked views:", e),
     );

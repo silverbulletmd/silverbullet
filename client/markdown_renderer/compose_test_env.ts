@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { extractSpaceLuaFromPageText } from "../boot_config.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 import { viewRowsMarkdown } from "../navigator/rows_markdown.ts";
 import type { Space } from "../space.ts";
 import { evalStatement } from "../space_lua/eval.ts";

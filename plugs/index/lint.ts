@@ -13,6 +13,10 @@ import type {
   LintDiagnostic,
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
+import {
+  findToolBlocks,
+  isToolPage,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
 import YAML from "js-yaml";
 import { isValidAnchorName } from "./anchor.ts";
 import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
@@ -170,7 +174,7 @@ function lintYamlBlock(
  * Lint Lua code in fenced code blocks
  * @returns A list of LintDiagnostics for any errors found
  */
-export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
+export async function lintLua({ tree, name }: LintEvent): Promise<LintDiagnostic[]> {
   const diagnostics: LintDiagnostic[] = [];
   await traverseTreeAsync(tree, async (node) => {
     if (node.type === "FencedCode") {
@@ -179,7 +183,12 @@ export async function lintLua({ tree }: LintEvent): Promise<LintDiagnostic[]> {
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
-      if (codeLang !== "space-lua" && codeLang !== "page-lua") {
+      // space-lua only runs on Tool Pages; elsewhere it is an example, and
+      // fragments like a bare query[[...]] are not valid chunks.
+      const runs =
+        codeLang === "page-lua" ||
+        (codeLang === "space-lua" && isToolPage(name));
+      if (!runs) {
         return true;
       }
       const codeText = findNodeOfType(node, "CodeText");
@@ -626,4 +635,31 @@ export async function lintRefTags({
     }
   }
   return withSource("ref-tags", diagnostics);
+}
+
+/**
+ * Warn about space-lua and space-style blocks that are never loaded because
+ * the page is not a tool page. Commented-out blocks are disabled on purpose.
+ */
+export async function lintInactiveBlocks({
+  tree,
+  name,
+  text,
+}: LintEvent): Promise<LintDiagnostic[]> {
+  if (isToolPage(name) || !(await config.get("lint.inactiveBlocks", true))) {
+    return [];
+  }
+  return withSource(
+    "tooling",
+    findToolBlocks(tree).map(({ from, to }): LintDiagnostic => {
+      const lineEnd = text.indexOf("\n", from);
+      return {
+        from,
+        to: lineEnd === -1 || lineEnd > to ? to : lineEnd,
+        severity: "warning",
+        message:
+          "Not loaded: scripts and styles only run from pages under Library/ or CONFIG.",
+      };
+    }),
+  );
 }

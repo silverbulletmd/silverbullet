@@ -5,16 +5,16 @@ import {
   exportKey,
   importKey,
 } from "@silverbulletmd/silverbullet/lib/crypto";
-import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
-import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
-import type { KvPrimitives } from "./data/kv_primitives.ts";
-import { initLogger } from "./lib/logger.ts";
 import {
   handleShareTarget,
   isShareTarget,
   refreshShareEligibility,
 } from "./capture/intake.ts";
 import { openCaptureStore } from "./capture/store.ts";
+import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
+import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
+import type { KvPrimitives } from "./data/kv_primitives.ts";
+import { initLogger } from "./lib/logger.ts";
 import { WorkerLogout } from "./service_worker/logout.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
 import { SyncEngine } from "./service_worker/sync_engine.ts";
@@ -23,6 +23,7 @@ import { fsEndpoint } from "./spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import { decodeSafetyText } from "./sync_recovery.ts";
+import { deleteToolingCaches, isToolingCacheName } from "./tooling_cache.ts";
 import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
@@ -101,6 +102,10 @@ const workerLogout = new WorkerLogout(
     encryptionKeyMemoryStore = undefined;
     proxyRouter.reset();
     await (await captureStore).destroy();
+    // Must not stop the unregistration below
+    await deleteToolingCaches().catch((e) =>
+      console.error("Could not delete cached tool pages:", e),
+    );
     // @ts-expect-error: service worker API
     await self.registration.unregister();
   },
@@ -176,6 +181,9 @@ self.addEventListener("message", async (event: any) => {
     }
     case "wipe-data": {
       await (await captureStore).clear();
+      await deleteToolingCaches().catch((e) =>
+        console.error("Could not delete cached tool pages:", e),
+      );
       if (proxyRouter.syncEngine) {
         await proxyRouter.syncEngine.wipe();
         broadcastMessage({
@@ -564,7 +572,7 @@ self.addEventListener("activate", (event: any) => {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName !== CACHE_NAME && !isToolingCacheName(cacheName)) {
             console.log("Removing old cache", cacheName);
             return caches.delete(cacheName);
           }

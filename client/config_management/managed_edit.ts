@@ -192,6 +192,7 @@ export function applyManagedChanges(
     writes: [
       ...Object.entries(changes.config?.set ?? {}).map(([path, value]) => ({
         key: configKey(path),
+        // CONFIG blocks are boot blocks, so no `-- boot: true` marker is needed
         statement: `config.set(${toLua(path)}, ${toLua(value)})`,
       })),
       ...Object.entries(changes.commands?.set ?? {}).map(

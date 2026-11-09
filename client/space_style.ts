@@ -1,16 +1,14 @@
-import type { StyleObject } from "../plugs/index/space_style.ts";
 import type { Client } from "./client.ts";
-import { parseExpressionString } from "./space_lua/parse.ts";
+import type { ToolBlock } from "./tooling.ts";
 
 /**
  * A `space-style` block in the last load. `rules`: how many top-level rules
- * the browser parsed from it. `priority` is unset when the block sets none;
- * such blocks sort before every prioritized one.
+ * the browser parsed from it.
  */
 export type StyleRecord = {
   ref: string;
   source: string;
-  priority?: number;
+  priority: number;
   rules: number;
 };
 
@@ -30,32 +28,16 @@ export class SpaceStyles {
     return () => this.listeners.delete(fn);
   }
 
-  async load(): Promise<void> {
+  /** Applies `spaceStyles`, which come already in load order. */
+  load(spaceStyles: ToolBlock[]): void {
     const { client } = this;
     if (client.bootConfig.disableSpaceStyle) {
       console.warn("Not loading custom styles, since space style is disabled");
       return;
     }
-    if (!(await client.objectIndex.isIndexAvailable())) {
-      console.warn(
-        "Not loading custom styles, since no index is available yet",
-      );
-      return;
-    }
-
-    const spaceStyles = await client.queryLuaObjects<StyleObject>(
-      "space-style",
-      {
-        objectVariable: "_",
-        orderBy: [{ expr: parseExpressionString("_.priority"), desc: true }],
-      },
-    );
-    if (!spaceStyles) {
-      return;
-    }
 
     const customStylesContent = spaceStyles
-      .map((s) => `<style>${s.style}</style>`)
+      .map((s) => `<style>${s.code}</style>`)
       .join("\n\n");
     client.ui.viewDispatch({
       type: "set-ui-option",
@@ -70,7 +52,7 @@ export class SpaceStyles {
     this.lastLoad = {
       styles: spaceStyles.map((s, i) => ({
         ref: s.ref,
-        source: s.style,
+        source: s.code,
         priority: s.priority,
         rules: sheets[i]?.sheet?.cssRules.length ?? 0,
       })),

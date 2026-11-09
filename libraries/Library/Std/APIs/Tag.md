@@ -74,6 +74,7 @@ Shortcut for `index.objects("<name>")`: all indexed objects with that tag.
 
 ```space-lua
 -- priority: 50
+-- boot: true
 tag = tag or {}
 
 --- Defines a tag, or merges `spec` into an existing definition with the same name.

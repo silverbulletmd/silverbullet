@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { extractSpaceLuaFromPageText } from "../boot_config.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 import { evalStatement } from "./eval.ts";
 import { parseBlock } from "./parse.ts";
 import {

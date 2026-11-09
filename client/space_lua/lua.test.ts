@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { readdirSync, readFileSync } from "node:fs";
 import { validateObject } from "../plugos/syscalls/jsonschema.ts";
-import { extractSpaceLuaFromPageText } from "../boot_config.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

@@ -4,7 +4,7 @@ import {
 } from "@silverbulletmd/silverbullet/constants";
 import { safeRun } from "@silverbulletmd/silverbullet/lib/async";
 import { applyCachedFonts } from "@silverbulletmd/silverbullet/lib/fonts";
-import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { loadConfig } from "./boot_config.ts";
 import { loadBootFiles } from "./boot_fetch.ts";
 import { Client } from "./client.ts";
 import type { Config } from "./config.ts";
@@ -21,6 +21,13 @@ import { BoxProxy } from "./lib/box_proxy.ts";
 import type { BootConfig } from "./types/ui.ts";
 import "./debug.ts";
 import { recordMark } from "./lib/perf.ts";
+import { bootBlocks } from "./tooling.ts";
+import { bootToolingCache } from "./tooling_cache.ts";
+import {
+  fetchTooling,
+  resolveBootTooling,
+  type Tooling,
+} from "./tooling_fetch.ts";
 import { consoleLog } from "./workbench/console/console_log.ts";
 
 // Initialize the runtime-bridge namespace. `??=` preserves any value an
@@ -92,33 +99,31 @@ safeRun(async () => {
   let config: Config | undefined;
   // Placeholder proxy for Client object to be swapped in later
   const clientProxy = new BoxProxy({});
-  let bootstrapLuaScriptPages: string[] = [];
+  // Alongside the boot config, which decides what a failed fetch falls back to
+  const toolingFetch = fetchTooling(globalThis.fetch.bind(globalThis)).catch(
+    (e: Error) => e,
+  );
+  let tooling: Tooling | undefined;
   try {
-    const { configText, pageTexts } = await loadBootFiles(
-      ".config",
-      [
-        ".fs/Library/Std/APIs/Schema.md",
-        ".fs/Library/Std/Config.md",
-        ".fs/Library/Std/APIs/Tag.md",
-        ".fs/CONFIG.md",
-      ],
-      {
-        fetch: globalThis.fetch.bind(globalThis),
-        storage: localStorage,
-        cacheKeyPrefix: `silverbullet.${document.baseURI}.`,
-        logoutInProgress,
-        resetAndReload: async () => {
-          await unregisterServiceWorkers();
-          console.log("Ok, now going to reload, let's hope for the best");
-          location.reload();
-        },
-        navigate: (url) => {
-          location.href = url;
-        },
+    const { configText } = await loadBootFiles(".config", {
+      fetch: globalThis.fetch.bind(globalThis),
+      storage: localStorage,
+      cacheKeyPrefix: `silverbullet.${document.baseURI}.`,
+      logoutInProgress,
+      resetAndReload: async () => {
+        await unregisterServiceWorkers();
+        console.log("Ok, now going to reload, let's hope for the best");
+        location.reload();
       },
-    );
-    bootstrapLuaScriptPages = pageTexts;
+      navigate: (url) => {
+        location.href = url;
+      },
+    });
     bootConfig = JSON.parse(configText);
+    tooling = await resolveBootTooling(
+      await toolingFetch,
+      bootToolingCache(!!bootConfig!.enableClientEncryption, document.baseURI),
+    );
     if (!navigator.serviceWorker) bootConfig!.disableServiceWorker = true;
     if (!globalThis.isSecureContext) bootConfig!.enableClientEncryption = false;
   } catch (e: any) {
@@ -141,33 +146,16 @@ safeRun(async () => {
     return;
   }
   try {
+    // Blocks run isolated: one that fails to parse or run is logged and skipped
     config = await loadConfig(
-      bootstrapLuaScriptPages.map(extractSpaceLuaFromPageText).join("\n"),
+      bootBlocks(tooling?.scripts ?? []),
       clientProxy.buildProxy(),
       !!bootConfig?.readOnly,
     );
   } catch (e: any) {
-    alert(
-      `Failed to run Space Lua code (likely CONFIG), will attempt to boot without. Error: ${e.message}`,
-    );
-    console.error("Error evaluating Space Lua script on boot:", e);
-    try {
-      config = await loadConfig(
-        // Everything but CONFIG (at the end)
-        bootstrapLuaScriptPages
-          .slice(0, bootstrapLuaScriptPages.length - 1)
-          .map(extractSpaceLuaFromPageText)
-          .join("\n"),
-        clientProxy.buildProxy(),
-        false,
-      );
-    } catch (e: any) {
-      console.error("Boot error", e);
-      alert(
-        "Could not load boot scripts, even without CONFIG, check your browser's logs",
-      );
-      return;
-    }
+    console.error("Boot error", e);
+    alert("Could not load boot scripts, check your browser's logs");
+    return;
   }
 
   let encryptionKey: CryptoKey | undefined;
@@ -297,6 +285,7 @@ safeRun(async () => {
     document.getElementById("sb-root")!,
     bootConfig!,
     config!,
+    tooling,
   );
   if (bootConfig!.logPush) {
     setInterval(() => {

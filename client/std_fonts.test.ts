@@ -4,7 +4,8 @@ import {
   type FontEntry,
 } from "@silverbulletmd/silverbullet/lib/fonts";
 import { expect, test } from "vitest";
-import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { loadConfig } from "./boot_config.ts";
+import { extractSpaceLuaFromPageText } from "./space_lua_blocks_test_util.ts";
 
 async function stdConfig(extraLua = "") {
   const lua = [
@@ -13,7 +14,7 @@ async function stdConfig(extraLua = "") {
   ]
     .map((path) => extractSpaceLuaFromPageText(readFileSync(path, "utf8")))
     .join("\n");
-  return loadConfig(`${lua}\n${extraLua}`, {}, false);
+  return loadConfig([{ ref: "test", code: `${lua}\n${extraLua}` }], {}, false);
 }
 
 test("Std registers the built-in fonts, with only the code font defaulted", async () => {

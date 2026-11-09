@@ -1,8 +1,8 @@
 import {
-  collectNodesOfType,
-  findNodeOfType,
-  type ParseTree,
-} from "@silverbulletmd/silverbullet/lib/tree";
+  findToolBlocks,
+  isToolPage,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   ObjectValue,
   PageMeta,
@@ -18,33 +18,19 @@ export function indexSpaceLua(
   pageMeta: PageMeta,
   _frontmatter: FrontMatter,
   tree: ParseTree,
-) {
-  const allSpaceLuas: SpaceLuaObject[] = [];
-  collectNodesOfType(tree, "FencedCode").map((t) => {
-    const codeInfoNode = findNodeOfType(t, "CodeInfo");
-    if (!codeInfoNode) {
-      return;
-    }
-    const fenceType = codeInfoNode.children![0].text!;
-    if (fenceType !== "space-lua") {
-      return;
-    }
-    const codeTextNode = findNodeOfType(t, "CodeText");
-    if (!codeTextNode) {
-      // Honestly, this shouldn't happen
-      return;
-    }
-    const codeText = codeTextNode.children![0].text!;
-    // Parse out "-- priority: <number>"
-    const priority = codeText.match(/--\s*priority:\s*(-?\d+)/)?.[1];
-
-    allSpaceLuas.push({
-      ref: `${pageMeta.name}@${t.from!}`,
-      tag: "space-lua",
-      range: [codeTextNode.from!, codeTextNode.to!],
-      script: codeText,
-      ...(priority !== undefined ? { priority: +priority } : {}),
-    });
-  });
-  return Promise.resolve(allSpaceLuas);
+): Promise<SpaceLuaObject[]> {
+  if (!isToolPage(pageMeta.name)) {
+    return Promise.resolve([]);
+  }
+  return Promise.resolve(
+    findToolBlocks(tree)
+      .filter((b) => b.fence === "space-lua")
+      .map((b) => ({
+        ref: `${pageMeta.name}@${b.from}`,
+        tag: "space-lua",
+        range: [b.codeFrom, b.codeTo],
+        script: b.code,
+        ...(b.priority !== undefined ? { priority: b.priority } : {}),
+      })),
+  );
 }

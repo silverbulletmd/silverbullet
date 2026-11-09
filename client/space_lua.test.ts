@@ -2,6 +2,7 @@ import { expect, test, vi } from "vitest";
 import { System } from "./plugos/system.ts";
 import { luaDefinitionRef, SpaceLuaEnvironment } from "./space_lua.ts";
 import { evalExpression } from "./space_lua/eval.ts";
+import type { ToolBlock } from "./tooling.ts";
 import { quarantine } from "./space_lua/quarantine.ts";
 import { parseBlock } from "./space_lua/parse.ts";
 import type { LuaFunctionCallStatement } from "./space_lua/ast.ts";
@@ -12,6 +13,34 @@ import {
   LuaStackFrame,
   luaValueToJS,
 } from "./space_lua/runtime.ts";
+
+function block(ref: string, code: string, priority = 0): ToolBlock {
+  const [page, pos] = ref.split("@");
+  return { ref, page, pos: Number(pos), code, priority, boot: false };
+}
+
+test("reload runs blocks in the given order, past a failing one", async () => {
+  vi.stubGlobal("localStorage", {
+    getItem: () => null,
+    setItem: () => {},
+  });
+  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  const env = new SpaceLuaEnvironment(new System());
+
+  await env.reload([
+    block("B1@0", "order = 'b1'; nil_value.y = 2"),
+    block("B2@0", "order = order .. ',b2'"),
+  ]);
+
+  expect(env.env.get("order")).toBe("b1,b2");
+  expect(env.lastLoad!.scripts.map((s) => [s.ref, s.status])).toEqual([
+    ["B1@0", "failed"],
+    ["B2@0", "loaded"],
+  ]);
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 test("Lua definition references survive conversion to JavaScript", () => {
   const block = parseBlock("_(function() return 1 end)", {
@@ -45,10 +74,10 @@ test("Builtins and ordinary JavaScript functions have no Lua definition", () => 
 
 test("reload records each script's outcome in load order", async () => {
   const scripts = [
-    { ref: "Alpha@0", script: "x = 1", priority: 10 },
-    { ref: "Beta@5", script: "nil_value.y = 2" },
-    { ref: "Gamma@9", script: "y = x + 1" },
-    { ref: "Delta@20", script: "while true do end" },
+    block("Alpha@0", "x = 1", 10),
+    block("Beta@5", "nil_value.y = 2"),
+    block("Gamma@9", "y = x + 1"),
+    block("Delta@20", "while true do end"),
   ];
   const memory = new Map<string, string>();
   vi.stubGlobal("localStorage", {
@@ -56,14 +85,13 @@ test("reload records each script's outcome in load order", async () => {
     setItem: (k: string, v: string) => memory.set(k, v),
   });
   quarantine("Delta@20", "while true do end");
-  const objectIndex = { queryLuaObjects: async () => scripts };
-  const env = new SpaceLuaEnvironment(new System(), objectIndex as any);
+  const env = new SpaceLuaEnvironment(new System());
   const loads: unknown[] = [];
   env.onLoad((load) => loads.push(load));
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "log").mockImplementation(() => {});
 
-  await env.reload();
+  await env.reload(scripts);
 
   const load = env.lastLoad!;
   expect(loads).toEqual([load]);
@@ -88,11 +116,9 @@ test("while scripts reload, the previous environment stays in use until all have
     getItem: (k: string) => memory.get(k) ?? null,
     setItem: (k: string, v: string) => memory.set(k, v),
   });
-  let scripts = [{ ref: "Defs@0", script: "late = 1" }];
-  const objectIndex = { queryLuaObjects: async () => scripts };
-  const sle = new SpaceLuaEnvironment(new System(), objectIndex as any);
+  const sle = new SpaceLuaEnvironment(new System());
   vi.spyOn(console, "log").mockImplementation(() => {});
-  await sle.reload();
+  await sle.reload([block("Defs@0", "late = 1")]);
   expect(sle.env.get("late")).toBe(1);
 
   // A failing script logs mid-reload: look at what a render would see then
@@ -100,11 +126,10 @@ test("while scripts reload, the previous environment stays in use until all have
   vi.spyOn(console, "error").mockImplementation(() => {
     seen.push(sle.env.get("late"));
   });
-  scripts = [
-    { ref: "Broken@0", script: "nil_value.y = 2", priority: 10 } as any,
-    { ref: "Defs@0", script: "late = 2" },
-  ];
-  await sle.reload();
+  await sle.reload([
+    block("Broken@0", "nil_value.y = 2", 10),
+    block("Defs@0", "late = 2"),
+  ]);
   expect(seen).toEqual([1]);
   expect(sle.env.get("late")).toBe(2);
 });

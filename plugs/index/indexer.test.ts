@@ -161,12 +161,30 @@ describe("inComment", () => {
     expect(objects.some((o: any) => o.tag === "space-style")).toBe(false);
   });
 
+  test("space-lua and space-style are indexed only on tool pages", async () => {
+    createMockSystem();
+    const text =
+      "```space-lua\nx = 1\n```\n\n```space-style\nbody { color: red }\n```\n";
+    const notes = await indexMarkdown(text, {
+      ...defaultPageMeta,
+      name: "Notes",
+    });
+    expect(notes.some((o: any) => o.tag === "space-lua")).toBe(false);
+    expect(notes.some((o: any) => o.tag === "space-style")).toBe(false);
+    const lib = await indexMarkdown(text, {
+      ...defaultPageMeta,
+      name: "Library/A",
+    });
+    expect(lib.some((o: any) => o.tag === "space-lua")).toBe(true);
+    expect(lib.some((o: any) => o.tag === "space-style")).toBe(true);
+  });
+
   test("the same blocks outside a comment are still indexed", async () => {
     createMockSystem();
-    const objects = await indexMarkdown(
-      "```space-lua\nx = 1\n```\n",
-      defaultPageMeta,
-    );
+    const objects = await indexMarkdown("```space-lua\nx = 1\n```\n", {
+      ...defaultPageMeta,
+      name: "Library/A",
+    });
     expect(objects.some((o: any) => o.tag === "space-lua")).toBe(true);
   });
 

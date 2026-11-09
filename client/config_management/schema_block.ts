@@ -107,6 +107,7 @@ export function applySchemaChanges(
       writes: [
         ...Object.entries(changes.define).map(([tag, schema]) => ({
           key: defineKey(tag),
+          // CONFIG blocks are boot blocks, so no `-- boot: true` marker is needed
           statement: defineStatement(tag, schema),
           replace: (st: ScannedStatement, inner: string) =>
             st.kind === "define" &&

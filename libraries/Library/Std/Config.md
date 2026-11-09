@@ -1,10 +1,9 @@
 ---
 description: Defines the schemas and built-in values of built-in configuration options
-tags: meta
 ---
 SilverBullet uses the [config APIs](https://docs.silverbullet.md/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your `CONFIG` page for this purpose.
 
-This meta page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your CONFIG page (use `space-lua` instead of `lua` in your actual page):
+This tool page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your CONFIG page (use `space-lua` instead of `lua` in your actual page):
 
 ```lua
 config.set("sync.documents", true)
@@ -16,6 +15,7 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 
 ```space-lua
 -- priority: 100
+-- boot: true
 
 -- UI categories for the configuration manager, listed in display order.
 config.defineCategory {
@@ -203,6 +203,13 @@ config.define("shortWikiLinks", {
   type = "boolean",
   default = true,
   ui = { category = "Editor", label = "Short wiki links", priority = 1 },
+})
+
+config.define("lint.inactiveBlocks", {
+  description = "Warn about space-lua and space-style blocks on pages outside Library/ and CONFIG, where they are not loaded",
+  type = "boolean",
+  default = true,
+  ui = { category = "Editor", label = "Warn about scripts outside Library/" },
 })
 
 config.define("linkWriteFormat", {
@@ -618,6 +625,7 @@ Default values that cannot be expressed as schema defaults (e.g. because they co
 
 ```space-lua
 -- priority: 99
+-- boot: true
 config.set("actionButtons", {
   {
     icon = "home",

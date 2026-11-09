@@ -151,6 +151,7 @@ export function BlockRow({
   status,
   statusTitle,
   numbers,
+  marker,
   onOpen,
 }: {
   block: SpaceBlock;
@@ -159,6 +160,8 @@ export function BlockRow({
   status: string;
   statusTitle: string;
   numbers: [ComponentChildren, ComponentChildren];
+  /** Shown after the name, e.g. a chip. */
+  marker?: ComponentChildren;
   onOpen: () => void;
 }) {
   return (
@@ -179,6 +182,7 @@ export function BlockRow({
         {label.pos !== undefined ? (
           <span className="sb-wb-muted">@{label.pos}</span>
         ) : null}
+        {marker}
       </span>
       <span className="sb-wb-num" role="cell">
         {numbers[0]}

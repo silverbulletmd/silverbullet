@@ -11,6 +11,7 @@ import { fsEndpoint } from "../spaces/constants.ts";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import { buildLocalFileResponse } from "./byte_range.ts";
 import type { SyncEngine } from "./sync_engine.ts";
+import { buildToolingPayload } from "./tooling_payload.ts";
 
 // The server surfaces every space carries under its own base path. This worker
 // can answer exactly two of them for its OWN space — `.client` from the
@@ -29,8 +30,9 @@ const spaceSurfaces = [
   "/.logs",
   "/.revisions",
   "/.accounts",
+  "/.tooling",
 ];
-const locallyServed = ["/.client", "/.fs"];
+const locallyServed = ["/.client", "/.fs", "/.tooling"];
 
 // Always straight to the server: the space surfaces we have no local answer
 // for, plus the server-wide ones, which only ever exist at the origin root.
@@ -365,6 +367,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             );
           } else if (pathname.startsWith(fsEndpoint)) {
             return this.handleRequest(pathname, request);
+          } else if (pathname === "/.tooling" && request.method === "GET") {
+            return await this.handleTooling();
           } else {
             if (request.mode === "navigate" && this.online) {
               try {
@@ -393,6 +397,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         }
       })(),
     );
+  }
+
+  async handleTooling(): Promise<Response> {
+    const payload = await buildToolingPayload(this.localSpacePrimitives!);
+    return new Response(JSON.stringify(payload), {
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   handleRequest(pathname: string, request: Request): Promise<Response> {

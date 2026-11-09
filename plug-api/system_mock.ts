@@ -60,7 +60,7 @@ export function createMockSystem() {
 
   const clientSystemMock: any = {
     system: system,
-    spaceLuaEnv: new SpaceLuaEnvironment(system, objectIndex),
+    spaceLuaEnv: new SpaceLuaEnvironment(system),
   };
   clientMock.clientSystem = clientSystemMock;
 

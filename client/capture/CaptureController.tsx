@@ -84,8 +84,9 @@ export function CaptureController({ client, initialId }: Props) {
     };
     const timer = setInterval(check, 250);
     check();
-    const reload = async () => {
-      await client.clientSystem.loadLuaScripts();
+    // Scripts load at boot, not from the index; a finished index only needs
+    // a fresh look at the captures.
+    const reload = () => {
       setRevision((value) => value + 1);
       setReady(true);
     };

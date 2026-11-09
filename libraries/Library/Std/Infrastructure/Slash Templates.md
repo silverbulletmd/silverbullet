@@ -1,6 +1,5 @@
 ---
 description: Implements the infrastructure of Slash Templates.
-tags: meta
 ---
 Allows for quick definition of slash commands based on templates.
 
@@ -51,21 +50,30 @@ tag.define {
   }
 }
 
-for st in query[[
-    from index.pages("meta/template/slash")
-  ]] do
-  local components = st.name:split("/")
-  local name = components[#components]
-  slashCommand.define {
-    name = name,
-    description = st.description,
-    priority = st.priority,
-    onlyContexts = st.onlyContexts,
-    exceptContexts = st.exceptContexts,
-    run = function()
-      local tpl = template.fromPage(st.name, st.raw)
-      editor.insertAtCursor(tpl(), false, true)
-    end
-  }
+-- Again on index:ready: on a fresh client the index is still empty at load
+local function defineSlashTemplates()
+  for st in query[[
+      from index.pages("meta/template/slash")
+    ]] do
+    local components = st.name:split("/")
+    local name = components[#components]
+    slashCommand.define {
+      name = name,
+      description = st.description,
+      priority = st.priority,
+      onlyContexts = st.onlyContexts,
+      exceptContexts = st.exceptContexts,
+      run = function()
+        local tpl = template.fromPage(st.name, st.raw)
+        editor.insertAtCursor(tpl(), false, true)
+      end
+    }
+  end
 end
+
+defineSlashTemplates()
+event.listen {
+  name = "index:ready",
+  run = defineSlashTemplates
+}
 ```

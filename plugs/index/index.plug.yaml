@@ -187,6 +187,8 @@ functions:
       page: ""
       requireMode: rw
       requireEditor: page
+  batchRenameFiles:
+    path: "./refactor.ts:batchRenameFiles"
   renamePrefixCommand:
     path: "./refactor.ts:renamePrefixCommand"
     command:
@@ -226,6 +228,11 @@ functions:
 
   lintLua:
     path: lint.ts:lintLua
+    events:
+      - editor:lint
+
+  lintInactiveBlocks:
+    path: lint.ts:lintInactiveBlocks
     events:
       - editor:lint
 

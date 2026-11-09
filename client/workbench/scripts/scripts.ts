@@ -12,16 +12,21 @@ export const SCRIPT_STATUS_TITLES: Record<ScriptRecord["status"], string> = {
   quarantined: "Quarantined: skipped until re-enabled or edited",
 };
 
-export type ScriptFilter = "all" | "loaded" | "failed" | "quarantined";
+export type ScriptFilter = "all" | "loaded" | "failed" | "quarantined" | "boot";
 // A script stopped during this load is quarantined from the next one
-const FILTER_STATUSES: Record<Exclude<ScriptFilter, "all">, ScriptStatus[]> = {
+const FILTER_STATUSES: Record<
+  Exclude<ScriptFilter, "all" | "boot">,
+  ScriptStatus[]
+> = {
   loaded: ["loaded"],
   failed: ["failed"],
   quarantined: ["quarantined", "stopped"],
 };
 
 function matchesFilter(r: ScriptRecord, filter: ScriptFilter): boolean {
-  return filter === "all" || FILTER_STATUSES[filter].includes(r.status);
+  if (filter === "all") return true;
+  if (filter === "boot") return r.boot;
+  return FILTER_STATUSES[filter].includes(r.status);
 }
 
 /** The scripts that pass `filter` and whose ref contains `text`, still in load order. */
@@ -41,6 +46,7 @@ export function scriptCounts(
     loaded: scripts.filter((r) => matchesFilter(r, "loaded")).length,
     failed: scripts.filter((r) => matchesFilter(r, "failed")).length,
     quarantined: scripts.filter((r) => matchesFilter(r, "quarantined")).length,
+    boot: scripts.filter((r) => matchesFilter(r, "boot")).length,
   };
 }
 

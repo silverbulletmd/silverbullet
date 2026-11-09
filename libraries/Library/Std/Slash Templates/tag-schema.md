@@ -4,6 +4,7 @@ tags: meta/template/slash
 onlyContexts:
 - "FencedCode:space-lua"
 ---
+-- boot: true
 tag.define {
   name = "|^|",
   schema = {

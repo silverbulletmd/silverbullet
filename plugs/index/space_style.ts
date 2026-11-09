@@ -1,8 +1,8 @@
 import {
-  collectNodesOfType,
-  findNodeOfType,
-  type ParseTree,
-} from "@silverbulletmd/silverbullet/lib/tree";
+  findToolBlocks,
+  isToolPage,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
+import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   ObjectValue,
   PageMeta,
@@ -18,39 +18,19 @@ export function indexSpaceStyle(
   pageMeta: PageMeta,
   _frontmatter: FrontMatter,
   tree: ParseTree,
-) {
-  const allStyles: StyleObject[] = [];
-
-  // Also collect CSS from custom styles in config
-  collectNodesOfType(tree, "FencedCode").map((t) => {
-    const codeInfoNode = findNodeOfType(t, "CodeInfo");
-    if (!codeInfoNode) {
-      return;
-    }
-
-    const fenceType = codeInfoNode.children![0].text!;
-    if (fenceType !== "space-style") {
-      return;
-    }
-
-    const codeTextNode = findNodeOfType(t, "CodeText");
-    if (!codeTextNode) {
-      // Honestly, this shouldn't happen
-      return;
-    }
-    const codeText = codeTextNode.children![0].text!;
-
-    // Parse out /* priority: */
-    const priority = codeText.match(/\/\*+\s*priority:\s*(-?\d+)/)?.[1];
-
-    allStyles.push({
-      ref: `${pageMeta.name}@${t.from!}`,
-      tag: "space-style",
-      range: [codeTextNode.from!, codeTextNode.to!],
-      style: codeText,
-      ...(priority !== undefined ? { priority: +priority } : {}),
-    });
-  });
-
-  return Promise.resolve(allStyles);
+): Promise<StyleObject[]> {
+  if (!isToolPage(pageMeta.name)) {
+    return Promise.resolve([]);
+  }
+  return Promise.resolve(
+    findToolBlocks(tree)
+      .filter((b) => b.fence === "space-style")
+      .map((b) => ({
+        ref: `${pageMeta.name}@${b.from}`,
+        tag: "space-style",
+        range: [b.codeFrom, b.codeTo],
+        style: b.code,
+        ...(b.priority !== undefined ? { priority: b.priority } : {}),
+      })),
+  );
 }

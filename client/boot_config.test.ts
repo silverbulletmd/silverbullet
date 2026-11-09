@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
-import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { loadConfig } from "./boot_config.ts";
+import { extractSpaceLuaFromPageText } from "./space_lua_blocks_test_util.ts";
 
 test("Test boot config", () => {
   expect(
@@ -21,16 +22,21 @@ test("Test boot config", () => {
 });
 
 test("Test CONFIG lua eval", async () => {
-  let config = await loadConfig("", {}, false);
+  let config = await loadConfig([], {}, false);
   expect(config.values).toEqual({});
 
   config = await loadConfig(
-    `
+    [
+      {
+        ref: "CONFIG@0",
+        code: `
     config.set {
       option1 = "pete"
     }
     config.set("optionObj.nested", 5)
 `,
+      },
+    ],
     {},
     false,
   );
@@ -42,7 +48,10 @@ test("Test CONFIG lua eval", async () => {
   });
 
   config = await loadConfig(
-    `
+    [
+      {
+        ref: "CONFIG@0",
+        code: `
     config.set {
       option1 = "pete"
     }
@@ -52,6 +61,8 @@ test("Test CONFIG lua eval", async () => {
       config.set("optionObj.nested", 5)
     end
 `,
+      },
+    ],
     {},
     false,
   );
@@ -61,4 +72,29 @@ test("Test CONFIG lua eval", async () => {
       nested: 5,
     },
   });
+});
+
+test("loadConfig skips a boot block that fails to parse", async () => {
+  const config = await loadConfig(
+    [
+      { ref: "A@0", code: 'config.set("a", 1)' },
+      { ref: "B@0", code: "config.set(" },
+      { ref: "C@0", code: 'config.set("c", 3)' },
+    ],
+    {},
+    false,
+  );
+  expect(config.values).toEqual({ a: 1, c: 3 });
+});
+
+test("loadConfig keeps going after a runtime error in a block", async () => {
+  const config = await loadConfig(
+    [
+      { ref: "A@0", code: 'error("boom")\nconfig.set("a", 1)' },
+      { ref: "B@0", code: 'config.set("b", 2)' },
+    ],
+    {},
+    false,
+  );
+  expect(config.values).toEqual({ a: 1, b: 2 });
 });

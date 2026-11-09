@@ -444,3 +444,77 @@ test("a missing local cheap metadata probe is proxied with its mode intact", asy
     vi.stubGlobal("fetch", originalFetch);
   }
 });
+
+async function onFetchTooling(router: ProxyRouter): Promise<Response> {
+  const originalCaches = (globalThis as any).caches;
+  (globalThis as any).caches = { match: async () => undefined };
+  try {
+    let responsePromise: Promise<Response> | undefined;
+    router.onFetch({
+      request: new Request("http://localhost/.tooling"),
+      respondWith: (p: Promise<Response>) => {
+        responsePromise = p;
+      },
+    });
+    return await responsePromise!;
+  } finally {
+    (globalThis as any).caches = originalCaches;
+  }
+}
+
+function routerWithToolPage(): ProxyRouter {
+  const router = new ProxyRouter("", "http://localhost/", {});
+  router.localSpacePrimitives = {
+    fetchFileList: async () => [
+      { name: "CONFIG.md", lastModified: 5 },
+      { name: "Notes.md", lastModified: 6 },
+    ],
+    readFile: async (name: string) => ({
+      meta: {},
+      data: new TextEncoder().encode(`text of ${name}`),
+    }),
+  } as any;
+  router.syncEngine = {} as any;
+  return router;
+}
+
+test("/.tooling is answered locally once full sync is confirmed", async () => {
+  const router = routerWithToolPage();
+  (router as any).fullSyncConfirmed = true;
+  const fetchSpy = vi.fn();
+  vi.stubGlobal("fetch", fetchSpy);
+  try {
+    const resp = await onFetchTooling(router);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await resp.json()).toEqual([
+      { path: "CONFIG.md", lastModified: 5, text: "text of CONFIG.md" },
+    ]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("/.tooling is answered locally when the server is unreachable", async () => {
+  const router = routerWithToolPage();
+  const fetchSpy = vi.fn().mockRejectedValue(new Error("Offline"));
+  vi.stubGlobal("fetch", fetchSpy);
+  try {
+    const resp = await onFetchTooling(router);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect((await resp.json()).map((f: any) => f.path)).toEqual(["CONFIG.md"]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("/.tooling is proxied while online before the first sync", async () => {
+  const router = routerWithToolPage();
+  const fetchSpy = vi.fn().mockResolvedValue(new Response("[]"));
+  vi.stubGlobal("fetch", fetchSpy);
+  try {
+    await onFetchTooling(router);
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

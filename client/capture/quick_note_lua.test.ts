@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { expect, test } from "vitest";
-import { extractSpaceLuaFromPageText } from "../boot_config.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 import { evalStatement } from "../space_lua/eval.ts";
 import { parseBlock } from "../space_lua/parse.ts";
 import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";

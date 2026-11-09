@@ -1,5 +1,4 @@
 import type { System } from "./plugos/system.ts";
-import type { SpaceLuaObject } from "../plugs/index/space_lua.ts";
 import {
   LuaEnv,
   LuaFunction,
@@ -7,7 +6,7 @@ import {
   LuaRuntimeError,
   LuaStackFrame,
 } from "./space_lua/runtime.ts";
-import { parseBlock, parseExpressionString } from "./space_lua/parse.ts";
+import { parseBlock } from "./space_lua/parse.ts";
 import { evalStatement } from "./space_lua/eval.ts";
 import {
   encodeRef,
@@ -16,8 +15,6 @@ import {
 } from "@silverbulletmd/silverbullet/lib/ref";
 import type { ASTCtx } from "./space_lua/ast.ts";
 import { buildLuaEnv } from "./space_lua_api.ts";
-import type { LuaCollectionQuery } from "./space_lua/query_collection.ts";
-import type { ObjectIndex } from "./data/object_index.ts";
 import {
   BUSY_LIMIT_DEFAULT_MS,
   type LuaBudget,
@@ -34,6 +31,7 @@ import {
   offerStopNotification,
 } from "./space_lua/budget_ui.ts";
 import { recordMeasure } from "./lib/perf.ts";
+import type { ToolBlock } from "./tooling.ts";
 
 /** How running a space script went. */
 type ScriptOutcome =
@@ -46,10 +44,13 @@ type ScriptOutcome =
  * A space script in the last load. A quarantined script was skipped, so it
  * has no run time; the others record how long their run took.
  */
-export type ScriptRecord = { ref: string; source: string; priority: number } & (
-  | (ScriptOutcome & { ms: number })
-  | { status: "quarantined" }
-);
+export type ScriptRecord = {
+  ref: string;
+  source: string;
+  priority: number;
+  /** Runs in the early boot pre-pass too (`ToolBlock.boot`). */
+  boot: boolean;
+} & ((ScriptOutcome & { ms: number }) | { status: "quarantined" });
 
 export type ScriptStatus = ScriptRecord["status"];
 
@@ -76,13 +77,12 @@ export class SpaceLuaEnvironment {
 
   constructor(
     private system: System<any>,
-    private objectIndex: ObjectIndex,
     private client?: { ui: BudgetNotifier },
   ) {
     this.env = buildLuaEnv(system);
   }
 
-  private offerStop(script: SpaceLuaObject, budget: LuaBudget) {
+  private offerStop(script: ToolBlock, budget: LuaBudget) {
     if (!this.client) {
       return;
     }
@@ -90,7 +90,7 @@ export class SpaceLuaEnvironment {
       this.client.ui,
       `Lua script ${script.ref} has been running for a while`,
       budget,
-      () => quarantine(script.ref, script.script),
+      () => quarantine(script.ref, script.code),
     );
   }
 
@@ -111,12 +111,12 @@ export class SpaceLuaEnvironment {
 
   /** Runs one script in `env`, logging a failure the way script loading always has. */
   private async runScript(
-    script: SpaceLuaObject,
+    script: ToolBlock,
     env: LuaEnv,
     tl: LuaEnv,
   ): Promise<ScriptOutcome> {
     try {
-      const ast = parseBlock(script.script, { ref: script.ref });
+      const ast = parseBlock(script.code, { ref: script.ref });
       const scriptEnv = new LuaEnv(env);
       const budget = makeLuaBudget({
         busyLimitMs: BUSY_LIMIT_DEFAULT_MS,
@@ -146,7 +146,7 @@ export class SpaceLuaEnvironment {
         );
       } else {
         console.error(
-          `Error evaluating script: ${e.message} for script: ${script.script}`,
+          `Error evaluating script: ${e.message} for script: ${script.code}`,
           e,
         );
       }
@@ -154,29 +154,8 @@ export class SpaceLuaEnvironment {
     }
   }
 
-  /**
-   * Loads all Lua scripts from the database and evaluates them in a new environment
-   * @param system
-   */
-  async reload() {
-    const allScripts: SpaceLuaObject[] = await this.objectIndex.queryLuaObjects(
-      this.env,
-      "space-lua",
-      {
-        objectVariable: "script",
-        orderBy: [
-          {
-            expr: parseExpressionString("script.priority or 0"),
-            desc: true,
-            nulls: "first",
-          },
-          {
-            expr: parseExpressionString("script.ref"),
-            desc: false,
-          },
-        ],
-      } as LuaCollectionQuery,
-    );
+  /** Evaluates `allScripts`, in the order given, in a new environment. */
+  async reload(allScripts: ToolBlock[]) {
     reconcileQuarantine(allScripts.map((script) => script.ref));
     const records: ScriptRecord[] = [];
     const totalStart = performance.now();
@@ -190,10 +169,11 @@ export class SpaceLuaEnvironment {
       for (const script of allScripts) {
         const base = {
           ref: script.ref,
-          source: script.script,
-          priority: script.priority ?? 0,
+          source: script.code,
+          priority: script.priority,
+          boot: script.boot,
         };
-        if (isQuarantined(script.ref, script.script)) {
+        if (isQuarantined(script.ref, script.code)) {
           records.push({ ...base, status: "quarantined" });
           continue;
         }

@@ -1,8 +1,10 @@
 import { expect, test } from "vitest";
 import {
   blockLabels,
+  blockRank,
   blockSourceRef,
   blocksFrom,
+  currentBlockStart,
   originCounts,
 } from "./blocks.ts";
 
@@ -43,4 +45,33 @@ test("a block's source starts after its opening fence line", () => {
     type: "position",
     pos: 40 + "```space-style\n".length,
   });
+});
+
+test("a block is found again after the page above it changed", () => {
+  const fence = "```";
+  const page = (intro: string, b = ".b {}") =>
+    `# Styles\n${intro}\n${fence}space-style\n.a {}\n${fence}\n\n${fence}space-style\n${b}\n${fence}\n`;
+  const before = page("");
+  const bAt = before.indexOf(`${fence}space-style\n.b`);
+  const intro = "A new paragraph.\n\nAnother one.\n";
+  // Same code: found wherever it moved
+  const moved = page(intro);
+  expect(currentBlockStart(moved, "space-style", ".b {}", bAt, 1)).toBe(
+    moved.indexOf(".b {}"),
+  );
+  // Code edited too: the block at the same rank on the page
+  const edited = page(intro, ".b { color: red; }");
+  expect(currentBlockStart(edited, "space-style", ".b {}", bAt, 1)).toBe(
+    edited.indexOf(".b { color"),
+  );
+  // Only blocks of the same kind count
+  expect(
+    currentBlockStart(moved, "space-lua", ".b {}", bAt, 1),
+  ).toBeUndefined();
+});
+
+test("a block's rank counts the blocks before it on its page", () => {
+  expect(blockRank(blocks, "Scratch/Helpers@212")).toBe(1);
+  expect(blockRank(blocks, "Scratch/Helpers@0")).toBe(0);
+  expect(blockRank(blocks, "Journal@40")).toBe(0);
 });

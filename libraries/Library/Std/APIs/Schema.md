@@ -72,6 +72,7 @@ Marker for schema-typed values.
 
 ```space-lua
 -- priority: 101
+-- boot: true
 schema = schema or {}
 
 --- Schema for a string value.

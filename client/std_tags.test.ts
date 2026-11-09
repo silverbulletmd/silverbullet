@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { extractSpaceLuaFromPageText, loadConfig } from "./boot_config.ts";
+import { loadConfig } from "./boot_config.ts";
+import { extractSpaceLuaFromPageText } from "./space_lua_blocks_test_util.ts";
 
 const STD = "libraries/Library/Std";
 
@@ -14,7 +15,7 @@ async function stdTagConfig(extraLua = "", rootTags = true) {
   const lua = pages
     .map((path) => extractSpaceLuaFromPageText(readFileSync(path, "utf8")))
     .join("\n");
-  return loadConfig(`${lua}\n${extraLua}`, {}, false);
+  return loadConfig([{ ref: "test", code: `${lua}\n${extraLua}` }], {}, false);
 }
 
 test("built-in tags have icons", async () => {

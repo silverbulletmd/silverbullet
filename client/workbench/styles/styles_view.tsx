@@ -1,5 +1,5 @@
 import { useMemo } from "preact/hooks";
-import { openRef } from "../shared/action.ts";
+import { openBlockSource } from "../shared/action.ts";
 import {
   BlockNote,
   BlockRow,
@@ -8,7 +8,7 @@ import {
   useBlockFilter,
   useLoad,
 } from "../shared/block_ui.tsx";
-import { blockSourceRef, refMatches } from "../shared/blocks.ts";
+import { refMatches } from "../shared/blocks.ts";
 import type { TabProps } from "../tab.ts";
 import { type StyleStatus, styleStatus } from "./styles.ts";
 
@@ -32,17 +32,12 @@ export function StylesView({ client, focusTarget }: TabProps) {
     [styles],
   );
 
-  const openSource = async (ref: string) => {
-    const target = blockSourceRef(ref, "space-style");
-    if (target) await openRef(client, target);
-  };
-
   return (
     <div className="sb-workbench">
       <BlockToolbar
         noun="styles"
         filter={blocks}
-        onReload={() => void spaceStyles.load()}
+        onReload={() => void client.reloadCustomStyles()}
       />
       <div className="sb-workbench-body">
         {client.bootConfig.disableSpaceStyle ? (
@@ -64,8 +59,10 @@ export function StylesView({ client, focusTarget }: TabProps) {
                   label={blocks.labels.get(s.ref) ?? { page: s.ref }}
                   status={status}
                   statusTitle={STATUS_TITLES[status]}
-                  numbers={[s.priority ?? "–", s.rules]}
-                  onOpen={() => void openSource(s.ref)}
+                  numbers={[s.priority, s.rules]}
+                  onOpen={() =>
+                    void openBlockSource(client, s, "space-style", styles)
+                  }
                 />
               );
             })}

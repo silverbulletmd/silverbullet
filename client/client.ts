@@ -9,6 +9,7 @@ import { EditorView } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 import { jitter, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import { deriveDbName } from "@silverbulletmd/silverbullet/lib/crypto";
+import { applyFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import {
   encodePageURI,
   encodeRef,
@@ -53,7 +54,6 @@ import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { EventInterest } from "./event_interest.ts";
-import { applyFonts } from "@silverbulletmd/silverbullet/lib/fonts";
 import { setGitSyncStreamConnected } from "./git_sync_status.ts";
 import { isValidEditor } from "./lib/command_filters.ts";
 import { isMobileDevice } from "./lib/mobile.ts";
@@ -105,6 +105,7 @@ import {
 } from "./spaces/evented_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import { shouldFlashSyncNotification } from "./sync_notification.ts";
+import { fetchTooling, type Tooling } from "./tooling_fetch.ts";
 import type { Command, PaletteCommand } from "./types/command.ts";
 import type {
   BootConfig,
@@ -125,10 +126,10 @@ const declareDivergentBaseTimeout = 5000;
  * The page navigator's browsing modes, as segments of `std.pages`. "page" is
  * that view's default segment, so it asks for nothing.
  */
-function pickerSegment(mode: "page" | "meta" | "document" | "all") {
+function pickerSegment(mode: "page" | "tool" | "document" | "all") {
   switch (mode) {
-    case "meta":
-      return "Meta";
+    case "tool":
+      return "Tool";
     case "document":
       return "Documents";
     case "all":
@@ -240,12 +241,16 @@ export class Client {
   syncMode = false;
   widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
+  /** The current `/.tooling` payload: boot's, until a reload fetches it again. */
+  private tooling: Tooling | undefined;
 
   constructor(
     private parent: Element,
     public bootConfig: BootConfig,
     readonly config: Config,
+    tooling?: Tooling,
   ) {
+    this.tooling = tooling;
     this.eventHook = new EventHook(this.config);
     this.eventInterest = new EventInterest(this.eventHook);
     // The third case should only ever happen when the user provides an invalid index env variable
@@ -347,6 +352,8 @@ export class Client {
 
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
+    // Styles only need the payload, so they don't wait for plugs or scripts
+    this.spaceStyles.load(this.tooling?.styles ?? []);
     this.registerUnsavedChangesWarning();
 
     this.editorView = new EditorView({
@@ -398,21 +405,11 @@ export class Client {
     await timedSpan("load-plugs", () => this.loadPlugs());
     recordMark("sb:plugs-loaded");
 
-    if (
-      this.fullIndexCompleted &&
-      !(await this.mq.isQueueEmpty("indexQueue"))
-    ) {
-      // A reload can interrupt replacement of indexed scripts after their
-      // old records were cleared. Recover the queued work before reading them.
-      void this.objectIndex
-        .awaitIndexQueueDrain()
-        .then(() => this.eventHook.dispatchEvent("editor:reloadState"))
-        .catch(console.error);
-    } else {
-      await timedSpan("load-lua-scripts", () =>
-        this.clientSystem.loadLuaScripts(),
-      );
-    }
+    await timedSpan("load-lua-scripts", () =>
+      this.clientSystem.loadLuaScripts(this.tooling),
+    );
+    // On a fresh client or a reindex, indexing fires it once it's done
+    void this.objectIndex.announceIndexReady();
     await timedSpan("init-navigator", () => this.initNavigator());
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
@@ -439,7 +436,8 @@ export class Client {
       void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
 
-    this.loadCustomStyles().catch(console.error);
+    // Styles went in at render; fonts needed the scripts' configuration
+    this.applySpaceFonts(this.tooling !== undefined);
 
     await timedSpan("editor-init", () => this.dispatchAppEvent("editor:init"));
 
@@ -803,7 +801,7 @@ export class Client {
   }
 
   async startPageNavigate(
-    mode: "page" | "meta" | "document" | "all",
+    mode: "page" | "tool" | "document" | "all",
   ): Promise<void> {
     await this.openNavigatorView("std.pages", {
       segment: pickerSegment(mode),
@@ -914,12 +912,6 @@ export class Client {
       );
       try {
         allPages = await this.space.fetchPageList();
-
-        for (const page of allPages) {
-          if (page.name.startsWith("Library/")) {
-            page.tags = ["meta"];
-          }
-        }
       } catch (e) {
         console.error("Failed to list pages directly from space:", e);
         this.ui.flashNotification(
@@ -1279,16 +1271,43 @@ export class Client {
     }
   }
 
-  loadCustomStyles(): Promise<void> {
+  /**
+   * Fetches `/.tooling` and makes it the current payload. When fetching fails
+   * the current payload stays, which is none if there never was one.
+   */
+  async fetchTooling(): Promise<Tooling | undefined> {
+    try {
+      this.tooling = await fetchTooling(globalThis.fetch.bind(globalThis));
+    } catch (e) {
+      console.error("Could not fetch tool pages:", e);
+    }
+    return this.tooling;
+  }
+
+  /**
+   * Library fonts are only known from tooling; without it, keep the cached
+   * fonts rather than replacing them by a fallback.
+   */
+  private applySpaceFonts(libraryFontsKnown: boolean): void {
     try {
       applyFonts(this.config.get("fonts", {}), this.bootConfig.defaultFont, {
-        indexReady: this.fullIndexCompleted,
+        indexReady: libraryFontsKnown,
       });
     } catch (e) {
       // A broken font entry must not stop styles or the editor from loading.
       console.error("Could not apply fonts", e);
     }
-    return this.spaceStyles.load();
+  }
+
+  /** Applies fonts and `tooling`'s styles. */
+  loadCustomStyles(tooling: Tooling | undefined): void {
+    this.applySpaceFonts(tooling !== undefined);
+    this.spaceStyles.load(tooling?.styles ?? []);
+  }
+
+  /** Fetches `/.tooling` again and applies its styles. */
+  async reloadCustomStyles(): Promise<void> {
+    this.loadCustomStyles(await this.fetchTooling());
   }
 
   async runCommandByName(name: string, args?: any[]) {
@@ -1381,7 +1400,9 @@ export class Client {
           // First sync pulled new content — reload the current page
           // (it may have been empty because the file didn't exist locally yet)
           void this.reloadEditor();
-          void this.clientSystem.reloadState();
+          // Scripts and styles are already complete: until the first sync,
+          // the service worker passes `/.tooling` through to the server
+          void this.clientSystem.refreshAfterIndex();
         }
         break;
       }

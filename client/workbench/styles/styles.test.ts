@@ -5,6 +5,7 @@ import { styleStatus } from "./styles.ts";
 const style = (source: string, rules: number): StyleRecord => ({
   ref: "Sample@0",
   source,
+  priority: 0,
   rules,
 });
 

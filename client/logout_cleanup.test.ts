@@ -23,11 +23,17 @@ test("deletes SilverBullet databases directly, including open connections, and l
     key: (index: number) => [...values.keys()][index],
     removeItem: (key: string) => values.delete(key),
   });
+  const cacheNames = new Set(["silverbullet.https://notes.example/.tooling"]);
+  vi.stubGlobal("caches", {
+    keys: async () => [...cacheNames],
+    delete: async (name: string) => cacheNames.delete(name),
+  });
   try {
     await deleteLocalSpaceData();
     expect((await indexedDB.databases()).map((db) => db.name)).not.toContain(
       `sb_data_${"a".repeat(64)}`,
     );
+    expect([...cacheNames]).toEqual([]);
     expect(await unrelated.batchGet([["keep"]])).toEqual(["Other application"]);
     expect([...values]).toEqual([["unrelated", "keep"]]);
   } finally {
@@ -70,6 +76,34 @@ test("blocked deletion reports failure and keeps the logout barrier for retry", 
   } finally {
     db.close();
     vi.useRealTimers();
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a failing cache deletion still deletes the databases", async () => {
+  const name = `sb_data_${"d".repeat(64)}`;
+  const local = new IndexedDBKvPrimitives(name);
+  await local.init();
+  vi.stubGlobal("localStorage", {
+    length: 0,
+    key: () => null,
+    removeItem: () => {},
+  });
+  vi.stubGlobal("caches", {
+    keys: async () => {
+      throw new Error("SecurityError");
+    },
+  });
+  const error = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    await deleteLocalSpaceData();
+    expect((await indexedDB.databases()).map((db) => db.name)).not.toContain(
+      name,
+    );
+    expect(error).toHaveBeenCalledOnce();
+  } finally {
+    error.mockRestore();
+    local.close();
     vi.unstubAllGlobals();
   }
 });

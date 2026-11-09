@@ -230,7 +230,7 @@ export function systemSyscalls(
         if (!client) {
           throw new Error("Not supported on server");
         }
-        await client.loadCustomStyles();
+        await client.reloadCustomStyles();
       },
       description: "Reloads custom Space Style definitions.",
     },

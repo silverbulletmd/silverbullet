@@ -96,6 +96,7 @@ function OptionRow(props: {
     {
       label: "Copy as Lua",
       icon: "copy",
+      // Meant for CONFIG, whose blocks are boot blocks without a marker
       run: ({ client, model, path }) =>
         copyText(
           client,

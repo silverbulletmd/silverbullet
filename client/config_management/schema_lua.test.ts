@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { extractSpaceLuaFromPageText, loadConfig } from "../boot_config.ts";
+import { loadConfig } from "../boot_config.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 import { CONFIG_UNSET } from "../config.ts";
 import { parseExpressionString } from "../space_lua/parse.ts";
 import { scanStatements, toLua } from "./managed_lua.ts";
@@ -307,7 +308,11 @@ describe("schema helpers", () => {
       ([name, args], i) =>
         `config.set({"pin", "c${i}"}, schema.${name}(${args.map((a) => toLua(a)).join(", ")}))`,
     );
-    const config = await loadConfig(`${lua}\n${calls.join("\n")}`, {}, false);
+    const config = await loadConfig(
+      [{ ref: "test", code: `${lua}\n${calls.join("\n")}` }],
+      {},
+      false,
+    );
     CALLS.forEach(([name, args], i) => {
       expect(config.get(["pin", `c${i}`], undefined), calls[i]).toEqual(
         helperSchema(name, ...args),

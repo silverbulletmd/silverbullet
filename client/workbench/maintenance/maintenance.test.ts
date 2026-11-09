@@ -80,23 +80,38 @@ describe("maintenance problems", () => {
         ref: "Lib/Boom@10",
         source: "x",
         priority: 0,
+        boot: false,
         status: "failed",
         error: new Error("bad thing"),
         ms: 1,
       },
-      { ref: "Lib/Ok@10", source: "x", priority: 0, status: "loaded", ms: 1 },
-      { ref: "Lib/Slow@10", source: "x", priority: 0, status: "quarantined" },
+      {
+        ref: "Lib/Ok@10",
+        source: "x",
+        priority: 0,
+        boot: false,
+        status: "loaded",
+        ms: 1,
+      },
+      {
+        ref: "Lib/Slow@10",
+        source: "x",
+        priority: 0,
+        boot: false,
+        status: "quarantined",
+      },
       {
         ref: "Lib/Stop@10",
         source: "x",
         priority: 0,
+        boot: false,
         status: "stopped",
         ms: 1,
       },
     ];
     const styles: StyleRecord[] = [
-      { ref: "Lib/Css@5", source: ".a { color: red }", rules: 1 },
-      { ref: "Lib/Bad@5", source: "nonsense here", rules: 0 },
+      { ref: "Lib/Css@5", source: ".a { color: red }", priority: 0, rules: 1 },
+      { ref: "Lib/Bad@5", source: "nonsense here", priority: 0, rules: 0 },
     ];
     const ps = scriptStyleProblems(scripts, styles);
     expect(ps.map((p) => [p.severity, p.label])).toEqual([

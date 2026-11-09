@@ -1,4 +1,9 @@
 import { parseToRef, type Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  findToolBlocks,
+  type ToolFence,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { parseMarkdown } from "../../markdown_parser/parser.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { scriptRefParts } from "./source_frames.ts";
 
@@ -59,10 +64,7 @@ export function blockLabels(
 }
 
 /** Where a block's code starts: its ref points at the opening fence line. */
-export function blockSourceRef(
-  ref: string,
-  fence: "space-lua" | "space-style",
-): Ref | null {
+export function blockSourceRef(ref: string, fence: ToolFence): Ref | null {
   const parsed = parseToRef(ref);
   if (parsed?.details?.type !== "position") return parsed;
   return {
@@ -72,4 +74,38 @@ export function blockSourceRef(
       pos: parsed.details.pos + `\`\`\`${fence}\n`.length,
     },
   };
+}
+
+/**
+ * Where a listed block's code starts in `text`, the page as it is now. A
+ * block's ref holds its offset at the last load, which goes stale as soon as
+ * the page is edited, so the block is looked up again: the one with the same
+ * code (nearest the old offset when several match), else the one at the same
+ * `rank` among the page's blocks of that kind. Unset when there is none.
+ */
+export function currentBlockStart(
+  text: string,
+  fence: ToolFence,
+  code: string,
+  pos: number,
+  rank: number,
+): number | undefined {
+  const candidates = findToolBlocks(parseMarkdown(text)).filter(
+    (b) => b.fence === fence,
+  );
+  let best: (typeof candidates)[number] | undefined;
+  for (const b of candidates) {
+    if (b.code !== code) continue;
+    if (!best || Math.abs(b.from - pos) < Math.abs(best.from - pos)) best = b;
+  }
+  return (best ?? candidates[rank])?.codeFrom;
+}
+
+/** How many of `blocks` sit on the same page as `ref`, before it. */
+export function blockRank(blocks: SpaceBlock[], ref: string): number {
+  const { page, pos = 0 } = scriptRefParts(ref);
+  return blocks.filter((b) => {
+    const other = scriptRefParts(b.ref);
+    return other.page === page && (other.pos ?? 0) < pos;
+  }).length;
 }

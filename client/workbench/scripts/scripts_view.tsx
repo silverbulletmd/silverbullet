@@ -2,7 +2,7 @@ import { useMemo, useState } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import { LuaRuntimeError } from "../../space_lua/runtime.ts";
 import type { ScriptRecord } from "../../space_lua.ts";
-import { openRef } from "../shared/action.ts";
+import { openBlockSource, openRef } from "../shared/action.ts";
 import {
   BlockNote,
   BlockRow,
@@ -11,7 +11,6 @@ import {
   useBlockFilter,
   useLoad,
 } from "../shared/block_ui.tsx";
-import { blockSourceRef } from "../shared/blocks.ts";
 import {
   errorFrames,
   LuaErrorDetails,
@@ -33,11 +32,15 @@ const FILTERS: { value: ScriptFilter; label: string }[] = [
   { value: "loaded", label: "Loaded" },
   { value: "failed", label: "Failed" },
   { value: "quarantined", label: "Quarantined" },
+  { value: "boot", label: "Boot" },
 ];
+
+const BOOT_TITLE =
+  "Runs early, before the client starts (`-- boot: true` or CONFIG)";
 
 /** What rows need besides their record; stable across renders. */
 type RowContext = {
-  openSource: (ref: string) => Promise<void>;
+  openSource: (record: ScriptRecord) => Promise<void>;
   onOpen: OpenTarget;
   sourceFor: SourceLookup;
 };
@@ -61,17 +64,15 @@ export function ScriptsView({ client, focusTarget }: TabProps) {
 
   const ctx = useMemo(
     (): RowContext => ({
-      openSource: async (ref) => {
-        const target = blockSourceRef(ref, "space-lua");
-        if (target) await openRef(client, target);
-      },
+      openSource: (record) =>
+        openBlockSource(client, record, "space-lua", load?.scripts ?? []),
       // Script errors point into pages, never into console input
       onOpen: (target) => {
         if (target.kind === "page") void openRef(client, target.ref);
       },
       sourceFor: (ref) => clientSystem.spaceLuaEnv.sourceFor(ref),
     }),
-    [client],
+    [client, load],
   );
 
   return (
@@ -143,7 +144,14 @@ function ScriptRow({
         status={record.status}
         statusTitle={SCRIPT_STATUS_TITLES[record.status]}
         numbers={[record.priority, formatLoadTime(record)]}
-        onOpen={() => void ctx.openSource(record.ref)}
+        marker={
+          record.boot ? (
+            <span className="sb-wb-chip" title={BOOT_TITLE}>
+              boot
+            </span>
+          ) : null
+        }
+        onOpen={() => void ctx.openSource(record)}
       />
       {record.status === "failed" ? (
         <div className="sb-wb-block-error" role="row">

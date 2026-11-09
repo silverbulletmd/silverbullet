@@ -1,4 +1,5 @@
 import { clearLogoutState } from "./logout_state.ts";
+import { deleteToolingCaches } from "./tooling_cache.ts";
 export async function deleteLocalSpaceData(): Promise<void> {
   const keys = Array.from({ length: localStorage.length }, (_, index) =>
     localStorage.key(index),
@@ -13,6 +14,10 @@ export async function deleteLocalSpaceData(): Promise<void> {
       localStorage.removeItem(key);
   }
   if (typeof sessionStorage !== "undefined") sessionStorage.clear();
+  // Must not stop the database deletion below
+  await deleteToolingCaches().catch((e) =>
+    console.error("Could not delete cached tool pages:", e),
+  );
   const databases = await indexedDB.databases();
   const deletions = await Promise.allSettled(
     databases.flatMap(({ name }) =>

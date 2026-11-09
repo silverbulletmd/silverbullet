@@ -1,4 +1,4 @@
-import { metaPageLua } from "@silverbulletmd/silverbullet/lib/tags";
+import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
 import type {
   IndexQueueBody,
   KV,
@@ -52,7 +52,7 @@ const reindexInProgressKey = ["$reindexInProgress"];
 const tagDecorationsKey = ["$tagDecorations"];
 
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 14;
+const desiredIndexVersion = 15;
 
 type TagDefinition = {
   tagPage?: string;
@@ -84,6 +84,7 @@ export class ObjectIndex {
   // True while a wholesale reindex (manual or version-bump) is running in
   // this window
   public rebuildInProgress = false;
+  private indexReadyAnnounced = false;
 
   constructor(
     private ds: DataStore,
@@ -163,7 +164,7 @@ export class ObjectIndex {
             }
             finishInitialIndex = undefined;
             console.info("Initial index complete, reloading editor state");
-            await this.markFullIndexComplete();
+            await this.completeFullIndex();
             this.eventHook.removeLocalListener(
               "mq:emptyQueue:indexQueue",
               emptyQueueHandler,
@@ -248,11 +249,11 @@ export class ObjectIndex {
   }
 
   contentPages(tagName?: string): LuaQueryCollection {
-    return this.pagesWhere((v) => `not ${metaPageLua(v)}`, tagName);
+    return this.pagesWhere((v) => `not (${toolPageLua(v)})`, tagName);
   }
 
-  metaPages(tagName?: string): LuaQueryCollection {
-    return this.pagesWhere(metaPageLua, tagName);
+  toolPages(tagName?: string): LuaQueryCollection {
+    return this.pagesWhere(toolPageLua, tagName);
   }
 
   /** Pages matching `condition`, optionally only those carrying a user tag */
@@ -490,6 +491,8 @@ export class ObjectIndex {
       currentIndexVersion !== undefined &&
       currentIndexVersion >= desiredIndexVersion
     ) {
+      // Another window may have finished the reindex this one was waiting on
+      await this.announceIndexReady();
       return;
     }
 
@@ -526,6 +529,7 @@ export class ObjectIndex {
         // while we were queued behind it.
         const versionNow = await this.getCurrentIndexVersion();
         if (versionNow !== undefined && versionNow >= desiredIndexVersion) {
+          void this.announceIndexReady();
           return;
         }
 
@@ -557,6 +561,30 @@ export class ObjectIndex {
     return this.withLock(() => this.reindexSpaceUnlocked(space));
   }
 
+  /**
+   * Fires `index:ready` if the index is already complete and this boot hasn't
+   * yet: at boot, or when another window finished the index. Indexing in this
+   * window fires it from `completeFullIndex`.
+   */
+  async announceIndexReady(): Promise<void> {
+    if (this.indexReadyAnnounced) return;
+    if (!(await this.hasFullIndexCompleted())) return;
+    // A concurrent call may have announced while this one awaited
+    if (this.indexReadyAnnounced) return;
+    await this.dispatchIndexReady();
+  }
+
+  /** Where every full index and reindex in this window ends. */
+  private async completeFullIndex() {
+    await this.markFullIndexComplete();
+    void this.dispatchIndexReady();
+  }
+
+  private async dispatchIndexReady() {
+    this.indexReadyAnnounced = true;
+    await this.eventHook.dispatchEvent("index:ready");
+  }
+
   private async reindexSpaceUnlocked(space: Space) {
     // In-memory mirror for the UI: the boot progress label shows during any
     // wholesale rebuild, and `fullIndexCompleted` never flips back to false
@@ -584,7 +612,7 @@ export class ObjectIndex {
         ),
       );
       await this.mq.awaitEmptyQueue("indexQueue");
-      await this.markFullIndexComplete();
+      await this.completeFullIndex();
       console.log("Full index completed after", Date.now() - startTime, "ms");
     } finally {
       this.rebuildInProgress = false;
