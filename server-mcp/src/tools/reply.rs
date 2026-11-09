@@ -81,6 +81,10 @@ impl Reply {
         self
     }
 
+    pub fn push_image(&mut self, bytes: Vec<u8>, mime: &'static str) {
+        self.content.push(Content::Image { bytes, mime });
+    }
+
     pub fn push_text(&mut self, text: impl Into<String>) {
         self.content.push(Content::Text(text.into()));
     }

@@ -226,7 +226,7 @@
           },
           "page": {
             "type": "string",
-            "description": "Page to open before capturing."
+            "description": "Page to open before capturing; \"Page#Heading\" scrolls to that heading."
           },
           "selector": {
             "type": "string",

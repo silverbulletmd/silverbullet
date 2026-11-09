@@ -29,3 +29,4 @@ silverbullet-server-common = { path = "../server-common", features = ["testing"]
 silverbullet-server-search = { path = "../server-search", features = ["test-model"] }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
 tempfile = { workspace = true }
+png = "0.18"

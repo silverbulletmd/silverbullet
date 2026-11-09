@@ -23,7 +23,7 @@ pub fn build_global_call_js(fn_name: &str, arg: &str) -> String {
     format!("{fn_name}({arg_json})")
 }
 
-const SETTLE_JS: &str = r#"(async (selector) => {
+const SETTLE_JS: &str = r##"(async (selector) => {
   const frame = () => new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
     setTimeout(resolve, 100);
@@ -38,6 +38,22 @@ const SETTLE_JS: &str = r#"(async (selector) => {
   } catch (error) {
     return { invalid: String((error && error.message) || error) };
   }
+  // The editor only renders what is near the viewport, so content further
+  // down is not in the DOM yet: scroll a screen at a time until it is.
+  const scroller = document.querySelector("#sb-editor > .cm-editor > .cm-scroller");
+  if (!element && scroller && scroller.clientHeight > 0) {
+    const start = scroller.scrollTop;
+    const step = Math.max(100, Math.floor(scroller.clientHeight * 0.8));
+    const awaitRender = globalThis.sbRuntime && globalThis.sbRuntime.awaitRender;
+    for (let top = 0, n = 0; !element && top < scroller.scrollHeight && n < 60; top += step, n++) {
+      scroller.scrollTop = top;
+      await frame();
+      if (typeof awaitRender === "function") await awaitRender(2000);
+      await frame();
+      element = document.querySelector(selector);
+    }
+    if (!element) scroller.scrollTop = start;
+  }
   if (!element) return { missing: true };
   element.scrollIntoView({ block: "nearest" });
   await frame();
@@ -48,7 +64,7 @@ const SETTLE_JS: &str = r#"(async (selector) => {
   const bottom = Math.ceil(Math.min(innerHeight, rect.bottom));
   if (right <= left || bottom <= top) return { missing: true };
   return { clip: { x: left, y: top, width: right - left, height: bottom - top } };
-})"#;
+})"##;
 
 /// Build the JS that waits for rendering to settle and, given a selector,
 /// resolves the element's rectangle clipped to the viewport in whole CSS

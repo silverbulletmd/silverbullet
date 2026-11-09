@@ -498,6 +498,8 @@ pub async fn open_page(
         await_index: false,
         ..opts
     };
+    // A ref such as "Page#Heading" or "Page@12" shows the page "Page".
+    let name = page.split(['#', '@']).next().unwrap_or(page);
     let started = Instant::now();
     let mut current = Value::Null;
     loop {
@@ -513,7 +515,7 @@ pub async fn open_page(
         {
             current = value;
         }
-        if current == page {
+        if current == name {
             tokio::time::sleep(RENDER_DELAY).await;
             return Ok(None);
         }

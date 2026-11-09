@@ -689,6 +689,26 @@ async fn screenshot_navigates_then_returns_png() {
 }
 
 #[tokio::test]
+async fn screenshot_of_a_heading_waits_for_its_page() {
+    let env = env(Script::new(|_, _, code| {
+        if code.starts_with("editor.getCurrentPage") {
+            return ok(json!("Notes/Today"));
+        }
+        ok(Value::Null)
+    }));
+    let r = env
+        .call("screenshot", json!({"page": "Notes/Today#Plan"}))
+        .await;
+    assert!(!is_error(&r), "{r}");
+    // No "did not show" note: the heading's page counts as shown.
+    assert_eq!(r["content"].as_array().unwrap().len(), 1, "{r}");
+    assert_eq!(
+        env.script.codes()[0],
+        "editor.navigate(\"Notes/Today#Plan\")"
+    );
+}
+
+#[tokio::test]
 async fn screenshot_passes_selector_and_full_page_and_reports_truncation() {
     let mut script = Script::new(|_, _, _| ok(Value::Null));
     script.truncated = true;
@@ -717,6 +737,40 @@ async fn screenshot_passes_selector_and_full_page_and_reports_truncation() {
         .await;
     assert!(is_error(&r));
     assert!(text(&r).contains("cannot be combined"));
+}
+
+/// A blank RGBA PNG of this size.
+fn blank_png(width: u32, height: u32) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut encoder = png::Encoder::new(&mut out, width, height);
+    encoder.set_color(png::ColorType::Rgba);
+    encoder.set_depth(png::BitDepth::Eight);
+    let mut writer = encoder.write_header().unwrap();
+    writer
+        .write_image_data(&vec![255; (width * height * 4) as usize])
+        .unwrap();
+    writer.finish().unwrap();
+    out
+}
+
+#[tokio::test]
+async fn full_page_screenshot_comes_in_readable_parts() {
+    let mut script = Script::new(|_, _, _| ok(Value::Null));
+    script.png = blank_png(10, 40);
+    let env = env(script);
+    let r = env.call("screenshot", json!({"fullPage": true})).await;
+    assert!(!is_error(&r), "{r}");
+    let content = r["content"].as_array().unwrap();
+    let images = content.iter().filter(|c| c["type"] == "image").count();
+    assert_eq!(images, 3, "{r}");
+    assert!(content.last().unwrap()["text"]
+        .as_str()
+        .unwrap()
+        .contains("3 parts"));
+
+    // A viewport capture stays one image.
+    let r = env.call("screenshot", json!({})).await;
+    assert_eq!(r["content"].as_array().unwrap().len(), 1);
 }
 
 #[tokio::test]

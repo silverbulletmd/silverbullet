@@ -8,6 +8,7 @@ use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use silverbullet_server::runtime::fullpage;
 
 use server_space_tools::lua_text::{
     console_section, lint_section, list_section, value_section, EvalMode,
@@ -60,7 +61,7 @@ pub(super) struct LuaArgs {
 pub(super) struct ScreenshotArgs {
     #[schemars(description = SPACE)]
     space: String,
-    /// Page to open before capturing.
+    /// Page to open before capturing; "Page#Heading" scrolls to that heading.
     page: Option<String>,
     /// CSS selector of one element.
     selector: Option<String>,
@@ -323,7 +324,26 @@ impl Tools {
                     .to_owned(),
             );
         }
-        let mut reply = Reply::image(response.body, "image/png");
+        // A full page is one narrow strip; viewers shrink it until it is
+        // unreadable, so it goes out in parts no taller than 1.5 widths.
+        let parts = match full_page {
+            Some(true) => fullpage::bands(&response.body, 1.5).unwrap_or_default(),
+            _ => Vec::new(),
+        };
+        let mut reply = if parts.len() > 1 {
+            notes.insert(
+                0,
+                format!("The full page in {} parts, top to bottom.", parts.len()),
+            );
+            let mut parts = parts.into_iter();
+            let mut reply = Reply::image(parts.next().unwrap_or_default(), "image/png");
+            for part in parts {
+                reply.push_image(part, "image/png");
+            }
+            reply
+        } else {
+            Reply::image(response.body, "image/png")
+        };
         if !notes.is_empty() {
             reply.push_text(notes.join("\n"));
         }

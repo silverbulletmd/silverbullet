@@ -182,6 +182,10 @@ pub fn stitch(
     if width == 0 || height == 0 {
         return Err(RuntimeError::Transport("nothing to capture".into()));
     }
+    encode_rgba(width, height, &rows)
+}
+
+fn encode_rgba(width: usize, height: usize, rows: &[u8]) -> Result<Vec<u8>, RuntimeError> {
     let mut out = Vec::new();
     {
         let mut encoder = png::Encoder::new(&mut out, width as u32, height as u32);
@@ -189,10 +193,34 @@ pub fn stitch(
         encoder.set_depth(png::BitDepth::Eight);
         let err = |e: png::EncodingError| RuntimeError::Transport(format!("encoding PNG: {e}"));
         let mut writer = encoder.write_header().map_err(err)?;
-        writer.write_image_data(&rows).map_err(err)?;
+        writer.write_image_data(rows).map_err(err)?;
         writer.finish().map_err(err)?;
     }
     Ok(out)
+}
+
+/// `png_bytes` cut into bands, top to bottom, each at most `max_ratio` times
+/// as tall as the image is wide. A full-page capture is one narrow strip that
+/// image viewers shrink until it is unreadable; bands keep its scale. An image
+/// that already fits comes back as is.
+pub fn bands(png_bytes: &[u8], max_ratio: f64) -> Result<Vec<Vec<u8>>, RuntimeError> {
+    let image = decode_rgba(png_bytes)?;
+    let band = ((image.width as f64 * max_ratio).floor() as usize).max(1);
+    if image.height <= band {
+        return Ok(vec![png_bytes.to_vec()]);
+    }
+    let row = image.width * 4;
+    (0..image.height)
+        .step_by(band)
+        .map(|top| {
+            let bottom = (top + band).min(image.height);
+            encode_rgba(
+                image.width,
+                bottom - top,
+                &image.rgba[top * row..bottom * row],
+            )
+        })
+        .collect()
 }
 
 /// Pixel size of a PNG, for tests elsewhere in the crate.
@@ -381,6 +409,22 @@ mod tests {
         let (_, h, reds) = red_column(&out);
         assert_eq!(h, 28);
         assert_eq!(reds[20..], [104, 105, 106, 107, 108, 109, 110, 111]);
+    }
+
+    #[test]
+    fn bands_cut_a_tall_capture_into_readable_pieces() {
+        let tall = striped_png(4, 20, 0, png::ColorType::Rgba);
+        let bands = bands(&tall, 1.5).unwrap();
+        let cut: Vec<_> = bands.iter().map(|b| red_column(b)).collect();
+        assert_eq!(
+            cut.iter().map(|(w, h, _)| (*w, *h)).collect::<Vec<_>>(),
+            [(4, 6), (4, 6), (4, 6), (4, 2)]
+        );
+        let reds: Vec<u8> = cut.into_iter().flat_map(|(_, _, r)| r).collect();
+        assert_eq!(reds, (0..20).collect::<Vec<u8>>());
+
+        let short = striped_png(4, 5, 0, png::ColorType::Rgba);
+        assert_eq!(super::bands(&short, 1.5).unwrap(), vec![short]);
     }
 
     #[test]
