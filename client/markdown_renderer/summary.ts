@@ -14,6 +14,7 @@ import {
   isBuiltinPath,
   isLocalURL,
   resolveMarkdownLink,
+  stripMarkdownLinkBrackets,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   findNodeOfType,
@@ -47,6 +48,7 @@ const containers = new Set([
 ]);
 
 function linkHref(url: string, sourcePage: string): string {
+  url = stripMarkdownLinkBrackets(url);
   if (url.startsWith("//") || !isLocalURL(url)) return url;
   if (url.startsWith("#")) return `/${encodePageURI(sourcePage)}${url}`;
   return `/${resolveMarkdownLink(sourcePage, url)}`;

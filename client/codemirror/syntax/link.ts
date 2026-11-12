@@ -3,6 +3,7 @@ import { Decoration } from "@codemirror/view";
 import {
   isLocalURL,
   resolveMarkdownLink,
+  stripMarkdownLinkBrackets,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../../client.ts";
 import { mdLinkRegex } from "../../markdown_parser/constants.ts";
@@ -41,7 +42,7 @@ export function linkPlugin(client: Client) {
           return;
         }
 
-        let url = groups.url;
+        let url = stripMarkdownLinkBrackets(groups.url);
 
         if (isLocalURL(url)) {
           url = resolveMarkdownLink(client.currentName(), decodeURI(url));

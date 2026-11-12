@@ -11,6 +11,7 @@ import {
   folderName,
   isLocalURL,
   resolveMarkdownLink,
+  stripMarkdownLinkBrackets,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
@@ -126,7 +127,7 @@ async function actionClickOrActionEnter(
       if (!urlNode) {
         return;
       }
-      const url = urlNode.children![0].text!;
+      const url = stripMarkdownLinkBrackets(urlNode.children![0].text!);
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }

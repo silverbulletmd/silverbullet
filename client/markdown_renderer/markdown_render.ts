@@ -3,6 +3,7 @@ import {
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
 import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
+import { stripMarkdownLinkBrackets } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   parseTransclusion,
   type Transclusion,
@@ -329,7 +330,7 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       return {
         name: "a",
         attrs: {
-          href: urlNode.children![0].text!,
+          href: stripMarkdownLinkBrackets(urlNode.children![0].text!),
           target: "_blank",
         },
         body: cleanTags(mapRender(linkTextChildren)),
