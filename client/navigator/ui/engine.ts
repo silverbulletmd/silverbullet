@@ -18,6 +18,7 @@ import type {
   Row,
   SourceCtx,
   ViewMeta,
+  ViewNotice,
 } from "../types.ts";
 import {
   indexViewRows,
@@ -48,6 +49,8 @@ export type ViewState = {
   /** A content view's value (`meta.hasContent`), rendered by the shared value renderer; rows stay empty. */
   contentValue?: unknown;
   error?: string;
+  /** The source's reason for having no rows, when that isn't a failure. */
+  notice?: ViewNotice;
   rowState?: RowStates;
   segmentMasks?: SegmentMasks;
   dropdownOptions?: DropdownOption[];
@@ -271,6 +274,7 @@ export class NavigatorEngine {
       }
       let rows: Row[] = [];
       let error: string | undefined;
+      let notice: ViewNotice | undefined;
       try {
         const result = await this.handle(entry.meta.name, "rows", {
           ctx,
@@ -278,12 +282,14 @@ export class NavigatorEngine {
         });
         rows = Array.isArray(result) ? result : [];
         error = result?.error;
+        if (typeof result?.notice?.title === "string") notice = result.notice;
       } catch (e: any) {
         error = e?.message ?? String(e);
       }
       if (entry.loadToken !== token) return false;
       entry.tracked = [...reads];
       entry.error = error;
+      entry.notice = notice;
       // A failed load keeps its previous rows rather than clearing them — a phrase that breaks the source must not replace what's already on screen.
       if (error !== undefined) return true;
       for (const row of rows) {

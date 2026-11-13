@@ -597,8 +597,25 @@ test("std.spaceTree's meta carries hasMove, file actions, and the Space keymap",
     "All",
     "Pages",
     "Documents",
-    "Tool",
+    "Tool Pages",
   ]);
+});
+
+test("std.spaceTree keeps everything under Library/ in Tool Pages", async () => {
+  const { spaceTreeSegments } = await import("./views/space_tree.ts");
+  const where = (label: string) =>
+    spaceTreeSegments.find((s) => s.label === label)!.where!;
+  const font = { name: "Library/acme/Fonts/Lora/Lora.ttf", tag: "document" };
+  const toolPage = { name: "Library/acme/Fonts/Lora", tag: "page" };
+  const logo = { name: "assets/logo.png", tag: "document" };
+  for (const label of ["All", "Documents"]) {
+    expect(where(label)(font as any), label).toBe(false);
+    expect(where(label)(logo as any), label).toBe(true);
+  }
+  expect(where("All")(toolPage as any)).toBe(false);
+  expect(where("Tool Pages")(font as any)).toBe(true);
+  expect(where("Tool Pages")(toolPage as any)).toBe(true);
+  expect(where("Tool Pages")(logo as any)).toBe(false);
 });
 
 test("std.spaceTree's row state: icon per kind, and the action mask", async () => {
@@ -847,8 +864,10 @@ test("std.pageHistory reports a disabled space distinctly from an empty one", as
     more: false,
     revisions: [],
   });
+  // A setting, not a failure: a neutral notice rather than an error
   const result = await builtinRows("std.pageHistory");
-  expect((result as any).error).toMatch(/off for this space/i);
+  expect((result as any).error).toBeUndefined();
+  expect((result as any).notice.title).toMatch(/history is off/i);
 
   space.listRevisions.mockResolvedValue({
     mode: "managed",

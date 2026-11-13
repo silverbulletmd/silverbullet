@@ -2,6 +2,7 @@ import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { nodeObject, type TreeNode } from "../../../plug-api/ui/tree_model.ts";
 import { hide, route } from "../navigator.ts";
 import type { HideOpts } from "../panel_lifecycle.ts";
+import { EXPAND_ROW } from "../views/types.ts";
 import type { NavigatorEngine } from "./engine.ts";
 import type { DerivedView } from "./hooks/use_derived.ts";
 import type { ActiveView, PanelSetters, SharedRefs } from "./panel.ts";
@@ -11,8 +12,11 @@ import {
   folderPrefix,
 } from "./phrase.ts";
 import { defaultSegmentIndex } from "./segments.ts";
-import { EXPAND_ROW } from "../views/types.ts";
 import { createTreeCommands } from "./tree_commands.ts";
+
+type TreeClick =
+  | { kind: "expand" | "open-folder" }
+  | { kind: "select" | "select-folder"; row: NonNullable<TreeNode["row"]> };
 
 export type CommandDeps = {
   slot: string;
@@ -275,47 +279,62 @@ export function createCommands({
     if (closesOnSelect && kept !== false) await dismiss();
   }
 
-  async function selectTreeNode(node: TreeNode) {
-    if (!view) return;
+  /** What clicking `node` does; everything but expanding opens something. */
+  function treeClick(view: ActiveView, node: TreeNode): TreeClick | undefined {
+    const { row } = node;
     if (view.meta.hasSelect === false) {
-      if (node.isFolder) tree.toggleExpanded(node.path);
-      return;
+      return node.isFolder ? { kind: "expand" } : undefined;
     }
     if (node.isFolder && view.meta.selectableFolders) {
-      if (node.row) {
+      return row ? { kind: "select-folder", row } : { kind: "open-folder" };
+    }
+    return row ? { kind: "select", row } : { kind: "expand" };
+  }
+
+  async function selectTreeNode(node: TreeNode) {
+    if (!view) return;
+    const click = treeClick(view, node);
+    switch (click?.kind) {
+      case "expand":
+        tree.toggleExpanded(node.path);
+        return;
+      case "select-folder": {
         const kept = await engine.select(
           view.name,
-          node.row.obj,
+          click.row.obj,
           returnTo.current,
         );
         tree.expandPath(node.path);
         if (closesOnSelect && kept !== false) await dismiss();
         return;
       }
-      await editor.navigate(node.path);
-      tree.expandPath(node.path);
-      if (closesOnSelect) await dismiss();
-      return;
-    }
-    if (node.row) {
-      const kept = await engine.select(
-        view.name,
-        node.row.obj,
-        returnTo.current,
-      );
-      if (kept === EXPAND_ROW) {
+      case "open-folder":
+        await editor.navigate(node.path);
         tree.expandPath(node.path);
+        if (closesOnSelect) await dismiss();
+        return;
+      case "select": {
+        const kept = await engine.select(
+          view.name,
+          click.row.obj,
+          returnTo.current,
+        );
+        if (kept === EXPAND_ROW) {
+          tree.expandPath(node.path);
+          return;
+        }
+        if (closesOnSelect && kept !== false) await dismiss();
         return;
       }
-      if (closesOnSelect && kept !== false) await dismiss();
-    } else {
-      tree.toggleExpanded(node.path);
     }
   }
 
   function onTreeRowClick(node: TreeNode) {
-    // Drag-source rows allow mousedown, so restore input focus before selection.
-    inputRef.current?.focus();
+    // Drag-source rows allow mousedown, so restore input focus before
+    // selection -- unless the click opens something, which takes focus
+    // itself: grabbing the filter first only flashes it.
+    const click = view && treeClick(view, node);
+    if (!click || click.kind === "expand") inputRef.current?.focus();
     setSelectedPath(node.path);
     void selectTreeNode(node);
   }

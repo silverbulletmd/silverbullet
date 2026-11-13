@@ -8,7 +8,7 @@ import {
 import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
-import { isHiddenPage, isToolPageObj, spaceContents } from "./pages.ts";
+import { inLibrary, isHiddenPage, spaceContents } from "./pages.ts";
 import { type BuiltinView, baseMeta, type Segment } from "./types.ts";
 
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
@@ -32,32 +32,32 @@ function treeIcon(obj: TreeObj): string {
   return "file-text";
 }
 
-const spaceTreeSegments: Segment<TreeObj>[] = [
+export const spaceTreeSegments: Segment<TreeObj>[] = [
   {
     label: "All",
     icon: "layers",
     default: true,
     placeholder: "Page or document",
-    // Tool pages are reachable only via the Tool segment.
-    where: (obj) => !isToolPageObj(obj),
+    // `Library/` shows only under Tool Pages
+    where: (obj) => !inLibrary(obj),
   },
   {
     label: "Pages",
     icon: "file-text",
     placeholder: "Page",
-    where: (obj) => obj.tag === "page" && !isToolPageObj(obj),
+    where: (obj) => obj.tag === "page" && !inLibrary(obj),
   },
   {
     label: "Documents",
     icon: "file",
     placeholder: "Document",
-    where: (obj) => obj.tag === "document",
+    where: (obj) => obj.tag === "document" && !inLibrary(obj),
   },
   {
-    label: "Tool",
+    label: "Tool Pages",
     icon: "tool",
     placeholder: "Tool page",
-    where: isToolPageObj,
+    where: inLibrary,
   },
 ];
 

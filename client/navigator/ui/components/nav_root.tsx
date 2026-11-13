@@ -517,7 +517,12 @@ export function NavRoot({
             This selection is unavailable right now
           </div>
         )}
-        {fatalError ? (
+        {view?.notice && !error ? (
+          <div className="sb-nav-empty-state" role="status">
+            <b>{view.notice.title}</b>
+            {view.notice.detail}
+          </div>
+        ) : fatalError ? (
           <div className="sb-nav-error">{error}</div>
         ) : NativeBody && view ? (
           <div className="sb-nav-native">

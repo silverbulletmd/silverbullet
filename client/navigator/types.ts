@@ -24,6 +24,10 @@ export type NavigatorHook =
   | "dropdown"
   | "move";
 
+/** Why a view has no rows when that's a setting, not a failure (e.g.
+ * revision history switched off): shown as a neutral empty state. */
+export type ViewNotice = { title: string; detail?: string };
+
 export type SegmentMeta = {
   label: string;
   icon?: string;

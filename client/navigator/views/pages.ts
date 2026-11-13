@@ -26,18 +26,15 @@ import { type BuiltinView, baseMeta } from "./types.ts";
  * decoration adds. */
 type PageObj = ObjectValue<Record<string, any>>;
 
-/** Also used by `space_tree.ts`'s segments -- a tool page is the same thing
- * whichever view is asking. It is classified by location alone. Takes only
- * what it reads (`name`/`tag`), not the full `ref`-guaranteed `PageObj`:
- * `space_tree.ts` also calls this with a synthesized tree folder, which has no
- * `ref` and usually no `tag`. */
-export function isToolPageObj(obj: { name?: string; tag?: string }): boolean {
-  if (obj.tag !== undefined && obj.tag !== "page") return false;
+/** Whether a row lives under `Library/`: a tool page, or a file that comes
+ * with one (a font library's font files, say). Location alone decides. Also
+ * used by `space_tree.ts`, whose synthesized folders have only a `name`. */
+export function inLibrary(obj: { name?: string }): boolean {
   return obj.name !== undefined && isToolPage(obj.name);
 }
 
 /** Also used by `space_tree.ts`: a page hidden from navigation is hidden
- * there too. Loosely typed for the same reason `isToolPageObj` is --
+ * there too. Loosely typed for the same reason `inLibrary` is --
  * `space_tree.ts` calls it with a synthesized tree folder as well. */
 export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
@@ -68,8 +65,10 @@ export type PageInfo = PageClassFields & { name: string };
 /** The picker's Pages and Tool segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
 export const pageScopes = {
   pages: (p: PageClassFields) =>
-    p.tag === "page" && !isToolPageObj(p) && !isHiddenPage(p),
-  tool: (p: PageClassFields) => isToolPageObj(p) && !isHiddenPage(p),
+    p.tag === "page" && !inLibrary(p) && !isHiddenPage(p),
+  // Untagged rows count as pages; a Library document isn't a tool page
+  tool: (p: PageClassFields) =>
+    (p.tag ?? "page") === "page" && inLibrary(p) && !isHiddenPage(p),
 } satisfies Record<string, (p: PageInfo) => boolean>;
 
 let documentCapabilities = new Map<string, DocumentCapability>();
@@ -252,7 +251,7 @@ export const pagePicker: BuiltinView<PageObj> = {
       where: pageScopes.pages,
     },
     {
-      label: "Tool",
+      label: "Tool Pages",
       icon: "tool",
       placeholder: "Tool page",
       helpText:

@@ -73,6 +73,20 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
  */
 export const EXPAND_ROW = "navigator:expand";
 
+/**
+ * Thrown by a `source` when the view has nothing to show for a reason that
+ * isn't a failure; the panel shows it as a neutral empty state rather than
+ * an error.
+ */
+export class NoticeError extends Error {
+  constructor(
+    title: string,
+    readonly detail?: string,
+  ) {
+    super(title);
+  }
+}
+
 export function baseMeta(over: Partial<ViewMeta>): BuiltinView["meta"] {
   return {
     title: over.title ?? "",

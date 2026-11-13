@@ -22,6 +22,7 @@ import {
   baseMeta,
   type Decoration,
   EXPAND_ROW,
+  NoticeError,
   type SourceCtx,
 } from "./types.ts";
 
@@ -37,7 +38,13 @@ const UNCOMMITTED = "@uncommitted";
 const MORE = "@more";
 
 const OFFLINE = "Revision history unavailable — offline.";
-const DISABLED = "Revision history is off for this space.";
+
+/** A setting, not a failure: the panel shows it as a neutral empty state. */
+const disabled = () =>
+  new NoticeError(
+    "Revision history is off",
+    "This space doesn't keep revisions.",
+  );
 
 export const SYNC_CONFLICT = (n: number) =>
   `Sync paused — ${n} ${n === 1 ? "page has" : "pages have"} conflicting changes.`;
@@ -73,7 +80,7 @@ type Accumulator<T> = {
  * here is a transport failure, which must not read as an empty history. */
 function describeFailure(e: unknown): Error {
   const status = (e as { status?: number } | undefined)?.status;
-  if (status === 404) return new Error(DISABLED);
+  if (status === 404) return disabled();
   return new Error(OFFLINE);
 }
 
@@ -150,7 +157,7 @@ async function fetchPageHistoryPage(
   } catch (e) {
     throw describeFailure(e);
   }
-  if (listing.mode === "disabled") throw new Error(DISABLED);
+  if (listing.mode === "disabled") throw disabled();
   const rows: RevisionRow[] = [];
   // The uncommitted flag describes the working tree right now, not this
   // page of history -- only the first page shows the pseudo-row for it.
@@ -425,7 +432,7 @@ async function fetchSpaceLogPage(
   } catch (e) {
     throw describeFailure(e);
   }
-  if (log.mode === "disabled") throw new Error(DISABLED);
+  if (log.mode === "disabled") throw disabled();
   const rows: LogRow[] = [];
   // The sync banner and, for a conflict, its per-path rows describe the
   // sync state right now, not this page of history -- only the first page

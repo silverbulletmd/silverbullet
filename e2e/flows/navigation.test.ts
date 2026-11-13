@@ -393,7 +393,7 @@ test.describe("space tree", () => {
     await expect(expandAll).toBeDisabled();
     // The buttons follow the segment: All leaves Library/ out, so its
     // folder is still collapsed in Tool
-    await tree.getByRole("radio", { name: "Tool" }).click();
+    await tree.getByRole("radio", { name: "Tool Pages" }).click();
     await expect(expandAll).toBeEnabled();
     await expect(collapseAll).toBeDisabled();
     await tree.getByRole("radio", { name: "All" }).click();
@@ -675,7 +675,8 @@ test.describe("read-only keyboard navigation", () => {
     await expect
       .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
       .toHaveLength(1);
-    await placeCursor(page, "[ ]");
+    // The first task's checkbox, whatever its state
+    await placeCursor(page, "* [", 2);
     await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(1);
     await page.keyboard.press("Enter");
     await expect
@@ -767,7 +768,7 @@ test.describe("Markdown summaries in pickers", () => {
     const row = inbox.locator(".sb-nav-row", { hasText: "ridge trail" });
     await expect(row.locator("strong")).toHaveText("ridge trail");
     await expect(row).toContainText("…");
-    await row.locator("strong").click();
+    await row.click();
     await expect(currentPage(sbPage)).toHaveValue("Route");
   });
 });

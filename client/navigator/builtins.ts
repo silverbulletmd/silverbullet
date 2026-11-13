@@ -6,7 +6,13 @@
  */
 
 import { editor, system } from "@silverbulletmd/silverbullet/syscalls";
-import type { NavigatorHook, Row, SourceCtx, ViewMeta } from "./types.ts";
+import type {
+  NavigatorHook,
+  Row,
+  SourceCtx,
+  ViewMeta,
+  ViewNotice,
+} from "./types.ts";
 import { RESERVED_KEYS } from "./view_spec.ts";
 import { anchorPicker } from "./views/anchors.ts";
 import { commandPalette } from "./views/commands.ts";
@@ -20,7 +26,7 @@ import {
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
 import { WORKBENCH_VIEW, workbenchView } from "./views/workbench.ts";
-import type { BuiltinView } from "./views/types.ts";
+import { type BuiltinView, NoticeError } from "./views/types.ts";
 
 async function isReadOnly(): Promise<boolean> {
   if ((await system.getMode()) === "ro") return true;
@@ -113,7 +119,7 @@ export function builtinMeta(name: string): ViewMeta | undefined {
 async function builtinRows(
   name: string,
   ctx: SourceCtx = { phrase: "" },
-): Promise<Row[] | { error: string }> {
+): Promise<Row[] | { error: string } | { notice: ViewNotice }> {
   const view = views[name];
   if (!view) return [];
   try {
@@ -129,6 +135,9 @@ async function builtinRows(
       priority: view.row.priority?.(obj),
     }));
   } catch (e: any) {
+    if (e instanceof NoticeError) {
+      return { notice: { title: e.message, detail: e.detail } };
+    }
     // The panel renders this rather than emptying itself, same as the Lua
     // bridge does with a throwing source.
     return { error: e?.message ?? String(e) };

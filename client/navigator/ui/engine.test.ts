@@ -625,3 +625,29 @@ test("a rows load remembers what its source read", async () => {
   await engine.activate("v");
   expect(engine.activeState()!.tracked).toEqual(["index:tag:page"]);
 });
+
+test("a source's notice replaces its rows without counting as an error", async () => {
+  const engine = new NavigatorEngine("rhs");
+  bridge(meta(), [{ obj: { name: "a" }, primary: "a" }]);
+  await engine.activate("v");
+  expect(engine.activeState()?.rows).toHaveLength(1);
+
+  const notice = { title: "Off", detail: "Nothing kept." };
+  handle.mockImplementation((payload: any) =>
+    Promise.resolve(
+      payload.hook === "meta"
+        ? meta()
+        : payload.hook === "rows"
+          ? { notice }
+          : undefined,
+    ),
+  );
+  await engine.refresh();
+  expect(engine.activeState()).toMatchObject({ notice, rows: [] });
+  expect(engine.activeState()?.error).toBeUndefined();
+  expect(engine.isLoaded("v")).toBe(true);
+
+  bridge(meta(), []);
+  await engine.refresh();
+  expect(engine.activeState()?.notice).toBeUndefined();
+});
