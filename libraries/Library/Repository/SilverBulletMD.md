@@ -1,6 +1,6 @@
 ---
 share:
-  uri: "github:silverbulletmd/silverbullet-libraries@main/Repository/SilverBulletMD.md"
+  uri: "github:silverbulletmd/silverbullet-libraries@main/Library/Repository/SilverBulletMD.md"
   mode: pull
   hash: "0d348f1d"
 name: Repositories/SilverBulletMD
