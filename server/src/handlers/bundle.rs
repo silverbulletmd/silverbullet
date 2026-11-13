@@ -5,8 +5,9 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
-use crate::handlers::{http_date, seo};
+use crate::handlers::{if_none_match_hits, seo};
 use silverbullet_server_common::page::{is_tool_page, parse_page};
+use silverbullet_server_common::revision::{etag_for_hash, sha256_hex};
 
 #[derive(Default)]
 struct PageHead {
@@ -58,11 +59,9 @@ pub async fn handle_client_bundle(
     State(state): State<Arc<ServerState>>,
     req: axum::http::Request<Body>,
 ) -> impl IntoResponse {
-    // The browser echoes our `Last-Modified` verbatim in `If-Modified-Since`, so
-    // we string-compare to answer 304s.
-    let if_modified_since = req
+    let if_none_match = req
         .headers()
-        .get(axum::http::header::IF_MODIFIED_SINCE)
+        .get(axum::http::header::IF_NONE_MATCH)
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
 
@@ -94,24 +93,19 @@ pub async fn handle_client_bundle(
     let p = path.clone();
     let direct = run_blocking(move || s.client_bundle.read_file(&p)).await;
     if let Ok((data, meta)) = direct {
-        let last_modified = http_date(meta.last_modified);
-        if !last_modified.is_empty() && if_modified_since.as_deref() == Some(last_modified.as_str())
-        {
-            return Response::builder()
-                .status(StatusCode::NOT_MODIFIED)
-                .header(axum::http::header::LAST_MODIFIED, &last_modified)
-                .header(axum::http::header::CACHE_CONTROL, cache_control_for(&path))
-                .body(Body::empty())
-                .unwrap();
-        }
-        let mut builder = Response::builder()
-            .status(StatusCode::OK)
-            .header("Content-Type", &meta.content_type)
-            .header(axum::http::header::CACHE_CONTROL, cache_control_for(&path));
-        if !last_modified.is_empty() {
-            builder = builder.header(axum::http::header::LAST_MODIFIED, &last_modified);
-        }
-        return builder.body(Body::from(data)).unwrap();
+        return bundle_asset_response(&path, data, &meta, if_none_match.as_deref());
+    }
+
+    // Nothing under `.client/` is a page, and the shell answering a missing
+    // script is a 200 `text/html` the browser rejects as a module with a MIME
+    // error. After an upgrade, a tab still running the old client asks for
+    // chunks this build no longer has; a 404 is the honest answer.
+    if path.starts_with(".client/") {
+        return Response::builder()
+            .status(StatusCode::NOT_FOUND)
+            .header(axum::http::header::CACHE_CONTROL, "no-store")
+            .body(Body::from("Not found"))
+            .unwrap();
     }
 
     // Release binaries leave source maps out while the JS still links them, so
@@ -214,8 +208,40 @@ pub async fn handle_client_bundle(
         .header("Content-Type", "text/html")
         // The shell names the entry points and is templated per request (title,
         // SSR'd content, URL prefix), so it must never be served from a cache.
-        .header(axum::http::header::CACHE_CONTROL, "no-cache")
+        .header(axum::http::header::CACHE_CONTROL, "private, no-cache")
         .body(Body::from(body))
+        .unwrap()
+}
+
+/// A file served verbatim from the client bundle. Content-hashed chunks are
+/// immutable. Everything else revalidates against a content-hash ETag rather
+/// than `Last-Modified`: the bundle's timestamps are fixed when the binary is
+/// compiled, so they need not move when the content does (reproducible builds
+/// pin them, and a dev rebuild can keep them), and a matching date would then
+/// keep a stale `client.js` alive across an upgrade.
+fn bundle_asset_response(
+    path: &str,
+    data: Vec<u8>,
+    meta: &silverbullet_server_common::FileMeta,
+    if_none_match: Option<&str>,
+) -> Response {
+    let mut builder = Response::builder()
+        .header("Content-Type", &meta.content_type)
+        .header(axum::http::header::CACHE_CONTROL, cache_control_for(path));
+    if !is_content_hashed(path) {
+        let etag = etag_for_hash(&sha256_hex(&data));
+        if if_none_match.is_some_and(|inm| if_none_match_hits(inm, &etag)) {
+            return builder
+                .status(StatusCode::NOT_MODIFIED)
+                .header(axum::http::header::ETAG, etag)
+                .body(Body::empty())
+                .unwrap();
+        }
+        builder = builder.header(axum::http::header::ETAG, etag);
+    }
+    builder
+        .status(StatusCode::OK)
+        .body(Body::from(data))
         .unwrap()
 }
 
@@ -538,7 +564,7 @@ mod tests {
             "public, max-age=31536000, immutable"
         );
         // The SPA shell names the entry points, so it must revalidate too.
-        assert_eq!(cache_control("/SomePage").await, "no-cache");
+        assert_eq!(cache_control("/SomePage").await, "private, no-cache");
     }
 
     fn seed_space(state: &ServerState, path: &str, body: &[u8]) {
@@ -572,42 +598,47 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn bundle_asset_supports_conditional_304() {
+    async fn bundle_assets_revalidate_on_content_not_dates() {
         let state = Arc::new(test_state());
         seed_bundle(&state, ".client/app.js", b"x");
-        let r1 = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .uri("/.client/app.js")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let get = |headers: Vec<(&'static str, String)>| {
+            let state = state.clone();
+            async move {
+                let mut req = Request::builder().uri("/.client/app.js");
+                for (name, value) in headers {
+                    req = req.header(name, value);
+                }
+                crate::build_router(state)
+                    .oneshot(req.body(Body::empty()).unwrap())
+                    .await
+                    .unwrap()
+            }
+        };
+        let r1 = get(vec![]).await;
         assert_eq!(r1.status(), StatusCode::OK);
-        let last_modified = r1
-            .headers()
-            .get("last-modified")
-            .expect("Last-Modified present")
-            .to_str()
-            .unwrap()
-            .to_string();
-        assert!(!last_modified.is_empty());
-        let r2 = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.client/app.js")
-                    .header("if-modified-since", &last_modified)
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
+        let etag = r1.headers()["etag"].to_str().unwrap().to_string();
+
+        let r2 = get(vec![("if-none-match", etag.clone())]).await;
         assert_eq!(r2.status(), StatusCode::NOT_MODIFIED);
-        let body = axum::body::to_bytes(r2.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        assert!(body.is_empty());
+        assert_eq!(r2.headers()["cache-control"], "no-cache");
+        assert!(body_string(r2).await.is_empty());
+        // A proxy that re-compressed the response hands the tag back weak.
+        let weak = get(vec![("if-none-match", format!("W/{etag}"))]).await;
+        assert_eq!(weak.status(), StatusCode::NOT_MODIFIED);
+
+        // Bundle timestamps are fixed at compile time, so a date is no proof
+        // the content is unchanged.
+        let by_date = get(vec![(
+            "if-modified-since",
+            "Thu, 01 Jan 1970 00:00:00 GMT".to_string(),
+        )])
+        .await;
+        assert_eq!(by_date.status(), StatusCode::OK);
+
+        seed_bundle(&state, ".client/app.js", b"y");
+        let changed = get(vec![("if-none-match", etag)]).await;
+        assert_eq!(changed.status(), StatusCode::OK);
+        assert_eq!(body_string(changed).await, "y");
     }
 
     #[tokio::test]
@@ -635,6 +666,12 @@ mod tests {
         // Not a login redirect either: assets stay public.
         assert_eq!(
             status(gated_state(), "/.client/app.js.map").await,
+            StatusCode::NOT_FOUND
+        );
+        // A chunk this build no longer has (a tab still running the previous
+        // client) is a 404, not the shell posing as JavaScript.
+        assert_eq!(
+            status(state.clone(), "/.client/chunk-GONE2345.js").await,
             StatusCode::NOT_FOUND
         );
         // A page whose name merely ends in `.map` still gets the shell.

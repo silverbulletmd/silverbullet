@@ -40,16 +40,21 @@ pub async fn handle_tooling(
             .collect();
         metas.sort_by(|a, b| a.name.cmp(&b.name));
 
-        let mut fingerprint = String::new();
+        // The version too: a new server may build the payload differently
+        // from the same files, and a 304 would keep the old shape alive.
+        let mut fingerprint = format!("{}\n", state.version.get());
         for m in &metas {
             fingerprint.push_str(&format!("{}\0{}\0{}\n", m.name, m.last_modified, m.size));
         }
         let etag = etag_for_hash(&sha256_hex(fingerprint.as_bytes()));
-        if if_none_match.as_deref().is_some_and(|v| v.trim() == etag) {
+        if if_none_match
+            .as_deref()
+            .is_some_and(|v| crate::handlers::if_none_match_hits(v, &etag))
+        {
             return Ok(Response::builder()
                 .status(StatusCode::NOT_MODIFIED)
                 .header(header::ETAG, &etag)
-                .header(header::CACHE_CONTROL, "no-cache")
+                .header(header::CACHE_CONTROL, "private, no-cache")
                 .body(Body::empty())
                 .unwrap());
         }
@@ -73,7 +78,7 @@ pub async fn handle_tooling(
             .status(StatusCode::OK)
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::ETAG, &etag)
-            .header(header::CACHE_CONTROL, "no-cache")
+            .header(header::CACHE_CONTROL, "private, no-cache")
             .body(Body::from(json))
             .unwrap())
     })
@@ -194,8 +199,25 @@ mod tests {
             get(&state, Some(&etag)).await.status(),
             StatusCode::NOT_MODIFIED
         );
+        assert_eq!(
+            get(&state, Some(&format!("W/{etag}"))).await.status(),
+            StatusCode::NOT_MODIFIED
+        );
         state.space.write_file("Library/B.md", b"b", None).unwrap();
         assert_eq!(get(&state, Some(&etag)).await.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn etag_changes_with_the_server_version() {
+        let state = Arc::new(test_state());
+        state.space.write_file("Library/A.md", b"a", None).unwrap();
+        let etag = get(&state, None).await.headers()[header::ETAG].clone();
+
+        let mut upgraded = test_state();
+        upgraded.space = state.space.clone();
+        upgraded.version = "next-version".to_string().into();
+        let resp = get(&Arc::new(upgraded), Some(etag.to_str().unwrap())).await;
+        assert_eq!(resp.status(), StatusCode::OK);
     }
 
     #[tokio::test]

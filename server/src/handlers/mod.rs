@@ -8,6 +8,7 @@ pub mod fs;
 pub mod help;
 pub mod mcp_oauth;
 pub mod merge;
+pub mod notice_page;
 pub mod oauth;
 pub mod proxy;
 pub mod revisions;
@@ -21,6 +22,16 @@ use axum::http::StatusCode;
 use axum::response::Response;
 use chrono::{TimeZone, Utc};
 use silverbullet_server_common::SpaceError;
+
+/// RFC 9110 §13.1.2 `If-None-Match`: `*` or any listed tag equal to `etag`
+/// after weak comparison. Proxies like Cloudflare hand strong tags back as
+/// `W/` once they have re-compressed a response.
+pub(crate) fn if_none_match_hits(if_none_match: &str, etag: &str) -> bool {
+    if_none_match
+        .split(',')
+        .map(str::trim)
+        .any(|tag| tag == "*" || tag.strip_prefix("W/").unwrap_or(tag) == etag)
+}
 
 /// Format a millisecond Unix timestamp as an HTTP-date (IMF-fixdate, GMT) for
 /// `Last-Modified`. Returns an empty string for an out-of-range timestamp.

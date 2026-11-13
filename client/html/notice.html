@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title }}</title>
+    <link rel="icon" type="image/png" href="{{ assets }}favicon-96x96.png" sizes="96x96" />
+    <style>body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }</style>
+    <link rel="stylesheet" href="{{ assets }}app.css" />
+  </head>
+  <body class="sb-standalone sb-page">
+    <header class="sb-auth-header">
+      <div class="sb-auth-brand">
+        <img src="{{ assets }}logo-dock-96x96.png" alt="" width="26" height="26" />
+        <span>SilverBullet</span>
+      </div>
+    </header>
+    <main class="sb-auth-content">
+      <h1>{{ title }}</h1>
+      <p class="sb-auth-description">
+        {% if missing_path is not none %}
+        There's no space at <code>{{ missing_path }}</code> on this server. It may have been renamed or removed.
+        {% else %}
+        {{ message }}
+        {% endif %}
+      </p>
+      {% if action %}
+      <p><a class="sb-button-primary" href="{{ action[1] }}">{{ action[0] }}</a></p>
+      {% endif %}
+    </main>
+  </body>
+</html>

@@ -73,6 +73,12 @@ fn is_inline_file_content_type(content_type: &str) -> bool {
         )
 }
 
+/// `/.fs` responses are per-user and vary on `Accept` (octet-stream for sync
+/// reads, the real type for browser loads). Shared caches such as Cloudflare
+/// ignore `Vary: Accept` and store `no-cache` responses, so they could hand a
+/// browser the octet-stream copy; `private` keeps them out entirely.
+const FILE_CACHE_CONTROL: &str = "private, no-cache";
+
 pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
     let state_inner = state.clone();
     match run_blocking(move || state_inner.space.fetch_file_list()).await {
@@ -85,7 +91,7 @@ pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoR
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
                 .header("X-Space-Path", &state.space_folder_path)
-                .header("Cache-Control", "no-cache")
+                .header("Cache-Control", FILE_CACHE_CONTROL)
                 .body(Body::from(json))
                 .unwrap()
         }
@@ -184,6 +190,7 @@ pub async fn handle_fs_get(
                     &meta,
                 )
                 .header(axum::http::header::LAST_MODIFIED, &last_modified)
+                .header(axum::http::header::CACHE_CONTROL, FILE_CACHE_CONTROL)
                 .header(axum::http::header::VARY, "Accept")
                 .body(Body::empty())
                 .unwrap();
@@ -252,17 +259,14 @@ pub async fn handle_fs_get(
 
 /// Whether an `If-None-Match` list names the representation with `hash`.
 fn etag_list_matches(if_none_match: &str, hash: &str) -> bool {
-    let current = etag_for_hash(hash);
-    if_none_match
-        .split(',')
-        .map(str::trim)
-        .any(|tag| tag == "*" || tag.strip_prefix("W/").unwrap_or(tag) == current)
+    crate::handlers::if_none_match_hits(if_none_match, &etag_for_hash(hash))
 }
 
 fn not_modified_by_etag(hash: &str, meta: &FileMeta) -> Response {
     set_revalidated_meta_headers(Response::builder().status(StatusCode::NOT_MODIFIED), meta)
         .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
         .header(axum::http::header::ETAG, etag_for_hash(hash))
+        .header(axum::http::header::CACHE_CONTROL, FILE_CACHE_CONTROL)
         .header(axum::http::header::VARY, "Accept")
         .body(Body::empty())
         .unwrap()
@@ -467,7 +471,7 @@ fn file_response_builder(
     let mut builder = set_file_meta_headers(Response::builder().status(status), meta)
         .header("X-Content-Type", real_content_type)
         .header(axum::http::header::ACCEPT_RANGES, "bytes")
-        .header(axum::http::header::CACHE_CONTROL, "no-cache")
+        .header(axum::http::header::CACHE_CONTROL, FILE_CACHE_CONTROL)
         .header(axum::http::header::VARY, "Accept");
     if force_octet_stream {
         builder.headers_mut().unwrap().insert(
@@ -2282,6 +2286,10 @@ mod tests {
                 );
             }
             assert!(r.headers().get("content-type").is_none());
+            assert_eq!(
+                r.headers().get("cache-control").unwrap(),
+                "private, no-cache"
+            );
         }
     }
 
@@ -2291,7 +2299,7 @@ mod tests {
         // content GET share the same URL. If the probe were cacheable, a browser
         // would revalidate a later content read against the cached EMPTY body and
         // serve nothing. So the probe MUST be `no-store`; the content GET stays a
-        // revalidatable `no-cache` + `Last-Modified`.
+        // revalidatable, browser-only `private, no-cache` + `Last-Modified`.
         let state = Arc::new(test_state());
         state.space.write_file("x.md", b"hello", None).unwrap();
 
@@ -2339,7 +2347,7 @@ mod tests {
                 .unwrap()
                 .to_str()
                 .unwrap(),
-            "no-cache"
+            "private, no-cache"
         );
         assert!(content.headers().get("last-modified").is_some());
         // Content varies by `Accept` (octet-stream vs real type), so the cache

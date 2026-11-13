@@ -247,6 +247,15 @@ async fn refuse_hidden_fs_paths(
     next.run(req).await
 }
 
+async fn default_no_store(req: Request, next: Next) -> Response {
+    let mut response = next.run(req).await;
+    response
+        .headers_mut()
+        .entry(axum::http::header::CACHE_CONTROL)
+        .or_insert(axum::http::HeaderValue::from_static("no-store"));
+    response
+}
+
 /// Build the HTTP router for the file/config/bundle endpoints. Protected routes
 /// require authorization when an authorizer is configured.
 pub fn build_router(state: Arc<ServerState>) -> Router {
@@ -391,6 +400,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             count_requests,
         ))
         .layer(DefaultBodyLimit::disable())
+        .layer(middleware::from_fn(default_no_store))
         .with_state(state)
 }
 
@@ -444,6 +454,37 @@ mod auth_tests {
         let mut s = test_state();
         s.authorizer = authz;
         Arc::new(s)
+    }
+
+    #[tokio::test]
+    async fn responses_without_a_cache_policy_default_to_no_store() {
+        let cache_control = |state: Arc<ServerState>, uri: &'static str| async move {
+            let resp = crate::build_router(state)
+                .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+                .await
+                .unwrap();
+            let value = resp.headers().get("cache-control").unwrap().clone();
+            (resp.status(), value)
+        };
+        let open = state_with(Some(Arc::new(Always(true))));
+        assert_eq!(
+            cache_control(open.clone(), "/.fs/missing.png").await,
+            (StatusCode::NOT_FOUND, "no-store".parse().unwrap())
+        );
+        // A handler's own policy is kept.
+        assert_eq!(
+            cache_control(open, "/.ping").await,
+            (StatusCode::OK, "no-cache".parse().unwrap())
+        );
+        let closed = state_with(Some(Arc::new(Always(false))));
+        closed
+            .client_bundle
+            .write_file(".client/index.html", b"<html></html>", None)
+            .unwrap();
+        assert_eq!(
+            cache_control(closed, "/notes.pdf").await,
+            (StatusCode::FOUND, "no-store".parse().unwrap())
+        );
     }
 
     async fn status(state: Arc<ServerState>, uri: &str) -> StatusCode {
