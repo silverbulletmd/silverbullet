@@ -304,11 +304,37 @@ function regexParser({
   };
 }
 
-const NakedURL = regexParser({
-  firstCharCode: 104, // h
-  regex: new RegExp(`^${nakedUrlRegex.source}`),
-  nodeType: "NakedURL",
-});
+const NakedURL: MarkdownConfig = {
+  defineNodes: ["NakedURL"],
+  parseInline: [
+    {
+      name: "NakedURL",
+      parse(cx, next, pos) {
+        if (next !== 104 /* h */) return -1;
+        const match = nakedUrlRegex.exec(cx.slice(pos, cx.end));
+        if (!match) return -1;
+        const url = match[0];
+        let length = url.length;
+        if (url.endsWith(")")) {
+          // Keep URL parentheses, but exclude surrounding sentence parentheses.
+          // Count once so a long suffix of closing parentheses stays linear.
+          let balance = 0;
+          for (const char of url) {
+            if (char === "(") balance++;
+            else if (char === ")") balance--;
+          }
+          while (balance < 0 && url[length - 1] === ")") {
+            length--;
+            balance++;
+            // Removing a sentence parenthesis can expose trailing punctuation.
+            while (/[.,:;]/.test(url[length - 1])) length--;
+          }
+        }
+        return cx.addElement(cx.elt("NakedURL", pos, pos + length));
+      },
+    },
+  ],
+};
 
 const Hashtag = regexParser({
   firstCharCode: 35, // #
