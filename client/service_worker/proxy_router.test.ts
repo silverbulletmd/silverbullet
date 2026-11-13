@@ -524,3 +524,74 @@ test("/.tooling is proxied while online before the first sync", async () => {
     vi.unstubAllGlobals();
   }
 });
+
+async function navigateToRoot(router: ProxyRouter): Promise<Response> {
+  const shell = new Response("precached shell");
+  vi.stubGlobal("caches", {
+    match: async (key: string) =>
+      key === "http://localhost/?v=cache-1" ? shell : undefined,
+  });
+  let responsePromise: Promise<Response> | undefined;
+  router.onFetch({
+    request: {
+      url: "http://localhost/",
+      method: "GET",
+      mode: "navigate",
+      headers: new Headers(),
+    },
+    respondWith: (p: Promise<Response>) => {
+      responsePromise = p;
+    },
+  });
+  return await responsePromise!;
+}
+
+test("the root shell comes from the network while online, the precache only offline", async () => {
+  const router = new ProxyRouter("", "http://localhost/", {
+    "/": "http://localhost/?v=cache-1",
+  });
+  router.localSpacePrimitives = {} as any;
+  router.syncEngine = {} as any;
+  (router as any).fullSyncConfirmed = true;
+  try {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("fresh shell")),
+    );
+    expect(await (await navigateToRoot(router)).text()).toBe("fresh shell");
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("Offline")));
+    expect(await (await navigateToRoot(router)).text()).toBe("precached shell");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
+test("a chunk from the previous build is served from the previous generation's cache", async () => {
+  const router = new ProxyRouter("", "http://localhost/", {
+    "/.client/client.js": "http://localhost/.client/client.js?v=cache-2",
+  });
+  const old = new Response("old chunk");
+  const match = vi.fn(async (key: string, options?: CacheQueryOptions) =>
+    key === "http://localhost/.client/chunk-OLD23456.js" &&
+    options?.ignoreSearch
+      ? old
+      : undefined,
+  );
+  vi.stubGlobal("caches", { match });
+  const fetchSpy = vi.fn();
+  vi.stubGlobal("fetch", fetchSpy);
+  try {
+    let responsePromise: Promise<Response> | undefined;
+    router.onFetch({
+      request: new Request("http://localhost/.client/chunk-OLD23456.js"),
+      respondWith: (p: Promise<Response>) => {
+        responsePromise = p;
+      },
+    });
+    expect(await (await responsePromise!).text()).toBe("old chunk");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

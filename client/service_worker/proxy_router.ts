@@ -271,7 +271,13 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
     const pathname = url.pathname.substring(this.basePathName.length); //url.pathname with any URL prefix removed
 
-    const cacheKey = this.precacheFiles[pathname] || event.request.url;
+    // The server templates the shell per request (title, head HTML, rendered
+    // index page), so "/" takes the network-first navigation path below like
+    // every other page, and the precached copy is only the offline fallback.
+    const cacheKey =
+      pathname === "/"
+        ? undefined
+        : this.precacheFiles[pathname] || event.request.url;
 
     event.respondWith(
       (async () => {
@@ -282,7 +288,7 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
             return fetch(request);
           }
 
-          const cachedResponse = await caches.match(cacheKey);
+          const cachedResponse = cacheKey && (await caches.match(cacheKey));
           if (cachedResponse) {
             return cachedResponse;
           }
@@ -290,6 +296,21 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
           const pathname = requestUrl.pathname.substring(
             this.basePathName.length,
           );
+
+          // An asset outside this build's precache is the previous build's,
+          // asked for by a tab that loaded before this worker took over. The
+          // previous generation's cache keeps it, under that build's `?v=`.
+          if (
+            pathname.startsWith("/.client/") &&
+            !this.precacheFiles[pathname]
+          ) {
+            const previous = await caches.match(request.url, {
+              ignoreSearch: true,
+            });
+            if (previous) {
+              return previous;
+            }
+          }
 
           // Paths that can never be served locally (auth, shell, etc.) — always proxy.
           // If the proxy fails, there's no local fallback, so let the outer catch

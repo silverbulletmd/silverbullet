@@ -15,6 +15,7 @@ import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
 import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { initLogger } from "./lib/logger.ts";
+import { cachesToDelete } from "./service_worker/cache_generations.ts";
 import { WorkerLogout } from "./service_worker/logout.ts";
 import { ProxyRouter } from "./service_worker/proxy_router.ts";
 import { SyncEngine } from "./service_worker/sync_engine.ts";
@@ -23,7 +24,7 @@ import { fsEndpoint } from "./spaces/constants.ts";
 import { DataStoreSpacePrimitives } from "./spaces/datastore_space_primitives.ts";
 import { HttpSpacePrimitives } from "./spaces/http_space_primitives.ts";
 import { decodeSafetyText } from "./sync_recovery.ts";
-import { deleteToolingCaches, isToolingCacheName } from "./tooling_cache.ts";
+import { deleteToolingCaches } from "./tooling_cache.ts";
 import type {
   ServiceWorkerSourceMessage,
   ServiceWorkerTargetMessage,
@@ -569,13 +570,10 @@ self.addEventListener("activate", (event: any) => {
 
   event.waitUntil(
     (async () => {
-      const cacheNames = await caches.keys();
       await Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && !isToolingCacheName(cacheName)) {
-            console.log("Removing old cache", cacheName);
-            return caches.delete(cacheName);
-          }
+        cachesToDelete(await caches.keys(), CACHE_NAME).map((cacheName) => {
+          console.log("Removing old cache", cacheName);
+          return caches.delete(cacheName);
         }),
       );
       // @ts-expect-error: Take control of all clients as soon as the service worker activates
