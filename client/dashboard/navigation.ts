@@ -7,9 +7,9 @@ import {
   useState,
 } from "preact/hooks";
 import {
-  parseDashboardRoute,
   DASHBOARD_BASE,
   type DashboardRoute,
+  parseDashboardRoute,
 } from "./routes.ts";
 
 /** Navigate to another Dashboard screen without reloading the page. */
@@ -74,6 +74,41 @@ export function shouldIntercept(
   return isDashboardUrl(new URL(anchor.href, location.href));
 }
 
+/** A history entry of this app, and where it was entered from. */
+type Entry = {
+  url: string;
+  index: number;
+  /** The screen this one was opened from; kept across a section switch. */
+  origin?: { url: string; index: number };
+};
+
+const pathOf = (url: string) =>
+  new URL(url, location.href).pathname.replace(/\/+$/, "");
+
+/** Where a screen at `url`, opened from `from`, counts as entered from. */
+export function originFor(from: Entry, url: string): Entry["origin"] {
+  // Another section of the same screen (`?section=…`) keeps the screen's origin
+  if (pathOf(url) === pathOf(from.url)) return from.origin;
+  return { url: from.url, index: from.index };
+}
+
+let current: Entry | undefined;
+
+/**
+ * After a save, go back to the list at `listUrl` when the current screen was
+ * entered from it, as the browser's Back would, so it keeps its scroll
+ * position. False (and nothing happens) when it was entered some other way,
+ * such as a link or a typed address: then the screen stays.
+ */
+export function returnToList(listUrl: string): boolean {
+  const origin = current?.origin;
+  if (!current || !origin || pathOf(origin.url) !== pathOf(listUrl)) {
+    return false;
+  }
+  history.go(origin.index - current.index);
+  return true;
+}
+
 /**
  * The current screen, kept in sync with the address bar. `navigate` pushes a
  * history entry and re-renders; the browser's back and forward buttons work
@@ -84,34 +119,48 @@ export function useDashboardRouter(): {
   navigate: Navigate;
 } {
   const [route, setRoute] = useState<DashboardRoute>(parseDashboardRoute);
-  const current = useRef({
+  const entry = useRef<Entry>({
     url: `${location.pathname}${location.search}`,
     index: history.state?.dashboardIndex ?? 0,
+    origin: history.state?.dashboardOrigin,
   });
 
+  const enter = (next: Entry) => {
+    entry.current = next;
+    current = next;
+  };
+
   useEffect(() => {
+    current = entry.current;
     history.replaceState(
-      { ...history.state, dashboardIndex: current.current.index },
+      {
+        ...history.state,
+        dashboardIndex: entry.current.index,
+        dashboardOrigin: entry.current.origin,
+      },
       "",
     );
     const onPopState = (event: PopStateEvent) => {
       const index = event.state?.dashboardIndex;
-      if (index === current.current.index) return;
+      if (index === entry.current.index) return;
       if (!canNavigate(`${location.pathname}${location.search}`)) {
-        if (typeof index === "number")
-          history.go(current.current.index - index);
+        if (typeof index === "number") history.go(entry.current.index - index);
         else
           history.pushState(
-            { dashboardIndex: current.current.index },
+            {
+              dashboardIndex: entry.current.index,
+              dashboardOrigin: entry.current.origin,
+            },
             "",
-            current.current.url,
+            entry.current.url,
           );
         return;
       }
-      current.current = {
+      enter({
         url: `${location.pathname}${location.search}`,
         index: index ?? 0,
-      };
+        origin: event.state?.dashboardOrigin,
+      });
       setRoute(parseDashboardRoute());
     };
     addEventListener("popstate", onPopState);
@@ -121,8 +170,13 @@ export function useDashboardRouter(): {
   const navigate = useCallback<Navigate>((url) => {
     if (url === `${location.pathname}${location.search}`) return;
     if (!canNavigate(url)) return;
-    current.current = { url, index: current.current.index + 1 };
-    history.pushState({ dashboardIndex: current.current.index }, "", url);
+    const origin = originFor(entry.current, url);
+    enter({ url, index: entry.current.index + 1, origin });
+    history.pushState(
+      { dashboardIndex: entry.current.index, dashboardOrigin: origin },
+      "",
+      url,
+    );
     setRoute(parseDashboardRoute());
     // A screen change is a fresh page as far as the reader is concerned; a
     // long list left the next screen scrolled into its middle.

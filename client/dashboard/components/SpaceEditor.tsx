@@ -1,3 +1,4 @@
+import { Alert, SectionNav } from "@silverbulletmd/silverbullet/ui";
 import {
   useCallback,
   useEffect,
@@ -5,10 +6,13 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { Alert, SectionNav } from "@silverbulletmd/silverbullet/ui";
 import { adminApi, formatApiError } from "../api.ts";
 import { spaceUrl } from "../bindings.ts";
-import { setNavigationGuard, useNavigate } from "../navigation.ts";
+import {
+  returnToList,
+  setNavigationGuard,
+  useNavigate,
+} from "../navigation.ts";
 import { dashboardUrl } from "../routes.ts";
 import {
   applySpacePatch,
@@ -16,8 +20,8 @@ import {
   type SpaceSection,
 } from "../space_settings.ts";
 import type { SpaceInfo } from "../types.ts";
-import { SpaceForm } from "./SpaceForm.tsx";
 import { GitSyncPage } from "./GitSyncPage.tsx";
+import { SpaceForm } from "./SpaceForm.tsx";
 
 export function SpaceEditor({
   id,
@@ -106,6 +110,10 @@ export function SpaceEditor({
   }, [id, refresh]);
   const saved = useCallback(
     (savedId: string, patch?: Partial<SpaceInfo>) => {
+      // Entered from the spaces list: back to it, past the unsaved-changes guard
+      leaving.current = true;
+      if (returnToList(dashboardUrl("/"))) return;
+      leaving.current = false;
       if (!id) navigate(dashboardUrl(`/${encodeURIComponent(savedId)}`));
       else {
         setSpace((value) => value && applySpacePatch(value, patch ?? {}));

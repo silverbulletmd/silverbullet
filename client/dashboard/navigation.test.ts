@@ -162,3 +162,24 @@ test("navigation requires the active draft guard to allow departure", async () =
   release();
   expect(canNavigate()).toBe(true);
 });
+
+test("a screen remembers the screen it was opened from, across its own sections", async () => {
+  const { originFor } = await load(BASE, HERE);
+  const list = { url: "/.dashboard/", index: 0 };
+  const space = {
+    url: "/.dashboard/abc",
+    index: 1,
+    origin: originFor(list, "/.dashboard/abc"),
+  };
+  expect(space.origin).toEqual({ url: "/.dashboard/", index: 0 });
+  // Switching to another section of the same space keeps where it came from
+  expect(originFor(space, "/.dashboard/abc?section=access")).toEqual({
+    url: "/.dashboard/",
+    index: 0,
+  });
+  // Another screen counts as entered from this one
+  expect(originFor(space, "/.dashboard/users")).toEqual({
+    url: "/.dashboard/abc",
+    index: 1,
+  });
+});

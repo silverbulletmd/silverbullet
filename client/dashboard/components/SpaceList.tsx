@@ -1,15 +1,16 @@
-import { useEffect, useState } from "preact/hooks";
 import {
   Alert,
-  Input,
-  SlidersIcon,
   ButtonLink,
+  Input,
   overviewPollMs,
   SearchBadge,
+  SlidersIcon,
   usePolledLoad,
 } from "@silverbulletmd/silverbullet/ui";
+import { useEffect, useState } from "preact/hooks";
 import { api, formatApiError, getSearchOverview } from "../api.ts";
 import { bindingLabel, spaceEntryUrl } from "../bindings.ts";
+import { SaveConfirmation } from "../notifications.tsx";
 import { dashboardUrl } from "../routes.ts";
 import type { VisibleSpace } from "../types.ts";
 
@@ -112,6 +113,7 @@ export function SpaceList({
           </a>
         )}
       </header>
+      <SaveConfirmation scope="space" />
       <Input
         class="sb-management-filter"
         aria-label="Filter spaces"

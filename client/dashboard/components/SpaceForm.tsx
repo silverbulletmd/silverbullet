@@ -1,4 +1,7 @@
-import { changeMemberAccess } from "../runtime_permissions.ts";
+import type {
+  CatalogModel,
+  SemanticChoice,
+} from "@silverbulletmd/silverbullet/type/search_admin";
 import {
   Alert,
   Button,
@@ -21,6 +24,7 @@ import {
   type RuntimeAvailability,
   runtimeApiUnavailableReason,
 } from "../runtime_availability.ts";
+import { changeMemberAccess } from "../runtime_permissions.ts";
 import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
 import {
   SPACE_SECTIONS,
@@ -28,12 +32,8 @@ import {
   settingsPayload,
 } from "../space_settings.ts";
 import type {
-  CatalogModel,
-  SemanticChoice,
-} from "@silverbulletmd/silverbullet/type/search_admin";
-import type {
-  CommitTiming,
   Binding,
+  CommitTiming,
   FieldError,
   MemberEntry,
   RevisionsMode,
@@ -242,7 +242,7 @@ export function SpaceForm({
               payload,
             );
             setSavedValues((previous) => ({ ...previous, ...payload }));
-            notify("Saved");
+            notify("Space settings saved.");
             onSaved(id, payload);
           } else {
             const result = await adminApi("POST", "spaces", payload);

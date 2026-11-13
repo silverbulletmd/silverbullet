@@ -2,13 +2,13 @@ import { localDateString } from "@silverbulletmd/silverbullet/lib/dates";
 import {
   Alert,
   Badge,
-  ButtonLink,
-  SlidersIcon,
   Button,
+  ButtonLink,
   Checkbox,
   Input,
-  Select,
   SectionNav,
+  Select,
+  SlidersIcon,
 } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import {
@@ -26,7 +26,7 @@ import {
   setUserProfile,
   signOutEverywhere,
 } from "../api.ts";
-import { useNavigate } from "../navigation.ts";
+import { returnToList, useNavigate } from "../navigation.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
 import { dashboardUrl } from "../routes.ts";
 import type { AuthenticationStatus, UserInfo } from "../types.ts";
@@ -208,6 +208,8 @@ export function NewUser({ onUnauthorized }: { onUnauthorized: () => void }) {
         )
           .then(() => {
             notify("User created.");
+            // Entered from the users list: back to it; otherwise to the user
+            if (returnToList(dashboardUrl("/users"))) return;
             navigate(
               dashboardUrl(`/users/${encodeURIComponent(username.trim())}`),
             );
@@ -349,18 +351,24 @@ export function UserDetail({
     void run(() => reload(true)).finally(() => setLoaded(true));
   }, [username]);
 
-  async function run(action: () => Promise<void>, message = "") {
-    if (busy) return;
+  /** Runs `action`, showing `message` or the error; true when it succeeded. */
+  async function run(
+    action: () => Promise<void>,
+    message = "",
+  ): Promise<boolean> {
+    if (busy) return false;
     setBusy(true);
     setError("");
     notify("");
     try {
       await action();
       if (message) notify(message);
+      return true;
     } catch (error: any) {
       if (error.unauthorized) onUnauthorized();
       else if (error.notFound) setNotFound(true);
       else setError(formatApiError(error));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -489,7 +497,10 @@ export function UserDetail({
                   void run(async () => {
                     await setUserProfile(username, fullName, email);
                     await reload(true);
-                  }, "Profile saved.");
+                  }, "Profile saved.").then((ok) => {
+                    // Entered from the users list: back to it
+                    if (ok) returnToList(dashboardUrl("/users"));
+                  });
                 }}
               >
                 <label for="user-detail-full-name">Full name</label>
