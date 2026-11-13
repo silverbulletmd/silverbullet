@@ -341,6 +341,7 @@ fn try_build_parts(
     // Read-only spaces migrate too: their configuration would otherwise stop
     // loading, since CONFIG is no longer a Tool Page
     silverbullet_server_common::space::migrate_config_page(&folder, &config.space_ignore);
+    silverbullet_server_common::space::remove_legacy_repository_pages(&folder);
 
     let disk = DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
         .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;

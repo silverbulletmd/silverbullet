@@ -6,6 +6,7 @@ pub mod config_migration;
 pub mod disk;
 pub mod embed;
 pub mod http;
+pub mod legacy_repositories;
 pub mod readonly;
 
 pub use conditional::{ConditionalSpacePrimitives, WritePrecondition};
@@ -16,6 +17,7 @@ pub use embed::{
     ReadOnlyDirSpacePrimitives, BUNDLED_COPY_ON_WRITE,
 };
 pub use http::HttpSpacePrimitives;
+pub use legacy_repositories::remove_legacy_repository_pages;
 pub use readonly::ReadOnlySpacePrimitives;
 
 #[cfg(any(test, feature = "testing"))]
