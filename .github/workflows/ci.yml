@@ -8,8 +8,10 @@ on:
 concurrency:
   # Main pushes and manual edge publishes share mutable tags and must not overlap.
   group: ci-${{ (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main') && 'edge' || github.ref }}
-  # Never cancel an in-flight tag (release) run; cancel superseded branch runs.
-  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' || !startsWith(github.ref, 'refs/tags/') }}
+  # Cancel superseded PR/branch runs only. Edge (main + dispatch) and tag runs
+  # finish so their rust-cache gets saved; GitHub still collapses queued edge
+  # runs to the newest one, so a burst of pushes costs at most one extra run.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -88,6 +90,7 @@ jobs:
 
   test-frontend:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -116,6 +119,7 @@ jobs:
     # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
     # since October 2026)
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -153,6 +157,7 @@ jobs:
     # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
     # since October 2026)
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -202,6 +207,7 @@ jobs:
     # Playwright 1.58 can't install browsers on Ubuntu 26.04 (ubuntu-latest
     # since October 2026)
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - name: Setup repo
         uses: actions/checkout@v7

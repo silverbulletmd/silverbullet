@@ -9,6 +9,7 @@ env:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -33,6 +34,8 @@ jobs:
           # a tag run are never readable again — they only evict main's under the
           # 10 GB repo cap. Tag runs still restore from the default branch.
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Keep a finished compile even if a later step (e.g. FreeBSD) fails.
+          cache-on-failure: true
 
       - name: Install cross-toolchains
         run: |
@@ -91,6 +94,7 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - name: Setup repo
         uses: actions/checkout@v7
@@ -110,6 +114,8 @@ jobs:
         with:
           key: macos
           save-if: ${{ github.ref == 'refs/heads/main' }}
+          # Keep a finished compile even if signing/notarization fails.
+          cache-on-failure: true
 
       - name: Install npm dependencies
         run: npm ci
