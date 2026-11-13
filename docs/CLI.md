@@ -1,14 +1,15 @@
 ---
-tags: maturity/experimental
+tags: maturity/beta
 references:
 - bin/sb/src/cli.rs
 - bin/sb/src/commands/mod.rs
 - bin/sb/src/main.rs
 ---
+The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly. Lua, queries, screenshots and logs use the [[Runtime API]]. `sb help` gives an AI assistant or a person the space’s skills and a map of the space (see [[#`help [topic]`]]).
+
 > **note** This is **not** the server
 > `sb` is the optional **CLI client**, it talks to an already-running SilverBullet instance over HTTP. If you’re looking for the actual server binary, that’s [[Install/Server Binary]] (`silverbullet`), not this. You do not need `sb` to use SilverBullet.
 
-The SilverBullet CLI is a companion command-line tool for interacting with a running SilverBullet instance from your terminal. It communicates with the server over HTTP. File commands use the [[HTTP API]] directly. Lua, queries, screenshots and logs use the [[Runtime API]]. `sb help` gives an AI assistant or a person the space’s skills and a map of the space (see [[#`help [topic]`]]).
 
 # Installation
 On macOS, Linux and FreeBSD:

@@ -48,7 +48,7 @@ When entering a filter phrase, the best matches should appear closer to the top,
 * `Home`: moves to the start of the list
 * `End`: moves to the end of the list
 * `Escape`: clears the filter phrase. On an empty phrase it closes the page picker
-* Typing `^` when the filter phrase is empty switches to the **Tool** segment ([[Tool Picker]]). `Tab`/`Shift-Tab` step through all four segments
+* Typing `^` when the filter phrase is empty switches to the **Tool Pages** segment ([[Tool Picker]]). `Tab`/`Shift-Tab` step through all four segments
 
 # Mouse/touch operation
 You can scroll and select an item from the list by clicking with the mouse, as well as close the page picker by clicking outside of it.

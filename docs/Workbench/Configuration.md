@@ -13,6 +13,8 @@ A sidebar on the left lists two sections. In a narrow panel it becomes a drop-do
 * **Configuration**: every option registered with [[API/config#config.define(key, schema)]] that has a `ui` annotation, grouped by category. The categories are listed under the section in the sidebar. Click one to jump to it. Each option shows its label, description and a control that fits its schema: a checkbox, a drop-down, a text, password or number field. Options the tab can’t edit say so. Change those in [[^Library/Config]] directly.
 * **Key bindings**: every [[Command]] with its keyboard shortcuts. Click a shortcut, then press the keys you want: chords of several strokes, like `Ctrl-q q`, work too. Enter keeps it, Esc cancels and Backspace undoes the last key. `+` adds an alternate shortcut. A shortcut that’s already taken, or that another shortcut would make unreachable, is refused, with the reason shown under the row.
 
+Under **Appearance**, **Theme** picks the [[Theming|theme]] for everyone using the space, and the font options pick the [[Fonts]]. Both preview as soon as you choose, before you save. When this device uses a theme of its own, a note under the theme says so, with a **Use space default** button that drops the device’s choice.
+
 The filter in the toolbar narrows the section showing: options by label, description and path, key bindings by command name.
 
 A dot marks an option or command you changed from its default. Its ⋯ menu offers:

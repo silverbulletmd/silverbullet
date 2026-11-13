@@ -337,6 +337,44 @@ local function importMermaid()
   return asMermaid(js.import(cfg.cdnUrl))
 end
 
+-- Laying out a diagram takes Mermaid hundreds of milliseconds (it measures
+-- every label in the DOM), and widgets re-render whenever the pages they query
+-- are re-indexed, i.e. on every save. Rendered SVGs are kept by theme and
+-- source, so an unchanged diagram costs nothing to show again.
+local RENDER_CACHE_MAX = 50
+local renderCache = {}
+local renderCacheSize = 0
+
+-- The SVG for `source` in `theme`, rendered under the unique id `id` (Mermaid
+-- scopes the SVG's CSS and element ids to it), or `{ error = … }`.
+local function renderCached(theme, source, id)
+  local key = theme .. "\n" .. source
+  local hit = renderCache[key]
+  if hit then
+    -- Re-scope the cached SVG to this render's id. Requiring a non-digit
+    -- after it stops "sb-mmd-1" from also matching inside "sb-mmd-12" (the id
+    -- is never the SVG's last character).
+    local renamed = string.gsub(hit.svg, escapePattern(hit.id) .. "(%D)", id .. "%1")
+    return renamed
+  end
+  local svg
+  local okRender, err = pcall(function()
+    local m = importMermaid()
+    m.initialize { startOnLoad = false, securityLevel = "strict", theme = theme }
+    svg = m.render(id, source).svg
+  end)
+  if not okRender or not svg then
+    return { error = err }
+  end
+  if renderCacheSize >= RENDER_CACHE_MAX then
+    renderCache = {}
+    renderCacheSize = 0
+  end
+  renderCache[key] = { svg = svg, id = id }
+  renderCacheSize = renderCacheSize + 1
+  return svg
+end
+
 -- IR table (or raw string) -> a rendered widget. Mermaid is imported into the main client context via js.import (no sandbox iframe); we render to an SVG string and inject `data-sb-ref` attributes onto node groups so clicks navigate to the mapped page.
 function mermaid.diagram(input, opts)
   opts = opts or {}
@@ -357,10 +395,12 @@ function mermaid.diagram(input, opts)
     collectClicks(input.elements, clicks)
   end
 
-  -- Theme follows the editor's theme.
+  -- Theme follows the editor's scheme (`data-sb-scheme`; older SilverBullet
+  -- versions set `data-theme`).
   local theme = "default"
   local okTheme, t = pcall(function()
-    return js.window.document.documentElement.dataset.theme
+    local ds = js.window.document.documentElement.dataset
+    return ds.sbScheme or ds.theme
   end)
   if okTheme and t == "dark" then theme = "dark" end
 
@@ -368,16 +408,9 @@ function mermaid.diagram(input, opts)
   mermaid._n = (mermaid._n or 0) + 1
   local id = "sb-mmd-" .. mermaid._n
 
-  local svg
-  local okRender, err = pcall(function()
-    local m = importMermaid()
-    m.initialize { startOnLoad = false, securityLevel = "strict", theme = theme }
-    local res = m.render(id, source)
-    svg = res.svg
-  end)
-
-  if not okRender or not svg then
-    local msg = tostring(err)
+  local svg = renderCached(theme, source, id)
+  if type(svg) ~= "string" then
+    local msg = tostring(svg.error)
     msg = string.gsub(msg, "&", "&amp;")
     msg = string.gsub(msg, "<", "&lt;")
     return widget.html("<pre class='sb-mmd-error'>Mermaid error: " .. msg .. "</pre>")

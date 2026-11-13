@@ -138,7 +138,7 @@ slashCommand.define {
 
 slashCommand.define {
   name = "task",
-  displayName = "To-do",
+  displayName = "Task",
   description = "Track a task with a checkbox",
   icon = "md-checklist",
   aliases = {"todo", "checkbox"},

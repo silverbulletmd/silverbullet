@@ -15,7 +15,7 @@ which renders as follows:
 
 * [ ] This is my first task
 
-In a writable space, click a checkbox to change whether the task is complete. Checkboxes in these read-only docs cannot be changed.
+Click a checkbox to change whether the task is complete.
 
 # Custom states
 Tasks support the default `x` and ` ` states (done and not done), but custom states as well. Support for this is still basic, however.

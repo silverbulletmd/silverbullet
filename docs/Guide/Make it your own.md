@@ -43,4 +43,5 @@ Workbench writes the configuration as [[Space Lua]] for you. You can inspect [[^
 # Go further
 * [[Page Template]] and [[Slash Templates]] let you reuse content when creating pages or inserting sections.
 * [[Space Lua]] lets you add your own commands, views and behavior.
+* [[Theming]] explains how to pick a theme for your space or just this device, and how to write your own.
 * [[Space Style]] lets you change colors, spacing and other styling with CSS.

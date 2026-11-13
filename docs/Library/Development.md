@@ -3,6 +3,7 @@ description: "Build and publish a SilverBullet library."
 tags: development
 references:
 - client/workbench/libraries/libraries_backend.ts
+- client/workbench/libraries/library_requires.ts
 - libraries/Library/Std/Infrastructure/Github.md
 ---
 To develop your own SilverBullet library follow these steps:
@@ -42,6 +43,21 @@ files:
 - myplug.plug.js
 ---
 ```
+
+# Require other libraries
+When your library builds on another library, list it under `requires` rather than copying its pages or files into yours. Installing your library then installs it too, and it can’t be removed while your library is installed:
+
+```
+---
+name: Library/myuser/Themes/Paper
+tags: meta/library
+requires:
+- ../Fonts/Lora.md
+- github:otheruser/silverbullet-libraries@main/Library/otheruser/Inter.md
+---
+```
+
+Each entry is either a full URI (the one you would install that library from) or a path relative to your library’s own published URI, such as `../Fonts/Lora.md` (not starting with `/`). A relative path keeps the repository and branch your library was installed from, so a library installed from a release or a branch gets its requirements from the same place. Prefer relative paths for libraries in the same repository, and full URIs for anyone else’s. See [[Library#Libraries that require other libraries]] for how installing, updating and removing treat requirements.
 
 # Share the library
 At this stage you can put your library file anywhere you like with a URL. However, for convenience, it’s good to use [[Share]] support for publishing.
@@ -100,6 +116,7 @@ Additional recommended keys are:
 * `description`: a more elaborate description of the library and its functionality
 * `author`: who developed this library
 * `website`: a website URL for more information
+* `requires`: the library’s `requires` list, copied from its page, so the Library Manager can show what it requires before it is installed. Relative paths resolve against the entry’s `uri`. Installing always follows the library page’s own list.
 
 Now share this repo page using [[Share]] to the same github repo (or any other, it doesn’t really matter), and call it `REPO.md` (by convention).
 

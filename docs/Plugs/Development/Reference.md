@@ -70,11 +70,11 @@ Each hook type is a different way for a plug function to be triggered. A single 
 Declares a [[Command]] available from the command palette and (optionally) via a keybinding.
 
 ```yaml
-toggleDarkMode:
-  path: "./editor.ts:toggleDarkMode"
+wordCount:
+  path: "./stats.ts:wordCount"
   command:
-    name: "Editor: Toggle Dark Mode"
-    key: "Ctrl-Alt-d"
+    name: "Stats: Word Count"
+    key: "Ctrl-Alt-w"
     requireMode: rw          # "rw" or "ro"
     requireEditor: page      # "any", "page", "notpage", or a string editor name
     requireServiceWorker: true  # hide when SB_DISABLE_SERVICE_WORKER is set
@@ -85,9 +85,10 @@ All command fields: `name` (required), `key` / `mac`, `priority`, `contexts`, `r
 ```typescript
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
-export async function toggleDarkMode() {
-  const current = await editor.getUiOption("darkMode");
-  await editor.setUiOption("darkMode", !current);
+export async function wordCount() {
+  const text = await editor.getText();
+  const words = text.split(/\s+/).filter(Boolean).length;
+  await editor.flashNotification(`${words} words`);
 }
 ```
 
@@ -102,7 +103,7 @@ insertToday:
     description: "Insert today's date"
 ```
 
-Fields: `name` (required), `description`, `priority`, `onlyContexts`, `exceptContexts`. The context fields restrict the command to (or exclude it from) certain AST node types, e.g. inside fenced code blocks.
+Fields: `name` (required), `displayName`, `description`, `icon`, `aliases`, `group`, `priority`, `onlyContexts`, `exceptContexts`. `displayName`, `icon`, `aliases` and `group` shape how it shows in the menu (see [[API/slashCommand]]). The context fields restrict the command to (or exclude it from) certain AST node types, e.g. inside fenced code blocks.
 
 ```typescript
 import { editor } from "@silverbulletmd/silverbullet/syscalls";

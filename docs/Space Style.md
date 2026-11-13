@@ -3,15 +3,15 @@ description: "Custom CSS for the editor, defined in space-style code blocks."
 tags: customization glossary
 references:
 - plugs/index/space_style.ts
-- client/style.ts
+- client/space_style.ts
 ---
 Space Style is [[Space Lua]]’s stylish sibling. It enables you to add your own styling to SilverBullet with `space-style` [[Markdown/Fenced Code Block]]. Like `space-lua`, a `space-style` block only applies when it’s on a [[Tool Page]]: a page under `Library/`. A block on any other page is shown but not applied, and gets a lint warning. The examples on this page are inert for that reason.
 
-This can be used to achieve various things, such as overriding the default editor font or setting wider page widths. It is also possible to develop custom themes this way. To pick fonts, [[Fonts]] in Configuration is the easier route; a Space Style that sets a font variable wins over it.
+Space Styles can be used to achieve various things, such as setting wider page widths or adjusting the colors of the theme you use. To write a theme of your own, or to adjust only some themes, see [[Theming]]. To pick fonts, [[Fonts]] in Configuration is the easier route; a Space Style that sets a font variable wins over it.
 
 To apply the updated styles, either reload the client or run the ${widgets.commandButton("System: Reload")} command.
 
-Many styles can be set with [variables](https://github.com/silverbulletmd/silverbullet/blob/main/client/styles/theme.scss) but not everything is covered. You’ll have to reverse-engineer those parts, unfortunately.
+Most styling is done by setting variables: [[Theming/Variables]] lists them all. When a variable doesn’t cover what you want, you can style elements directly. [[Theming/Selectors]] lists the selectors you can rely on; any other class may change between releases.
 
 For example: modal backdrops (behind pickers, prompts and confirmations) are fully transparent by default. To bring back a dimmed backdrop, set `--modal-backdrop-color`:
 
@@ -19,7 +19,7 @@ For example: modal backdrops (behind pickers, prompts and confirmations) are ful
 html {
   /*--modal-backdrop-color: rgba(0, 0, 0, 0.15);*/
 }
-html[data-theme="dark"] {
+html[data-sb-scheme="dark"] {
   /*--modal-backdrop-color: rgba(0, 0, 0, 0.45);*/
 }
 ```
@@ -36,8 +36,8 @@ somestyle {
 
 Styles load in the same order as [[Space Lua#Definition loading|Space Lua scripts]]: by priority, highest first, where a block without a priority counts as `0`. Blocks with the same priority load in page name order, and blocks on the same page load top to bottom. Later styles win when selectors are equally specific. The [[Workbench/Code/Styles|Space Style]] section of the [[Workbench/Code|Code]] tab shows the actual order.
 
-# Tone colours
-SilverBullet defines six tones as CSS variables, with values for the light and the dark theme: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in both themes:
+# Tone colors
+SilverBullet defines six tones as CSS variables, which themes adapt to their colours: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in every theme:
 
 ```css
 .overdue {
@@ -75,26 +75,25 @@ Additionally tags written using angle brackets, such as...
 }
 ```
 # More examples
-All the actual CSS in these examples is commented out, so it stays harmless once you copy it into a page under `Library/`.
 ```space-style
 html {
-  /* Changes to the default theme */
+  /* Changes to every theme */
   /* Such as the accent color */
   /*--ui-accent-color: #464cfc;*/
 }
 
-html[data-theme="dark"] {
-  /* Changes to the dark theme */
+html[data-sb-scheme="dark"] {
+  /* Changes to dark themes only */
   /*--ui-accent-color: #464cfc;*/
 }
 
 html {
   /* Uncomment the next line to set the editor font to Courier */
-  /* --editor-font: "Courier" !important; */
+  /* --editor-font: "Courier"; */
   /* Code, frontmatter and Lua expressions use their own font, see [[Fonts]] */
-  /* --editor-monospace-font: "Courier" !important; */
+  /* --editor-monospace-font: "Courier"; */
   /* Uncomment the next line to set the editor width to 1400px */
-  /* --editor-width: 1400px !important; */
+  /* --editor-width: 1400px; */
 }
 
 /* Choose another header color */
@@ -103,7 +102,7 @@ html {
 }
 /* Or modify the element directly */
 #sb-top {
-  /*background-color: #eee !important;*/
+  /*background-color: #eee;*/
 }
 
 /* You can even change the appearance of buttons */

@@ -23,8 +23,8 @@ The two `<!-- ... -->` markers are ordinary HTML comments, so **every markdown r
 The stored Markdown body remains readable in other tools, subject to their Markdown support. Updating it requires a writable SilverBullet page and an expression that can still run.
 
 # Using baked sections
-- **Bake into page** — the ⋯ menu of block `${...}` widgets (tables, lists, diagrams) turns that live directive into a baked section in place.
-- **The baked section’s ⋯ menu** (on its header): _Update_ re-evaluates just this section, _Edit expression_ puts the cursor in the opening marker, _Copy as Markdown_ copies the body, and _Unbake_ turns it back into a live `${...}` directive. On a read-only page only _Copy as Markdown_ is offered.
+- **Bake into page** — the menu of block `${...}` widgets (the ⋮ beside them on desktop, their ⋯ on touch devices) (tables, lists, diagrams) turns that live directive into a baked section in place.
+- **The baked section’s menu** (the ⋮ beside its header on desktop, which also moves or deletes the whole section; the ⋯ on its header on touch devices): _Update_ re-evaluates just this section, _Edit expression_ puts the cursor in the opening marker, _Copy as Markdown_ copies the body, and _Unbake_ turns it back into a live `${...}` directive. On a read-only page only _Copy as Markdown_ is offered.
 - `Baked Sections: Update` (`Ctrl-Shift-b` / `Cmd-Shift-b`): re-evaluates *every* baked section on the current page and rewrites each body with its latest output. Run this whenever the underlying data changed and you want the baked output refreshed.
 - `Baked Sections: Unbake Section At Cursor` — put your cursor inside a baked section and run this to turn it back into a live `${...}` directive. Handy when you want to edit the expression with [[Live Preview]] again, bake it back when you’re done.
 

@@ -4,15 +4,6 @@ This is where you configure SilverBullet to your liking. See [[^Library/Std/Conf
 ```space-lua
 -- boot: true
 actionButton.define {
-  icon = "search",
-  description = "Search",
-  priority = 2.8,
-  run = function()
-    system.invokeCommand("Space: Search")
-  end
-}
-
-actionButton.define {
   icon = "message-circle",
   description = "Community",
   priority = 2.7,
@@ -105,6 +96,53 @@ tag.define {
   pageDecoration = { icon = "box" },
 }
 
+-- Theming reference data (Theming/Variables/Data, Theming/Selectors). Keep the
+-- enums in step with client/styles/theme_docs.test.ts, which checks the same.
+local themeStability = {
+  type = "string",
+  enum = { "stable", "experimental", "deprecated" },
+}
+
+tag.define {
+  name = "theme-variable",
+  tagPage = "Theming/Variables",
+  icon = "droplet",
+  schema = {
+    type = "object",
+    properties = {
+      name = { type = "string", pattern = "^--[a-z0-9-]+$" },
+      group = { type = "string" },
+      level = { type = "string", enum = { "base", "specific" } },
+      light = { type = "string" },
+      dark = { type = "string" },
+      derivesFrom = {
+        type = "array",
+        items = { type = "string", pattern = "^--[a-z0-9-]+$" },
+      },
+      since = { type = "string" },
+      stability = themeStability,
+      description = { type = "string", minLength = 1 },
+    },
+    required = { "name", "group", "level", "since", "stability", "description" },
+  },
+}
+
+tag.define {
+  name = "theme-selector",
+  tagPage = "Theming/Selectors",
+  icon = "crosshair",
+  schema = {
+    type = "object",
+    properties = {
+      selector = { type = "string" },
+      description = { type = "string", minLength = 1 },
+      since = { type = "string" },
+      stability = themeStability,
+    },
+    required = { "selector", "description", "since", "stability" },
+  },
+}
+
 local deadlinePattern = "📅%s*(%d%d%d%d%-%d%d%-%d%d)"
 
 tag.define {
@@ -149,12 +187,11 @@ config.set("lint.inactiveBlocks", false)
 ```space-lua
 -- managed-by: configuration-manager
 -- boot: true
-config.set("fonts.ui", "inter")
-config.set("fonts.editor", "inter")
 config.set("workbench.pinnedTags", {
   "page",
   "task",
 })
+config.set("accentColor", "#0059b8")
 ```
 
 ```space-lua

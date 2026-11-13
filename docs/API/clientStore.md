@@ -19,7 +19,7 @@ Deletes a client-specific value from the local key-value store.
 **Example:**
 
 ```space-lua
-clientStore.delete("theme")
+clientStore.delete("sidebarWidth")
 ```
 
 ## clientStore.get
@@ -38,7 +38,7 @@ Gets a client-specific value from the local key-value store.
 **Example:**
 
 ```space-lua
-local theme = clientStore.get("theme")
+local sidebarWidth = clientStore.get("sidebarWidth")
 ```
 
 ## clientStore.set
@@ -54,7 +54,7 @@ Stores a client-specific value in the local key-value store.
 **Example:**
 
 ```space-lua
-clientStore.set("theme", "dark")
+clientStore.set("sidebarWidth", 300)
 ```
 <!--/lua-->
 

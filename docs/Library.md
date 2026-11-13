@@ -1,6 +1,6 @@
 ---
 description: "Reusable Space Lua scripts, templates and pages you can install in your space."
-tags: maturity/beta glossary
+tags: glossary
 references:
 - client/workbench/libraries/libraries_backend.ts
 - client/workbench/libraries/library_requires.ts
@@ -45,10 +45,10 @@ requires:
 
 Each entry is the URI of a library, in one of two forms:
 * A **full URI**, as you would give to **Install…** (`github:…`, `https://…`).
-* A **relative path**, resolved against the requiring library’s own URI: same repository, same branch or tag. `../Fonts/Lora.md` next to `github:myuser/silverbullet-libraries@main/Library/myuser/Themes/Paper.md` is `github:myuser/silverbullet-libraries@main/Library/myuser/Fonts/Lora.md`. A path can’t climb out of the repository, and can’t start with `/`: start it with `./`, `../` or a file name.
+* A **relative path**, resolved against the requiring library’s own URI.
 
 What this does:
-* **Installing** a library first installs every library it requires that isn’t installed yet (installed from the same URI, or already in your space under the page name it installs to), and what those require in turn. A library that requires itself, or a circle of libraries requiring each other, installs each library once. When a required library can’t be installed, or the library itself or one of its files fails, nothing is installed: the error names the library that failed, and whatever this install had already written is removed again. Libraries that were installed before stay.
+* **Installing** a library first installs every library it requires that isn’t installed yet (installed from the same URI, or already in your space under the page name it installs to), and what those require in turn.
 * **Updating** a library installs the requirements it gained since. Requirements that are already installed aren’t updated with it: update them on their own. When a new requirement can’t be installed, the library stays updated and the error says so.
 * **Removing** a library another installed library requires is refused, with a message such as “Paper requires Lora. Remove Paper first.” Removing the requiring library leaves what it required installed. Libraries that require each other in a circle don’t hold each other back.
 

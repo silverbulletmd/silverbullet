@@ -5,9 +5,9 @@ Edit [[Frontmatter]] and [[Tag/data|data blocks]] as forms. Changes are written 
 2. Change a value in its field. Use the form’s attribute controls to add, remove or reorder attributes.
 3. Choose **Edit source** from the ⋯ menu to edit YAML directly, or press Esc in an input to reveal its attribute. Move the cursor outside the YAML to return to the form.
 
-On a page without frontmatter, hover over the first line to reveal the faint **add tag** icon. Clicking it opens the form with an empty tags field. Type a tag and press Enter, then use **+ add attribute** to add more attributes. [[Guide/Add Structure and Query]] shows the workflow. Undo removes your changes.
+On a page without frontmatter, hover the first line and click the ⋮ handle to its left, then **Add tag**. That opens the form with an empty tags field. Type a tag and press Enter, then use **+ add attribute** to add more attributes. [[Guide/Add Structure and Query]] shows the workflow. Undo removes your changes.
 
-A data block can contain several objects, separated by `---`. **+ add item** appears beneath the last item once it has an attribute. **Delete** in the ⋯ menu removes one item, or the whole block if it is the only item. On frontmatter, **Delete** removes the entire frontmatter. These changes are undoable.
+A data block can contain several objects, separated by `---`. **+ add item** appears beneath the last item once it has an attribute. On desktop the ⋮ beside the block has **Move up**, **Move down** and **Delete** for the whole block and, with several items, a submenu per item whose **Delete** removes that item; on touch devices each item's ⋯ menu has **Delete**, which removes the whole block for its only item. On frontmatter, **Delete** removes the entire frontmatter. These changes are undoable.
 
 # Configuration
 In [[Workbench/Configuration]], switch **Edit frontmatter as a form** or **Edit data blocks as a form** off to keep the corresponding YAML visible. A tag may provide its own renderer independently of these default-form settings.

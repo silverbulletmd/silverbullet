@@ -36,7 +36,7 @@ This describes the APIs available in [[Space Lua]]:
 * [[API/identity|identity]]
 * [[API/js|js]]
 * [[API/jsonschema|jsonschema]]
-* [[API/keyboardBar|keyboardBar]]
+* [[API/markupBar|markupBar]]
 * [[API/mq|mq]]
 * [[API/net|net]]
 * [[API/pageVars|pageVars]]

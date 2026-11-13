@@ -6,10 +6,10 @@ When patterns start to emerge in your note taking, you may start to add a sprink
 # Tag it
 We’ll continue our journey from [[Guide/Find and Connect Pages]].
 
-On `Photo Walk`, move the mouse over the first line or the empty area just above it. A faint tag icon appears to the left, labeled **add tag**.
+On `Photo Walk`, hover the first line (or the empty area just above it) and click the ⋮ handle to its left, then **Add tag**.
 
 ![Photo Walk with the add tag control visible beside its first line.](../Screenshots/frontmatter-form-add-tag.png)
-Click the icon to open a small attribute form at the top of a new page, with its **tags** field focused. Type `outing` and press Enter.
+That opens a small attribute form at the top of a new page, with its **tags** field focused. Type `outing` and press Enter.
 
 If you followed [[Guide/Find and Connect Pages]], you already have `Woodland Hike`. Open it by following the link on `Photo Walk`. Let’s give this outing the same tag.
 
@@ -71,6 +71,6 @@ Click **Insert at cursor** in Workbench, then close the panel. The table now app
 ![The index page shows the two outing pages in a table under Outings.](../Screenshots/outing-query-index.png)
 Try changing `Woodland Hike`’s status to `completed`, then return to the index page. After saving and indexing, its row should show the new status. You can change it back to `planned` to restore the example.
 
-To adjust the list later, open its ⋯ menu and choose **Edit in query builder**. Workbench opens the existing query and offers **Update page**. Use that to save changes instead of inserting another copy.
+To adjust the list later, open its menu (the ⋮ beside it on desktop) and choose **Edit in query builder**. Workbench opens the existing query and offers **Update page**. Use that to save changes instead of inserting another copy.
 
 For task lists, see [[Guide/Task Management]].

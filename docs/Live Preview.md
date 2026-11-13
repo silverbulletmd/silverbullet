@@ -17,4 +17,4 @@ In a read-only page, ordinary keyboard navigation keeps links and widgets render
 If you prefer to see the raw markdown at all times, run the ${widgets.commandButton("Editor: Toggle Markdown Syntax Rendering")} command. This switches between live preview mode and raw markdown mode.
 
 # Widget rendering
-[[Space Lua#Expressions]] (`${...}`) are rendered inline in place. The underlying code follows the source-reveal rules above. Queries, templates and widgets display their results within the document. An expression re-runs when something it read changes. See [[API/widget#When expressions update]]. Use the ⋯ menu on a block widget to reload, copy or bake it.
+[[Space Lua#Expressions]] (`${...}`) are rendered inline in place. The underlying code follows the source-reveal rules above. Queries, templates and widgets display their results within the document. An expression re-runs when something it read changes. See [[API/widget#When expressions update]]. Use a block widget's menu (the ⋮ beside it on desktop, its ⋯ on touch devices) to edit, copy, bake, move or delete it.

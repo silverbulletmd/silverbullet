@@ -23,7 +23,7 @@ For common cases there are shortcuts: `widget.markdown`, `widget.markdownBlock`,
 ${widget.markdown("**Bold** and *italic* text")}
 
 # The widget menu
-Block widgets have a ⋯ menu in their top-right corner (on hover on desktop, always visible on touch devices) for Reload, Copy as Markdown and Bake into page. Inline results use the *Widget: …* commands instead. See [[API/widget#Widget menu and commands]].
+Block widgets have one actions menu for Edit source, Bake into page, Copy as Markdown, and Move up/down and Delete: on desktop behind the ⋮ that shows in the left margin beside the widget while the mouse is over it, on touch devices behind the ⋯ in its top-right corner. On desktop an inline result is a submenu of its paragraph's ⋮; the *Widget: …* commands work too. See [[API/widget#Widget menu and commands]].
 
 # Built-in widgets
 The standard library provides several pre-built widgets in the `widgets` table:

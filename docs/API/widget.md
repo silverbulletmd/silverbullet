@@ -147,7 +147,7 @@ Top and bottom widgets from `hooks:renderTopWidgets` / `hooks:renderBottomWidget
 
 # Lists, trees and tables
 ## widget.new { source }
-Builds a list, tree or table from `source(ctx)`, which returns objects. A widget with `source` can’t also set `markdown` or `html`. Render it in a page expression or pass it to `view.define` as `widget`. It reloads when `refreshOn` fires, and on Reload.
+Builds a list, tree or table from `source(ctx)`, which returns objects. A widget with `source` can’t also set `markdown` or `html`. Render it in a page expression or pass it to `view.define` as `widget`. It reloads when `refreshOn` fires, and on *Widget: Reload* or *Widgets: Refresh All*.
 
 For a minimal inline list that navigates on click:
 
@@ -321,19 +321,22 @@ widget.new {
 A page-docked content view runs its `content` once per page load. Content views don’t support row options. `stateKey` saves expansion only. Focus and selection are not persisted.
 
 # Widget menu and commands
-A block widget has one ⋯ menu inside its top-right corner: it appears on hover on desktop and is always visible on touch devices. Entries appear only when they apply:
+A block widget has one actions menu. On desktop it opens from the ⋮ that shows in the left margin, level with the widget's top, while the mouse is anywhere over it; on touch devices from the ⋯ always visible in its top-right corner. An inline `${...}` has its menu as a submenu (“Expression ▸”) of its paragraph's ⋮ on desktop. Entries appear only when they apply:
 
 * **Go to definition** and **Open**: jump to the Space Lua that defines the widget, or open what it shows.
 * **Edit source**: moves the cursor into the `${...}`.
-* **Reload**: re-runs this widget only, not the page.
-* **Copy as Markdown**: list, tree and table widgets copy their rows. A view with `content` has nothing to copy.
+* **Edit in query builder**: for a `${query[[...]]}`, opens it in the Workbench.
 * **Bake into page**: replaces the expression with its current Markdown (the same text as Copy). Views stay live and can’t be baked.
+* **Copy as Markdown**: list, tree and table widgets copy their rows. A view with `content` has nothing to copy.
+* **Move up**, **Move down** and **Delete**: for a `${...}` on lines of its own, move the whole expression past the block next to it, or remove it. On desktop the ⋮ adds them for other widget blocks too: data blocks, embeds, code widgets, baked sections and rendered tables.
+
+A `${...}` on lines of its own is one block with one menu. While you edit its source (cursor inside), the same menu opens from the ⋮ handle on its first line, with **Show result** (moves the cursor out so it renders) in place of Edit source, and no Copy. A `${...}` inside a paragraph keeps the paragraph’s menu.
 
 Views docked above or below the page have the same ⋯ menu in their title bar (on hover, for a minimal frame), with **Go to definition** and **Copy as Markdown** where they apply. In a sidebar, the bottom panel or the modal, a content view’s header has it for **Copy as Markdown**. The dock menu and × stay beside it.
 
 HTML-only widgets have no Markdown, so they have neither Copy nor Bake. Bake is hidden in read-only mode. *Baked Sections: Update* re-bakes fragments the same way.
 
-Inline results have no button. Put the cursor in the `${...}` and run a command instead: *Widget: Copy*, *Widget: Bake*, or *Widget: Reload*. *Widgets: Refresh All* still re-runs every widget on the page.
+Inline results have no button of their own: on desktop use the submenu in their paragraph's ⋮, or put the cursor in the `${...}` and run a command: *Widget: Copy*, *Widget: Bake*, or *Widget: Reload*. *Widgets: Refresh All* re-runs every widget on the page; widgets also re-run by themselves when what they read changes, so the widget menu has no Reload.
 
 # API
 ## widget.new(spec)

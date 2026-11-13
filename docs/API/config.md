@@ -67,7 +67,7 @@ Gets a configuration value by path, with dot notation support.
 **Example:**
 
 ```space-lua
-local theme = config.get("theme", "light")
+local short = config.get("shortWikiLinks", true)
 ```
 
 ## config.getCategories
@@ -170,11 +170,11 @@ Sets one configuration value or multiple values at once.
 **Examples:**
 
 ```space-lua
-config.set("theme", "dark")
+config.set("shortWikiLinks", false)
 ```
 
 ```space-lua
-config.set({theme = "dark", fontSize = 14})
+config.set({shortWikiLinks = false, autoCloseBrackets = "(["})
 ```
 
 ## config.setLuaValue
@@ -202,6 +202,29 @@ Only fields that have a `ui` attribute appear in the [[Workbench/Configuration|C
 * `label`: human-readable label shown next to the control.
 * `priority`: number used to sort fields within a category in descending order. Fields without a priority sort as `0`.
 * `inputType`: for `string` fields, set this to `"password"` to render a masked input.
+* `font`: for `string` fields, `"editor"` renders a font picker over every font in `fonts.available`, and `"code"` one over the monospace fonts only. Both also accept a custom CSS font-family, and name the font in effect when unset, such as the one the active theme suggests for the editor or for code. The [[Fonts]] settings use it.
+* `fontSize`: for `number` fields, `true` renders a size input whose empty state shows the editor size in effect, the active theme's or the default. The `fonts.editorSize` setting uses it.
+* `theme`: for `string` fields, `true` renders a theme picker listing the installed [[Theming|themes]], grouped by light and dark, that previews the theme as you choose. The `theme` setting uses it.
+* `color`: for `string` fields, `true` adds a colour picker next to the text input, which takes any CSS colour. An empty field shows the active theme’s accent colour as its default. The `accentColor` setting uses it.
+
+For example, the theme and code font settings in [[^Library/Std/Config]], shortened:
+
+```space-lua
+config.define("theme", {
+  type = "string",
+  ui = { category = "Appearance", label = "Theme", priority = 5, theme = true },
+})
+
+config.define("fonts", {
+  type = "object",
+  properties = {
+    code = {
+      type = "string",
+      ui = { category = "Appearance", label = "Code font", priority = 1, font = "code" },
+    },
+  },
+})
+```
 
 The control shown depends on the schema `type`:
 

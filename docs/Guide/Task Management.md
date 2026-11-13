@@ -30,4 +30,4 @@ Place the cursor where you want the list and run **Workbench: Data**.
 
 To list tasks by a date attribute, filter that attribute with **exists** and sort it with the earliest date first. This includes future dates too. Add a date comparison if you only want overdue tasks. Use the same attribute name in your tasks and query.
 
-Open the result’s ⋯ menu and choose **Edit in query builder** to adjust the list. [[Workbench/Data]] describes the controls, and [[Guide/When Results Update]] explains when saved and indexed changes appear.
+Open the result’s menu (the ⋮ beside it on desktop) and choose **Edit in query builder** to adjust the list. [[Workbench/Data]] describes the controls, and [[Guide/When Results Update]] explains when saved and indexed changes appear.

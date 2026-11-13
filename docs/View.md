@@ -43,7 +43,7 @@ ${widget.new {
 }}
 ```
 
-Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive. Trees can expand without one. The widget’s ⋯ menu has Edit source, Reload for this widget only, and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
+Inline views support row icons, descriptions, decorations, and custom action buttons. An optional `onSelect` callback makes rows interactive. Trees can expand without one. The widget’s menu (the ⋮ beside it on desktop, its ⋯ on touch devices) has Edit source and Copy as Markdown (see [[API/widget#Widget menu and commands]]). Use `stateKey` to remember tree expansion locally for that page.
 
 Use `presentation = { mode = "table" }` to display source objects in a table with automatic columns and Markdown cells. Explicit column definitions let you choose attributes, labels, types, and display callbacks. Tables support the same selection and action callbacks as other views.
 

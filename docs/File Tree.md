@@ -6,4 +6,4 @@ The File tree offers an alternative, more traditional approach to navigate your 
 * All: showing both [[Page|Pages]] and [[Document|Documents]]
 * Pages: Showing just (content) pages
 * Documents: Showing just [[Document|Documents]]
-* Tool: Showing just [[Tool Page|Tool Pages]]
+* Tool Pages: Showing just [[Tool Page|tool pages]]

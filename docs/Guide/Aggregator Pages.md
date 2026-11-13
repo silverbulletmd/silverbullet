@@ -15,7 +15,7 @@ Decide whether the overview should collect pages or tasks before building the qu
 4. Choose a list or table under **Select**. For a list, use `templates.pageItem` for pages or `templates.taskItem` for tasks.
 5. Put the cursor below the introduction and choose **Insert at cursor**.
 
-Link to the overview from wherever you need it. To adjust its query later, open the result’s ⋯ menu and choose **Edit in query builder**, then use **Update page**.
+Link to the overview from wherever you need it. To adjust its query later, open the result’s menu (the ⋮ beside it on desktop) and choose **Edit in query builder**, then use **Update page**.
 
 # Keep the collection current
 Adding a matching page or task brings it into the collection after saving and indexing. Removing its tag or changing an attribute used by a filter may remove it. The aggregator does not keep a separate copy of the source content.

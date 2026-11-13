@@ -8,6 +8,7 @@ The top bar contains:
 
 * [[Page Namer]]
 * The home button, navigating to your [[Index Page]]
+* The search button, opening [[Search]]
 * [[Page Picker]]
 * [[Command Palette]]
 

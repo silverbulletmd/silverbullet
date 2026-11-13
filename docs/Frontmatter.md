@@ -9,7 +9,7 @@ references:
 Frontmatter stores page attributes such as tags, status and dates. Edit them using the form at the top of a page, or edit their YAML source directly.
 
 # Start with the visual editor
-On a page without frontmatter, hover over the first line and click the **add tag** icon to its left. Type a tag and press Enter. The form opens at the top of the page. **+ add attribute** lets you add more attributes and choose their types.
+On a page without frontmatter, hover the first line and click the ⋮ handle to its left, then **Add tag**. Type a tag and press Enter. The form opens at the top of the page. **+ add attribute** lets you add more attributes and choose their types.
 
 [[Guide/Add Structure and Query]] walks through this with screenshots, starting from an ordinary Markdown page. [[Live Object Edit]] covers the form’s editing controls. In read-only documentation, you can inspect existing attributes but cannot add or change them.
 

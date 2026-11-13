@@ -31,7 +31,7 @@ view.define {
   margin: 0;
 }
 
-html[data-theme="dark"] .website-warning {
+html[data-sb-scheme="dark"] .website-warning {
   background-color: #403521;
 }
 ```
@@ -226,6 +226,13 @@ docsNav.sections = {
         { ref = "View" },
         { ref = "Virtual Pages" },
         { ref = "Space Style" },
+        { ref = "Theming",
+          { ref = "Fonts" },
+          { ref = "Theming/Creating a Theme" },
+          { ref = "Theming/Variables" },
+          { ref = "Theming/Selectors" },
+          { ref = "Theming/Upgrading Existing Styles" },
+        },
         { ref = "Page Decorations" },
         { ref = "Event" },
         { ref = "Service" },

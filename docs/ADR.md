@@ -1,18 +1,13 @@
 Important [[Architecture]] decisions for SilverBullet are captured as [Architecture Decision Records](https://adr.github.io/) (template: [[^Library/Page Templates/ADR]]). Quietly also a showcase for how to use SilverBullet for [docs-as-code](https://silverbullet.md/docs-as-code).
 
 # Stats
-<!--#lua query[[
+${query[[
   from p = index.pages("adr")
   group by p.status
   order by key
   select template.new[==[* ${status}: ${count}
 ]==]({status = key, count = #group})
-]] -->
-* accepted: 10
-* deprecated: 1
-* proposed: 1
-* superseded: 1
-<!--/lua-->
+]]}
 
 # Active decisions
 <!--#lua query[[

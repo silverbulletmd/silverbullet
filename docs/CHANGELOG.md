@@ -1,6 +1,6 @@
 An attempt at documenting the changes/new features introduced in each release.
 
-## Edge
+## Edge (3.0 edition)
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
 * [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page.
@@ -12,6 +12,16 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
+* [[^Library/Std/APIs/Markup Bar|Markup bar]]: the keyboard bar’s buttons now also work on desktop, in two places:
+  * A **formatting bubble** over selected text.
+  * A **⋮ handle** beside the line under the mouse. It shows as soon as the mouse is over a line (never for the text cursor) and hides when the mouse leaves or you type.
+  * Turn either off for the space with `markupBar.selectionBubble` and `markupBar.lineHandle` (also in [[Workbench/Configuration]]), or per device with `Editor: Toggle Markup Bar`. Phones keep their bar above the keyboard as before.
+  * Each surface has its own button list: `markupBar.mobile` (the phone bar), `markupBar.selection` (the bubble) and `markupBar.line` (the ⋮ menu, whose buttons also take `group` and `activeContexts`).
+* [[Theming]]: themes are here, properly and can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select` and `Theme: Toggle Light/Dark`.
+  * A theme is a `Library/` page tagged `meta/theme`: a few base colours give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].
+  * New [[API/theme]] API to list themes and pick one for this device.
+  * A fresh look for **SilverBullet Light** and **SilverBullet Dark**: Inter for the interface and Lora for your pages, quieter chrome, links as underlined accent text, hashtags as pills, round task checkboxes, tables and callouts as cards, and a page title that sets the folder apart from the page name. Everything follows one accent color.
+  * **Breaking for theme authors**, see [[Theming/Upgrading Existing Styles]].
 * **Breaking:** [[Space Lua]] and [[Space Style]] blocks now **only** run from `Library/`. A `space-lua` or `space-style` block on any other page is shown but no longer runs, and gets a lint warning. See [[ADR/012 Tooling Lives in Library]] for the reasons. As part of this:
   * The `CONFIG` page moves to `Library/Config`. The server renames an existing `CONFIG.md` to `Library/Config.md` the first time it starts. Every `space-lua` block on `Library/Config` still runs at boot.
   * “Meta pages” are now called [[Tool Page|tool pages]], and are defined by location only.
@@ -20,11 +30,11 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Repository maintainers: move your repository paths to `Library/Repository/*` as well
   * Library maintainers: make sure your libraries live under `Library/*`
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
+* [[Slash Command|Slash menu]]: now has grouping support.
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
 * Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
-* [[Fonts]]: pick the interface, editor and code fonts in [[Workbench/Configuration]] (Appearance), **including proportional** ones, and the editor's text size. A server-wide **Default font** (Dashboard → Server) sets the dashboard and every space that doesn’t pick its own.
-  * **Potentially breaking for themes:** code (inline and fenced, frontmatter, tables being edited, `${...}`) now uses `--editor-monospace-font` instead of `--editor-font`. See [[Fonts#Notes for theme authors]].
+* [[Library|Libraries]] can now require other libraries with `requires:` in their frontmatter (full URIs, or paths relative to the library’s own URI). Installing a library installs what it requires, updating it installs requirements it gained, and a library another one requires can’t be removed until that one is. See [[Library#Libraries that require other libraries]].
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Share]] refresh:
   * Sharing no longer changes the source page or stores `share.hash` in its frontmatter.
@@ -36,6 +46,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `sb fs read` can take several paths, `--outline`, `--offset`/`--limit` and `--rendered` (the page with queries evaluated, plus its lint problems).
   * `sb fs write`, `sb fs edit` and `sb fs rm` take `--revision` (`--if-match` still works). Writing or editing a page with Space Lua or Space Style now reloads its scripts and reports its load errors and lint problems, and exits with code 9 ("written, but its scripts have problems") when there are any; `--no-reload` skips it. After changing files outside `sb` you still need `sb lua 'system.reboot()'`.
   * `--space` accepts a space's name in any case or its id. `sb fs` and `sb help` start a stopped folder space of [[Desktop]] in the background and wait for it, up to `--timeout`.
+* Fix: On phones and tablets, tapping Search, Open page or Run command brings up the keyboard right away. Your own commands that open a picker can do the same with `opensInput` (see [[API/command]]).
 * Dashboard widgets (`widgets.chip`, `widgets.stat`, `widgets.bars` and `widgets.grid`) have moved out of core to the optional [Dashboard library](https://github.com/silverbulletmd/silverbullet-libraries/blob/main/Library/silverbulletmd/Dashboard.md). Install it through [[Workbench/Libraries]] to keep using them.
 * New [[API/object]] API to change, delete and create objects where they are written, for building small apps on your pages: `object.update` (frontmatter, task state and text, tags, inline attributes, data block keys, table cells), `object.delete`, `object.append` (tasks, items, table rows, data block documents) and `object.createPage`.
 * More consistent [[Tag]] terminology: every object has exactly one root tag (`page`, `task`, `data`, ...), plus any number of user tags. Every built-in tag now has its own page under `Tag/` (formerly `Object/`), grouped into root, system, edge and index tags.
@@ -60,6 +71,8 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
 * [[MCP]]: SilverBullet Server can now serve an MCP endpoint at `/.mcp`, so AI assistants can directly read, write, search and query your spaces. Clients sign in with OAuth and act as the account that approved them, on the spaces chosen on a consent page. MCP is off by default: an admin turns it on in the APIs tab.
 * **Potentially breaking:** the legacy `/.auth/authorize` and `/.auth/token` endpoints now only accept SilverBullet’s own clients (`silverbullet-app`, `silverbullet-cli` and `silverbullet-share`); other `client_id`s are refused.
+* Performance: typing and moving the cursor no longer slow down as a page grows. The editor now redoes its live preview (links, tasks, tables, widgets) only for the blocks you edit instead of the whole page.
+* Fix: HTTP caching, especially behind a CDN such as Cloudflare. Plugs, styles and attachments could come back from the CDN with the wrong content type, and a missing attachment or a login redirect could be cached for minutes. Changes to `SB_HEAD_HTML` and similar settings now show at the space root right away, not only after the next release. After an upgrade, a tab still running the previous client keeps working until it reloads instead of breaking on code it loads later, and a server without a service worker (plain HTTP) can no longer keep serving the previous `client.js`.
 * Fix: slow filesystem watcher registration no longer delays space startup. Polling tracks changes while native notifications start, and a resync reconciles changes made during registration.
 * Fix: when several files changed outside the editor at once (another device, a script, an assistant), queries could miss all but the first for up to a minute; the rest are now indexed right away.
 * Fix: the frontmatter and data block forms could show unstyled (plain inputs and buttons) on the first visit to a new space, until a reload. Their styles now ship with SilverBullet instead of loading from the space’s index, and space styles no longer wait for docked views to open.
@@ -90,7 +103,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 
 ## 2.12.0 
 * Mobile improvements:
-  * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/keyboardBar]].
+  * New: keyboard bar (bar positioned above the keyboard) with common editing operations, fully programmable via [[API/markupBar|API/keyboardBar]].
   * On mobile (narrow screens) left and right navigator drawers now have top-bar buttons that remain available after selecting a page. Closing a view (with the “x” button) removes its button.
   * Android PWA web apps now advertise a Web Share Target for links, text, and files, initially targeting Android Chrome.
   * Fix: pickers, prompts, and confirmations on narrow screens open below the top bar, keeping their controls accessible.
@@ -453,7 +466,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Attribute names and values ([key: value] notation) now get different CSS classes in the editor: `sb-attribute-name` for names and `sb-attribute-value` for values.
   * The `diff` [[Markdown/Fenced Code Block]] language now uses colors to indicate additions and removals (by [Lajos Papp](https://github.com/silverbulletmd/silverbullet/pull/1807)).
 * Configuration:
-  * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set(“shortWikiLinks”, false)` in your [[CONFIG]].
+  * New `shortWikiLinks` config (defaulting to `true`) that decides whether a wiki link should be rendered in its short form (rendering just the last segment, e.g. `Person/John` would show as `John`). To always render the full name, put `config.set(“shortWikiLinks”, false)` in your `CONFIG`.
   * [[Authentication]]: how long “remember me” works is now configurable (by [Metin Yazici](https://github.com/silverbulletmd/silverbullet/pull/1796)) via [[Install/Configuration]] and more reliably persisted.
 * Library Manager: SilverBullet now navigates to library page after installing one.
 * Now excluding `.plug.js` and `.js.map` files from the document list.

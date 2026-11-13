@@ -14,7 +14,7 @@ Reopening search brings back your last query and its results in that browser tab
 # Segments
 Like the [[Page Picker]], search has three segments:
 * **Pages** searches regular pages.
-* **Tool** searches [[Tool Page|tool pages]].
+* **Tool Pages** searches [[Tool Page|tool pages]].
 * **All** searches every page.
 
 # Modes

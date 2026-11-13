@@ -19,7 +19,7 @@ A [[Guide/Journal|Journal]] can capture observations over time while linking bac
 Attach a PDF or other source file using [[Document]], then keep its citation, summary and useful quotations in a page linked to that file. [[Search]] indexes Markdown pages, not attachment contents. Use [[Guide/Finding Content#Give an important passage a stable destination|anchors]] to link to a particular passage.
 
 # Add structure when useful
-Use page tags to group related pages. Hover at the top of a page without frontmatter and click **add tag**. In the attribute form, add the category you want to use. Expand the form to add attributes when you need values to filter, compare or sort.
+Use page tags to group related pages. On a page without frontmatter, hover the first line and click the ⋮ handle to its left, then **Add tag**. In the attribute form, add the category you want to use. Expand the form to add attributes when you need values to filter, compare or sort.
 
 Use consistent tags and attribute names for similar pages. A link or list item naming something does not create a structured page for it. Open the linked page and add its attributes there. [[Frontmatter]], [[Attribute]] and [[Markdown/Hashtags]] explain the syntax and scope rules.
 
