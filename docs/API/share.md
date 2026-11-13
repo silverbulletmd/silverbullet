@@ -73,6 +73,12 @@ Pulls `uri` into a page the way the [[Workbench/Libraries|Library Manager]] does
 
 Returns `{page, files, changed}`: the page, the `files` list of the remote’s frontmatter, and whether the page was written.
 
+## share.libraryInfo(uri, opts?)
+Reads the library at `uri` without writing anything. `opts` takes `page` and `installed` as [[#share.install(uri, opts?)]] does. Returns `{uri, page, files, requires, exists, text}`: the page `share.install(uri, opts)` would write, the `files` and `requires` lists of its frontmatter, whether that page exists already, and the remote's text without its `share.*` keys. The [[Workbench/Libraries|Library Manager]] uses it to install what a library requires before the library itself, reading each remote once.
+
+## share.installInfo(info)
+Writes the page `info` describes, as returned by [[#share.libraryInfo(uri, opts?)]], the way `share.install` does, without reading the remote again and without checking whether the page exists: the caller decided that.
+
 ## share.ensureTransport(uri)
 Makes sure a transport exists for a URI by invoking the first matching `share:ensure` service, if any. Called before sharing in `push` and `sync` mode. Errors from the service are passed on and stop the share.
 

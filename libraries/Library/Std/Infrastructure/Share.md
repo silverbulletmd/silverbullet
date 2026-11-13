@@ -533,8 +533,9 @@ local function shouldUpdate(installed, uri, remoteText)
     .. " locally. Overwrite it with the version from " .. uri .. "?")
 end
 
--- The Library Manager's pull: see docs/API/share.md
-function share.install(uri, opts)
+-- What share.install(uri, opts) would write, without writing: see
+-- docs/API/share.md
+function share.libraryInfo(uri, opts)
   opts = opts or {}
   local remoteText = net.readURI(uri, {encoding="text/markdown"})
   if type(remoteText) != "string" then
@@ -548,20 +549,39 @@ function share.install(uri, opts)
   if not opts.installed and not page:startsWith("Library/") then
     page = "Library/" .. page
   end
-  remoteText = share.cleanFrontmatter(remoteText)
-  local result = {page = page, files = fm.files, changed = false}
+  return {
+    uri = uri,
+    page = page,
+    files = fm.files,
+    requires = fm.requires,
+    exists = space.pageExists(page),
+    text = share.cleanFrontmatter(remoteText),
+  }
+end
+
+-- Writes what share.libraryInfo read, without reading or checking again: see
+-- docs/API/share.md
+function share.installInfo(info)
+  space.writePage(info.page, share.setFrontmatter({
+    uri = info.uri,
+    mode = "pull",
+    hash = share.legacyHash(info.text),
+  }, info.text))
+end
+
+-- The Library Manager's pull: see docs/API/share.md
+function share.install(uri, opts)
+  opts = opts or {}
+  local info = share.libraryInfo(uri, opts)
+  local result = {page = info.page, files = info.files, changed = false}
   if opts.installed then
-    if not opts.force and not shouldUpdate(opts.installed, uri, remoteText) then
+    if not opts.force and not shouldUpdate(opts.installed, uri, info.text) then
       return result
     end
-  elseif space.pageExists(page) then
-    error("Page already exists: " .. page)
+  elseif info.exists then
+    error("Page already exists: " .. info.page)
   end
-  space.writePage(page, share.setFrontmatter({
-    uri = uri,
-    mode = "pull",
-    hash = share.legacyHash(remoteText),
-  }, remoteText))
+  share.installInfo(info)
   result.changed = true
   return result
 end

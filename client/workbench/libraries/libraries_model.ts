@@ -4,6 +4,7 @@ import { errorMessage } from "../shared/value_preview.ts";
 import * as backend from "./libraries_backend.ts";
 import {
   type InstallableLibrary,
+  type InstalledLibrary,
   isBuiltinLibrary,
   isUpdatable,
   isUpdatableRepository,
@@ -11,6 +12,13 @@ import {
   type LibraryCheck,
 } from "./libraries_backend.ts";
 import { REPOSITORY_PAGE_PREFIX } from "./library_names.ts";
+import {
+  libraryLabel,
+  removeBlockedMessage,
+  requiredBy,
+  requirersOf,
+  sameLibraryUri,
+} from "./library_requires.ts";
 
 export type SectionKey = "installed" | "available" | "repositories";
 
@@ -229,12 +237,31 @@ export type LibraryRow = {
   updatable: boolean;
   removable: boolean;
   openable: boolean;
+  /** A library's requirements */
+  requires?: Requirement[];
+  /** Why `requires` entries can't be used */
+  requireErrors?: string[];
+  /** The installed libraries that require this one, by page name */
+  requiredBy?: string[];
+  /** Why it can't be removed now: other installed libraries require it */
+  removeBlocked?: string;
+};
+
+/** An installed library's name as a repository lists it, else its page's last segment. */
+export const displayName = (installed: InstalledLibrary[], name: string) =>
+  installed.find((l) => l.name === name)?.displayName ?? libraryLabel(name);
+
+/** A library another one requires, and whether it is installed here. */
+export type Requirement = { uri: string; label: string; installed: boolean };
+
+export type AvailableLibrary = InstallableLibrary & {
+  requirements: Requirement[];
 };
 
 export type AvailableGroup = {
   repo: string;
   label: string;
-  libraries: InstallableLibrary[];
+  libraries: AvailableLibrary[];
 };
 
 export type LibraryLists = {
@@ -253,6 +280,19 @@ export function libraryLists(
   bundledRepositories: readonly string[] = [],
 ): LibraryLists {
   const bundled = new Set(bundledRepositories);
+  const label = (name: string) => displayName(data.installed, name);
+  const requirements = (uris: string[] = []): Requirement[] =>
+    uris.map((uri) => {
+      const lib = data.installed.find(
+        (l) => l.uri && sameLibraryUri(l.uri, uri),
+      );
+      const offered = data.installable.find((l) => sameLibraryUri(l.uri, uri));
+      return {
+        uri,
+        label: lib ? label(lib.name) : (offered?.name ?? libraryLabel(uri)),
+        installed: !!lib,
+      };
+    });
   const q = query.trim().toLowerCase();
   const has = (s: string | undefined) =>
     !q || (s ?? "").toLowerCase().includes(q);
@@ -261,6 +301,7 @@ export function libraryLists(
     .filter((l) => has(l.name))
     .map((l): LibraryRow => {
       const updatable = isUpdatable(l);
+      const blockedBy = requirersOf(data.installed, l.name);
       return {
         kind: "library",
         name: l.name,
@@ -276,6 +317,12 @@ export function libraryLists(
         updatable,
         removable: updatable,
         openable: true,
+        requires: requirements(l.requires),
+        requireErrors: l.requireErrors,
+        requiredBy: requiredBy(data.installed, l.name),
+        removeBlocked: blockedBy.length
+          ? removeBlockedMessage(l.name, blockedBy, label)
+          : undefined,
       };
     });
   const plugs = data.roguePlugs
@@ -291,14 +338,16 @@ export function libraryLists(
       }),
     );
 
-  const byRepo = new Map<string, InstallableLibrary[]>();
+  const byRepo = new Map<string, AvailableLibrary[]>();
   for (const lib of data.installable) {
     if (!(has(lib.name) || has(lib.description) || has(lib.repositoryPage))) {
       continue;
     }
     const repo = lib.repositoryPage || "(unknown)";
     if (!byRepo.has(repo)) byRepo.set(repo, []);
-    byRepo.get(repo)!.push(lib);
+    byRepo
+      .get(repo)!
+      .push({ ...lib, requirements: requirements(lib.requires) });
   }
   const groups = [...byRepo.entries()]
     .sort(([a], [b]) => {
@@ -377,6 +426,7 @@ export function rowActions(
       label: "Remove",
       icon: "remove",
       run: deps.remove,
+      disabled: row.removeBlocked,
     });
   }
   return actions;
@@ -427,6 +477,13 @@ export function whileShowing(deps: {
   take();
   return deps.subscribe(take);
 }
+
+/** What an install that pulled requirements in says. */
+export const installedWithMessage = (
+  r: { page: string; requirements: string[] },
+  label: (name: string) => string = libraryLabel,
+) =>
+  `Installed ${label(r.page)} and what it requires: ${r.requirements.map(label).join(", ")}`;
 
 export const plural = (n: number, one: string, many: string) =>
   `${n.toLocaleString()} ${n === 1 ? one : many}`;
@@ -544,8 +601,26 @@ export function useLibraries(writable: boolean) {
     (latest.current.loaded ? Promise.resolve(latest.current.data) : reload());
 
   /** Installs under `key`: the toolbar's, or an Available card's {@link installKey} */
-  const install = (uri: string, key: string) =>
-    run(key, "available", () => backend.installLibrary(uri));
+  const install = async (uri: string, key: string) => {
+    // Reloads itself so the message can name the libraries by the new lists
+    const r = await run(
+      key,
+      "available",
+      async () => ({
+        ...(await backend.installLibrary(uri)),
+        lists: await reload(),
+      }),
+      { refresh: false },
+    );
+    if (r.ok && r.data.requirements.length > 0) {
+      const { installed } = r.data.lists;
+      setInfo(
+        "available",
+        installedWithMessage(r.data, (n) => displayName(installed, n)),
+      );
+    }
+    return r;
+  };
 
   const installPlug = (uri: string, path: string) =>
     run(BUSY.install, "available", () => backend.installPlug(uri, path));

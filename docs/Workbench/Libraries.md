@@ -21,12 +21,14 @@ Below it are three sections, each with its own error and info banner:
 * **Available**: the libraries your repositories offer, grouped by repository, with the recommended Std repository first. **Install** puts one in your space. Available library titles open their configured website. When no website is configured, the title opens the library’s source page using the browser URL for its URI (for example, expanding a `github:` URI to its GitHub file page).
 * **Repositories**: the [[Repository|repositories]] you added, with **Update all** to refresh all of them. Any that fail are listed with the reason. The built-in repositories (Std and SilverBulletMD) update like the others but can’t be removed.
 
+A library that [[Library#Libraries that require other libraries|requires other libraries]] lists them by name, each marked *installed* or *not installed*, both on its Available card (installing it installs those too) and on its Installed row. An installed library that others require says *Required by* and which. A `requires` entry that can’t be used, such as a path starting with `/`, shows why, and installing that library fails until it is fixed.
+
 An installed library or repository row shows its share URI. Its context menu offers:
 * *Update*: pulls the latest version from its source. When you edited a library here and its source changed too, it asks before replacing your edits.
 * *Revert*: in place of *Update* when a check found a library **changed locally** (edited here, unchanged at its source): discards your edits and restores the installed version, after asking.
 * *Open page*: opens its page, the same as clicking the row.
 * *Copy URI*: copies its share URI.
-* *Remove*: removes it, after asking.
+* *Remove*: removes it, after asking. A library that another installed library requires can’t be removed: *Remove* is greyed out, and its tooltip says which to remove first.
 
 Plugs only offer *Remove*.
 

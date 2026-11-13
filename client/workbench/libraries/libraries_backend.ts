@@ -8,7 +8,13 @@ import { base64Decode } from "../../../plug-api/lib/crypto.ts";
 import { reloadConfig } from "../../config_management/reload.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { luaString } from "../shared/lua_string.ts";
+import { errorMessage } from "../shared/value_preview.ts";
 import { repositoryPage } from "./library_names.ts";
+import {
+  libraryLabel,
+  parseRequires,
+  sameLibraryUri,
+} from "./library_requires.ts";
 
 // What the Libraries tab does to the space. Pulls go through the share core
 // in Lua (share.install, share.sharePage, share.check), which keeps the
@@ -26,6 +32,12 @@ export type InstalledLibrary = {
   uri?: string;
   mode?: ShareMode;
   files?: string[];
+  /** Full URIs of the libraries it requires */
+  requires?: string[];
+  /** Why `requires` entries can't be used, see {@link parseRequires} */
+  requireErrors?: string[];
+  /** The name a repository lists it under, such as "EB Garamond" */
+  displayName?: string;
 };
 
 export type InstallableLibrary = {
@@ -34,6 +46,9 @@ export type InstallableLibrary = {
   description?: string;
   website?: string;
   repositoryPage?: string;
+  /** Full URIs of the libraries it requires, as its repository lists them */
+  requires?: string[];
+  requireErrors?: string[];
 };
 
 export type RepositoryInfo = {
@@ -76,21 +91,38 @@ export const isBuiltinLibrary = (l: InstalledLibrary) =>
 export const isUpdatable = (l: InstalledLibrary) =>
   !isBuiltinLibrary(l) && l.mode === "pull";
 
+async function installedLibraries(): Promise<InstalledLibrary[]> {
+  const raw = await index.queryLuaObjects<any>(LIBRARY_TAG, {});
+  return raw.map((lib: any) => {
+    const { uris, errors } = parseRequires(lib.requires, lib.share?.uri);
+    return {
+      name: lib.name,
+      uri: lib.share?.uri,
+      mode: lib.share?.mode,
+      files: lib.files,
+      requires: uris,
+      requireErrors: errors,
+    };
+  });
+}
+
 export async function listLibraries(): Promise<LibrariesViewModel> {
-  const [installedRaw, installableRaw, repositoriesRaw, allPlugs] =
+  const [installed, installableRaw, repositoriesRaw, allPlugs] =
     await Promise.all([
-      index.queryLuaObjects<any>(LIBRARY_TAG, {}),
+      installedLibraries(),
       index.queryLuaObjects<any>(REMOTE_LIBRARY_TAG, {}),
       index.queryLuaObjects<any>(REPOSITORY_TAG, {}),
       space.listPlugs(),
     ]);
 
-  const installed: InstalledLibrary[] = installedRaw.map((lib: any) => ({
-    name: lib.name,
-    uri: lib.share?.uri,
-    mode: lib.share?.mode,
-    files: lib.files,
-  }));
+  for (const lib of installed) {
+    const uri = lib.uri;
+    if (!uri) continue;
+    const entry = installableRaw.find(
+      (r: any) => r.uri && r.name && sameLibraryUri(r.uri, uri),
+    );
+    if (entry) lib.displayName = entry.name;
+  }
 
   const installedUris = new Set(
     installed.map((l) => l.uri).filter((u): u is string => !!u),
@@ -107,16 +139,21 @@ export async function listLibraries(): Promise<LibrariesViewModel> {
   });
 
   const installable: InstallableLibrary[] = await Promise.all(
-    uniqueInstallable.map(async (lib: any) => ({
-      name: lib.name,
-      uri: lib.uri,
-      description: lib.description,
-      website:
-        lib.website ||
-        ((await lua.evalExpression(`share.webUrl(${luaString(lib.uri)})`)) ??
-          undefined),
-      repositoryPage: lib.page,
-    })),
+    uniqueInstallable.map(async (lib: any) => {
+      const { uris, errors } = parseRequires(lib.requires, lib.uri);
+      return {
+        name: lib.name,
+        uri: lib.uri,
+        description: lib.description,
+        website:
+          lib.website ||
+          ((await lua.evalExpression(`share.webUrl(${luaString(lib.uri)})`)) ??
+            undefined),
+        repositoryPage: lib.page,
+        requires: uris,
+        requireErrors: errors,
+      };
+    }),
   );
 
   const repositories: RepositoryInfo[] = repositoriesRaw.map((r: any) => ({
@@ -195,19 +232,14 @@ async function unloadPlug(path: string): Promise<void> {
   }
 }
 
-/**
- * Pulls a library page and, when it was written, the files it lists next to
- * it; plugs among them are loaded.
- */
-async function pullLibrary(
+/** Writes the files a just-written library page lists next to it and loads its plugs. */
+async function pullFiles(
   uri: string,
-  opts: InstallOptions,
-): Promise<{ page: string; changed: boolean }> {
-  const result = await shareInstall(uri, opts);
-  if (!result.changed) return result;
+  page: string,
+  files: string[],
+): Promise<void> {
   const sourceBase = urlDir(uri);
-  const targetBase = urlDir(result.page);
-  const files = stringsOf(result.files);
+  const targetBase = urlDir(page);
   await Promise.all(
     files.map(async (file) => {
       const data = await readUriAsBytes(sourceBase + file);
@@ -217,13 +249,144 @@ async function pullLibrary(
   await hotLoadPlugs(
     files.filter((f) => f.endsWith(".plug.js")).map((f) => targetBase + f),
   );
-  return result;
 }
 
-export async function installLibrary(uri: string): Promise<{ page: string }> {
-  const { page } = await pullLibrary(uri, {});
+/** What share.libraryInfo read: see docs/API/share.md */
+type LibraryInfo = {
+  uri: string;
+  page: string;
+  files?: unknown;
+  requires?: unknown;
+  exists: boolean;
+  text: string;
+};
+
+async function libraryInfo(uri: string): Promise<LibraryInfo> {
+  return await lua.evalExpression(`share.libraryInfo(${luaString(uri)})`);
+}
+
+/** A library to pull and, for a requirement, the page that wanted it. */
+type Planned = LibraryInfo & { by?: string };
+
+const requirementError = (what: string, by: string, e: unknown) =>
+  new Error(
+    `Could not install ${libraryLabel(what)} (required by ${libraryLabel(by)}): ${errorMessage(e)}`,
+  );
+
+/**
+ * Adds to `plan` what `requires` (of the library at `base`, page `by`) needs
+ * pulled: those not installed, by URI or page name, each after its own
+ * requirements. `seen` holds the URIs visited, so a cycle ends.
+ */
+async function planRequirements(
+  requires: unknown,
+  base: string,
+  by: string,
+  installed: InstalledLibrary[],
+  seen: string[],
+  plan: Planned[],
+): Promise<void> {
+  const { uris, errors } = parseRequires(requires, base);
+  if (errors.length > 0) {
+    throw new Error(`${libraryLabel(by)} requires ${errors[0]}`);
+  }
+  for (const uri of uris) {
+    if (seen.some((s) => sameLibraryUri(s, uri))) continue;
+    seen.push(uri);
+    if (installed.some((l) => l.uri && sameLibraryUri(l.uri, uri))) continue;
+    let info: LibraryInfo;
+    try {
+      info = await libraryInfo(uri);
+    } catch (e) {
+      throw requirementError(uri, by, e);
+    }
+    if (info.exists || plan.some((p) => p.page === info.page)) continue;
+    await planRequirements(
+      info.requires,
+      uri,
+      info.page,
+      installed,
+      seen,
+      plan,
+    );
+    plan.push({ ...info, by });
+  }
+}
+
+/**
+ * Pulls the plan in order, each page then its files. One failing takes back
+ * everything this run wrote, last first, and throws, naming a requirement.
+ */
+async function pullPlan(plan: Planned[]): Promise<void> {
+  const written: Planned[] = [];
+  for (const p of plan) {
+    try {
+      await lua.evalExpression(
+        `share.installInfo({uri = ${luaString(p.uri)}, page = ${luaString(p.page)}, text = ${luaString(p.text)}})`,
+      );
+      written.push(p);
+      await pullFiles(p.uri, p.page, stringsOf(p.files));
+    } catch (e) {
+      for (const w of written.reverse()) {
+        await deleteLibrary(w.page, stringsOf(w.files)).catch(() => {});
+      }
+      throw p.by ? requirementError(p.page, p.by, e) : e;
+    }
+  }
+}
+
+/**
+ * Installs the library at `uri`, after the libraries it requires that aren't
+ * installed yet. Says which requirements it installed.
+ */
+export async function installLibrary(
+  uri: string,
+): Promise<{ page: string; requirements: string[] }> {
+  const info = await libraryInfo(uri);
+  if (info.exists) throw new Error(`Page already exists: ${info.page}`);
+  const plan: Planned[] = [];
+  await planRequirements(
+    info.requires,
+    uri,
+    info.page,
+    await installedLibraries(),
+    [uri],
+    plan,
+  );
+  const requirements = plan.map((p) => p.page);
+  await pullPlan([...plan, info]);
   await reloadConfig();
-  return { page };
+  return { page: info.page, requirements };
+}
+
+async function frontmatterOf(name: string): Promise<Record<string, any>> {
+  const text = await space.readPage(name);
+  if (!text) throw new Error(`Could not read ${name}`);
+  const { frontmatter } = await system.invokeFunction(
+    "index.extractFrontmatter",
+    text,
+  );
+  return frontmatter ?? {};
+}
+
+/** Installs what the installed library `lib` requires and isn't installed yet. */
+async function installMissingRequirements(lib: {
+  name: string;
+  uri: string;
+}): Promise<string[]> {
+  const { requires } = await frontmatterOf(lib.name);
+  if (!Array.isArray(requires) || requires.length === 0) return [];
+  const plan: Planned[] = [];
+  await planRequirements(
+    requires,
+    lib.uri,
+    lib.name,
+    await installedLibraries(),
+    [lib.uri],
+    plan,
+  );
+  await pullPlan(plan);
+  return plan.map((p) => p.page);
 }
 
 /**
@@ -234,24 +397,31 @@ export async function updateLibrary(
   lib: { name: string; uri: string },
   force = false,
 ): Promise<{ changed: boolean }> {
-  const { changed } = await pullLibrary(lib.uri, {
-    installed: lib.name,
-    force,
-  });
+  const pulled = await shareInstall(lib.uri, { installed: lib.name, force });
+  if (pulled.changed) {
+    await pullFiles(lib.uri, pulled.page, stringsOf(pulled.files));
+  }
+  // What the page requires as it is now: a declined update keeps the old list
+  let added: string[];
+  try {
+    added = await installMissingRequirements(lib);
+  } catch (e) {
+    if (!pulled.changed) throw e;
+    await reloadConfig();
+    throw new Error(
+      `Updated ${libraryLabel(lib.name)}, but: ${errorMessage(e)}`,
+    );
+  }
+  const changed = pulled.changed || added.length > 0;
   if (changed) await reloadConfig();
   return { changed };
 }
 
-export async function removeLibrary(name: string): Promise<void> {
-  const text = await space.readPage(name);
-  if (!text) throw new Error(`Could not read ${name}`);
-  const { frontmatter } = await system.invokeFunction(
-    "index.extractFrontmatter",
-    text,
-  );
+/** Deletes a library page and the files it lists, unloading its plugs. */
+async function deleteLibrary(name: string, files: string[]): Promise<void> {
   const targetBase = urlDir(name);
   await Promise.all(
-    stringsOf(frontmatter?.files).map(async (file) => {
+    files.map(async (file) => {
       const target = targetBase + file;
       if (file.endsWith(".plug.js")) await unloadPlug(target);
       try {
@@ -262,6 +432,16 @@ export async function removeLibrary(name: string): Promise<void> {
     }),
   );
   await space.deletePage(name);
+}
+
+/**
+ * Removes an installed library and its files; what it requires stays
+ * installed. The Libraries tab offers it only while no other installed
+ * library requires it.
+ */
+export async function removeLibrary(name: string): Promise<void> {
+  const frontmatter = await frontmatterOf(name);
+  await deleteLibrary(name, stringsOf(frontmatter.files));
   await reloadConfig();
 }
 

@@ -14,11 +14,12 @@ import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
 import type { TabProps } from "../tab.ts";
 import { onWorkbenchTarget, takeWorkbenchTarget } from "../workbench_target.ts";
-import type { InstallableLibrary } from "./libraries_backend.ts";
 import {
   type AvailableGroup,
+  type AvailableLibrary,
   BUSY,
   confirmThen,
+  displayName,
   installKey,
   isLoading,
   type Libraries,
@@ -27,6 +28,7 @@ import {
   libraryLists,
   plural,
   READ_ONLY_NOTE,
+  type Requirement,
   removeMessage,
   revertMessage,
   rowActions,
@@ -382,6 +384,7 @@ function Row({
 }) {
   const busy = libs.isBusy(rowKey(row));
   const status = libraryStatusLabel(row.check);
+  const { requires = [], requireErrors = [], requiredBy = [] } = row;
   const open = () => openRef(client, { path: `${row.name}.md` });
   const ask = (message: string, act: () => Promise<unknown>) =>
     confirmThen(row, message, act, {
@@ -435,6 +438,21 @@ function Row({
           </span>
         )}
         {row.uri && <Uri uri={row.uri} />}
+        {(requires.length > 0 ||
+          requireErrors.length > 0 ||
+          requiredBy.length > 0) && (
+          <div className="sb-wb-lib-deps">
+            <Requirements requirements={requires} errors={requireErrors} />
+            {requiredBy.length > 0 && (
+              <span>
+                Required by{" "}
+                {requiredBy
+                  .map((n) => displayName(libs.state.data.installed, n))
+                  .join(", ")}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="sb-wb-lib-actions">
         {busy ? (
@@ -498,7 +516,51 @@ function Group({ libs, group }: { libs: Libraries; group: AvailableGroup }) {
   );
 }
 
-function Card({ libs, lib }: { libs: Libraries; lib: InstallableLibrary }) {
+/**
+ * "Requires Lora, Inter (not installed)": each by name, with its state; then
+ * the entries that can't be used, and why.
+ */
+function Requirements({
+  requirements,
+  errors = [],
+}: {
+  requirements: Requirement[];
+  errors?: string[];
+}) {
+  return (
+    <>
+      {requirements.length > 0 && (
+        <RequirementList requirements={requirements} />
+      )}
+      {errors.map((e) => (
+        <span key={e} className="sb-wb-lib-dep-missing">
+          Requires {e}
+        </span>
+      ))}
+    </>
+  );
+}
+
+function RequirementList({ requirements }: { requirements: Requirement[] }) {
+  return (
+    <span>
+      Requires{" "}
+      {requirements.map((r, i) => (
+        <span key={r.uri} title={r.uri}>
+          {i > 0 && ", "}
+          <span className="sb-wb-lib-dep-name">{r.label}</span>
+          <span
+            className={`sb-wb-lib-dep-state${r.installed ? "" : " sb-wb-lib-dep-missing"}`}
+          >
+            {r.installed ? " (installed)" : " (not installed)"}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function Card({ libs, lib }: { libs: Libraries; lib: AvailableLibrary }) {
   const key = installKey(lib.uri);
   const busy = libs.isBusy(key);
   const href = lib.website;
@@ -530,6 +592,17 @@ function Card({ libs, lib }: { libs: Libraries; lib: InstallableLibrary }) {
         )}
       </div>
       {lib.description && <Description text={lib.description} />}
+      {(lib.requirements.length > 0 || !!lib.requireErrors?.length) && (
+        <div
+          className="sb-wb-lib-deps"
+          title="Installing it installs what it requires too"
+        >
+          <Requirements
+            requirements={lib.requirements}
+            errors={lib.requireErrors}
+          />
+        </div>
+      )}
     </div>
   );
 }

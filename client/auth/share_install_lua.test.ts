@@ -88,6 +88,31 @@ describe("share.install", () => {
     expect(await install()).toBe(`THREW Could not fetch ${URI}`);
   });
 
+  test("libraryInfo reads what install would write; installInfo writes it as install does", async () => {
+    w.other.set(URI, REMOTE_V1);
+    const info = (await w.h.call("share.libraryInfo", URI)) as Record<
+      string,
+      unknown
+    >;
+    expect(info).toMatchObject({
+      uri: URI,
+      page: PAGE,
+      files: ["widgets.plug.js"],
+      exists: false,
+    });
+    // The remote changing after the read doesn't matter: it isn't read again
+    w.other.set(URI, REMOTE_V2);
+    await w.h.call("share.installInfo", info);
+    const viaInfo = w.pages.get(PAGE);
+    w.pages.delete(PAGE);
+    w.other.set(URI, REMOTE_V1);
+    await install();
+    expect(viaInfo).toBe(w.pages.get(PAGE));
+    expect(
+      await w.h.call("share.libraryInfo", URI).then((i: any) => i.exists),
+    ).toBe(true);
+  });
+
   describe("updating an installed page", () => {
     const update = (force = false) => install({ installed: PAGE, force });
 

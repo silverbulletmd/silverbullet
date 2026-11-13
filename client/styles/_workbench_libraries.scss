@@ -133,6 +133,30 @@
     text-decoration: underline;
   }
 
+  // Requirements and "Required by", on a line of their own
+  .sb-wb-lib-deps {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 0 12px;
+    min-width: 0;
+    color: var(--ui-surface-subtle-color);
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .sb-wb-lib-card .sb-wb-lib-deps {
+    margin-top: 6px;
+  }
+
+  .sb-wb-lib-dep-name {
+    color: var(--root-color);
+  }
+
+  .sb-wb-lib-dep-missing {
+    color: var(--tone-warning);
+  }
+
   .sb-wb-lib-actions {
     display: flex;
     justify-content: center;

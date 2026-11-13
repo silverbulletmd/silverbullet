@@ -9,10 +9,12 @@ import {
   confirmThen,
   EMPTY_LIBRARIES,
   initialLibrariesState,
+  installedWithMessage,
   isLoading,
   type LibrariesEvent,
   type LibrariesFocus,
   type LibrariesState,
+  type LibraryRow,
   librariesReducer,
   libraryLists,
   plural,
@@ -301,6 +303,124 @@ describe("lists", () => {
       "Library/Repository/Acme",
     ]);
     expect(lists.repositories).toHaveLength(2);
+  });
+});
+
+describe("requirements", () => {
+  const LORA = "github:acme/libs@main/Fonts/Lora.md";
+  const INTER = "github:acme/libs@main/Fonts/Inter.md";
+  const data: LibrariesViewModel = {
+    ...EMPTY_LIBRARIES,
+    installed: [
+      { name: "Library/acme/Fonts/Lora", uri: LORA, mode: "pull" },
+      {
+        name: "Library/acme/Themes/Paper",
+        uri: "github:acme/libs@main/Themes/Paper.md",
+        mode: "pull",
+        requires: [LORA, INTER, "github:acme/libs@main/Fonts/Gone.md"],
+      },
+    ],
+    installable: [
+      {
+        name: "Inter Sans",
+        uri: INTER,
+        repositoryPage: "Library/Repository/Acme",
+      },
+      {
+        name: "Ink",
+        uri: "github:acme/libs@main/Themes/Ink.md",
+        repositoryPage: "Library/Repository/Acme",
+        requires: [
+          "https://github.com/acme/libs/blob/main/Fonts/Lora.md",
+          INTER,
+        ],
+      },
+    ],
+  };
+
+  test("an installed library lists what it requires, installed or not, by name", () => {
+    const [lora, paper] = libraryLists(data, "").installed;
+    expect(paper.requires).toEqual([
+      { uri: LORA, label: "Lora", installed: true },
+      // Not installed: named as its repository offers it, else from its URI
+      { uri: INTER, label: "Inter Sans", installed: false },
+      {
+        uri: "github:acme/libs@main/Fonts/Gone.md",
+        label: "Gone",
+        installed: false,
+      },
+    ]);
+    expect(lora.requires).toEqual([]);
+  });
+
+  test("an installed library others require says which, and offers Remove disabled, saying why", () => {
+    const [lora, paper] = libraryLists(data, "").installed;
+    expect(lora.requiredBy).toEqual(["Library/acme/Themes/Paper"]);
+    expect(paper.requiredBy).toEqual([]);
+    const remove = (row: LibraryRow) =>
+      rowActions(row, true, {
+        update: async () => {},
+        revert: async () => {},
+        remove: async () => {},
+        open: async () => {},
+        copy: async () => {},
+      }).find((a) => a.label === "Remove");
+    expect(remove(lora)?.disabled).toBe(
+      "Paper requires Lora. Remove Paper first.",
+    );
+    expect(remove(paper)?.disabled).toBeUndefined();
+  });
+
+  test("installed libraries go by their repository entry's name", () => {
+    const named: LibrariesViewModel = {
+      ...data,
+      installed: [
+        { ...data.installed[0], displayName: "Lora Serif" },
+        { ...data.installed[1], displayName: "Paper Themes" },
+      ],
+    };
+    const [lora, paper] = libraryLists(named, "").installed;
+    expect(paper.requires?.[0].label).toBe("Lora Serif");
+    expect(lora.removeBlocked).toBe(
+      "Paper Themes requires Lora Serif. Remove Paper Themes first.",
+    );
+  });
+
+  test("an install message can name libraries as the tab does", () => {
+    const names: Record<string, string> = {
+      "Library/acme/Themes/Ink": "Ink",
+      "Library/acme/Fonts/EBGaramond": "EB Garamond",
+    };
+    expect(
+      installedWithMessage(
+        {
+          page: "Library/acme/Themes/Ink",
+          requirements: ["Library/acme/Fonts/EBGaramond"],
+        },
+        (n) => names[n],
+      ),
+    ).toBe("Installed Ink and what it requires: EB Garamond");
+  });
+
+  test("an install that pulled requirements in names them", () => {
+    expect(
+      installedWithMessage({
+        page: "Library/acme/Themes/Paper",
+        requirements: ["Library/acme/Fonts/Lora", "Library/acme/Fonts/Inter"],
+      }),
+    ).toBe("Installed Paper and what it requires: Lora, Inter");
+  });
+
+  test("an available library lists its requirements, as its repository gives them", () => {
+    const ink = libraryLists(data, "").groups[0].libraries[1];
+    expect(ink.requirements).toEqual([
+      {
+        uri: "https://github.com/acme/libs/blob/main/Fonts/Lora.md",
+        label: "Lora",
+        installed: true,
+      },
+      { uri: INTER, label: "Inter Sans", installed: false },
+    ]);
   });
 });
 
