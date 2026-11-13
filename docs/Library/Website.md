@@ -134,7 +134,7 @@ docsNav.sections = {
         { ref = "Linked Mention" },
         { ref = "Linked Tasks" },
         { ref = "Page Picker" },
-        { ref = "Tool Picker" },
+        { ref = "Tool Page Picker" },
         { ref = "Anything Picker" },
         { ref = "Tag Picker" },
         { ref = "File Tree" },
@@ -452,7 +452,8 @@ Pages that moved keep their old links (from outside the site) working: the old n
 docsRedirects = {
   ["Object/"] = "Tag/",
   ["Meta Page"] = "Tool Page",
-  ["Meta Picker"] = "Tool Picker",
+  ["Meta Picker"] = "Tool Page Picker",
+  ["Tool Picker"] = "Tool Page Picker",
   ["CONFIG"] = "Library/Config",
 }
 

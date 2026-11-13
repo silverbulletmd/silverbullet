@@ -6,7 +6,7 @@ Look up the editing interface, visual tools and feature behavior.
 # Navigation and editing
 * [[Command Palette]] — finding and running commands.
 * [[Editor]], [[Top Bar]], [[Page Namer]] and [[Live Preview]] — the editing surface.
-* [[Page Picker]], [[Tool Picker]], [[Anything Picker]], [[Tag Picker]] and [[File Tree]] — finding and opening content.
+* [[Page Picker]], [[Tool Page Picker]], [[Anything Picker]], [[Tag Picker]] and [[File Tree]] — finding and opening content.
 * [[Search]], [[Graph View]] and [[X-Ray]] — searching and exploring connections.
 * [[Linked Mention]] and [[Linked Tasks]] — incoming references and tasks linked to a page.
 * [[Slash Command]] — inserting content through slash commands.

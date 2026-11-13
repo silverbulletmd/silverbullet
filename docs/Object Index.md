@@ -8,7 +8,7 @@ references:
 ---
 The Object Index stores [[Object|Objects]] found in your [[Space]].
 
-The [[Page Picker]], [[Tool Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
+The [[Page Picker]], [[Tool Page Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
 
 # Indexing
 ## Initial indexing process

@@ -585,7 +585,7 @@ export function registerEditorCommands(
     },
   });
   hook.registerCommand({
-    name: "Navigate: Tool Picker",
+    name: "Navigate: Tool Page Picker",
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
     priority: 2,
