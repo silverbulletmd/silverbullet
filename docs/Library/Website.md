@@ -56,7 +56,6 @@ docsNav.sections = {
   },
   { name = "Getting Started", ref = "Getting Started", icon = "book-open",
     description = "Independent introductions to writing, linking and exploring pages.",
-    { ref = "Guide/Reading These Docs" },
     { ref = "Guide/My First Markdown Page" },
     { ref = "Guide/Find and Connect Pages" },
     { ref = "Guide/Add Structure and Query" },
