@@ -107,32 +107,37 @@ test("a theme's font override on html, as theme.scss writes it, still wins", asy
 test("while the index is still building, an unknown font keeps the cached one", async ({
   page,
 }) => {
-  const lora = { name: "Lora", family: "Lora, Georgia, serif", kind: "serif" };
+  // A library font, not one of the built-ins (Lora is one now)
+  const gelasio = {
+    name: "Gelasio",
+    family: "Gelasio, Georgia, serif",
+    kind: "serif",
+  };
   await open(page, '<div id="custom-styles"></div>', await fontsBundle());
-  const result = await page.evaluate((lora) => {
+  const result = await page.evaluate((gelasio) => {
     const { fonts } = globalThis as any;
     const read = () =>
       getComputedStyle(document.documentElement)
         .getPropertyValue("--editor-font")
         .trim();
-    // A previous run knew Lora.
-    fonts.applyFonts({ editor: "lora", available: { lora } });
-    // Fresh index: Lora's library page isn't loaded yet.
-    const early = { editor: "lora", available: {} };
+    // A previous run knew Gelasio.
+    fonts.applyFonts({ editor: "gelasio", available: { gelasio } });
+    // Fresh index: Gelasio's library page isn't loaded yet.
+    const early = { editor: "gelasio", available: {} };
     fonts.applyFonts(early, { indexReady: false });
     const whileIndexing = read();
     const cached = localStorage.getItem(fonts.fontCacheKey(document.baseURI));
-    // Index done and Lora still unknown: it really is gone.
+    // Index done and Gelasio still unknown: it really is gone.
     fonts.applyFonts(early, { indexReady: true });
     return {
       whileIndexing,
-      cachedLora: cached?.includes("Lora"),
+      cachedGelasio: cached?.includes("Gelasio"),
       after: read(),
     };
-  }, lora);
+  }, gelasio);
   expect(result).toEqual({
-    whileIndexing: "Lora, Georgia, serif",
-    cachedLora: true,
+    whileIndexing: "Gelasio, Georgia, serif",
+    cachedGelasio: true,
     after: "'iA-Mono', Menlo, monospace",
   });
 });

@@ -136,6 +136,17 @@ test.describe("slash menu", () => {
           .evaluate((el) => el.getBoundingClientRect().height),
       )
       .toBeGreaterThan(10);
+    // The card's tint lets the selection through: CodeMirror draws it under
+    // the lines, so an opaque background would hide a selection in a callout
+    const alpha = await sbPage
+      .locator(".sb-admonition")
+      .first()
+      .evaluate((el) => {
+        const bg = getComputedStyle(el).backgroundColor;
+        const a = bg.match(/\/\s*([\d.]+)\)$|rgba\([^)]*,\s*([\d.]+)\)$/);
+        return a ? Number(a[1] ?? a[2]) : 1;
+      });
+    expect(alpha).toBeLessThan(1);
   });
 
   test("Bulleted list turns the current line into a list item", async ({

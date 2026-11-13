@@ -528,6 +528,13 @@ $comment-border: 1px;
     position: absolute;
   }
 
+  // Except right before the word joiner that glues a list marker to its first
+  // word: out of flow there, it breaks the glue, and a long first word wraps
+  // below the marker
+  .cm-widgetBuffer:has(+ .sb-word-joiner) {
+    position: static;
+  }
+
   .sb-lua-directive-inline {
     display: inline;
   }
@@ -1322,8 +1329,10 @@ $comment-border: 1px;
     padding-left: calc(var(--sb-indent) + 5px);
     padding-right: 14px;
     background-image: none;
-    // One tinted card per callout, with a bold title line in its tone
-    background-color: color-mix(in srgb, var(--admonition-color) 8%, var(--root-background-color));
+    // One tinted card per callout, with a bold title line in its tone. See-through
+    // (mixed with transparent, as code blocks are): CodeMirror draws the
+    // selection under the lines, and an opaque tint would hide it
+    background-color: color-mix(in srgb, var(--admonition-color) 8%, transparent);
     color: var(--root-color);
 
     // The border replaces the quote spacer. Keep its inline box for posAtCoords,
@@ -1334,7 +1343,7 @@ $comment-border: 1px;
   }
 
   .sb-admonition-title {
-    background-color: color-mix(in srgb, var(--admonition-color) 8%, var(--root-background-color));
+    background-color: color-mix(in srgb, var(--admonition-color) 8%, transparent);
     border-top-right-radius: var(--ui-radius-lg);
     padding-top: 8px;
     font-weight: 600;
