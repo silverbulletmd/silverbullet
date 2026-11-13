@@ -4,7 +4,29 @@ import {
   builtinTagsOfKind,
   isBuiltinRootTag,
   isBuiltinTag,
+  normalizeTagList,
 } from "./tags.ts";
+
+describe("normalizeTagList", () => {
+  it("accepts comma and space separated strings and lists", () => {
+    const expected = ["meta/library", "meta/theme"];
+    expect(normalizeTagList("meta/library, meta/theme")).toEqual(expected);
+    expect(normalizeTagList("#meta/library #meta/theme")).toEqual(expected);
+    expect(normalizeTagList(["meta/library", " #meta/theme"])).toEqual(
+      expected,
+    );
+  });
+
+  it("drops duplicates and empty entries", () => {
+    expect(normalizeTagList("a,, b a")).toEqual(["a", "b"]);
+    expect(normalizeTagList(["a", "#a", ""])).toEqual(["a"]);
+  });
+
+  it("returns nothing for anything else", () => {
+    expect(normalizeTagList(undefined)).toEqual([]);
+    expect(normalizeTagList(5)).toEqual([]);
+  });
+});
 
 describe("builtin tag kinds", () => {
   it("classifies each built-in tag", () => {

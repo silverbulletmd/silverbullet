@@ -485,6 +485,8 @@ tag.define {
         type = "string",
         format = "uri",
       },
+      -- What the library requires, as its page lists it (shown before install)
+      requires = { type = "array", items = schema.string() },
     },
     required = {
       "name",
@@ -500,8 +502,34 @@ tag.define {
       files = schema.array("string"),
       share = schema.object(),
       description = schema.string(),
+      -- Libraries to install first: share URIs, or paths relative to this one's
+      requires = { type = "array", items = schema.string() },
     },
-    required = {"name"},
+  },
+}
+
+-- A theme page (see Theming); mirrors what plug-api/lib/themes.ts reads
+tag.define {
+  name = "meta/theme",
+  icon = "droplet",
+  schema = {
+    type = "object",
+    properties = {
+      scheme = { type = "string", enum = { "light", "dark" } },
+      displayName = schema.string(),
+      description = schema.string(),
+      counterpart = schema.string(),
+      fonts = {
+        type = "object",
+        properties = {
+          ui = schema.string(),
+          editor = schema.string(),
+          code = schema.string(),
+          editorSize = { type = "number", minimum = 10, maximum = 48 },
+        },
+      },
+    },
+    required = { "scheme" },
   },
 }
 

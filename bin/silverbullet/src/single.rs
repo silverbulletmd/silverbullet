@@ -13,6 +13,7 @@ use std::sync::Arc;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 
+use silverbullet_server::handlers::notice_page::{NoticeMessage, NoticePage};
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::config::{
     Binding, MultiConfig, ShellSettings, SpaceAccess, SpaceConfig,
@@ -75,16 +76,23 @@ pub fn synthesize_config(config: &Config) -> SpaceConfig {
 
 /// The router mounted at `/.dashboard` in single mode: there is no space/account
 /// management UI (the one space is configured through env vars, not accounts),
-/// so every path under it explains that and 404s.
-fn single_dashboard_info_router() -> axum::Router {
-    axum::Router::new().fallback(|| async {
-        (
-            axum::http::StatusCode::NOT_FOUND,
-            [(axum::http::header::CONTENT_TYPE, "text/html")],
-            "<html><body><h1>Single-space mode</h1>\
-             This server runs in single-space mode, no space management available.\
-             </body></html>",
-        )
+/// so every path under it explains that and 404s. `space_root` is where the
+/// space is served, ending in `/`; the page borrows its stylesheet.
+fn single_dashboard_info_router(space_root: String) -> axum::Router {
+    axum::Router::new().fallback(move || {
+        let space_root = space_root.clone();
+        async move {
+            NoticePage {
+                assets: &format!("{space_root}.client/"),
+                title: "Single-space mode",
+                message: NoticeMessage::Text(
+                    "This server runs one space, configured through its environment, \
+                     so there are no spaces or accounts to manage here.",
+                ),
+                action: Some(("Open the space", &space_root)),
+            }
+            .into_response(axum::http::StatusCode::NOT_FOUND)
+        }
     })
 }
 
@@ -133,7 +141,6 @@ pub(crate) async fn run_single(
                 .unwrap_or(crate::config::DEFAULT_RUNTIME_IDLE_MINUTES)
                 .saturating_mul(60),
         )),
-        default_font: Default::default(),
         runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Single(auth),
@@ -183,7 +190,10 @@ pub(crate) async fn run_single(
 
     let router = build_main_router(
         manager,
-        Some(single_dashboard_info_router()),
+        Some(single_dashboard_info_router(format!(
+            "{}/",
+            config.host_url_prefix
+        ))),
         crate::VERSION.to_string(),
     );
     // MCP and its OAuth surface are multi-space only; without this the space's
@@ -248,7 +258,7 @@ mod tests {
             shell_disabled: false,
             log_push: false,
             additional_head_html: String::new(),
-            theme_color: "#e1e1e1".into(),
+            theme_color: "#fcfcfd".into(),
             space_description: "Powerful and programmable note taking app".into(),
             host_url_prefix: String::new(),
             http_logging: false,

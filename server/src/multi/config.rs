@@ -206,7 +206,7 @@ fn default_index_page() -> String {
     "index".into()
 }
 fn default_theme_color() -> String {
-    "#e1e1e1".into()
+    "#fcfcfd".into()
 }
 fn default_description() -> String {
     "Powerful and programmable note taking app".into()

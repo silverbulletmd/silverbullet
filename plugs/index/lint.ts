@@ -1,7 +1,15 @@
+import { FONT_VARIABLES } from "@silverbulletmd/silverbullet/lib/fonts";
 import {
   getNameFromPath,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { normalizeTagList } from "@silverbulletmd/silverbullet/lib/tags";
+import { THEME_TAG } from "@silverbulletmd/silverbullet/lib/themes";
+import {
+  findFrontmatter,
+  findToolBlocks,
+  isToolPage,
+} from "@silverbulletmd/silverbullet/lib/tool_pages";
 import {
   findNodeOfType,
   renderToText,
@@ -13,21 +21,17 @@ import type {
   LintDiagnostic,
   LintEvent,
 } from "@silverbulletmd/silverbullet/type/client";
-import {
-  findToolBlocks,
-  isToolPage,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
 import YAML from "js-yaml";
-import { isValidAnchorName } from "./anchor.ts";
-import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
-import { extractFrontMatter } from "./frontmatter.ts";
-import { shadowsBuiltinTag, splitYamlDocuments } from "./data.ts";
-import { allIndexers } from "./indexer.ts";
-import { isPositionRef } from "./object_edit.ts";
 import {
   type YamlSourceEntry,
   yamlTopLevelEntries,
 } from "../../plug-api/lib/yaml_source.ts";
+import { isValidAnchorName } from "./anchor.ts";
+import { type ResolveAnchorResult, resolveAnchor } from "./api.ts";
+import { shadowsBuiltinTag, splitYamlDocuments } from "./data.ts";
+import { extractFrontMatter } from "./frontmatter.ts";
+import { allIndexers } from "./indexer.ts";
+import { isPositionRef } from "./object_edit.ts";
 
 /**
  * Lint YAML syntax in frontmatter and fenced code blocks
@@ -665,4 +669,33 @@ export async function lintInactiveBlocks({
       };
     }),
   );
+}
+
+const fontVariableDeclaration = new RegExp(
+  `(?:${Object.values(FONT_VARIABLES).join("|")})\\s*:`,
+  "g",
+);
+
+/**
+ * Warn when a theme's `space-style` sets a font variable: that would override
+ * the space's own font choice, which is what the `fonts` frontmatter avoids.
+ */
+export function lintThemeFonts({ tree }: LintEvent): LintDiagnostic[] {
+  if (!normalizeTagList(findFrontmatter(tree).tags).includes(THEME_TAG)) {
+    return [];
+  }
+  const diagnostics: LintDiagnostic[] = [];
+  for (const block of findToolBlocks(tree)) {
+    if (block.fence !== "space-style") continue;
+    for (const match of block.code.matchAll(fontVariableDeclaration)) {
+      diagnostics.push({
+        from: block.codeFrom + match.index,
+        to: block.codeFrom + match.index + match[0].length - 1,
+        severity: "warning",
+        message:
+          'Themes suggest fonts in frontmatter ("fonts:") instead of setting font variables',
+      });
+    }
+  }
+  return withSource("theme", diagnostics);
 }

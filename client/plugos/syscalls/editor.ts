@@ -68,6 +68,11 @@ import {
   coerceAndValidateRef,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  BUILTIN_DARK_THEME,
+  BUILTIN_LIGHT_THEME,
+  counterpartTheme,
+} from "@silverbulletmd/silverbullet/lib/themes";
 import type {
   DocumentCapability,
   DocumentCapabilityDescriptor,
@@ -100,6 +105,36 @@ import { tagChangedEvent } from "../../space_lua/dependencies.ts";
 import type { PanelSlot } from "../../types/ui.ts";
 import { getVimModule } from "../../vim_loader.ts";
 import type { SysCallMapping } from "../system.ts";
+
+let darkModeWarned = false;
+
+/** UI options under their old names: `keyboardBar` is now `markupBar`. */
+function uiOptionKey(key: string): string {
+  return key === "keyboardBar" ? "markupBar" : key;
+}
+
+/** The deprecated `setUiOption("darkMode", x)`: a device theme override with the wanted scheme. */
+async function setDarkModeShim(client: Client, dark: boolean): Promise<void> {
+  if (!darkModeWarned) {
+    darkModeWarned = true;
+    console.warn(
+      'editor.setUiOption("darkMode", …) is deprecated: the theme decides the scheme. Use the Theme commands or set a theme instead.',
+    );
+  }
+  const scheme = dark ? "dark" : "light";
+  const active = client.spaceTheme.active;
+  if (active?.scheme === scheme) return;
+  const counterpart = active
+    ? counterpartTheme(active, client.tooling?.themes ?? [])
+    : undefined;
+  const page =
+    counterpart?.scheme === scheme
+      ? counterpart.page
+      : dark
+        ? BUILTIN_DARK_THEME
+        : BUILTIN_LIGHT_THEME;
+  await client.spaceTheme.setDeviceTheme(page);
+}
 
 export function editorSyscalls(client: Client): SysCallMapping {
   const syscalls: SysCallMapping = {
@@ -439,7 +474,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.rebuildEditorState": {
       callback: () => {
-        client.rebuildEditorState();
+        client.rebuildEditorState({ rerenderWidgets: true });
       },
       description:
         "Rebuilds the CodeMirror editor state from the current client configuration.",
@@ -447,7 +482,7 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.reloadConfigAndCommands": {
       callback: async () => {
         await client.clientSystem.reloadTooling();
-        client.rebuildEditorState();
+        client.rebuildEditorState({ rerenderWidgets: true });
       },
       description:
         "Reloads space scripts and styles, then rebuilds the editor state.",
@@ -1269,7 +1304,9 @@ export function editorSyscalls(client: Client): SysCallMapping {
     },
     "editor.getUiOption": {
       callback: (_ctx, key: string): any => {
-        return (client.ui.viewState.uiOptions as any)[key];
+        // No longer an option: the theme decides the scheme
+        if (key === "darkMode") return client.spaceTheme.scheme === "dark";
+        return (client.ui.viewState.uiOptions as any)[uiOptionKey(key)];
       },
       description: "Returns the current value of an editor UI option.",
       parameters: [
@@ -1278,15 +1315,20 @@ export function editorSyscalls(client: Client): SysCallMapping {
       returns: [{ type: "any", description: "The option value." }],
     },
     "editor.setUiOption": {
-      callback: (_ctx, key: string, value: any) => {
+      callback: async (_ctx, key: string, value: any) => {
+        if (key === "darkMode") {
+          await setDarkModeShim(client, !!value);
+          return;
+        }
         client.ui.viewDispatch({
           type: "set-ui-option",
-          key,
+          key: uiOptionKey(key),
           value,
         });
         void client.reloadEditor();
       },
-      description: "Sets an editor UI option and reloads the editor.",
+      description:
+        'Sets an editor UI option and reloads the editor. Setting "darkMode" is deprecated: it switches this device to a light or dark theme instead.',
       parameters: [
         { name: "key", type: "string", description: "The UI option key." },
         { name: "value", type: "any", description: "The option value." },

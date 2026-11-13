@@ -1,3 +1,4 @@
+import type { EditorState } from "@codemirror/state";
 // Forked from https://codeberg.org/retronav/ixora
 // Original author: Pranav Karawale
 // License: Apache License 2.0.
@@ -9,9 +10,11 @@ import { decoratorStateField, isCursorInRange } from "../util.ts";
 const bulletListMarkerRE = /^[-+*]/;
 
 export function listBulletPlugin() {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         if (type.name === "ListMark") {
           if (isCursorInRange(state, [from, to])) {
@@ -39,7 +42,7 @@ export function listBulletPlugin() {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }
 
 /**

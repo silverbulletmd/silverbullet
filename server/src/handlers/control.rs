@@ -24,8 +24,6 @@ struct ConfigResponse<'a> {
     #[serde(flatten)]
     boot_config: &'a silverbullet_server_common::BootConfig,
     space_prefixes: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    default_font: Option<String>,
     bundled_repositories: &'a [String],
     share_owner_id: String,
 }
@@ -46,11 +44,10 @@ pub(crate) async fn handle_config(
     }
     (
         StatusCode::OK,
-        [("Cache-Control", "no-cache")],
+        [("Cache-Control", "private, no-cache")],
         axum::Json(ConfigResponse {
             boot_config: &boot_config,
             space_prefixes: state.space_prefixes.current(),
-            default_font: state.default_font.current(),
             bundled_repositories: &state.bundled_repositories,
             share_owner_id: silverbullet_server_common::revision::sha256_hex(
                 format!(
@@ -157,7 +154,7 @@ pub async fn handle_manifest(
     };
     (
         StatusCode::OK,
-        [("Cache-Control", "no-cache")],
+        [("Cache-Control", "private, no-cache")],
         axum::Json(manifest),
     )
 }
@@ -254,35 +251,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn config_reports_the_default_font_as_it_is_on_each_load() {
-        let font = Arc::new(std::sync::RwLock::new(None::<String>));
-        let current = font.clone();
-        let state = Arc::new(crate::ServerState {
-            default_font: crate::DefaultFont::from_fn(move || current.read().unwrap().clone()),
-            ..test_state()
-        });
-        let load = || {
-            let state = state.clone();
-            async move {
-                let resp = super::handle_config(
-                    axum::extract::State(state),
-                    axum::Extension(crate::auth::Actor::default()),
-                    None,
-                )
-                .await
-                .into_response();
-                let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
-                    .await
-                    .unwrap();
-                serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()
-            }
-        };
-        assert!(load().await.get("defaultFont").is_none());
-        *font.write().unwrap() = Some("inter".into());
-        assert_eq!(load().await["defaultFont"], "inter");
-    }
-
-    #[tokio::test]
     async fn a_read_level_caller_is_told_the_space_is_read_only() {
         let body = config_for(crate::auth::AccessLevel::Read).await;
         assert_eq!(body["readOnly"], serde_json::json!(true));
@@ -346,7 +314,7 @@ mod tests {
         assert_eq!(v["display"], "standalone");
         assert_eq!(v["icons"][0]["src"], "/.client/logo-dock.png");
         assert_eq!(v["icons"][0]["type"], "image/png");
-        assert_eq!(v["theme_color"], "#e1e1e1");
+        assert_eq!(v["theme_color"], "#fcfcfd");
         assert!(v.get("share_target").is_none());
     }
 

@@ -19,6 +19,7 @@ import {
   parseToRef,
   type Ref,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import type { CachedTheme } from "@silverbulletmd/silverbullet/lib/themes";
 import type {
   AppEvent,
   ClickEvent,
@@ -39,6 +40,7 @@ import { ClientSystem } from "./client_system.ts";
 import { withCompletionInfo } from "./codemirror/editing/completion_info.ts";
 import { createEditorState } from "./codemirror/editor_state.ts";
 import { originLabel } from "./codemirror/external_presence.ts";
+import { reloadAllWidgets } from "./codemirror/widgets/code_widget.ts";
 import {
   awaitRenderSettled,
   renderBusySelector,
@@ -55,8 +57,10 @@ import { ObjectIndex } from "./data/object_index.ts";
 import { MainUI } from "./editor_ui.tsx";
 import { EventInterest } from "./event_interest.ts";
 import { setGitSyncStreamConnected } from "./git_sync_status.ts";
+import { hideBootIndicator, setBootStatus } from "./lib/boot_indicator.ts";
 import { isValidEditor } from "./lib/command_filters.ts";
-import { isMobileDevice } from "./lib/mobile.ts";
+import { installHoverReveal } from "./lib/hover_reveal.ts";
+import { isMobileDevice, primeSoftKeyboard } from "./lib/mobile.ts";
 import { recordMark, timedSpan } from "./lib/perf.ts";
 import {
   logoutInProgress,
@@ -84,6 +88,7 @@ import {
   RealtimeEvents,
   type RealtimeFsEventOrigin,
 } from "./realtime_events.ts";
+import { broadcastReload } from "./sandbox/widget_sandbox_iframe.ts";
 import { Space } from "./space.ts";
 import { LuaBudgetStopped } from "./space_lua/budget.ts";
 import { evalStatement } from "./space_lua/eval.ts";
@@ -96,6 +101,7 @@ import { LuaEnv, LuaRuntimeError, LuaStackFrame } from "./space_lua/runtime.ts";
 import { toRuntimeJSON } from "./space_lua/runtime_json.ts";
 import { resolveASTReference } from "./space_lua.ts";
 import { SpaceStyles } from "./space_style.ts";
+import { SpaceTheme } from "./space_theme.ts";
 import { CheckedSpacePrimitives } from "./spaces/checked_space_primitives.ts";
 import { getOrCreateClientId } from "./spaces/client_id.ts";
 import { fsEndpoint } from "./spaces/constants.ts";
@@ -126,10 +132,26 @@ const declareDivergentBaseTimeout = 5000;
  * The page navigator's browsing modes, as segments of `std.pages`. "page" is
  * that view's default segment, so it asks for nothing.
  */
+/**
+ * The ping's network time, from Resource Timing where available: it runs
+ * alongside plug loading, whose main-thread work would otherwise inflate a
+ * wall-clock measurement past the "local server" threshold sync uses.
+ */
+function pingDuration(start: number): number {
+  const entries = (performance.getEntriesByType?.("resource") ??
+    []) as PerformanceResourceTiming[];
+  const entry = entries.findLast(
+    (e) => e.name.endsWith("/.ping") && e.startTime >= start,
+  );
+  return entry
+    ? entry.responseEnd - entry.startTime
+    : performance.now() - start;
+}
+
 function pickerSegment(mode: "page" | "tool" | "document" | "all") {
   switch (mode) {
     case "tool":
-      return "Tool";
+      return "Tool Pages";
     case "document":
       return "Documents";
     case "all":
@@ -195,6 +217,12 @@ export class Client {
 
   ui!: MainUI;
   readonly spaceStyles = new SpaceStyles(this);
+  readonly spaceTheme: SpaceTheme;
+  /**
+   * Space Lua has run, so the config (`fonts`, `theme`) is final. Before
+   * that, the fonts and theme the boot cache showed are better guesses.
+   */
+  configLoaded = false;
   ds!: DataStore;
   mq!: DataStoreMQ;
   // Used to store additional pageMeta outside the page index itself persistent between client runs (specifically: lastOpened)
@@ -252,15 +280,22 @@ export class Client {
   widgetCache!: WidgetCache;
   objectIndex!: ObjectIndex;
   /** The current `/.tooling` payload: boot's, until a reload fetches it again. */
-  private tooling: Tooling | undefined;
+  private toolingPayload: Tooling | undefined;
+
+  get tooling(): Tooling | undefined {
+    return this.toolingPayload;
+  }
 
   constructor(
     private parent: Element,
     public bootConfig: BootConfig,
     readonly config: Config,
     tooling?: Tooling,
+    /** What `applyCachedTheme` put on screen. */
+    bootTheme?: CachedTheme,
   ) {
-    this.tooling = tooling;
+    this.toolingPayload = tooling;
+    this.spaceTheme = new SpaceTheme(this, bootTheme);
     this.eventHook = new EventHook(this.config);
     this.eventInterest = new EventInterest(this.eventHook);
     // The third case should only ever happen when the user provides an invalid index env variable
@@ -350,7 +385,17 @@ export class Client {
     this.ui = new MainUI(this);
     this.ui.render(this.parent);
     // Styles only need the payload, so they don't wait for plugs or scripts
-    this.spaceStyles.load(this.tooling?.styles ?? []);
+    this.spaceTheme.onChange((theme) => {
+      this.spaceStyles.themeChanged();
+      this.setEditorScheme(theme.scheme === "dark");
+      // The theme may suggest fonts, a preview's included
+      this.applySpaceFonts();
+      if (this.contentManager.isDocumentEditor()) {
+        this.contentManager.documentEditor.updateTheme();
+      }
+    });
+    await this.applySpaceTheme();
+    this.spaceStyles.load();
     this.registerUnsavedChangesWarning();
 
     this.editorView = new EditorView({
@@ -383,31 +428,45 @@ export class Client {
 
     await timedSpan("widget-cache-load", () => this.widgetCache.load());
 
-    // Let's ping the remote space to ensure we're authenticated properly, if not will result in a redirect to auth page
-    try {
-      const pingStart = performance.now();
-      await timedSpan("ping", () => this.httpSpacePrimitives.ping());
-      this.serverPingMs = performance.now() - pingStart;
-    } catch (e: any) {
-      if (e.message === "Not authenticated") {
-        console.warn("Not authenticated, redirecting to auth page");
-        return;
-      }
+    // Ping the remote space to ensure we're authenticated properly, if not will
+    // result in a redirect to auth page. Plugs load meanwhile: on a slow link
+    // waiting for the ping first costs a full round trip.
+    const pingStart = performance.now();
+    const pinged = timedSpan("ping", () => this.httpSpacePrimitives.ping())
+      .then(() => undefined)
+      .catch((e: Error) => e);
+    setBootStatus("Loading plugs…");
+    const plugsLoaded = timedSpan("load-plugs", () => this.loadPlugs())
+      .then(() => undefined)
+      .catch((e: Error) => e);
+    const pingError = await pinged;
+    if (pingError?.message === "Not authenticated") {
+      console.warn("Not authenticated, redirecting to auth page");
+      return;
+    }
+    if (pingError) {
       console.warn(
         "Could not reach remote server, we're offline or the server is down",
-        e,
+        pingError,
       );
+    } else {
+      this.serverPingMs = pingDuration(pingStart);
     }
-
-    await timedSpan("load-plugs", () => this.loadPlugs());
+    const plugsError = await plugsLoaded;
+    if (plugsError) throw plugsError;
     recordMark("sb:plugs-loaded");
 
+    setBootStatus("Loading scripts…");
     await timedSpan("load-lua-scripts", () =>
       this.clientSystem.loadLuaScripts(this.tooling),
     );
     // On a fresh client or a reindex, indexing fires it once it's done
     void this.objectIndex.announceIndexReady();
+    setBootStatus("Opening page…");
+    // Widgets' ⋯ menus show on a resting mouse, like the line handle
+    installHoverReveal();
     await timedSpan("init-navigator", () => this.initNavigator());
+    hideBootIndicator();
     await this.eventHook.dispatchEvent("system:ready");
     this.systemReady = true;
     recordMark("sb:system-ready");
@@ -433,8 +492,11 @@ export class Client {
       void this.dispatchAppEvent("cron:secondPassed");
     }, 1000);
 
-    // Styles went in at render; fonts needed the scripts' configuration
-    this.applySpaceFonts(this.tooling !== undefined);
+    // Styles went in at render; fonts needed the scripts' configuration, and
+    // the theme setting may come from a script outside the boot pre-pass
+    this.configLoaded = true;
+    this.applySpaceFonts();
+    void this.applySpaceTheme();
 
     await timedSpan("editor-init", () => this.dispatchAppEvent("editor:init"));
 
@@ -576,18 +638,31 @@ export class Client {
       if (pages.includes(this.currentName())) this.editorView.dispatch({});
     });
 
+    // Links show whether their target exists
     this.eventHook.addLocalListener("file:changed", (fileName: string) => {
-      this.clientSystem.allKnownFiles.add(fileName);
+      const known = this.clientSystem.allKnownFiles;
+      if (known.has(fileName)) return;
+      known.add(fileName);
+      this.refreshDecorations();
     });
     this.eventHook.addLocalListener("file:deleted", (fileName: string) => {
-      this.clientSystem.allKnownFiles.delete(fileName);
+      const known = this.clientSystem.allKnownFiles;
+      if (!known.has(fileName)) return;
+      known.delete(fileName);
+      this.refreshDecorations();
     });
     this.eventHook.addLocalListener("file:listed", (allFiles: FileMeta[]) => {
-      this.clientSystem.allKnownFiles.clear();
+      const known = this.clientSystem.allKnownFiles;
+      const changed =
+        !this.clientSystem.knownFilesLoaded ||
+        allFiles.length !== known.size ||
+        allFiles.some((f) => !known.has(f.name));
+      known.clear();
       allFiles.forEach((f) => {
-        this.clientSystem.allKnownFiles.add(f.name);
+        known.add(f.name);
       });
       this.clientSystem.knownFilesLoaded = true;
+      if (changed) this.refreshDecorations();
     });
 
     this.space.watch();
@@ -932,6 +1007,7 @@ export class Client {
       type: "update-page-list",
       allPages: allPages,
     });
+    this.refreshDecorations();
 
     void this.space.spacePrimitives.fetchFileList();
   }
@@ -979,7 +1055,8 @@ export class Client {
       this.pageListSource !== "none"
     ) {
       this.widgetReadyDispatched = true;
-      this.rebuildEditorState();
+      // Tables and other rendered blocks drew before scripts were in
+      this.rebuildEditorState({ rerenderWidgets: true });
       this.resolveWidgetsReady();
       this.settleIndexedRender();
       recordMark("sb:widgets-ready");
@@ -1077,8 +1154,33 @@ export class Client {
     }
   }
 
-  rebuildEditorState() {
+  private decorationRefreshQueued = false;
+
+  /**
+   * Rebuild the editor's decorations after state they read outside the page
+   * changed (the page list, known files). Typing only rebuilds the blocks it
+   * touches, so it no longer refreshes them in passing.
+   */
+  refreshDecorations() {
+    if (this.decorationRefreshQueued) return;
+    this.decorationRefreshQueued = true;
+    setTimeout(() => {
+      this.decorationRefreshQueued = false;
+      this.editorView?.dispatch({});
+    });
+  }
+
+  /**
+   * Rebuild the editor's extensions from the current configuration. With
+   * `rerenderWidgets`, widgets also render again in place, for when what they
+   * show may have changed (scripts, config or the index loaded).
+   */
+  rebuildEditorState(opts?: { rerenderWidgets?: boolean }) {
     this.contentManager.rebuildEditorState();
+    if (opts?.rerenderWidgets) {
+      broadcastReload();
+      void reloadAllWidgets();
+    }
   }
 
   async completeWithEvent(
@@ -1299,21 +1401,28 @@ export class Client {
    */
   async fetchTooling(): Promise<Tooling | undefined> {
     try {
-      this.tooling = await fetchTooling(globalThis.fetch.bind(globalThis));
+      this.toolingPayload = await fetchTooling(
+        globalThis.fetch.bind(globalThis),
+      );
     } catch (e) {
       console.error("Could not fetch tool pages:", e);
     }
-    return this.tooling;
+    return this.toolingPayload;
   }
 
   /**
-   * Library fonts are only known from tooling; without it, keep the cached
-   * fonts rather than replacing them by a fallback.
+   * Waits for the config: before it, the cached fonts are a better guess
+   * than the defaults. Library fonts are only known from tooling; without
+   * it, keeps the cached fonts rather than replacing them by a fallback.
    */
-  private applySpaceFonts(libraryFontsKnown: boolean): void {
+  private applySpaceFonts(): void {
+    if (!this.configLoaded) return;
     try {
-      applyFonts(this.config.get("fonts", {}), this.bootConfig.defaultFont, {
-        indexReady: libraryFontsKnown,
+      applyFonts(this.config.get("fonts", {}), {
+        indexReady: this.tooling !== undefined,
+        themeFonts: this.spaceTheme.active?.fonts,
+        // A previewed theme's suggested fonts must not be the next boot's
+        cache: !this.spaceTheme.previewing,
       });
     } catch (e) {
       // A broken font entry must not stop styles or the editor from loading.
@@ -1321,15 +1430,43 @@ export class Client {
     }
   }
 
-  /** Applies fonts and `tooling`'s styles. */
-  loadCustomStyles(tooling: Tooling | undefined): void {
-    this.applySpaceFonts(tooling !== undefined);
-    this.spaceStyles.load(tooling?.styles ?? []);
+  private applySpaceTheme(): Promise<void> {
+    return this.spaceTheme.apply().then(
+      () => {},
+      (e) => console.error("Could not apply theme", e),
+    );
+  }
+
+  /** The editor's light or dark look (CodeMirror's `darkTheme` facet) follows the theme. */
+  private setEditorScheme(dark: boolean): void {
+    const { editorView, themeCompartment } = this;
+    if (
+      editorView &&
+      themeCompartment?.get(editorView.state) !== undefined &&
+      editorView.state.facet(EditorView.darkTheme) !== dark
+    ) {
+      editorView.dispatch({
+        effects: themeCompartment.reconfigure(EditorView.theme({}, { dark })),
+      });
+    }
+  }
+
+  /**
+   * Applies fonts, the theme and the current tooling's styles; scripts have
+   * run, so the config is final. The theme goes first: the styles' record
+   * reads its sheets.
+   */
+  async loadCustomStyles(): Promise<void> {
+    this.configLoaded = true;
+    this.applySpaceFonts();
+    await this.applySpaceTheme();
+    this.spaceStyles.load();
   }
 
   /** Fetches `/.tooling` again and applies its styles. */
   async reloadCustomStyles(): Promise<void> {
-    this.loadCustomStyles(await this.fetchTooling());
+    await this.fetchTooling();
+    await this.loadCustomStyles();
   }
 
   async runCommandByName(name: string, args?: any[]) {
@@ -1342,6 +1479,8 @@ export class Client {
     if (!cmd) {
       throw new Error(`Command ${name} not found`);
     }
+    // Still inside the tap that ran it, if any: iOS raises the keyboard only then
+    if (cmd.opensInput) primeSoftKeyboard();
     return args ? await cmd.run!(args) : await cmd.run!();
   }
 

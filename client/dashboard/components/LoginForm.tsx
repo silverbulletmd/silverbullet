@@ -1,12 +1,12 @@
-import { useState } from "preact/hooks";
 import {
   Alert,
   Button,
   CheckboxField,
   Field,
-  PasswordInput,
   Input,
+  PasswordInput,
 } from "@silverbulletmd/silverbullet/ui";
+import { useState } from "preact/hooks";
 
 export type LoginValues = {
   username: string;
@@ -123,7 +123,7 @@ export function LoginForm({
           hint={encrypt ? clientEncryptionHint : undefined}
         />
       )}
-      <div style="--space: 1.8rem">
+      <div style="--sb-space: 1.8rem">
         <Button type="submit" variant="primary" disabled={busy}>
           Log in
         </Button>

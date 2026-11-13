@@ -12,9 +12,12 @@
   --sb-nav-muted: var(--subtle-color);
 }
 
+// A card on the page, with a tinted title bar
 .sb-page-widget {
-  border: 1px solid var(--editor-widget-background-color);
-  border-radius: 5px;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-xl);
+  background: var(--root-background-color);
+  overflow: hidden;
   margin: 0 0 10px 0;
 }
 
@@ -26,15 +29,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--editor-widget-background-color);
+  background: var(--ui-accent-surface-color);
+  border-bottom: 1px solid var(--ui-accent-muted-soft-color);
   border-radius: 4px 4px 0 0;
-  padding: 8px 10px;
+  padding: 8px 10px 8px 12px;
 }
 
 .sb-page-widget-title {
   white-space: nowrap;
-  color: inherit;
-  font-weight: bold;
+  font-family: var(--ui-font);
+  font-size: 0.85em;
+  font-weight: 650;
+  color: var(--ui-label-color);
 }
 
 .sb-page-widget-heading {
@@ -52,7 +58,7 @@
   flex: 0 0 auto;
   background: transparent;
   border: 0;
-  color: inherit;
+  color: var(--subtle-color);
   font-size: 0.8em;
   line-height: 1;
   cursor: pointer;
@@ -82,7 +88,19 @@
 }
 
 .sb-page-widget-body {
-  padding: 10px;
+  padding: 10px 16px 12px;
+  font-size: 0.92em;
+}
+
+// As specific as the tree and content rules a body's lists would otherwise take
+#sb-main .cm-editor .sb-page-widget-body {
+  ul {
+    padding-left: 1em;
+  }
+
+  li + li {
+    margin-top: 4px;
+  }
 }
 
 .sb-page-widget-body .sb-page-widget-row {
@@ -111,10 +129,6 @@
   padding: 2px 8px 0 8px;
   font-size: 75%;
   color: var(--modal-description-color);
-}
-
-.sb-page-widget-body .sb-nav-folder {
-  font-weight: inherit;
 }
 
 .sb-page-widget-row {
@@ -320,11 +334,14 @@
   }
 }
 
-// A minimal widget reads as part of the page: no border or padding of its
-// own, and its tools surface only on hover or focus, like a Lua widget's.
+// A minimal widget reads as part of the page: no card or padding of its own,
+// just rounded corners, and its tools surface only on hover or focus, like a
+// Lua widget's.
 .sb-page-widget-minimal {
   position: relative;
   border: 0;
+  background: transparent;
+  border-radius: var(--ui-radius-lg);
 
   > .sb-page-widget-body {
     padding: 0;
@@ -344,9 +361,12 @@
   color: var(--subtle-color);
   opacity: 0;
   pointer-events: none;
+  transition: opacity 0.12s;
 
-  .sb-page-widget-minimal:hover > &,
-  .sb-page-widget-minimal:focus-within > & {
+  // Shown once the mouse rests on the widget (`installHoverReveal`)
+  .sb-page-widget-minimal.sb-hover-revealed > &,
+  .sb-page-widget-minimal:focus-within > &,
+  &:has([aria-expanded="true"]) {
     opacity: 1;
     pointer-events: auto;
   }

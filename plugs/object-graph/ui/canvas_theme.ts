@@ -38,16 +38,15 @@ export class CanvasTheme {
 
   /** Follows theme changes until the returned stop is called */
   watch(): () => void {
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    mql.addEventListener?.("change", this.refresh);
     // The theme's tokens and font arrive with stylesheets that load after
-    // mount, and SilverBullet switches the theme through `data-theme`
+    // mount, and SilverBullet marks a theme switch on `html` (two themes can
+    // share a scheme)
     const links = [...document.querySelectorAll("link[rel=stylesheet]")];
     for (const link of links) link.addEventListener("load", this.refresh);
     const observer = new MutationObserver(this.refresh);
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["data-theme"],
+      attributeFilter: ["data-sb-scheme", "data-sb-theme"],
     });
     let stopped = false;
     void document.fonts?.ready.then(() => {
@@ -55,7 +54,6 @@ export class CanvasTheme {
     });
     return () => {
       stopped = true;
-      mql.removeEventListener?.("change", this.refresh);
       for (const link of links) link.removeEventListener("load", this.refresh);
       observer.disconnect();
     };

@@ -1,5 +1,5 @@
 import { closeSearchPanel } from "@codemirror/search";
-import { EditorView, runScopeHandlers } from "@codemirror/view";
+import { runScopeHandlers } from "@codemirror/view";
 import { getNameFromPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type {
   FilterBoxOptions,
@@ -32,10 +32,7 @@ import {
 } from "./components/basic_modals.tsx";
 import { ChooseVersionModal } from "./components/choose_version.tsx";
 import { FilterList } from "./components/filter.tsx";
-import {
-  KeyboardBar,
-  type KeyboardBarButton,
-} from "./components/keyboard_bar.tsx";
+import { KeyboardBar } from "./components/keyboard_bar.tsx";
 import { Panel } from "./components/panel.tsx";
 import { PickManyModal } from "./components/pick_many.tsx";
 import {
@@ -47,6 +44,7 @@ import {
 import { TopBar } from "./components/top_bar.tsx";
 import { resolveButtonIcon } from "./lib/feather_icons.ts";
 import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
+import { markupButtons, markupSurfaces } from "./lib/markup_buttons.ts";
 import { toggleMobileDock } from "./navigator/navigator.ts";
 import { resolveMeta } from "./navigator/registry.ts";
 import { RevisionPreviewModal } from "./navigator/ui/components/revision_preview.tsx";
@@ -425,48 +423,6 @@ export class MainUI {
     }, [viewState.uiOptions.vimMode]);
 
     useEffect(() => {
-      const updateTheme = () => {
-        const darkMode =
-          viewState.uiOptions.darkMode === undefined
-            ? globalThis.matchMedia("(prefers-color-scheme: dark)").matches
-            : viewState.uiOptions.darkMode;
-
-        document.documentElement.dataset.theme = darkMode ? "dark" : "light";
-
-        const editorView = this.client.editorView;
-        const themeCompartment = this.client.themeCompartment;
-        if (
-          editorView &&
-          themeCompartment?.get(editorView.state) !== undefined &&
-          editorView.state.facet(EditorView.darkTheme) !== darkMode
-        ) {
-          editorView.dispatch({
-            effects: themeCompartment.reconfigure(
-              EditorView.theme({}, { dark: darkMode }),
-            ),
-          });
-        }
-
-        if (this.client.contentManager.isDocumentEditor()) {
-          this.client.contentManager.documentEditor.updateTheme();
-        }
-      };
-
-      updateTheme();
-
-      if (viewState.uiOptions.darkMode === undefined) {
-        const mediaQuery = globalThis.matchMedia(
-          "(prefers-color-scheme: dark)",
-        );
-        mediaQuery.addEventListener("change", updateTheme);
-
-        return () => {
-          mediaQuery.removeEventListener("change", updateTheme);
-        };
-      }
-    }, [viewState.uiOptions.darkMode]);
-
-    useEffect(() => {
       document.documentElement.dataset.markdownSyntaxRendering = viewState
         .uiOptions.markdownSyntaxRendering
         ? "on"
@@ -538,7 +494,6 @@ export class MainUI {
             label={viewState.filterBoxLabel}
             placeholder={viewState.filterBoxPlaceHolder}
             options={viewState.filterBoxOptions}
-            darkMode={viewState.uiOptions.darkMode}
             allowNew={viewState.filterBoxAllowNew ?? false}
             newHint={viewState.filterBoxNewHint}
             helpText={viewState.filterBoxHelpText}
@@ -550,7 +505,6 @@ export class MainUI {
             message={viewState.promptMessage!}
             defaultValue={viewState.promptDefaultValue}
             password={viewState.promptPassword}
-            darkMode={viewState.uiOptions.darkMode}
             callback={(value) => {
               dispatch({ type: "hide-prompt" });
               viewState.promptCallback!(value);
@@ -635,7 +589,7 @@ export class MainUI {
               .includes("hamburger")
               ? [
                   {
-                    icon: featherIcons.Menu,
+                    icon: featherIcons.MoreVertical,
                     description: "Open Menu",
                     class: "expander",
                     callback: () => {
@@ -650,6 +604,7 @@ export class MainUI {
               isMobile: viewState.isMobile,
               isStandalone: viewState.isStandalone,
               accountManaged: !!client.bootConfig.accountManaged,
+              readOnly: !!client.bootConfig.readOnly,
             })
               // Until the profile request settles we do not know who the
               // visitor is, and offering "Log in" to someone who is signed in
@@ -795,10 +750,10 @@ export class MainUI {
             <Panel config={viewState.panels.bhs} editor={client} slot="bhs" />
           </div>
         ) : null}
-        {viewState.isMobile && viewState.uiOptions.keyboardBar && (
+        {markupSurfaces(client).mobile && (
           <KeyboardBar
             client={client}
-            buttons={client.config.get<KeyboardBarButton[]>("keyboardBar", [])}
+            buttons={markupButtons(client, "mobile")}
           />
         )}
       </>

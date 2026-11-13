@@ -1,0 +1,49 @@
+// SilverBullet Dark: base variables, plus the few specific ones whose dark
+// value doesn't follow from the light derivation.
+@mixin dark-palette {
+  --root-background-color: #15171e;
+  --root-color: #e3e5ec;
+  --subtle-color: #8c92a3;
+  --subtle-background-color: rgba(227, 229, 236, 0.06);
+  --ui-surface-border-color: #2a2e3a;
+
+  --ui-accent-color: #5b7cf0;
+  --ui-accent-contrast-color: #ffffff;
+
+  --link-invalid-color: #d444f8;
+  --link-missing-color: #f59e5b;
+  --meta-color: #5a6072;
+  --meta-subtle-color: #525868;
+
+  --tone-success: #6cc487;
+  --tone-success-soft: #1c3424;
+  --tone-warning: #e7b05a;
+  --tone-warning-soft: #3a2c14;
+  --tone-danger: #f08a8a;
+  --tone-danger-soft: #3d2023;
+  --tone-info: #8fc4ef;
+  --tone-info-soft: #192c40;
+  --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 22%, transparent);
+  --ui-accent-muted-soft-color: color-mix(in srgb, var(--ui-accent-muted-color) 22%, transparent);
+  // Accent text moves further toward the light text colour to stay readable.
+  --ui-accent-text-color: color-mix(in oklab, var(--ui-accent-color), var(--root-color) 35%);
+  --modal-backdrop-color: rgba(0, 0, 0, 0.5);
+  --modal-shadow-color: rgba(0, 0, 0, 0.55);
+
+  --editor-code-variable-color: #41a3ce;
+  --editor-code-string-color: #986db9;
+  --editor-code-number-color: #986db9;
+  --editor-code-atom-color: #d6222e;
+  --editor-directive-mark-color: #ba0303;
+
+  // Light modals sit flush with the page; dark ones are raised like panels.
+  --modal-background-color: var(--panel-background-color);
+  // Dark surfaces need bigger steps away from the background than light ones.
+  --button-background-color: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 45%);
+  --button-hover-background-color: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 70%);
+  // On dark the accent is a light tint, so its strong fill darkens further.
+  --ui-accent-strong-color: color-mix(in srgb, var(--ui-accent-color), black 40%);
+  // Dark top-bar icons sit between text and subtle, as before.
+  --action-button-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 60%);
+  --editor-frontmatter-marker-color: var(--root-color);
+}

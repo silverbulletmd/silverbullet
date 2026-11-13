@@ -8,7 +8,7 @@ import {
 } from "preact/hooks";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import { copyValue } from "../../codemirror/widgets/directive_actions.ts";
-import { openPopupMenu } from "../../components/popup_menu.ts";
+import { togglePopupMenu } from "../../components/popup_menu.ts";
 import { expandRefreshTriggers } from "../../navigator/refresh_triggers.ts";
 import { copyText, openRef } from "../shared/action.ts";
 import type { TabProps } from "../tab.ts";
@@ -166,11 +166,7 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
           title={context === "space" ? "Space" : `Current page: ${pageName}`}
           onClick={(e) => {
             const anchor = e.currentTarget;
-            if (anchor.getAttribute("aria-expanded") === "true") {
-              closeContextMenu.current?.();
-              return;
-            }
-            closeContextMenu.current = openPopupMenu<ConsoleContext>(
+            closeContextMenu.current = togglePopupMenu<ConsoleContext>(
               anchor,
               [
                 {
@@ -188,10 +184,12 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
                   current: context === "page",
                 },
               ],
-              (next) => {
-                session.context = next;
-                setContext(next);
-                anchor.focus();
+              {
+                onPick: (next) => {
+                  session.context = next;
+                  setContext(next);
+                  anchor.focus();
+                },
               },
             );
           }}

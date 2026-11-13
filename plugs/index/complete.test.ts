@@ -1,9 +1,10 @@
+import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import { describe, expect, test } from "vitest";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
-import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { anchorComplete, completeTaskState } from "./complete.ts";
 import { indexMarkdown } from "./indexer.ts";
-import { anchorComplete } from "./complete.ts";
-import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import { nextTaskState } from "./task.ts";
 
 const pageMeta = (name: string): PageMeta => ({
   ref: name,
@@ -144,4 +145,31 @@ describe("anchorComplete", () => {
     expect(opt!.detail).toContain("paragraph");
     expect(opt!.detail).toContain("DocPage");
   });
+});
+
+describe("completeTaskState", () => {
+  test("offers defined states first, then states tasks use", async () => {
+    createMockSystem();
+    await (globalThis as any).syscall("config.set", "taskStates", {
+      LATER: { name: "LATER", order: 2 },
+      NOW: { name: "NOW", order: 1 },
+    });
+    await indexPage(
+      "* [WAITING] Hear back\n* [NOW] Write\n* [x] Done\n* [ ] Open\n",
+      "PageA",
+    );
+    const result = await completeTaskState(makeCompleteEvent("* ["));
+    expect(result!.options.map((o) => o.label)).toEqual([
+      "NOW",
+      "LATER",
+      "WAITING",
+    ]);
+  });
+});
+
+test("cycling moves to the next known state and wraps", () => {
+  expect(nextTaskState(["A", "B"], "A")).toBe("B");
+  expect(nextTaskState(["A", "B"], "B")).toBe("A");
+  expect(nextTaskState(["A", "B"], "C")).toBe("A");
+  expect(nextTaskState([], "C")).toBe("C");
 });

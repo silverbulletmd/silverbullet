@@ -235,12 +235,10 @@ html, body { height: 100%; background: var(--ui-surface-background-color); color
   padding: 0;
   border: 0;
   background: none;
-  color: var(--ui-surface-subtle-color);
+  color: var(--ui-label-color, var(--ui-surface-subtle-color));
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   cursor: pointer;
 }
 

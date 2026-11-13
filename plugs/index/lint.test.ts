@@ -5,6 +5,7 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { extractFrontMatter } from "./frontmatter.ts";
 import { indexMarkdown } from "./indexer.ts";
+
 const { lintAnchors } = await import("./lint.ts");
 
 const defaultPageMeta: PageMeta = {
@@ -555,5 +556,38 @@ describe("lintInactiveBlocks", () => {
 
   test("ignores blocks inside HTML comments", async () => {
     expect(await lintBlocks("Notes", `<!--\n${block}\n-->\n`)).toEqual([]);
+  });
+});
+
+describe("lintThemeFonts", () => {
+  const style =
+    "```space-style\nhtml {\n  --editor-font: Georgia, serif;\n  --editor-font-size: 20px;\n  --editor-column-width: 1ch;\n  --ui-accent-color: red;\n}\n```";
+
+  async function lintTheme(text: string) {
+    createMockSystem();
+    const { lintThemeFonts } = await import("./lint.ts");
+    return lintThemeFonts({
+      tree: parseMarkdown(text),
+      name: "x",
+      text,
+    } as LintEvent);
+  }
+
+  test("warns for each font variable a theme sets", async () => {
+    const text = `---\ntags: meta/theme\nscheme: light\n---\n${style}\n`;
+    const diagnostics = await lintTheme(text);
+    expect(diagnostics.map((d) => text.slice(d.from, d.to))).toEqual([
+      "--editor-font",
+      "--editor-font-size",
+      "--editor-column-width",
+    ]);
+    expect(diagnostics[0].severity).toBe("warning");
+    expect(diagnostics[0].message).toBe(
+      'Themes suggest fonts in frontmatter ("fonts:") instead of setting font variables',
+    );
+  });
+
+  test("is silent on an ordinary page", async () => {
+    expect(await lintTheme(`---\ntags: other\n---\n${style}\n`)).toEqual([]);
   });
 });

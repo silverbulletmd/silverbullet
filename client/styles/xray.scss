@@ -3,7 +3,7 @@
 .cm-lintRange.sb-xray-range {
   background-image: none;
   text-decoration: underline dotted;
-  text-decoration-color: var(--editor-accent-muted, rgba(128, 128, 128, 0.6));
+  text-decoration-color: var(--editor-accent-muted);
   text-underline-offset: 2px;
   padding-bottom: 0;
 }
@@ -19,14 +19,14 @@
     height: 8px;
   }
   &::-webkit-scrollbar-thumb {
-    background: rgba(0, 0, 0, 0.25);
+    background: var(--editor-accent-muted);
     border-radius: 4px;
   }
   &::-webkit-scrollbar-track {
     background: transparent;
   }
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.25) transparent;
+  scrollbar-color: var(--editor-accent-muted) transparent;
 }
 
 .sb-xray-card {

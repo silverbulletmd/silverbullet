@@ -3,6 +3,23 @@ export function isMetaTag(tag: string): boolean {
   return tag === "meta" || tag.startsWith("meta/");
 }
 
+/**
+ * A YAML `tags` value as a list of tag names, without `#` and duplicates:
+ * a list, or a string of "a, b", "a b" or "#a #b".
+ */
+export function normalizeTagList(value: unknown): string[] {
+  const raw = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[\s,]+/)
+      : [];
+  return [
+    ...new Set(
+      raw.map((t) => String(t).trim().replace(/^#/, "")).filter(Boolean),
+    ),
+  ];
+}
+
 /** Extract the name from hashtag text, removing # prefix and <angle brackets> if necessary */
 export function extractHashtag(text: string): string {
   if (text[0] !== "#") {

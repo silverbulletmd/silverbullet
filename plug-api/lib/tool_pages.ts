@@ -1,4 +1,10 @@
-import { findNodeOfType, type ParseTree, traverseTree } from "./tree.ts";
+import YAML from "js-yaml";
+import {
+  findNodeOfType,
+  type ParseTree,
+  renderToText,
+  traverseTree,
+} from "./tree.ts";
 
 export const TOOL_PAGE_PREFIX = "Library/";
 export const CONFIG_PAGE_NAME = "Library/Config";
@@ -84,4 +90,20 @@ export const BOOT_MARKER = "-- boot: true";
 
 export function hasBootMarker(code: string): boolean {
   return /^\s*--\s*boot:\s*true\s*$/m.test(code);
+}
+
+/** The page's frontmatter as an object; `{}` when absent or not valid YAML. */
+export function findFrontmatter(tree: ParseTree): Record<string, unknown> {
+  const node = findNodeOfType(tree, "FrontMatterCode");
+  if (!node) {
+    return {};
+  }
+  try {
+    const parsed = YAML.load(renderToText(node));
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
 }

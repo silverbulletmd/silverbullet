@@ -1,26 +1,20 @@
-import { syntaxTree } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { useEffect, useLayoutEffect, useState } from "preact/hooks";
 import * as featherIcons from "preact-feather";
 import type { Client } from "../client.ts";
-import { resolveButtonIcon } from "../lib/feather_icons.ts";
-import { parseIcon, resolveIconMarkup } from "../lib/icon.ts";
 import {
   KEYBOARD_PRESENT_INSET,
   keyboardViewportState,
   subscribeKeyboardViewport,
 } from "../lib/keyboard_viewport.ts";
 import {
-  matchesNodeContexts,
-  type NodeContextFilter,
-} from "../lib/node_contexts.ts";
-
-export type KeyboardBarButton = NodeContextFilter & {
-  icon: string;
-  description?: string;
-  command?: string;
-  run?: () => void;
-};
+  buttonLabel,
+  type MarkupButton,
+  markupSurfaces,
+  runMarkupButton,
+} from "../lib/markup_buttons.ts";
+import { MarkupIcon } from "../lib/markup_icons.ts";
+import { contextsAt, matchesNodeContexts } from "../lib/node_contexts.ts";
 
 /** Leaves room for at least a few editor lines next to the bar. */
 const MIN_VISIBLE_HEIGHT = 200;
@@ -49,36 +43,6 @@ function useEditorFocused(client: Client) {
   return focused;
 }
 
-function ButtonIcon({ icon }: { icon: string }) {
-  const parsed = parseIcon(icon);
-  if (parsed.kind === "svg") {
-    const markup = resolveIconMarkup(icon);
-    return markup ? (
-      <span
-        className="sb-keyboard-bar-svg"
-        aria-hidden="true"
-        dangerouslySetInnerHTML={{ __html: markup }}
-      />
-    ) : null;
-  }
-  const Icon = resolveButtonIcon(
-    parsed.kind === "feather" ? parsed.name : icon,
-  );
-  return <Icon size={20} />;
-}
-
-function cursorParentNodes(client: Client): string[] {
-  const state = client.editorView.state;
-  const head = state.selection.main.head;
-  // At the start of a line, look forward so the cursor counts as inside the
-  // item on that line rather than the node that ended on the line before.
-  const side = head === state.doc.lineAt(head).from ? 1 : -1;
-  return client.extractParentNodes(
-    state,
-    syntaxTree(state).resolveInner(head, side),
-  );
-}
-
 function sameNodes(a: string[], b: string[]) {
   return a.length === b.length && a.every((node, i) => node === b[i]);
 }
@@ -89,7 +53,8 @@ function useCursorContext(client: Client, enabled: boolean) {
   useLayoutEffect(() => {
     if (!enabled) return;
     const refresh = () => {
-      const next = cursorParentNodes(client);
+      const state = client.editorView.state;
+      const next = contextsAt(client, state, state.selection.main.head);
       setNodes((prev) => (sameNodes(prev, next) ? prev : next));
     };
     let frame = 0;
@@ -114,7 +79,7 @@ export function KeyboardBar({
   buttons,
 }: {
   client: Client;
-  buttons: KeyboardBarButton[];
+  buttons: MarkupButton[];
 }) {
   const viewport = useKeyboardViewport();
   const focused = useEditorFocused(client);
@@ -125,7 +90,7 @@ export function KeyboardBar({
   const visible =
     editing &&
     viewport.visibleHeight >= MIN_VISIBLE_HEIGHT &&
-    !client.isReadOnlyMode();
+    markupSurfaces(client, client.editorView?.state).mobile;
   const parentNodes = useCursorContext(client, visible);
 
   // Shrinking the editor to make room for the keyboard (or rotating with it
@@ -143,14 +108,6 @@ export function KeyboardBar({
 
   if (!visible) return null;
 
-  const run = (button: KeyboardBarButton) => {
-    if (button.command) {
-      void client.runCommandByName(button.command);
-    } else {
-      button.run?.();
-    }
-  };
-
   return (
     <div
       className="sb-keyboard-bar"
@@ -161,21 +118,22 @@ export function KeyboardBar({
       onMouseDown={(e) => e.preventDefault()}
     >
       <div className="sb-keyboard-bar-buttons">
-        {buttons
-          .filter((button) => matchesNodeContexts(button, parentNodes))
-          .map((button, index) => {
-            return (
-              <button
-                type="button"
-                key={index}
-                title={button.description ?? button.command}
-                aria-label={button.description ?? button.command}
-                onClick={() => run(button)}
-              >
-                <ButtonIcon icon={button.icon} />
-              </button>
-            );
-          })}
+        {buttons.map((button, index) => {
+          // Keyed by place in the configured list, so a button keeps its
+          // element while others come and go
+          if (!matchesNodeContexts(button, parentNodes)) return null;
+          return (
+            <button
+              type="button"
+              key={index}
+              title={buttonLabel(button)}
+              aria-label={buttonLabel(button)}
+              onClick={() => runMarkupButton(client, button)}
+            >
+              <MarkupIcon icon={button.icon} />
+            </button>
+          );
+        })}
       </div>
       <button
         type="button"

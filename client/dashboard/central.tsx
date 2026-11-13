@@ -7,7 +7,6 @@ import { CentralUnlock } from "./components/CentralUnlock.tsx";
 import { LoginForm, type LoginValues } from "./components/LoginForm.tsx";
 import { SignedOut } from "./components/SignedOut.tsx";
 import { base64Decode, deriveEncryptionKey } from "./encryption.ts";
-import { loadServerDefaultFont } from "./public_config.ts";
 import { useServerName } from "./server_name.ts";
 
 const prefix = "/.auth/central";
@@ -230,8 +229,6 @@ function CentralLogin({ attempt }: { attempt: string }) {
   );
 }
 const params = new URLSearchParams(location.search);
-// Before the first render, so the last default font shows straight away.
-loadServerDefaultFont();
 
 render(
   <>

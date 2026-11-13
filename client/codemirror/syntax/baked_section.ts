@@ -13,8 +13,20 @@ import {
   isBakedCloser,
 } from "../../baked_sections/regions.ts";
 import type { Client } from "../../client.ts";
-import { openPopupMenu, type PopupEntry } from "../../components/popup_menu.ts";
-import { decoratorStateField, isCursorInRange } from "../util.ts";
+import {
+  togglePopupMenu,
+  type PopupEntry,
+} from "../../components/popup_menu.ts";
+import {
+  decoratorStateField,
+  holdsOnlyInlines,
+  isCursorInRange,
+} from "../util.ts";
+import {
+  bindMenu,
+  registerWidgetMenu,
+  widgetMenusInMargin,
+} from "../widgets/block_menu.ts";
 import { moreIcon, widgetActionIcon } from "../widgets/widget_menu.ts";
 
 export type BakedActionId = "update" | "edit" | "copy" | "unbake";
@@ -91,6 +103,36 @@ class BakedHeaderWidget extends WidgetType {
       editBakedExpression(this.client, this.start);
     });
 
+    const entries = () =>
+      bindMenu(bakedMenuEntries(this.readOnly), (id) =>
+        runBakedAction(this.client, id, this.start),
+      );
+    // The whole section, opener to closer, wherever it is now
+    const span = () => {
+      const view = this.client.editorView;
+      let pos: number;
+      try {
+        pos = view.posAtDOM(header, 0);
+      } catch {
+        return;
+      }
+      const section = bakedSectionsInTree(view.state).find(
+        (s) => s.start === pos,
+      );
+      return section && { from: section.start, to: section.end };
+    };
+    // On desktop the margin ⋮ has its menu, with Move and Delete
+    registerWidgetMenu(header, {
+      label: "Baked section",
+      block: true,
+      entries,
+      span,
+    });
+    if (widgetMenusInMargin(this.client)) {
+      header.append(label, expr);
+      return header;
+    }
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "sb-widget-menu-button sb-baked-menu-button";
@@ -99,24 +141,12 @@ class BakedHeaderWidget extends WidgetType {
     button.setAttribute("aria-haspopup", "menu");
     button.setAttribute("aria-expanded", "false");
     button.innerHTML = moreIcon;
-    let closeMenu: (() => void) | undefined;
     button.addEventListener("mousedown", (e) => e.preventDefault());
     button.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (button.getAttribute("aria-expanded") === "true") {
-        closeMenu?.();
-        return;
-      }
-      closeMenu = openPopupMenu(
-        button,
-        bakedMenuEntries(this.readOnly),
-        (id) => {
-          Promise.resolve(runBakedAction(this.client, id, this.start)).catch(
-            console.error,
-          );
-        },
-        "sb-widget-menu",
-      );
+      togglePopupMenu(button, entries(), {
+        className: "sb-widget-menu",
+      });
     });
 
     header.append(label, expr, button);
@@ -146,7 +176,9 @@ export function bakedSectionsInTree(state: EditorState): BakedSection[] {
   let open: { expr: string; from: number; to: number } | undefined;
   syntaxTree(state).iterate({
     enter: (node) => {
-      if (node.name !== "CommentMarkerBlock") return;
+      if (node.name !== "CommentMarkerBlock") {
+        return holdsOnlyInlines(node.type) ? false : undefined;
+      }
       const text = state.doc.sliceString(node.from, node.to);
       const expr = bakedOpenerExpr(text);
       if (expr !== null) {

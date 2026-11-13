@@ -2,7 +2,7 @@
 // wizard and the Dashboard. Everything here is scoped under
 // `body.sb-standalone` so this partial can share one stylesheet with the plug
 // panels, which are the same components without the page furniture.
-@use "tokens";
+@use "theme";
 
 body.sb-standalone {
   min-height: 100vh;
@@ -21,18 +21,45 @@ body.sb-standalone {
 
   h1 {
     font-size: 1.5rem;
-    font-weight: normal;
+    font-weight: 700;
+    letter-spacing: -0.02em;
   }
 
   h2 {
     font-size: 1.15rem;
-    font-weight: 600;
+    font-weight: 650;
+    letter-spacing: -0.01em;
   }
 
   h3 {
     font-size: 1.05rem;
-    font-weight: 600;
+    font-weight: 650;
     margin-top: 1.5rem;
+  }
+
+  a:where(:not([class])) {
+    color: var(--ui-accent-text-color);
+    text-decoration: var(--editor-link-text-decoration);
+    text-underline-offset: 3px;
+  }
+
+  :is(a, button):focus-visible {
+    outline: var(--ui-focus-ring);
+    outline-offset: 1px;
+  }
+
+  .sb-input,
+  .sb-select {
+    padding: 0.5em 0.8em;
+    background-color: var(--root-background-color);
+  }
+
+  .sb-select {
+    padding-right: 2em;
+  }
+
+  .sb-url-input {
+    background: var(--root-background-color);
   }
 
   section {
@@ -49,6 +76,7 @@ body.sb-standalone {
     padding-left: 0;
   }
 
+  // Checkboxes are drawn by the shared rule in components.scss
   input[type="radio"] {
     accent-color: var(--ui-accent-color);
     cursor: pointer;
@@ -57,7 +85,8 @@ body.sb-standalone {
   form label {
     display: block;
     margin-top: 0.75rem;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   form .sb-input,
@@ -82,7 +111,9 @@ body.sb-standalone {
     text-decoration: none;
   }
 
-  a.sb-tab {
+  a.sb-tab,
+  a.sb-button-icon,
+  a.sb-section-link {
     text-decoration: none;
   }
 
@@ -99,7 +130,7 @@ body.sb-standalone {
   }
 
   .sb-dashboard-ok {
-    color: #1a7f37;
+    color: var(--tone-success);
 
     // Live regions are rendered before they have anything to announce; an
     // empty one must not claim a flex gap next to the buttons it follows.
@@ -109,7 +140,7 @@ body.sb-standalone {
   }
 
   .sb-dashboard-warn {
-    color: #9a6700;
+    color: var(--tone-warning);
   }
 }
 
@@ -157,9 +188,10 @@ body.sb-standalone.sb-page {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    font-size: 17px;
-    font-weight: 600;
-    img { width: 26px; height: 26px; }
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    img { width: 26px; height: 26px; border-radius: var(--ui-radius-sm); }
   }
 }
 
@@ -172,9 +204,9 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone :is(.floating-island, .sb-auth-content) {
-  h1 { font-size: 24px; line-height: 1.35; font-weight: 700; letter-spacing: -0.03em; }
-  p { line-height: 1.5; }
-  label { margin-bottom: 7px; font-weight: 400; }
+  h1 { font-size: 26px; line-height: 1.3; font-weight: 700; letter-spacing: -0.02em; }
+  p { line-height: 1.55; }
+  label { margin-bottom: 7px; }
   .sb-input { min-height: 40px; }
   .sb-button, .sb-button-primary { min-height: 38px; }
   .sb-auth-description, [role="separator"] { color: var(--subtle-color); }
@@ -189,13 +221,26 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
       min-height: 34px;
       padding: 4px 10px;
       border: 0;
+      border-radius: var(--ui-radius-sm);
       background: transparent;
       box-shadow: none;
-      &:hover { background: var(--ui-surface-hover-background-color); }
+      color: var(--subtle-color);
+      &:hover { background: var(--ui-accent-surface-color); color: var(--ui-accent-text-color); }
     }
   }
   #login [type="submit"] { width: 100%; }
-  footer { border-top: 1px solid var(--ui-surface-border-color); padding-top: 16px; font-size: 12px; }
+  footer { border-top: 1px solid var(--ui-surface-border-color); padding-top: 16px; font-size: 13px; }
+}
+
+/* "Step 1 of 2" under the wizard's title, as a pill. */
+.sb-standalone .sb-setup-content h1 + .sb-help-text {
+  display: inline-block;
+  margin-top: 0;
+  padding: 2px 10px;
+  border-radius: var(--ui-radius-pill);
+  background: var(--tone-accent-soft);
+  color: var(--ui-accent-text-color);
+  font-weight: 500;
 }
 
 @media (max-width: 600px) {
@@ -218,7 +263,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone .flow>*+* {
-  margin-block-start: var(--space, 1rem);
+  margin-block-start: var(--sb-space, 1rem);
 }
 
 .sb-standalone .error-message {
@@ -262,7 +307,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #8884;
+  border-bottom: 1px solid var(--ui-surface-border-color);
   margin-bottom: 1rem;
 }
 
@@ -283,7 +328,8 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   }
   color: inherit;
   text-decoration: none;
-  font-weight: bold;
+  font-weight: 650;
+  letter-spacing: -0.01em;
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
@@ -293,6 +339,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
     flex-shrink: 0;
     width: 1.5em;
     height: 1.5em;
+    border-radius: var(--ui-radius-sm);
   }
 }
 
@@ -312,12 +359,12 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   align-items: center;
   column-gap: 1rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #8884;
+  border-bottom: 1px solid var(--ui-surface-border-color);
 }
 
 /* Space name: opens the space itself for every account, admin or not. */
 .sb-standalone .sb-space-link {
-  color: var(--ui-accent-color);
+  color: var(--ui-accent-text-color);
   font-weight: 600;
 }
 
@@ -332,7 +379,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 .sb-standalone .sb-danger-zone {
   margin-top: 2rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #8884;
+  border-top: 1px solid var(--ui-surface-border-color);
 }
 
 /* Server-side folder picker (client/dashboard/FolderPicker.tsx). */
@@ -346,13 +393,14 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 
 .sb-standalone .sb-link-button {
   background: none;
-  color: var(--ui-accent-color);
+  color: var(--ui-accent-text-color);
   border: none;
   box-shadow: none;
   padding: 0;
   font-size: inherit;
   font-family: inherit;
-  text-decoration: underline;
+  text-decoration: var(--editor-link-text-decoration);
+  text-underline-offset: 3px;
   cursor: pointer;
 }
 
@@ -367,17 +415,17 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone .sb-link-button:focus-visible {
-  outline: 2px solid var(--ui-accent-color);
-  outline-offset: 2px;
-  border-radius: 2px;
+  outline: var(--ui-focus-ring);
+  outline-offset: 1px;
+  border-radius: var(--ui-radius-sm);
 }
 
 .sb-standalone .sb-folder-browser {
   margin-top: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  background: #fafafa;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-lg);
+  padding: 0.6rem 0.85rem;
+  background: var(--panel-background-color);
 }
 
 .sb-standalone .sb-folder-crumbs {
@@ -389,7 +437,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone .sb-folder-crumb-sep {
-  color: #999;
+  color: var(--meta-subtle-color);
 }
 
 // Directory names have no length limit, and a crumb or listing entry is one
@@ -417,29 +465,48 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   font-style: italic;
 }
 
-/* Users table. */
+/* Users table: a raised card with a tinted header, as tables in the editor. */
 .sb-standalone .sb-user-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 1rem;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--ui-shadow-card);
 }
 
 .sb-standalone .sb-user-table th {
   text-align: left;
-  font-weight: 600;
-  font-size: 0.85em;
-  color: #555;
-  padding: 0.35rem 0.5rem;
+  font-weight: 650;
+  font-size: 13px;
+  color: var(--ui-label-color);
+  background: var(--ui-accent-surface-color);
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--ui-surface-border-color);
 }
 
 .sb-standalone .sb-user-table td {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid #8884;
+  padding: 0.55rem 0.85rem;
+  border-bottom: 1px solid var(--ui-surface-border-color);
   vertical-align: middle;
 }
 
+.sb-standalone .sb-user-table tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--ui-accent-color) 3%, transparent);
+}
+
+.sb-standalone .sb-user-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.sb-standalone .sb-user-table td:first-child {
+  font-weight: 600;
+}
+
 .sb-standalone .sb-user-link {
-  color: var(--ui-accent-color);
+  color: var(--ui-accent-text-color);
   font-weight: 600;
 }
 
@@ -458,9 +525,9 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone .sb-token-list {
-  padding: 0.5rem;
-  background: #f7f7f7;
-  border-radius: 0.4em;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel-background-color);
+  border-radius: var(--ui-radius-lg);
   list-style: none;
   margin: 0 0 0.5rem;
 }
@@ -484,9 +551,9 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone fieldset {
-  border: 1px solid #ddd;
-  border-radius: 0.4em;
-  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-lg);
+  padding: 0.6rem 0.85rem;
   margin-top: 0.5rem;
   // Allow fieldsets to shrink below min-content when placed in flex layouts.
   min-width: 0;
@@ -502,7 +569,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   }
 
   .sb-access-public {
-    border-bottom: 1px solid var(--subtle-color, #ccc);
+    border-bottom: 1px solid var(--ui-surface-border-color);
     padding-bottom: 8px;
     margin-bottom: 4px;
   }
@@ -517,7 +584,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 
     th, td {
       padding: 10px 8px;
-      border-bottom: 1px solid var(--subtle-color);
+      border-bottom: 1px solid var(--ui-surface-border-color);
       text-align: center;
     }
 
@@ -533,7 +600,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 .sb-standalone fieldset legend {
-  font-weight: 600;
+  font-weight: 650;
   padding: 0 0.3em;
 }
 
@@ -651,7 +718,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 
   .sb-standalone .sb-user-table th,
   .sb-standalone .sb-user-table td {
-    padding: 0.5rem 0.25rem;
+    padding: 0.5rem 0.6rem;
   }
 
   .sb-standalone .sb-user-table td:first-child {
@@ -668,7 +735,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   .sb-standalone .sb-url-affix:first-child {
     flex: 1 0 100%;
     border-right: 0;
-    border-bottom: 1px solid #0002;
+    border-bottom: 1px solid var(--ui-surface-border-color);
   }
 }
 
@@ -735,12 +802,13 @@ body.sb-standalone .sb-space-settings {
     a {
       display: flex;
       align-items: center;
-      padding: 0.7rem 0.85rem;
-      border-radius: 6px;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--ui-radius-md);
       color: inherit;
+      font-weight: 500;
       text-decoration: none;
-      &[aria-current="page"] { background: var(--ui-accent-color); color: var(--ui-accent-contrast-color); }
-      &:hover:not([aria-current]) { background: color-mix(in srgb, var(--ui-accent-color) 8%, transparent); }
+      &[aria-current="page"] { background: var(--tone-accent-soft); color: var(--ui-accent-text-color); font-weight: 600; }
+      &:hover:not([aria-current]) { background: var(--ui-accent-surface-color); }
       &[data-dirty]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-left: auto; }
     }
   }
@@ -775,5 +843,5 @@ body.sb-standalone .sb-settings-fields { border: 0; margin: 0; padding: 0; min-w
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  &:hover { background: var(--subtle-background-color); }
+  &:hover { background: var(--ui-accent-surface-color); }
 }

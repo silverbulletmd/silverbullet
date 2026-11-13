@@ -70,6 +70,7 @@ import {
 } from "./plugos/syscalls/space.ts";
 import { syncSyscalls } from "./plugos/syscalls/sync.ts";
 import { systemSyscalls } from "./plugos/syscalls/system.ts";
+import { themeSyscalls } from "./plugos/syscalls/theme.ts";
 import { System } from "./plugos/system.ts";
 import { createServerSearch } from "./search/server_search.ts";
 import { ServiceRegistry } from "./service_registry.ts";
@@ -327,6 +328,7 @@ export class ClientSystem {
       dataStoreWriteSyscalls(this.ds),
       syncSyscalls(this.client),
       clientStoreSyscalls(this.ds),
+      themeSyscalls(this.client),
       oauthSyscalls(this.client),
       configSyscalls(this.client.config),
       searchSyscalls(search),
@@ -541,7 +543,7 @@ export class ClientSystem {
     await this.loadLuaScripts(tooling);
     // Before the docks: opening a docked view can be slow or fail, and the
     // page shouldn't wait unstyled for it
-    this.client.loadCustomStyles(tooling);
+    await this.client.loadCustomStyles();
   }
 
   /**
@@ -564,8 +566,8 @@ export class ClientSystem {
       console.error("Could not restore docked views:", e),
     );
     // Prewarmed widget results hold values (and closures) from the previous
-    // Lua environment; drop them so rebuilt widgets bind to the new one.
+    // Lua environment; drop them so widgets render in the new one.
     this.client.widgetCache.clearPrewarm();
-    this.client.rebuildEditorState();
+    this.client.rebuildEditorState({ rerenderWidgets: true });
   }
 }

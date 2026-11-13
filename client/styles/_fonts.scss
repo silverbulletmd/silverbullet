@@ -27,32 +27,37 @@
 }
 
 
-// Inter, the bundled proportional face (SIL OFL 1.1, no Reserved Font Name;
-// see fonts/LICENSE-Inter.txt). Faces load only when text uses them.
+// Inter, the bundled sans and the interface font, as one variable font per style so
+// every weight the design uses (400-700) is real, not synthesised. SIL OFL
+// 1.1, no Reserved Font Name; see fonts/LICENSE-Inter.txt. Faces load only
+// when text uses them.
 @font-face {
   font-family: "Inter";
-  src: url("Inter-Regular.woff2") format("woff2");
-  font-weight: normal;
+  src: url("InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
   font-style: normal;
 }
 
 @font-face {
   font-family: "Inter";
-  src: url("Inter-Bold.woff2") format("woff2");
-  font-weight: bold;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("Inter-Italic.woff2") format("woff2");
-  font-weight: normal;
+  src: url("InterVariable-Italic.woff2") format("woff2");
+  font-weight: 100 900;
   font-style: italic;
 }
 
+// Lora, the bundled serif and the editor font of the built-in SilverBullet
+// themes: one variable font per style, weights 400-700. SIL OFL
+// 1.1 with Reserved Font Name "Lora"; see fonts/LICENSE-Lora.txt.
 @font-face {
-  font-family: "Inter";
-  src: url("Inter-BoldItalic.woff2") format("woff2");
-  font-weight: bold;
+  font-family: "Lora";
+  src: url("Lora-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Lora";
+  src: url("Lora-Italic-Variable.woff2") format("woff2");
+  font-weight: 400 700;
   font-style: italic;
 }

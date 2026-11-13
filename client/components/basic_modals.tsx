@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "preact/hooks";
-import type { ComponentChildren } from "preact";
-import type { DeviceCode } from "../auth/device_flow.ts";
 import { Button, ButtonLink, Input } from "@silverbulletmd/silverbullet/ui";
+import type { ComponentChildren } from "preact";
+import { useEffect, useRef, useState } from "preact/hooks";
+import type { DeviceCode } from "../auth/device_flow.ts";
 
 export function Prompt({
   message,
@@ -12,7 +12,6 @@ export function Prompt({
   message: string;
   defaultValue?: string;
   password?: boolean;
-  darkMode: boolean | undefined;
   callback: (value?: string) => void;
 }) {
   const [text, setText] = useState(defaultValue || "");

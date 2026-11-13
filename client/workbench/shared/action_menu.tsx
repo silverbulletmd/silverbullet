@@ -3,7 +3,7 @@ import {
   moreIcon,
   widgetActionIcon,
 } from "../../codemirror/widgets/widget_menu.ts";
-import { openPopupMenu } from "../../components/popup_menu.ts";
+import { togglePopupMenu } from "../../components/popup_menu.ts";
 import type { Action } from "./action.ts";
 
 /** A row's ⋯ menu: the same button and popup as a `${…}` widget's. */
@@ -28,24 +28,20 @@ export function ActionMenu<Deps>({
         // A row's own click (e.g. opening its source) must not fire too
         e.stopPropagation();
         const button = e.currentTarget;
-        if (button.getAttribute("aria-expanded") === "true") {
-          close.current?.();
-          return;
-        }
-        close.current = openPopupMenu(
+        close.current = togglePopupMenu(
           button,
-          actions.map((a, i) => ({
+          actions.map((a) => ({
             kind: "item" as const,
-            id: String(i),
             label: a.label,
             icon: widgetActionIcon(a.icon),
+            disabled: a.disabled,
+            run: () => {
+              a.run(deps).catch((err) =>
+                console.error("workbench: action failed", err),
+              );
+            },
           })),
-          (id) => {
-            actions[Number(id)]
-              ?.run(deps)
-              .catch((err) => console.error("workbench: action failed", err));
-          },
-          "sb-widget-menu",
+          { className: "sb-widget-menu" },
         );
       }}
       dangerouslySetInnerHTML={{ __html: moreIcon }}

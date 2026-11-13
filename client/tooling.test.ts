@@ -112,3 +112,50 @@ describe("bootBlocks", () => {
     ]);
   });
 });
+
+describe("theme pages", () => {
+  const css = (c: string) => "```space-style\n" + c + "\n```\n";
+  const themeFm = "---\ntags: meta/theme\nscheme: dark\n---\n";
+  const payload = [
+    f(
+      "Library/T/Night.md",
+      themeFm + css("a{}") + css("/* priority: 5 */\nb{}") + lua("night=1"),
+    ),
+    f("Library/Plain.md", css("plain{}")),
+    f(
+      "Library/Broken.md",
+      "---\ntags: [meta/theme\nscheme: : dark\n---\n" + css("broken{}"),
+    ),
+  ];
+
+  it("drops the styles of a theme-tagged page without a valid scheme, but runs its scripts", () => {
+    const { themes, themeStyles, styles, scripts } = collectTooling([
+      f(
+        "Library/T/Sepia.md",
+        "---\ntags: meta/theme\nscheme: sepia\n---\n" +
+          css("red{}") +
+          lua("sepia=1"),
+      ),
+      f("Library/T/NoScheme.md", "---\ntags: meta/theme\n---\n" + css("x{}")),
+    ]);
+    expect(themes).toEqual([]);
+    expect(themeStyles).toEqual([]);
+    expect(styles).toEqual([]);
+    expect(scripts.map((s) => s.page)).toEqual(["Library/T/Sepia"]);
+  });
+
+  it("routes theme page styles to themeStyles", () => {
+    const { themes, themeStyles, styles, scripts } = collectTooling(payload);
+    expect(themes.map((t) => t.page)).toEqual(["Library/T/Night"]);
+    expect(themeStyles.map((b) => b.code.split("\n").at(-1))).toEqual([
+      "b{}",
+      "a{}",
+    ]);
+    expect(themeStyles.every((b) => b.page === "Library/T/Night")).toBe(true);
+    expect(styles.map((b) => b.page)).toEqual([
+      "Library/Broken",
+      "Library/Plain",
+    ]);
+    expect(scripts.map((b) => b.page)).toEqual(["Library/T/Night"]);
+  });
+});

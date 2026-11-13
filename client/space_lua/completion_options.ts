@@ -80,6 +80,8 @@ export function luaCompletionOptions(
       const fallback =
         candidate.functionInfo?.kind === "lua" ? "function" : "built-in";
       options.push({
+        // `type` marks the option as code, so it shows in the code font
+        type: "lua",
         label: completionLabel(candidate.key, candidate.functionInfo),
         snippet: `${candidate.key}(\${})`,
         detail: completionDetail(candidate.functionInfo, fallback),
@@ -88,7 +90,11 @@ export function luaCompletionOptions(
           : undefined,
       });
     } else {
-      options.push({ label: candidate.key, detail: candidate.type });
+      options.push({
+        type: "lua",
+        label: candidate.key,
+        detail: candidate.type,
+      });
     }
   }
   return options;

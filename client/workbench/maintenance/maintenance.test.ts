@@ -12,9 +12,9 @@ import {
   brokenLinkProblems,
   conflictProblems,
   filterProblems,
-  type MaintenanceProblem,
   INSTANT_GROUPS,
   lintProblems,
+  type MaintenanceProblem,
   scriptStyleProblems,
   severityCounts,
   syncStateProblems,
@@ -110,8 +110,28 @@ describe("maintenance problems", () => {
       },
     ];
     const styles: StyleRecord[] = [
-      { ref: "Lib/Css@5", source: ".a { color: red }", priority: 0, rules: 1 },
-      { ref: "Lib/Bad@5", source: "nonsense here", priority: 0, rules: 0 },
+      {
+        ref: "Lib/Css@5",
+        source: ".a { color: red }",
+        priority: 0,
+        rules: 1,
+        active: true,
+      },
+      {
+        ref: "Lib/Bad@5",
+        source: "nonsense here",
+        priority: 0,
+        rules: 0,
+        active: true,
+      },
+      {
+        ref: "Lib/Other@5",
+        source: ".a { color: red }",
+        priority: 0,
+        rules: 0,
+        theme: "Lib/Other",
+        active: false,
+      },
     ];
     const ps = scriptStyleProblems(scripts, styles);
     expect(ps.map((p) => [p.severity, p.label])).toEqual([

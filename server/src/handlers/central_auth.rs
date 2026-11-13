@@ -31,7 +31,6 @@ pub struct CentralAuth {
     destination_policy: DestinationPolicy,
     primary_url: Arc<dyn Fn() -> Option<String> + Send + Sync>,
     server_name: Arc<dyn Fn() -> String + Send + Sync>,
-    default_font: Arc<dyn Fn() -> Option<String> + Send + Sync>,
 }
 
 impl CentralAuth {
@@ -62,7 +61,6 @@ impl CentralAuth {
             destination_policy,
             primary_url: Arc::new(|| None),
             server_name: Arc::new(crate::multi::server_config::default_server_name),
-            default_font: Arc::new(|| None),
             attempts: Attempts::default(),
             handoffs: Handoffs::default(),
             http: builder.build().map_err(|e| e.to_string())?,
@@ -79,14 +77,6 @@ impl CentralAuth {
 
     pub fn with_server_name(mut self, server_name: Arc<dyn Fn() -> String + Send + Sync>) -> Self {
         self.server_name = server_name;
-        self
-    }
-
-    pub fn with_default_font(
-        mut self,
-        default_font: Arc<dyn Fn() -> Option<String> + Send + Sync>,
-    ) -> Self {
-        self.default_font = default_font;
         self
     }
 
@@ -523,9 +513,9 @@ fn auth_cookie(response: &mut Response, headers: &HeaderMap, jwt: &str, seconds:
 }
 async fn public_config(State(state): State<Arc<CentralAuth>>, headers: HeaderMap) -> Response {
     if crate::auth::oidc::config::validated_url(&origin(&headers)).is_err() {
-        return Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"defaultFont":(state.default_font)(),"configured":null,"provider":null})).into_response();
+        return Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"configured":null,"provider":null})).into_response();
     }
-    Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"defaultFont":(state.default_font)(),"configured":state.central_origin().map(|c|json!({"centralOrigin":c})),"provider":state.active_provider().map(|c|json!({"buttonLabel":c.button_label}))})).into_response()
+    Json(json!({"primaryUrl":(state.primary_url)(),"serverName":(state.server_name)(),"configured":state.central_origin().map(|c|json!({"centralOrigin":c})),"provider":state.active_provider().map(|c|json!({"buttonLabel":c.button_label}))})).into_response()
 }
 #[derive(Default, Deserialize)]
 #[serde(default)]

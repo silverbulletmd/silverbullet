@@ -1,7 +1,6 @@
-import type { SysCallMapping } from "../../plugos/system.ts";
-import type { DataStore } from "../../data/datastore.ts";
-
 import type { KvKey } from "@silverbulletmd/silverbullet/type/datastore";
+import type { DataStore } from "../../data/datastore.ts";
+import type { SysCallMapping } from "../../plugos/system.ts";
 
 export function clientStoreSyscalls(
   ds: DataStore,
@@ -18,7 +17,9 @@ export function clientStoreSyscalls(
         { name: "key", type: "string", description: "Key to read." },
       ],
       returns: [{ description: "Stored value, or nil when absent." }],
-      examples: [{ code: 'local theme = clientStore.get("theme")' }],
+      examples: [
+        { code: 'local sidebarWidth = clientStore.get("sidebarWidth")' },
+      ],
     },
     "clientStore.set": {
       callback: (_ctx, key: string, val: any): Promise<void> => {
@@ -30,7 +31,7 @@ export function clientStoreSyscalls(
         { name: "key", type: "string", description: "Key to set." },
         { name: "value", description: "Value to store." },
       ],
-      examples: [{ code: 'clientStore.set("theme", "dark")' }],
+      examples: [{ code: 'clientStore.set("sidebarWidth", 300)' }],
     },
     "clientStore.delete": {
       callback: (_ctx, key: string): Promise<void> => {
@@ -41,7 +42,7 @@ export function clientStoreSyscalls(
       parameters: [
         { name: "key", type: "string", description: "Key to delete." },
       ],
-      examples: [{ code: 'clientStore.delete("theme")' }],
+      examples: [{ code: 'clientStore.delete("sidebarWidth")' }],
     },
   };
 }

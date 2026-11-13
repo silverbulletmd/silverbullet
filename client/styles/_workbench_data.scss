@@ -42,6 +42,9 @@
   .sb-wbd-row {
     display: flex;
     align-items: center;
+    // Keeps the pin clear of an overlay scrollbar (macOS/WebKit), which
+    // would otherwise take its clicks while the list scrolls
+    padding-right: 8px;
 
     .sb-wbq-tag {
       flex: 1;
@@ -104,13 +107,11 @@
     padding: 9px 12px 3px;
     border: 0;
     background: none;
-    color: var(--subtle-color);
+    color: var(--ui-label-color);
     font-family: var(--ui-font);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.06em;
     text-align: left;
-    text-transform: uppercase;
     cursor: pointer;
   }
 

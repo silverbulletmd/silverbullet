@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { navFrame, navInput } from "../fixtures/actions.ts";
+import { navFrame, navInput, openWidgetMenu } from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
@@ -151,28 +151,39 @@ test.describe("data block form", () => {
       );
   });
 
-  test("Delete in an item's menu removes it, and the block with its last item", async ({
+  test("the block's ⋮ deletes an item from its submenu, and the whole block", async ({
     sbPage,
     sbServer,
   }) => {
     await openContacts(sbPage, sbServer);
-    const deleteItem = async (index: number) => {
-      const item = sbPage
-        .locator(".sb-data-block-preview .sb-object-preview-item")
-        .nth(index);
-      await item.hover();
-      await item.locator('button[data-button="menu"]').click();
-      await sbPage.getByRole("menuitem", { name: "Delete" }).click();
-    };
-    await deleteItem(1);
+    const card = sbPage.locator(".sb-data-block-preview");
+    // One submenu per item; Move and Delete for the whole block
+    await openWidgetMenu(sbPage, card);
+    const widgetMenu = sbPage.locator(".sb-widget-menu");
+    await expect(
+      widgetMenu.first().getByRole("menuitem").filter({ hasText: /\S/ }),
+    ).toHaveText(["Move up", "Move down", "Delete", "Item 1", "Item 2"]);
+    await widgetMenu.first().getByRole("menuitem", { name: "Item 2" }).click();
+    await widgetMenu.nth(1).getByRole("menuitem", { name: "Delete" }).click();
     await expect
       .poll(() => docText(sbPage))
       .toBe(contacts.replace("---\nname: Bob\nemail: bob@example.com\n", ""));
     await expect(forms(sbPage)).toHaveCount(1);
-    await deleteItem(0);
+    // One item left: its menu in place, the block's Delete
+    await openWidgetMenu(sbPage, card);
+    await expect(
+      widgetMenu.getByRole("menuitem").filter({ hasText: /\S/ }),
+    ).toHaveText([
+      "Go to definition",
+      "Edit source",
+      "Move up",
+      "Move down",
+      "Delete",
+    ]);
+    await widgetMenu.getByRole("menuitem", { name: "Delete" }).click();
     await expect
       .poll(() => docText(sbPage))
-      .toBe("# Contacts\n\n\nContacts body text.\n");
+      .toBe("# Contacts\n\nContacts body text.\n");
     await expect(forms(sbPage)).toHaveCount(0);
   });
 

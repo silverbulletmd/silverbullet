@@ -1,14 +1,15 @@
 import { describe, expect, test } from "vitest";
+import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import {
   type CursorContext,
   detectContext,
   indent,
   moveDown,
   moveUp,
-  outdent,
+  type OutlineOp,
   type OutlineResult,
+  outdent,
 } from "./outline_ops.ts";
-import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 
 const CURSOR = "|^|";
 
@@ -28,9 +29,7 @@ function applyOp(
     return input; // no-op returns unchanged
   }
   return (
-    result.text.slice(0, result.cursor) +
-    CURSOR +
-    result.text.slice(result.cursor)
+    result.text.slice(0, result.from) + CURSOR + result.text.slice(result.from)
   );
 }
 
@@ -615,7 +614,7 @@ Body 2a
     if (after === null || after === "blocked") {
       throw new Error(`moveDown returned ${after}`);
     }
-    const back = moveUp(after.text, parseMarkdown(after.text), after.cursor);
+    const back = moveUp(after.text, parseMarkdown(after.text), after.from);
     if (back === null || back === "blocked") {
       throw new Error(`moveUp returned ${back}`);
     }
@@ -835,11 +834,7 @@ describe("Cursor positions in bullet list", () => {
   });
 
   test("at last char of item text", () => {
-    const ctx = detect("- on|^|e\n- two\n");
-    expect(ctx?.type).toEqual("listItem");
-    if (ctx?.type === "listItem") {
-      expect(ctx.itemIndex).toEqual(0);
-    }
+    expect(detect("- on|^|e\n- two\n")?.type).toEqual("listItem");
   });
 
   test("after last character with no trailing newline", () => {
@@ -1079,5 +1074,102 @@ describe("Table row context detection", () => {
 | 1 | 2 |
 `),
     ).toEqual(null);
+  });
+});
+
+/** Applies a range op to the `|<|`…`|>|` selection, rendering the result. */
+function applyRangeOp(op: OutlineOp, input: string): string | "blocked" | null {
+  const from = input.indexOf("|<|");
+  const clean = input.replace("|<|", "").replace("|>|", "");
+  const to = input.replace("|<|", "").indexOf("|>|");
+  const result = op(clean, parseMarkdown(clean), from, to);
+  if (result === null || result === "blocked") return result;
+  return (
+    result.text.slice(0, result.from) +
+    "|<|" +
+    result.text.slice(result.from, result.to) +
+    "|>|" +
+    result.text.slice(result.to)
+  );
+}
+
+describe("Several list items selected", () => {
+  test("indent and outdent every item the selection touches, keeping the selection", () => {
+    expect(
+      applyRangeOp(indent, "- one\n- |<|two\n- three\n- fo|>|ur\n"),
+    ).toEqual("- one\n  - |<|two\n  - three\n  - fo|>|ur\n");
+    expect(applyRangeOp(outdent, "- a\n  - |<|b\n  - c|>|\n- d\n")).toEqual(
+      "- a\n- |<|b\n- c|>|\n- d\n",
+    );
+  });
+
+  test("a selected item's selected children move with it, once", () => {
+    expect(applyRangeOp(indent, "- a\n- |<|b\n  - c|>|\n")).toEqual(
+      "- a\n  - |<|b\n    - c|>|\n",
+    );
+  });
+
+  test("a selection ending at the start of a line leaves that line out", () => {
+    expect(applyRangeOp(indent, "- a\n|<|- b\n- c\n|>|- d")).toEqual(
+      "- a\n|<|  - b\n  - c\n|>|- d",
+    );
+  });
+
+  test("blocked as a whole when one of the items can't go", () => {
+    expect(applyRangeOp(indent, "- |<|a\n- b|>|\n")).toBe("blocked");
+    expect(applyRangeOp(outdent, "- |<|a\n  - b|>|\n")).toBe("blocked");
+    expect(applyRangeOp(moveUp, "- |<|a\n- b|>|\n- c\n")).toBe("blocked");
+    expect(applyRangeOp(moveDown, "- a\n- |<|b\n- c|>|\n")).toBe("blocked");
+  });
+
+  test("move a run of sibling items up or down past its neighbour", () => {
+    expect(applyRangeOp(moveUp, "- a\n- |<|b\n- c|>|\n- d\n")).toEqual(
+      "- |<|b\n- c|>|\n- a\n- d\n",
+    );
+    expect(applyRangeOp(moveDown, "- a\n- |<|b\n- c|>|\n- d\n")).toEqual(
+      "- a\n- d\n- |<|b\n- c|>|\n",
+    );
+    // A numbered list is renumbered
+    expect(applyRangeOp(moveUp, "1. a\n2. |<|b\n3. c|>|\n")).toEqual(
+      "1. |<|b\n2. c|>|\n3. a\n",
+    );
+  });
+
+  test("items that aren't one run of siblings can't move together", () => {
+    expect(applyRangeOp(moveUp, "- a\n- b\n  - |<|b1\n- c|>|\n")).toBe(
+      "blocked",
+    );
+  });
+
+  test("a selection touching no list item is left to the element at its start, and kept", () => {
+    expect(applyRangeOp(indent, "|<|Para|>|\n\n- a\n")).toBe("blocked");
+    expect(applyRangeOp(moveDown, "|<|Para|>|\n\n- a\n")).toEqual(
+      "- a\n\n|<|Para|>|\n",
+    );
+    expect(applyRangeOp(moveDown, "# |<|A|>|\nx\n# B\n")).toEqual(
+      "# B\n# |<|A|>|\nx\n",
+    );
+    expect(applyRangeOp(moveUp, "|h|\n|-|\n|1|\n|<|2|>||\n")).toEqual(
+      "|h|\n|-|\n|<|2|>||\n|1|\n",
+    );
+  });
+
+  test("a selection reaching past the moved element collapses to its start", () => {
+    expect(applyRangeOp(moveDown, "|<|Para\n\nNext|>|\n\nLast\n")).toEqual(
+      "Next\n\n|<||>|Para\n\nLast\n",
+    );
+  });
+
+  test("a selection within one item moves it like the cursor, keeping the selection", () => {
+    expect(applyRangeOp(moveDown, "- |<|a|>|\n- b\n")).toEqual(
+      "- b\n- |<|a|>|\n",
+    );
+    expect(applyRangeOp(moveUp, "- |<|a|>|\n- b\n")).toBe("blocked");
+  });
+
+  test("a selection starting in an item's indentation stays there", () => {
+    expect(applyRangeOp(moveUp, "- p\n  - a\n|<|  - b|>|\n")).toEqual(
+      "- p\n|<|  - b|>|\n  - a\n",
+    );
   });
 });

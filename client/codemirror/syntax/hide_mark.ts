@@ -43,10 +43,12 @@ const markTypes = [
  * - Hide marks when they are not in the editor selection.
  */
 export function hideMarksPlugin() {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     let parentRange: [number, number];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to, node }) => {
         if (typesWithMarks.includes(type.name)) {
           // There can be a possibility that the current node is a
@@ -69,13 +71,15 @@ export function hideMarksPlugin() {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }
 
 export function hideHeaderMarkPlugin() {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         if (!type.name.startsWith("ATXHeading")) {
           return;
@@ -123,5 +127,5 @@ export function hideHeaderMarkPlugin() {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

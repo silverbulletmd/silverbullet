@@ -1,17 +1,22 @@
+import { lineEnd, lineStart } from "@silverbulletmd/silverbullet/lib/lines";
 import {
   addParentPointers,
   findParentMatching,
   nodeAtPos,
   type ParseTree,
   renderToText,
+  traverseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
 
-export type OutlineResult = { text: string; cursor: number } | "blocked" | null;
+/** The new text and where the selection (or cursor, `from === to`) went */
+export type OutlineResult =
+  | { text: string; from: number; to: number }
+  | "blocked"
+  | null;
 
 export type ListContext = {
   type: "listItem";
   item: ParseTree;
-  itemIndex: number; // index in parent.children (includes separator text nodes)
   list: ParseTree; // BulletList or OrderedList
 };
 
@@ -33,7 +38,6 @@ export type ParagraphContext = {
 export type TableRowContext = {
   type: "tableRow";
   row: ParseTree; // TableRow or TableHeader node
-  rowIndex: number; // index in Table.children
   isHeader: boolean; // true if cursor is on the TableHeader
   table: ParseTree;
 };
@@ -104,8 +108,7 @@ export function detectContext(
   if (listItem) {
     const list = listItem.parent;
     if (list && (list.type === "BulletList" || list.type === "OrderedList")) {
-      const itemIndex = list.children!.indexOf(listItem);
-      return { type: "listItem", item: listItem, itemIndex, list };
+      return { type: "listItem", item: listItem, list };
     }
   }
 
@@ -145,9 +148,8 @@ export function detectContext(
         );
   if (tableRow && tableRow.parent?.type === "Table") {
     const table = tableRow.parent;
-    const rowIndex = table.children!.indexOf(tableRow);
     const isHeader = tableRow.type === "TableHeader";
-    return { type: "tableRow", row: tableRow, rowIndex, isHeader, table };
+    return { type: "tableRow", row: tableRow, isHeader, table };
   }
 
   const para =
@@ -222,35 +224,37 @@ function combinedListItems(list: ParseTree): ParseTree[] {
   return items;
 }
 
+type Span = Pick<ParseTree, "from" | "to">;
+
 /**
- * Swaps two non-overlapping text regions, preserving the separator between
- * them and adjusting the cursor position based on move direction.
+ * Swaps the `curr` text region with the non-overlapping `other` one,
+ * preserving the separator between them and moving the selection
+ * `[from, to]` along with `curr` (collapsed to `from` when it reaches past
+ * `curr`, which the swap would tear apart).
  */
 function swapRegions(
   text: string,
-  cursor: number,
-  currFrom: number,
-  direction: "up" | "down",
-  firstFrom: number,
-  firstTo: number,
-  secondFrom: number,
-  secondTo: number,
-): { text: string; cursor: number } {
-  const firstContent = text.slice(firstFrom, firstTo);
-  const separator = text.slice(firstTo, secondFrom);
-  const secondContent = text.slice(secondFrom, secondTo);
+  curr: Span,
+  other: Span,
+  from: number,
+  to: number,
+): { text: string; from: number; to: number } {
+  if (to > curr.to!) to = from;
+  const up = other.from! < curr.from!;
+  const [first, second] = up ? [other, curr] : [curr, other];
+  const firstContent = text.slice(first.from, first.to);
+  const separator = text.slice(first.to, second.from);
+  const secondContent = text.slice(second.from, second.to);
   const newText =
-    text.slice(0, firstFrom) +
+    text.slice(0, first.from) +
     secondContent +
     separator +
     firstContent +
-    text.slice(secondTo);
-  const offsetInCurr = cursor - currFrom;
-  const newCursor =
-    direction === "up"
-      ? firstFrom + offsetInCurr
-      : firstFrom + secondContent.length + separator.length + offsetInCurr;
-  return { text: newText, cursor: newCursor };
+    text.slice(second.to);
+  const shift = up
+    ? other.from! - curr.from!
+    : secondContent.length + separator.length;
+  return { text: newText, from: from + shift, to: to + shift };
 }
 
 /**
@@ -271,126 +275,129 @@ function renumberOrderedList(
 }
 
 /**
- * Moves the outline element at cursor up or down, dispatching to the
- * appropriate handler.
+ * What an op at `[from, to]` applies to: with a selection, the list items it
+ * touches (see `itemsInRange`); else, or when it touches none, the context at
+ * `from`, a list item there becoming a one-item run.
+ */
+function opTarget(
+  text: string,
+  tree: ParseTree,
+  from: number,
+  to: number,
+): ParseTree[] | Exclude<CursorContext, ListContext> | null {
+  if (from !== to) {
+    const items = itemsInRange(text, tree, from, to);
+    if (items.length) return items;
+  }
+  const ctx = detectContext(tree, from);
+  return ctx?.type === "listItem" ? [ctx.item] : ctx;
+}
+
+export type OutlineOp = (
+  text: string,
+  tree: ParseTree,
+  from: number,
+  to?: number,
+) => OutlineResult;
+
+/**
+ * Moves the outline element at `[from, to]` up or down: the selected list
+ * items together (they must be one run of siblings), else the heading section,
+ * paragraph or table row at `from`.
  */
 function move(
   text: string,
   tree: ParseTree,
-  cursor: number,
+  from: number,
+  to: number,
   direction: "up" | "down",
 ): OutlineResult {
-  const ctx = detectContext(tree, cursor);
-  if (!ctx) {
-    return null;
+  const target = opTarget(text, tree, from, to);
+  if (!target) return null;
+  if (Array.isArray(target)) {
+    return moveListRun(text, target, from, to, direction);
   }
-  switch (ctx.type) {
-    case "listItem":
-      return moveListItem(text, cursor, ctx, direction) ?? "blocked";
+  switch (target.type) {
     case "heading":
-      return moveHeading(text, cursor, ctx, direction) ?? "blocked";
+      return moveHeading(text, from, to, target, direction) ?? "blocked";
     case "paragraph":
-      return moveParagraph(text, cursor, ctx, direction) ?? "blocked";
+      return moveParagraph(text, from, to, target, direction) ?? "blocked";
     case "tableRow":
-      return moveTableRow(text, cursor, ctx, direction) ?? "blocked";
+      return moveTableRow(text, from, to, target, direction) ?? "blocked";
   }
 }
 
-export const moveUp = (text: string, tree: ParseTree, cursor: number) =>
-  move(text, tree, cursor, "up");
-export const moveDown = (text: string, tree: ParseTree, cursor: number) =>
-  move(text, tree, cursor, "down");
+export const moveUp: OutlineOp = (text, tree, from, to = from) =>
+  move(text, tree, from, to, "up");
+export const moveDown: OutlineOp = (text, tree, from, to = from) =>
+  move(text, tree, from, to, "down");
 
 /**
- * Indents or outdents the outline element at cursor, dispatching to the
- * appropriate handler.
+ * Indents or outdents the outline element at `[from, to]`: every selected
+ * list item with its children (all or nothing), else the heading section at
+ * `from`.
  */
 function adjustLevel(
   text: string,
   tree: ParseTree,
-  cursor: number,
+  from: number,
+  to: number,
   delta: 1 | -1,
 ): OutlineResult {
-  const ctx = detectContext(tree, cursor);
-  if (!ctx) {
-    return null;
+  const target = opTarget(text, tree, from, to);
+  if (!target) return null;
+  if (Array.isArray(target)) {
+    return adjustListLevel(text, target, from, to, delta);
   }
-  switch (ctx.type) {
-    case "listItem":
-      return (
-        (delta === 1
-          ? indentListItem(text, cursor, ctx)
-          : outdentListItem(text, cursor, ctx)) ?? "blocked"
-      );
-    case "heading":
-      return adjustHeadingLevel(text, cursor, ctx, delta) ?? "blocked";
-    case "paragraph":
-    case "tableRow":
-      return "blocked";
+  if (target.type === "heading") {
+    return adjustHeadingLevel(text, from, target, delta) ?? "blocked";
   }
+  return "blocked";
 }
 
-export const indent = (text: string, tree: ParseTree, cursor: number) =>
-  adjustLevel(text, tree, cursor, 1);
-export const outdent = (text: string, tree: ParseTree, cursor: number) =>
-  adjustLevel(text, tree, cursor, -1);
+export const indent: OutlineOp = (text, tree, from, to = from) =>
+  adjustLevel(text, tree, from, to, 1);
+export const outdent: OutlineOp = (text, tree, from, to = from) =>
+  adjustLevel(text, tree, from, to, -1);
 
 /**
- * Swaps a list item with its adjacent sibling, renumbering if in an ordered
- * list.
+ * Swaps a run of sibling list items with the item before (up) or after
+ * (down) it, renumbering an ordered list; null when there's none or the items
+ * aren't one run.
  */
-function moveListItem(
+function moveListRun(
   text: string,
-  cursor: number,
-  ctx: ListContext,
+  run: ParseTree[],
+  from: number,
+  to: number,
   direction: "up" | "down",
 ): OutlineResult {
-  const { item, list } = ctx;
+  const list = run[0].parent!;
   const items = combinedListItems(list);
-  const itemPos = items.indexOf(item);
-
-  if (direction === "up" && itemPos <= 0) {
-    return null;
+  const start = items.indexOf(run[0]);
+  if (start < 0 || run.some((item, i) => items[start + i] !== item)) {
+    return "blocked";
   }
-  if (direction === "down" && itemPos >= items.length - 1) {
-    return null;
-  }
-
-  const otherItem = items[direction === "up" ? itemPos - 1 : itemPos + 1];
-
-  const first = direction === "up" ? otherItem : item;
-  const second = direction === "up" ? item : otherItem;
-
+  const other = items[direction === "up" ? start - 1 : start + run.length];
+  if (!other) return "blocked";
+  const runFrom = run[0].from!;
+  const runTo = run[run.length - 1].to!;
+  // A selection may start in the first line's indentation: keep it there
+  const lineFrom = lineStart(text, runFrom);
+  const clamp = (pos: number) => Math.min(Math.max(pos, lineFrom), runTo);
   const result = swapRegions(
     text,
-    cursor,
-    item.from!,
-    direction,
-    first.from!,
-    first.to!,
-    second.from!,
-    second.to!,
+    { from: runFrom, to: runTo },
+    other,
+    clamp(from),
+    clamp(to),
   );
-
-  if (list.type === "OrderedList") {
-    return {
-      text: renumberOrderedList(result.text, list.from!, list.to!),
-      cursor: result.cursor,
-    };
-  }
-
-  return result;
-}
-
-/**
- * Returns the start of the line containing position `pos`.
- */
-function lineStartPos(text: string, pos: number): number {
-  let start = pos;
-  while (start > 0 && text[start - 1] !== "\n") {
-    start--;
-  }
-  return start;
+  return list.type === "OrderedList"
+    ? {
+        ...result,
+        text: renumberOrderedList(result.text, list.from!, list.to!),
+      }
+    : result;
 }
 
 /**
@@ -411,88 +418,117 @@ function listIndentWidth(list: ParseTree): number {
   return 3;
 }
 
-/**
- * Adds one level of indentation to a list item and its children.
- */
-function indentListItem(
-  text: string,
-  cursor: number,
-  ctx: ListContext,
-): OutlineResult {
-  const { item, list } = ctx;
-  const items = combinedListItems(list);
-  const itemPos = items.indexOf(item);
-
-  // Can indent if: has preceding sibling (possibly in an adjacent BulletList
-  // with a different marker), or list is already nested
-  const isNested = list.parent?.type === "ListItem";
-  if (itemPos <= 0 && !isNested) {
-    return null;
-  }
-
-  const indentWidth = listIndentWidth(list);
-  const indentStr = " ".repeat(indentWidth);
-
-  // Work with full lines including leading whitespace
-  const lineFrom = lineStartPos(text, item.from!);
-  const lineTo = item.to!;
-  const itemLines = text.slice(lineFrom, lineTo);
-
-  const indented = itemLines
-    .split("\n")
-    .map((line) => (line ? indentStr + line : line))
-    .join("\n");
-
-  const newText = text.slice(0, lineFrom) + indented + text.slice(lineTo);
-
-  const preText = text.slice(lineFrom, cursor);
-  const linesBeforeCursor = preText.split("\n").length;
-  const newCursor = cursor + linesBeforeCursor * indentWidth;
-
-  return { text: newText, cursor: newCursor };
+// Nested items count too, which collectNodesMatching (stops at a match) skips
+function collectListItems(tree: ParseTree): ParseTree[] {
+  const items: ParseTree[] = [];
+  traverseTree(tree, (node) => {
+    if (node.type === "ListItem") items.push(node);
+    return false;
+  });
+  return items;
 }
 
 /**
- * Removes one level of indentation from a list item and its children.
+ * The list items whose first line the range `[from, to]` touches, in
+ * document order, leaving out those inside another of them (they go along
+ * with it). A range ending at the start of a line leaves that line out.
  */
-function outdentListItem(
+function itemsInRange(
   text: string,
-  cursor: number,
-  ctx: ListContext,
+  tree: ParseTree,
+  from: number,
+  to: number,
+): ParseTree[] {
+  addParentPointers(tree);
+  const end = to > from && text[to - 1] === "\n" ? to - 1 : to;
+  const touched = collectListItems(tree).filter((item) => {
+    return (
+      lineStart(text, item.from!) <= end && lineEnd(text, item.from!) >= from
+    );
+  });
+  const touchedSet = new Set(touched);
+  const inside = (item: ParseTree) => {
+    for (let p = item.parent; p; p = p.parent) {
+      if (touchedSet.has(p)) return true;
+    }
+    return false;
+  };
+  return touched.filter((item) => !inside(item));
+}
+
+type LineEdit = { at: number; insert: string; remove: number };
+
+/**
+ * Indents (`delta` 1) or outdents (-1) list items with their children by one
+ * level; blocked as a whole when one of them can't go. An item can indent
+ * when it has a preceding sibling (possibly in an adjacent BulletList with a
+ * different marker) or its list is already nested.
+ */
+function adjustListLevel(
+  text: string,
+  items: ParseTree[],
+  from: number,
+  to: number,
+  delta: 1 | -1,
 ): OutlineResult {
-  const { item, list } = ctx;
-
-  const lineFrom = lineStartPos(text, item.from!);
-  const lineTo = item.to!;
-  const itemLines = text.slice(lineFrom, lineTo);
-
-  if (!itemLines.startsWith("  ")) {
-    return null;
+  const edits: LineEdit[] = [];
+  for (const item of items) {
+    const list = item.parent!;
+    const indentWidth = listIndentWidth(list);
+    const lineFrom = lineStart(text, item.from!);
+    const lines = text.slice(lineFrom, item.to!).split("\n");
+    if (delta === 1) {
+      const isNested = list.parent?.type === "ListItem";
+      if (combinedListItems(list).indexOf(item) <= 0 && !isNested) {
+        return "blocked";
+      }
+    } else if (!lines[0].startsWith("  ")) {
+      return "blocked";
+    }
+    let at = lineFrom;
+    for (const line of lines) {
+      if (delta === 1 && line) {
+        edits.push({ at, insert: " ".repeat(indentWidth), remove: 0 });
+      } else if (delta === -1) {
+        const remove = Math.min(indentWidth, line.match(/^ */)![0].length);
+        if (remove) edits.push({ at, insert: "", remove });
+      }
+      at += line.length + 1;
+    }
   }
+  return applyEdits(text, edits, from, to);
+}
 
-  const indentWidth = listIndentWidth(list);
-
-  const outdented = itemLines
-    .split("\n")
-    .map((line) => {
-      if (line.startsWith(" ".repeat(indentWidth))) {
-        return line.substring(indentWidth);
+/** Applies non-overlapping edits, mapping the selection through them */
+function applyEdits(
+  text: string,
+  edits: LineEdit[],
+  from: number,
+  to: number,
+): { text: string; from: number; to: number } {
+  const sorted = [...edits].sort((a, b) => a.at - b.at);
+  // `side` -1: stays before an insertion at its position (a selection
+  // starting at a line start takes in the line's new indentation; a cursor
+  // moves along with the text)
+  const map = (pos: number, side: 1 | -1) => {
+    let shift = 0;
+    for (const edit of sorted) {
+      if (edit.at > pos || (edit.at === pos && side === -1 && edit.insert)) {
+        break;
       }
-      let removed = 0;
-      while (removed < indentWidth && line[removed] === " ") {
-        removed++;
-      }
-      return line.substring(removed);
-    })
-    .join("\n");
-
-  const newText = text.slice(0, lineFrom) + outdented + text.slice(lineTo);
-
-  const preText = text.slice(lineFrom, cursor);
-  const linesBeforeCursor = preText.split("\n").length;
-  const newCursor = cursor - linesBeforeCursor * indentWidth;
-
-  return { text: newText, cursor: newCursor };
+      shift += edit.insert.length;
+      shift -= Math.min(edit.remove, pos - edit.at);
+    }
+    return pos + shift;
+  };
+  let out = "";
+  let last = 0;
+  for (const edit of sorted) {
+    out += text.slice(last, edit.at) + edit.insert;
+    last = edit.at + edit.remove;
+  }
+  out += text.slice(last);
+  return { text: out, from: map(from, from === to ? 1 : -1), to: map(to, 1) };
 }
 
 /**
@@ -518,7 +554,8 @@ function lastTypedChildEnd(
  */
 function moveHeading(
   text: string,
-  cursor: number,
+  from: number,
+  to: number,
   ctx: HeadingContext,
   direction: "up" | "down",
 ): OutlineResult {
@@ -564,20 +601,16 @@ function moveHeading(
     }
   }
 
-  const [firstStart, firstEnd, secondStart, secondEnd] =
-    direction === "up"
-      ? [adjSectionStart, adjSectionEnd, sectionStart, sectionEnd]
-      : [sectionStart, sectionEnd, adjSectionStart, adjSectionEnd];
-
+  const section = (start: number, end: number) => ({
+    from: children[start].from,
+    to: lastTypedChildEnd(children, start, end),
+  });
   return swapRegions(
     text,
-    cursor,
-    children[sectionStart].from!,
-    direction,
-    children[firstStart].from!,
-    lastTypedChildEnd(children, firstStart, firstEnd),
-    children[secondStart].from!,
-    lastTypedChildEnd(children, secondStart, secondEnd),
+    section(sectionStart, sectionEnd),
+    section(adjSectionStart, adjSectionEnd),
+    from,
+    to,
   );
 }
 
@@ -635,7 +668,8 @@ function adjustHeadingLevel(
 
   const newText =
     text.slice(0, sectionFrom) + newSectionText + text.slice(sectionTo);
-  return { text: newText, cursor: cursor + cursorAdjust };
+  const newCursor = cursor + cursorAdjust;
+  return { text: newText, from: newCursor, to: newCursor };
 }
 
 /**
@@ -643,7 +677,8 @@ function adjustHeadingLevel(
  */
 function moveTableRow(
   text: string,
-  cursor: number,
+  from: number,
+  to: number,
   ctx: TableRowContext,
   direction: "up" | "down",
 ): OutlineResult {
@@ -652,39 +687,9 @@ function moveTableRow(
   }
 
   const { row, table } = ctx;
-  const children = table.children!;
-
-  const rowIndices: number[] = [];
-  for (let i = 0; i < children.length; i++) {
-    if (children[i].type === "TableRow") {
-      rowIndices.push(i);
-    }
-  }
-
-  const rowPos = rowIndices.indexOf(ctx.rowIndex);
-  if (direction === "up" && rowPos <= 0) {
-    return null;
-  }
-  if (direction === "down" && rowPos >= rowIndices.length - 1) {
-    return null;
-  }
-
-  const otherPos = direction === "up" ? rowPos - 1 : rowPos + 1;
-  const otherRow = children[rowIndices[otherPos]];
-
-  const first = direction === "up" ? otherRow : row;
-  const second = direction === "up" ? row : otherRow;
-
-  return swapRegions(
-    text,
-    cursor,
-    row.from!,
-    direction,
-    first.from!,
-    first.to!,
-    second.from!,
-    second.to!,
-  );
+  const rows = table.children!.filter((c) => c.type === "TableRow");
+  const otherRow = rows[rows.indexOf(row) + (direction === "up" ? -1 : 1)];
+  return otherRow ? swapRegions(text, row, otherRow, from, to) : null;
 }
 
 /**
@@ -692,7 +697,8 @@ function moveTableRow(
  */
 function moveParagraph(
   text: string,
-  cursor: number,
+  from: number,
+  to: number,
   ctx: ParagraphContext,
   direction: "up" | "down",
 ): OutlineResult {
@@ -709,18 +715,5 @@ function moveParagraph(
     return null;
   }
 
-  const adjNode = children[adjIdx];
-  const first = direction === "up" ? adjNode : currNode;
-  const second = direction === "up" ? currNode : adjNode;
-
-  return swapRegions(
-    text,
-    cursor,
-    currNode.from!,
-    direction,
-    first.from!,
-    first.to!,
-    second.from!,
-    second.to!,
-  );
+  return swapRegions(text, currNode, children[adjIdx], from, to);
 }

@@ -10,11 +10,13 @@ type WrapElement = {
 };
 
 export function lineWrapper(wrapElements: WrapElement[]) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: Range<Decoration>[] = [];
     const depths = new Map<string, number>();
     const doc = state.doc;
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         for (const wrapElement of wrapElements) {
           if (type.name !== wrapElement.selector) {
@@ -49,5 +51,5 @@ export function lineWrapper(wrapElements: WrapElement[]) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

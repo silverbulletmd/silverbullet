@@ -31,14 +31,29 @@ const editorStateSpies = vi.hoisted(() => ({
 // Mock the editor extension chain because it touches document at module
 // load; ContentManager itself runs against real EditorState transactions.
 vi.mock("./codemirror/editor_state.ts", async () => {
-  const { Annotation, EditorState: RealEditorState } = await import(
-    "@codemirror/state"
-  );
+  const {
+    Annotation,
+    EditorState: RealEditorState,
+    Facet,
+  } = await import("@codemirror/state");
   const { buildExtendedMarkdownLanguage } = await import(
     "./markdown_parser/parser.ts"
   );
+  const inactiveEditor = Facet.define<boolean, boolean>({
+    combine: (values) => values.some((v) => v),
+  });
+  const buildEditorExtensions = (
+    _client: unknown,
+    mode: EditorMode,
+    readOnly: boolean,
+  ) => [
+    RealEditorState.readOnly.of(readOnly),
+    mode.kind === "text-document" ? (mode.language ?? []) : [],
+  ];
   return {
     buildMarkdownLanguageExtension: () => [buildExtendedMarkdownLanguage()],
+    buildEditorExtensions,
+    inactiveEditor,
     createEditorState: (
       _client: unknown,
       mode: EditorMode,
@@ -49,10 +64,7 @@ vi.mock("./codemirror/editor_state.ts", async () => {
       RealEditorState.create({
         doc: text,
         selection,
-        extensions: [
-          RealEditorState.readOnly.of(readOnly),
-          mode.kind === "text-document" ? (mode.language ?? []) : [],
-        ],
+        extensions: buildEditorExtensions(_client, mode, readOnly),
       }),
     createInactiveEditorState: (
       client: { contentManager?: { documentEditor?: { name?: string } } },
@@ -66,7 +78,10 @@ vi.mock("./codemirror/editor_state.ts", async () => {
       return RealEditorState.create({
         doc: sourceState.doc,
         selection: sourceState.selection,
-        extensions: [RealEditorState.readOnly.of(true)],
+        extensions: [
+          RealEditorState.readOnly.of(true),
+          inactiveEditor.of(true),
+        ],
       });
     },
     externalUpdate: Annotation.define<boolean>(),

@@ -14,6 +14,9 @@ export type PanelStylesOptions = {
  *
  * Order: components first (base), then space styles (so user theming wins),
  * leaving any plug-specific CSS you append afterwards highest-precedence.
+ * The theme's part is a `<div id="sb-theme">` the panel, widget or document
+ * editor iframe fills with the theme's CSS, and refills when the theme
+ * changes, so keep it in the HTML you show.
  */
 export async function panelStyles({
   components = true,

@@ -13,177 +13,187 @@ import { IFrameWidget } from "../widgets/iframe_widget.ts";
 import { LoadingWidget } from "../widgets/loading_widget.ts";
 import { LuaWidget, OccurrenceKeys } from "../widgets/lua_widget.ts";
 import { dataBlockPreviewShows } from "./data_block_preview.ts";
+import { frontmatterInRange } from "./frontmatter_block.ts";
 
 export function fencedCodePlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
-    const widgets: any[] = [];
-    const keys = new OccurrenceKeys();
-    syntaxTree(state).iterate({
-      enter({ from, to, name, node }) {
-        if (name === "FencedCode") {
-          if (isCursorInRange(state, [from, to])) {
-            return;
-          }
-          const text = state.sliceDoc(from, to);
-          const [_, lang] = text.match(/^(?:```+|~~~+)(\S+)?/)!;
-          const renderMode = widgetRenderMode(client, state);
-          // The data block preview renders it (a tag's own renderDataBlock
-          // beats code widgets); when it doesn't, a code widget still can
-          if (dataBlockPreviewShows(state, client, from)) return true;
-
-          const luaWidgetDef = lang
-            ? client.clientSystem.luaCodeWidgets.get(lang)
-            : undefined;
-          const codeWidgetCallback =
-            client.clientSystem.codeWidgetHook.codeWidgetCallbacks.get(lang);
-
-          // Lua-registered code widgets win precedence over plug ones.
-          if (luaWidgetDef && renderMode !== "disabled") {
-            const lineStrings = text.split("\n");
-
-            const lines: { from: number; to: number }[] = [];
-            let fromIt = from;
-            for (const line of lineStrings) {
-              lines.push({
-                from: fromIt,
-                to: fromIt + line.length,
-              });
-              fromIt += line.length + 1;
+  return decoratorStateField(
+    (state: EditorState, _tr, range) => {
+      const widgets: any[] = [];
+      const keys = range?.keys ?? new OccurrenceKeys();
+      syntaxTree(state).iterate({
+        from: range?.from,
+        to: range?.to,
+        enter({ from, to, name, node }) {
+          if (name === "FencedCode") {
+            if (isCursorInRange(state, [from, to])) {
+              return;
             }
+            const text = state.sliceDoc(from, to);
+            const [_, lang] = text.match(/^(?:```+|~~~+)(\S+)?/)!;
+            const renderMode = widgetRenderMode(client, state);
+            // The data block preview renders it (a tag's own renderDataBlock
+            // beats code widgets); when it doesn't, a code widget still can
+            if (dataBlockPreviewShows(state, client, from)) return true;
 
-            const firstLine = lines[0],
-              lastLine = lines[lines.length - 1];
+            const luaWidgetDef = lang
+              ? client.clientSystem.luaCodeWidgets.get(lang)
+              : undefined;
+            const codeWidgetCallback =
+              client.clientSystem.codeWidgetHook.codeWidgetCallbacks.get(lang);
 
-            if (!firstLine || !lastLine) return;
+            // Lua-registered code widgets win precedence over plug ones.
+            if (luaWidgetDef && renderMode !== "disabled") {
+              const lineStrings = text.split("\n");
 
-            widgets.push(
-              invisibleDecoration.range(firstLine.from, firstLine.to),
-            );
-            widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-iframe",
-              }).range(firstLine.from),
-            );
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-hide",
-              }).range(lastLine.from),
-            );
+              const lines: { from: number; to: number }[] = [];
+              let fromIt = from;
+              for (const line of lineStrings) {
+                lines.push({
+                  from: fromIt,
+                  to: fromIt + line.length,
+                });
+                fromIt += line.length + 1;
+              }
 
-            lines.slice(1, lines.length - 1).forEach((line) => {
+              const firstLine = lines[0],
+                lastLine = lines[lines.length - 1];
+
+              if (!firstLine || !lastLine) return;
+
               widgets.push(
-                Decoration.line({ class: "sb-line-table-outside" }).range(
-                  line.from,
-                ),
+                invisibleDecoration.range(firstLine.from, firstLine.to),
               );
-            });
+              widgets.push(
+                invisibleDecoration.range(lastLine.from, lastLine.to),
+              );
+              widgets.push(
+                Decoration.line({
+                  class: "sb-fenced-code-iframe",
+                }).range(firstLine.from),
+              );
+              widgets.push(
+                Decoration.line({
+                  class: "sb-fenced-code-hide",
+                }).range(lastLine.from),
+              );
 
-            const bodyText = lineStrings
-              .slice(1, lineStrings.length - 1)
-              .join("\n");
-            const pageName = client.currentName();
-            const currentPageMeta = client.currentPageMeta();
-            const widget =
-              renderMode === "loading"
-                ? new LoadingWidget(true)
-                : new LuaWidget({
-                    client,
-                    cacheKey: keys.key(
-                      `codewidget:${lang}:${pageName}:${bodyText}`,
-                    ),
-                    expressionText: bodyText,
-                    callback: (_body, _page, track) =>
-                      renderLuaCallback(
-                        client,
-                        luaWidgetDef.render,
-                        [bodyText, pageName],
-                        currentPageMeta,
-                        { track },
+              lines.slice(1, lines.length - 1).forEach((line) => {
+                widgets.push(
+                  Decoration.line({ class: "sb-line-table-outside" }).range(
+                    line.from,
+                  ),
+                );
+              });
+
+              const bodyText = lineStrings
+                .slice(1, lineStrings.length - 1)
+                .join("\n");
+              const pageName = client.currentName();
+              const currentPageMeta = client.currentPageMeta();
+              const widget =
+                renderMode === "loading"
+                  ? new LoadingWidget(true)
+                  : new LuaWidget({
+                      client,
+                      cacheKey: keys.key(
+                        `codewidget:${lang}:${pageName}:${bodyText}`,
                       ),
-                    host: { kind: "code", codeText: text },
-                  });
-            widgets.push(
-              Decoration.widget({
-                widget: widget,
-              }).range(from),
-            );
-            return false;
-          }
-
-          if (codeWidgetCallback && renderMode !== "disabled") {
-            const lineStrings = text.split("\n");
-
-            const lines: { from: number; to: number }[] = [];
-            let fromIt = from;
-            for (const line of lineStrings) {
-              lines.push({
-                from: fromIt,
-                to: fromIt + line.length,
-              });
-              fromIt += line.length + 1;
+                      expressionText: bodyText,
+                      callback: (_body, _page, track) =>
+                        renderLuaCallback(
+                          client,
+                          luaWidgetDef.render,
+                          [bodyText, pageName],
+                          currentPageMeta,
+                          { track },
+                        ),
+                      host: { kind: "code", codeText: text },
+                    });
+              widgets.push(
+                Decoration.widget({
+                  widget: widget,
+                }).range(from),
+              );
+              return false;
             }
 
-            const firstLine = lines[0],
-              lastLine = lines[lines.length - 1];
+            if (codeWidgetCallback && renderMode !== "disabled") {
+              const lineStrings = text.split("\n");
 
-            if (!firstLine || !lastLine) return;
+              const lines: { from: number; to: number }[] = [];
+              let fromIt = from;
+              for (const line of lineStrings) {
+                lines.push({
+                  from: fromIt,
+                  to: fromIt + line.length,
+                });
+                fromIt += line.length + 1;
+              }
 
-            widgets.push(
-              invisibleDecoration.range(firstLine.from, firstLine.to),
-            );
-            widgets.push(invisibleDecoration.range(lastLine.from, lastLine.to));
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-iframe",
-              }).range(firstLine.from),
-            );
-            widgets.push(
-              Decoration.line({
-                class: "sb-fenced-code-hide",
-              }).range(lastLine.from),
-            );
+              const firstLine = lines[0],
+                lastLine = lines[lines.length - 1];
 
-            lines.slice(1, lines.length - 1).forEach((line) => {
+              if (!firstLine || !lastLine) return;
+
               widgets.push(
-                Decoration.line({ class: "sb-line-table-outside" }).range(
-                  line.from,
-                ),
+                invisibleDecoration.range(firstLine.from, firstLine.to),
               );
-            });
+              widgets.push(
+                invisibleDecoration.range(lastLine.from, lastLine.to),
+              );
+              widgets.push(
+                Decoration.line({
+                  class: "sb-fenced-code-iframe",
+                }).range(firstLine.from),
+              );
+              widgets.push(
+                Decoration.line({
+                  class: "sb-fenced-code-hide",
+                }).range(lastLine.from),
+              );
 
-            const widget =
-              renderMode === "loading"
-                ? new LoadingWidget(true)
-                : new IFrameWidget(
-                    client,
-                    lineStrings.slice(1, lineStrings.length - 1).join("\n"),
-                    codeWidgetCallback,
-                  );
-            widgets.push(
-              Decoration.widget({
-                widget: widget,
-              }).range(from),
-            );
-            return false;
+              lines.slice(1, lines.length - 1).forEach((line) => {
+                widgets.push(
+                  Decoration.line({ class: "sb-line-table-outside" }).range(
+                    line.from,
+                  ),
+                );
+              });
+
+              const widget =
+                renderMode === "loading"
+                  ? new LoadingWidget(true)
+                  : new IFrameWidget(
+                      client,
+                      lineStrings.slice(1, lineStrings.length - 1).join("\n"),
+                      codeWidgetCallback,
+                    );
+              widgets.push(
+                Decoration.widget({
+                  widget: widget,
+                }).range(from),
+              );
+              return false;
+            }
+            return true;
           }
-          return true;
-        }
-        if (name === "CodeMark") {
-          const parent = node.parent!;
-          if (
-            parent.node.name !== "InlineCode" &&
-            !isCursorInRange(state, [parent.from, parent.to])
-          ) {
-            widgets.push(
-              Decoration.line({
-                class: "sb-line-code-outside",
-              }).range(state.doc.lineAt(from).from),
-            );
+          if (name === "CodeMark") {
+            const parent = node.parent!;
+            if (
+              parent.node.name !== "InlineCode" &&
+              !isCursorInRange(state, [parent.from, parent.to])
+            ) {
+              widgets.push(
+                Decoration.line({
+                  class: "sb-line-code-outside",
+                }).range(state.doc.lineAt(from).from),
+              );
+            }
           }
-        }
-      },
-    });
-    return Decoration.set(widgets, true);
-  });
+        },
+      });
+      return Decoration.set(widgets, true);
+    },
+    { keyed: true, pageWide: frontmatterInRange },
+  );
 }

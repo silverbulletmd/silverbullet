@@ -30,7 +30,11 @@ export function CodeView(props: TabProps) {
   const styles = useLoad(client.spaceStyles);
   const items: SidebarItem<CodeSection>[] = [
     { key: "lua", label: "Space Lua", count: scripts?.scripts.length },
-    { key: "style", label: "Space Style", count: styles?.styles.length },
+    {
+      key: "style",
+      label: "Space Style",
+      count: styles?.styles.filter((s) => s.active).length,
+    },
   ];
   return (
     <div className="sb-workbench sb-wb-code" ref={root}>

@@ -4,9 +4,12 @@ import { bindWidgetEvents, type WidgetObject } from "./widget_body.ts";
 
 export type { EventPayLoad } from "./widget_body.ts";
 
-import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
+import { encodeRef, type Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import type { Client } from "../../client.ts";
-import { openPopupMenu } from "../../components/popup_menu.ts";
+import {
+  type PopupEntry,
+  togglePopupMenu,
+} from "../../components/popup_menu.ts";
 import { recordMeasure } from "../../lib/perf.ts";
 import { Disposers } from "../../lib/util.ts";
 import {
@@ -16,16 +19,26 @@ import {
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import type { ViewValue } from "../../navigator/view_value.ts";
-import { EDIT_QUERY_COMMAND } from "../../navigator/views/workbench.ts";
 import type { Tracker } from "../../space_lua/dependencies.ts";
 import { isLuaWidgetError } from "../../space_lua/render_lua_markdown.ts";
 import { activeWidgets } from "./code_widget.ts";
+import { blockDirectiveAt } from "./block_directive.ts";
 import {
-  bakeDirective,
+  bindMenu,
+  blockActionEntries,
+  joinGroups,
+  registerWidgetMenu,
+  unregisterWidgetMenu,
+  widgetMenusInMargin,
+} from "./block_menu.ts";
+import { type BlockSpan, blockSpanAt } from "./block_span.ts";
+import {
   copyValue,
   type DirectiveTarget,
   directiveAtWidget,
 } from "./directive_actions.ts";
+import { isQueryExpression } from "./directive_at.ts";
+import { directiveMenu, directiveMenuCaps } from "./directive_menu.ts";
 import { LiveBinding } from "./live_binding.ts";
 import { trackRender } from "./render_settle.ts";
 import {
@@ -46,11 +59,8 @@ export type LuaWidgetCallback = (
   track?: Tracker,
 ) => Promise<LuaWidgetContent | null>;
 
-/**
- * Cache keys per occurrence: identical expressions on one page would share a
- * cached result, and a DOM element in it can only be shown once. The first
- * copy keeps the plain key; a decoration build numbers the rest in order.
- */
+export { OccurrenceKeys } from "../decoration_regions.ts";
+
 /**
  * Keep a widget at least `height` tall, as measured by offsetHeight. That
  * includes the frame's border, so it is held as a border-box size: a
@@ -64,16 +74,6 @@ function holdHeight(div: HTMLElement, height: number): void {
 function releaseHeight(div: HTMLElement): void {
   div.style.minHeight = "";
   div.style.boxSizing = "";
-}
-
-export class OccurrenceKeys {
-  private seen = new Map<string, number>();
-
-  key(base: string): string {
-    const n = this.seen.get(base) ?? 0;
-    this.seen.set(base, n + 1);
-    return n === 0 ? base : `${base}:dup${n}`;
-  }
 }
 
 export type LuaWidgetContent = ViewValue | WidgetObject | string;
@@ -121,6 +121,11 @@ export type WidgetHost =
       definitionRef: Ref | null;
       /** Deletes the object from the page (frontmatter, a data item) */
       remove?: () => Promise<void>;
+      /**
+       * Its menu goes in its card's margin ⋮ on desktop (a data block item);
+       * else it keeps its corner ⋯ (the frontmatter form)
+       */
+      inMargin?: boolean;
     }
   // Legacy hooks:renderTopWidgets/BottomWidgets: a captured result
   | { kind: "panel"; definitionRef: Ref | null };
@@ -143,23 +148,23 @@ export type ShownValue = {
   luaError: boolean;
 };
 
+/** What a `${…}`'s menu can do with the value it shows */
+export function shownCaps(shown: ShownValue): { copy: boolean; bake: boolean } {
+  return { copy: shown.copyable, bake: shown.bakeable && !shown.luaError };
+}
+
+/** The menu of a widget other than a `${…}` (see `directiveMenuCaps`) */
 export function widgetCaps(
   host: WidgetHost,
   shown: ShownValue,
-  env: { readOnly: boolean; expression?: string },
+  env: { readOnly: boolean },
 ): WidgetCaps {
-  const directive = host.kind === "directive" && !env.readOnly;
-  // Baking or rewriting an assignment would drop its definition
-  const assignment = host.kind === "directive" && !!host.label;
   return {
     definition:
       (host.kind === "object" || host.kind === "panel") && !!host.definitionRef,
     open: host.kind === "transclusion" && !!host.openRef,
     edit: host.kind !== "panel" && !env.readOnly,
-    query:
-      directive && !assignment && /^\s*query\s*\[/.test(env.expression ?? ""),
     copy: host.kind !== "object" && shown.copyable,
-    bake: directive && !assignment && shown.bakeable && !shown.luaError,
     remove: host.kind === "object" && !!host.remove && !env.readOnly,
   };
 }
@@ -475,12 +480,17 @@ export class LuaWidget extends WidgetType {
       luaError,
     };
     const host = this.opts.host;
+    // A transcluded page names its source in its card (editor.scss)
+    if (host.kind === "transclusion" && host.openRef) {
+      div.dataset.sbSource = encodeRef(host.openRef);
+    }
     const valueNode =
       host.kind === "directive" && host.label
         ? labelPageVar(rendered.node, host.label, block)
         : rendered.node;
     disposeRendered(div);
     div.replaceChildren(this.wrap(block, valueNode, shown));
+    this.registerMenu(div, block, shown);
     releaseHeight(div);
     if (rendered.kind === "view" || rendered.kind === "sandbox") {
       // Views and sandboxes size themselves after mounting
@@ -524,6 +534,7 @@ export class LuaWidget extends WidgetType {
   }
 
   private clear(div: HTMLElement): void {
+    unregisterWidgetMenu(div);
     this.shownNode = undefined;
     this.shownSignature = undefined;
     this.scope.dispose();
@@ -545,6 +556,14 @@ export class LuaWidget extends WidgetType {
         : node;
     }
     const container = document.createElement("div");
+    const content = document.createElement("div");
+    content.className = "content";
+    content.appendChild(node);
+    // On desktop the margin ⋮ has its menu (`registerMenu`)
+    if (this.menuInMargin && widgetMenusInMargin(this.opts.client)) {
+      container.appendChild(content);
+      return container;
+    }
     const buttonBar = document.createElement("div");
     buttonBar.className = "sb-widget-menu-bar";
     const button = document.createElement("button");
@@ -560,32 +579,136 @@ export class LuaWidget extends WidgetType {
     this.scope.add(() => closeMenu?.());
     button.addEventListener("click", (e) => {
       e.stopPropagation();
-      if (button.getAttribute("aria-expanded") === "true") {
-        closeMenu?.();
-        return;
-      }
-      const caps = widgetCaps(this.opts.host, shown, {
-        readOnly: this.opts.client.isReadOnlyMode(),
-        expression: this.opts.expressionText,
+      closeMenu = togglePopupMenu(button, this.cornerMenuEntries(shown), {
+        className: "sb-widget-menu",
       });
-      closeMenu = openPopupMenu(
-        button,
-        widgetMenuEntries(caps),
-        (id) => {
-          this.runAction(id).catch(console.error);
-        },
-        "sb-widget-menu",
-      );
     });
     buttonBar.appendChild(button);
-
-    const content = document.createElement("div");
-    content.className = "content";
-    content.appendChild(node);
 
     container.appendChild(buttonBar);
     container.appendChild(content);
     return container;
+  }
+
+  /**
+   * Whether this widget's menu is a registered source the margin ⋮ opens on
+   * desktop: all but panels and the frontmatter form, which keep their ⋯
+   */
+  private get menuInMargin(): boolean {
+    const host = this.opts.host;
+    if (host.kind === "panel") return false;
+    return host.kind !== "object" || !!host.inMargin;
+  }
+
+  /**
+   * The widget's own menu (the ⋯'s, and the ⋮'s own part): a `${…}`'s
+   * (`directiveMenu`), else `widgetMenuEntries`
+   */
+  menuEntries(shown: ShownValue): PopupEntry<WidgetActionId>[] {
+    const { client, host, expressionText } = this.opts;
+    const readOnly = client.isReadOnlyMode();
+    if (host.kind === "directive") {
+      const widget = this;
+      const caps = directiveMenuCaps(
+        client,
+        { expr: expressionText, assignmentName: host.label },
+        shownCaps(shown),
+      );
+      // A stale result (its `${…}` text changed under it) can't be found to
+      // query or bake: offer only what works on what's shown
+      if (!this.dom || !directiveAtWidget(client, this.dom, expressionText)) {
+        caps.query = caps.bake = false;
+      }
+      return directiveMenu(
+        client,
+        "rendered",
+        caps,
+        () => this.directiveTarget(),
+        {
+          // As shown when picked
+          get value() {
+            return { value: widget.shownValue };
+          },
+          edit: () => {
+            if (this.dom)
+              moveCursorToWidgetStart(client, this.dom, this.sourceText);
+          },
+        },
+      );
+    }
+    return bindMenu(
+      widgetMenuEntries(widgetCaps(host, shown, { readOnly })),
+      (id) => this.runAction(id),
+    );
+  }
+
+  /**
+   * The corner ⋯'s menu: the widget's own, and for a block `${…}` Move up /
+   * Move down / Delete too (the ⋮ adds those for every block)
+   */
+  private cornerMenuEntries(shown: ShownValue): PopupEntry[] {
+    const own = this.menuEntries(shown);
+    const { client, host } = this.opts;
+    if (host.kind !== "directive" || client.isReadOnlyMode()) return own;
+    return joinGroups([
+      own,
+      blockActionEntries(client, () => this.blockSpan()),
+    ]);
+  }
+
+  /**
+   * The whole block this widget stands for in the page, if it is one: a code
+   * block's or an embed's (`blockSpanAt`), a block `${…}`'s (`blockDirectiveAt`,
+   * which also finds one on lines of its own in a list item)
+   */
+  private blockSpan(): BlockSpan | undefined {
+    const { client, host, expressionText } = this.opts;
+    const view = client.editorView;
+    if (!this.dom) return;
+    try {
+      if (host.kind === "directive") {
+        const target = directiveAtWidget(client, this.dom, expressionText);
+        return target && blockDirectiveAt(view.state, target.from);
+      }
+      if (!this.dom.isConnected) return;
+      return blockSpanAt(view.state, view.posAtDOM(this.dom, 0));
+    } catch {
+      return;
+    }
+  }
+
+  /** Registers the menu the margin ⋮ opens for this widget (see `block_menu.ts`) */
+  private registerMenu(div: HTMLElement, block: boolean, shown: ShownValue) {
+    const host = this.opts.host;
+    // An inline widget is a section of its paragraph's menu: only a `${…}`
+    // (a data block item is one of its card's submenus either way)
+    if (
+      !this.menuInMargin ||
+      (!block && host.kind !== "directive" && host.kind !== "object")
+    ) {
+      unregisterWidgetMenu(div);
+      return;
+    }
+    const label =
+      host.kind === "directive"
+        ? isQueryExpression(this.opts.expressionText)
+          ? "Query"
+          : "Expression"
+        : host.kind === "transclusion"
+          ? "Embed"
+          : host.kind === "object"
+            ? "Item"
+            : "Widget";
+    registerWidgetMenu(div, {
+      label,
+      block,
+      entries: () => this.menuEntries(shown),
+      span:
+        host.kind === "directive" ||
+        (block && (host.kind === "code" || host.kind === "transclusion"))
+          ? () => this.blockSpan()
+          : undefined,
+    });
   }
 
   async runAction(id: WidgetActionId): Promise<void> {
@@ -614,31 +737,9 @@ export class LuaWidget extends WidgetType {
           moveCursorToWidgetStart(client, this.dom, this.sourceText);
         }
         return;
-      case "query": {
-        const target = this.directiveTarget();
-        if (target) {
-          await client.runCommandByName(EDIT_QUERY_COMMAND, [target]);
-        }
-        return;
-      }
-      case "reload":
-        if (host.kind === "panel") {
-          // Panel widgets render a captured result; only re-running the hooks refreshes them
-          await client.clientSystem.localSyscall("system.invokeFunction", [
-            "index.refreshWidgets",
-          ]);
-        } else {
-          await this.reload();
-        }
-        return;
       case "copy":
         await copyValue(client, this.shownValue);
         return;
-      case "bake": {
-        const target = this.directiveTarget();
-        if (target) await bakeDirective(client, target, this.shownValue);
-        return;
-      }
       case "remove":
         if (host.kind === "object") await host.remove?.();
         return;

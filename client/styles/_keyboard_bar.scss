@@ -50,8 +50,9 @@ html.sb-viewport-tracked #sb-main .cm-editor .cm-scroller {
     color: var(--action-button-color);
     -webkit-tap-highlight-color: transparent;
 
+    // Not the top bar's border colour: a theme may hide that border
     &:active {
-      background-color: var(--top-border-color);
+      background-color: var(--ui-surface-hover-background-color);
     }
   }
 }
@@ -69,17 +70,17 @@ html.sb-viewport-tracked #sb-main .cm-editor .cm-scroller {
   }
 }
 
-.sb-keyboard-bar-svg {
+.sb-markup-icon {
   display: flex;
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 100%;
+    height: 100%;
   }
 }
 
 .sb-keyboard-bar-dismiss {
   margin-left: 4px;
-  border-left: 1px solid var(--top-border-color) !important;
+  border-left: 1px solid var(--ui-surface-border-color) !important;
   border-radius: 0 !important;
 }

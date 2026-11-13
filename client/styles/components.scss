@@ -17,46 +17,50 @@ textarea,
 /* Button base (so panels linking components.css get it) */
 .sb-button,
 .sb-button-primary {
-  --color: var(--button-color);
-  --background-color: var(--button-background-color);
-  --hover-background-color: var(--button-hover-background-color);
-  --border-color: var(--button-border-color);
+  --sb-button-color: var(--button-color);
+  --sb-button-background-color: var(--button-background-color);
+  --sb-button-hover-background-color: var(--button-hover-background-color);
+  --sb-button-border-color: var(--button-border-color);
 
   &.sb-button-primary {
-    --color: var(--primary-button-color);
-    --background-color: var(--primary-button-background-color);
-    --hover-background-color: var(--primary-button-hover-background-color);
-    --border-color: var(--primary-button-border-color);
+    --sb-button-color: var(--primary-button-color);
+    --sb-button-background-color: var(--primary-button-background-color);
+    --sb-button-hover-background-color: var(--primary-button-hover-background-color);
+    --sb-button-border-color: var(--primary-button-border-color);
   }
 
-  background-color: var(--background-color);
-  color: var(--color);
+  background-color: var(--sb-button-background-color);
+  color: var(--sb-button-color);
 
   box-shadow: none;
 
-  border: 1px solid var(--border-color);
-  border-radius: 2px;
-  padding: 0.35em 0.75em;
-  font-size: 13px;
+  border: 1px solid var(--sb-button-border-color);
+  border-radius: var(--ui-radius-md);
+  padding: 0.45em 1em;
+  font-size: var(--ui-font-size-sm);
+  font-weight: 500;
   white-space: nowrap;
 
   &:hover {
-    background-color: var(--hover-background-color);
+    background-color: var(--sb-button-hover-background-color);
   }
+}
 
-  &:focus-visible {
-    outline: 2px solid var(--ui-accent-color);
-    outline-offset: 2px;
-  }
+/* A plain button sits on the page colour and takes the accent wash on hover. */
+.sb-button:not(.sb-button-primary):not(.sb-button-danger) {
+  --sb-button-background-color: var(--root-background-color);
+  --sb-button-hover-background-color: var(--ui-accent-surface-color);
+  --sb-button-border-color: var(--ui-surface-border-color);
 }
 
 .sb-button-danger {
   background-color: var(--danger-color);
   color: var(--danger-contrast-color);
   border: 1px solid var(--danger-color);
-  border-radius: 2px;
-  padding: 0.35em 0.75em;
-  font-size: 13px;
+  border-radius: var(--ui-radius-md);
+  padding: 0.45em 1em;
+  font-size: var(--ui-font-size-sm);
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
 
@@ -80,13 +84,13 @@ textarea,
   background: none;
   border: none;
   color: var(--subtle-color);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
 
   &:hover {
-    background-color: var(--subtle-background-color);
-    color: var(--button-color);
+    background-color: var(--ui-accent-surface-color);
+    color: var(--ui-accent-text-color);
   }
 
   svg {
@@ -108,14 +112,9 @@ textarea,
   font-size: 13px;
   background-color: var(--text-field-background-color);
   color: var(--root-color);
-  border: 1px solid var(--button-border-color);
-  border-radius: 2px;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-md);
   outline: none;
-
-  &:focus-visible {
-    border-color: var(--text-field-focus-color);
-    box-shadow: none;
-  }
 
   &:disabled {
     opacity: 0.6;
@@ -127,6 +126,14 @@ textarea,
   padding-right: 1.2em;
 }
 
+.sb-input:focus-visible,
+.sb-select:focus-visible,
+.sb-url-input:focus-within {
+  border-color: var(--ui-accent-color);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--tone-accent-soft);
+}
+
 .sb-checkbox {
   width: 16px;
   height: 16px;
@@ -134,37 +141,109 @@ textarea,
   cursor: pointer;
 }
 
+/* One drawn checkbox everywhere (editor, Server pages, Workbench, find bar):
+   native ones differ per browser, and Safari's ignores its size and dark
+   mode. Zero specificity, so a surface can still size or space its own. */
+:where(input[type="checkbox"]) {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 1.5px solid color-mix(in srgb, var(--ui-accent-color) 55%, var(--root-background-color));
+  border-radius: 4px;
+  background: var(--root-background-color);
+  vertical-align: -0.15em;
+  cursor: pointer;
+}
+
+:where(input[type="checkbox"]:checked) {
+  background: var(--ui-accent-color);
+  border-color: var(--ui-accent-color);
+}
+
+:where(input[type="checkbox"]:checked)::after {
+  content: "";
+  position: absolute;
+  box-sizing: border-box;
+  left: 32%;
+  top: 10%;
+  width: 36%;
+  height: 64%;
+  border: solid var(--ui-accent-contrast-color);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+:where(input[type="checkbox"]:indeterminate)::after {
+  content: "";
+  position: absolute;
+  inset: calc(50% - 1px) 22%;
+  background: var(--ui-accent-color);
+}
+
+:where(input[type="checkbox"]:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+
+:where(input[type="checkbox"]:focus-visible) {
+  outline: var(--ui-focus-ring);
+  outline-offset: 1px;
+}
+
+/* Section tabs (Server dashboard, space settings): the same segmented pill
+   track as `.sb-segments`, so tabs look alike in the client and on the
+   Server pages. */
 .sb-tabs {
   display: flex;
-  gap: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  gap: 2px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px;
+  overflow-x: auto;
+  border-radius: var(--ui-radius-pill);
+  background-color: var(--tone-accent-soft);
+  scrollbar-width: none;
 }
 
 .sb-tab {
-  padding: 8px 16px;
+  flex: none;
+  padding: 5px 14px;
   cursor: pointer;
   border: none;
+  border-radius: var(--ui-radius-pill);
   background: none;
   color: var(--subtle-color);
-  font-size: 0.9em;
-  border-bottom: 2px solid transparent;
-  transition: color 0.15s, border-color 0.15s;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  transition: color 0.15s, background-color 0.15s;
 
-  &:hover {
+  &:hover:not(.sb-active) {
+    background-color: var(--ui-surface-hover-background-color);
     color: var(--root-color);
   }
 
   &.sb-active {
-    color: var(--ui-accent-color);
-    border-bottom-color: var(--ui-accent-color);
-    font-weight: 700;
+    background-color: var(--root-background-color);
+    color: var(--ui-accent-text-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   }
 }
 
 .sb-alert {
   padding: 8px 12px;
   font-size: 0.85em;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-md);
   border: 1px solid transparent;
 }
 
@@ -190,19 +269,19 @@ textarea,
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
   font-weight: 500;
   background-color: var(--badge-background-color);
   color: var(--badge-color);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-pill);
 }
 
 .sb-progress {
   width: 100%;
   height: 4px;
   background-color: var(--subtle-background-color);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-pill);
   overflow: hidden;
 }
 
@@ -219,18 +298,18 @@ textarea,
   opacity: 0.6;
 }
 
+:is(.sb-button, .sb-button-primary, .sb-button-danger) .sb-kbd {
+  margin-left: 6px;
+  font-size: 11px;
+}
+
 .sb-url-input {
   display: flex;
   align-items: stretch;
-  border: 0;
-  border-radius: 2px;
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-md);
   background: var(--text-field-background-color);
   overflow: hidden;
-}
-
-.sb-url-input:focus-within {
-  outline: 1px solid var(--text-field-focus-color);
-  outline-offset: -1px;
 }
 
 .sb-url-input .sb-input {
@@ -240,13 +319,17 @@ textarea,
   min-width: 0;
   width: auto;
   background: transparent;
+
+  &:focus-visible {
+    box-shadow: none;
+  }
 }
 
 .sb-url-affix {
   display: flex;
   align-items: center;
   padding: 0.3em 0.6em;
-  background: var(--subtle-background-color);
+  background: var(--ui-accent-surface-color);
   color: var(--subtle-color);
   font-size: 0.9em;
   white-space: nowrap;
@@ -256,11 +339,11 @@ textarea,
 }
 
 .sb-url-affix:first-child {
-  border-right: 1px solid #0002;
+  border-right: 1px solid var(--ui-surface-border-color);
 }
 
 .sb-url-affix:last-child {
-  border-left: 1px solid #0002;
+  border-left: 1px solid var(--ui-surface-border-color);
 }
 
 .sb-segments-wrap {
@@ -274,10 +357,8 @@ textarea,
   flex-wrap: wrap;
   gap: 2px;
   padding: 2px;
-  border-radius: 6px;
-  background-color: color-mix(in srgb,
-      var(--ui-surface-section-background-color) 60%,
-      transparent);
+  border-radius: var(--ui-radius-pill);
+  background-color: var(--tone-accent-soft);
 }
 
 .sb-segment {
@@ -287,7 +368,7 @@ textarea,
   flex: 0 0 auto;
   padding: 3px 8px;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--ui-radius-pill);
   background-color: transparent;
   color: var(--subtle-color);
   font-family: inherit;
@@ -302,9 +383,10 @@ textarea,
   color: var(--modal-color);
 }
 
-.sb-segment-active {
-  background-color: var(--modal-selected-option-background-color);
-  color: var(--modal-selected-option-color);
+.sb-segment.sb-segment-active {
+  background-color: var(--root-background-color);
+  color: var(--ui-accent-text-color);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .sb-segment-icon {
@@ -322,7 +404,7 @@ textarea,
 
 .sb-segment-badge {
   padding: 0 5px;
-  border-radius: 8px;
+  border-radius: var(--ui-radius-md);
   background-color: var(--ui-surface-hover-background-color);
   font-size: 11px;
   line-height: 14px;
@@ -507,14 +589,29 @@ body.sb-resizing-y {
   white-space: nowrap;
 }
 
+/* Chips that don't fit wrap a full row-gap below the first line, past
+   max-height, and are clipped -- no JS measuring. Capping at the row's own
+   line keeps the row its usual height; chips are smaller than its text. */
 .sb-nav-trailing {
   display: flex;
   flex: 1 1 0%;
+  flex-wrap: wrap;
   min-width: 0;
+  max-height: 1lh;
   align-items: baseline;
-  gap: 6px;
+  column-gap: 6px;
+  row-gap: 10em;
   overflow: hidden;
   white-space: nowrap;
+}
+
+/* Lines are broken before shrinking, so only a chip alone on a line too
+   narrow for it shrinks -- truncated rather than cut off mid-glyph. */
+.sb-nav-trailing > .sb-nav-chip {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sb-nav-description {
@@ -527,10 +624,12 @@ body.sb-resizing-y {
   white-space: nowrap;
 }
 
+/* Matched letters: bold accent instead of a highlighter */
 .sb-nav-primary mark,
 .sb-nav-description mark {
-  background-color: var(--editor-highlight-background-color);
-  color: inherit;
+  background-color: transparent;
+  color: var(--ui-accent-text-color);
+  font-weight: 650;
   line-height: inherit;
   padding: 0;
   margin: 0;
@@ -548,6 +647,17 @@ body.sb-resizing-y {
   color: var(--badge-color);
 }
 
+.sb-nav-chip:not(.sb-hashtag) {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  padding: 2px 10px;
+  border-radius: var(--ui-radius-pill);
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
 .sb-nav-empty {
   padding: 12px 10px;
   font-size: 0.9em;
@@ -560,29 +670,33 @@ body.sb-resizing-y {
   padding: 0;
   margin: 0;
 }
+.sb-button:focus-visible,
+.sb-button-primary:focus-visible,
+.sb-button-danger:focus-visible,
 .sb-button-icon:focus-visible,
 .sb-tab:focus-visible,
-.sb-checkbox:focus-visible {
-  outline: 2px solid var(--ui-accent-color);
-  outline-offset: 2px;
+.sb-checkbox:focus-visible,
+.sb-segment:focus-visible,
+.sb-section-link:focus-visible {
+  outline: var(--ui-focus-ring);
+  outline-offset: 1px;
 }
 
-.sb-tabs { border-bottom: 1px solid var(--ui-surface-border-color); }
 a.sb-tab { text-decoration: none; color: var(--subtle-color); }
-a.sb-tab.sb-active { color: var(--ui-accent-color); }
-.sb-section-link, .sb-tab { font-size: 13px; }
+a.sb-tab.sb-active { color: var(--ui-accent-text-color); }
+.sb-section-link { font-size: 13px; }
 .sb-section-nav { min-width: 0; }
 .sb-section-links { display: grid; gap: 0.25rem; }
 .sb-section-link {
   position: relative; display: flex; align-items: center; gap: 0.5rem;
-  min-height: 42px; padding: 0.6rem 0.75rem; border: 0; border-radius: 2px;
+  min-height: 42px; padding: 0.6rem 0.75rem; border: 0; border-radius: var(--ui-radius-md);
   background: transparent; color: inherit; font: inherit; text-align: left;
   text-decoration: none; cursor: pointer;
-  &[aria-current="page"] { font-weight: 600; }
-  &[aria-current="page"]::before { content: ""; position: absolute; inset: 9px auto 9px 0; width: 3px; background: var(--ui-accent-color); }
   &[data-dirty]::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-left: auto; }
-  &:hover { background: var(--subtle-background-color); }
-  &:focus-visible { outline: 1px solid var(--ui-accent-color); outline-offset: 2px; background: color-mix(in srgb, var(--ui-accent-color) 12%, var(--root-background-color)); }
+  &:hover:not([aria-current="page"]) { background: var(--ui-accent-surface-color); }
+  &:focus-visible { background: color-mix(in srgb, var(--ui-accent-color) 12%, var(--root-background-color)); }
+  // After :focus-visible, so the current page keeps its fill when focused
+  &[aria-current="page"] { font-weight: 600; background: var(--tone-accent-soft); color: var(--ui-accent-text-color); }
   &:disabled, &[aria-disabled="true"] { opacity: 0.5; cursor: default; }
 }
 .sb-section-nav-mobile { display: none; }
@@ -613,8 +727,7 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
 .sb-section-select .sb-select { width: 100%; padding-right: 2.25rem; }
 .sb-section-select > svg { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); pointer-events: none; }
 @media (max-width: 640px) {
-  .sb-section-nav:not(.sb-section-nav-responsive) .sb-section-links { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--ui-surface-border-color); }
-  .sb-section-nav:not(.sb-section-nav-responsive) .sb-section-link[aria-current="page"]::before { inset: auto 0 0; width: auto; height: 2px; }
+  .sb-section-nav:not(.sb-section-nav-responsive) .sb-section-links { display: flex; flex-wrap: wrap; gap: 4px; }
 }
 
 .sb-tab[data-dirty]::after { content: ""; display: inline-block; width: 6px; height: 6px; margin-left: 0.5rem; border-radius: 50%; background: currentColor; vertical-align: middle; }
@@ -658,7 +771,7 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
   margin-block: 0.75rem;
   padding: 0.75rem;
   border: 1px solid var(--ui-surface-border-color);
-  border-radius: 2px;
+  border-radius: var(--ui-radius-xl);
 }
 .sb-search-model-name { font-weight: 600; }
 .sb-search-model-languages,
@@ -696,7 +809,7 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
 .sb-search-spaces-muted { color: var(--subtle-color); }
 .sb-search-spaces-footnote { margin-block: 0.4rem 0; color: var(--subtle-color); font-size: 13px; }
 /* A row's ⋯ menu (plug-api/ui/row_menu.tsx), fixed so a scrolling box doesn't clip it. */
-.sb-row-menu-trigger { font-size: 16px; line-height: 1; padding: 0.2em 0.45em; }
+.sb-row-menu-trigger { display: inline-flex; align-items: center; line-height: 1; padding: 0.3em 0.45em; }
 .sb-row-menu {
   position: fixed;
   z-index: 21;
@@ -711,13 +824,13 @@ a.sb-tab.sb-active { color: var(--ui-accent-color); }
   background: var(--modal-background-color);
   color: var(--modal-color);
   border: 1px solid var(--modal-border-color);
-  border-radius: 2px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-popover);
   &:focus { outline: none; }
   > button {
     padding: 6px 10px;
     border: 0;
-    border-radius: 2px;
+    border-radius: var(--ui-radius-sm);
     background: transparent;
     color: inherit;
     font: inherit;

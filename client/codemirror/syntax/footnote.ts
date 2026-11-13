@@ -112,13 +112,103 @@ function findFootnoteDef(
   return result;
 }
 
+/** Whether `from`–`to` holds a footnote reference or definition */
+function holdsFootnotes(state: EditorState, from: number, to: number) {
+  let found = false;
+  syntaxTree(state).iterate({
+    from,
+    to,
+    enter: ({ type }) => {
+      if (found) return false;
+      if (type.name === "FootnoteRef" || type.name === "FootnoteDefinition") {
+        found = true;
+      }
+    },
+  });
+  return found;
+}
+
 function footnoteRefDecorator(editorView: () => EditorView) {
-  return decoratorStateField((state) => {
+  // A reference resolves against definitions anywhere on the page
+  return decoratorStateField(
+    (state: EditorState, _tr, range) => {
+      const widgets: any[] = [];
+
+      syntaxTree(state).iterate({
+        from: range?.from,
+        to: range?.to,
+        enter: ({ type, from, to, node }) => {
+          if (type.name !== "FootnoteRef") {
+            return;
+          }
+
+          if (isCursorInRange(state, [from, to])) {
+            return;
+          }
+
+          const cursor = node.cursor();
+          let labelText = "";
+          cursor.firstChild();
+          do {
+            if (cursor.name === "FootnoteRefLabel") {
+              labelText = state.sliceDoc(cursor.from, cursor.to);
+              break;
+            }
+          } while (cursor.nextSibling());
+
+          if (labelText) {
+            const resolved = findFootnoteDef(state, labelText) !== null;
+            const refFrom = from;
+            widgets.push(
+              Decoration.replace({
+                widget: new FootnoteRefWidget(labelText, resolved, (e) => {
+                  const view = editorView();
+                  // The widget may be older than the last edits
+                  let shift = 0;
+                  try {
+                    shift = view.posAtDOM(e.currentTarget as Node) - refFrom;
+                  } catch {
+                    // Use the position it was built at
+                  }
+                  if (e.altKey || !resolved) {
+                    revealSource(
+                      view,
+                      { anchor: refFrom + shift + 2 },
+                      { from: refFrom + shift, to: to + shift },
+                    ); // after [^
+                    view.focus();
+                  } else {
+                    const def = findFootnoteDef(view.state, labelText);
+                    if (def) {
+                      view.dispatch({
+                        selection: { anchor: def.from },
+                        scrollIntoView: true,
+                      });
+                      view.focus();
+                    }
+                  }
+                }),
+              }).range(from, to),
+            );
+          }
+        },
+      });
+
+      return Decoration.set(widgets, true);
+    },
+    { pageWide: holdsFootnotes },
+  );
+}
+
+const inlineFootnoteDecorator = decoratorStateField(
+  (state: EditorState, _tr, range) => {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to, node }) => {
-        if (type.name !== "FootnoteRef") {
+        if (type.name !== "InlineFootnote") {
           return;
         }
 
@@ -127,40 +217,19 @@ function footnoteRefDecorator(editorView: () => EditorView) {
         }
 
         const cursor = node.cursor();
-        let labelText = "";
+        let content = "";
         cursor.firstChild();
         do {
-          if (cursor.name === "FootnoteRefLabel") {
-            labelText = state.sliceDoc(cursor.from, cursor.to);
+          if (cursor.name === "InlineFootnoteContent") {
+            content = state.sliceDoc(cursor.from, cursor.to);
             break;
           }
         } while (cursor.nextSibling());
 
-        if (labelText) {
-          const resolved = findFootnoteDef(state, labelText) !== null;
-          const refFrom = from;
+        if (content) {
           widgets.push(
             Decoration.replace({
-              widget: new FootnoteRefWidget(labelText, resolved, (e) => {
-                const view = editorView();
-                if (e.altKey || !resolved) {
-                  revealSource(
-                    view,
-                    { anchor: refFrom + 2 },
-                    { from: refFrom, to },
-                  ); // after [^
-                  view.focus();
-                } else {
-                  const def = findFootnoteDef(state, labelText);
-                  if (def) {
-                    view.dispatch({
-                      selection: { anchor: def.from },
-                      scrollIntoView: true,
-                    });
-                    view.focus();
-                  }
-                }
-              }),
+              widget: new InlineFootnoteWidget(content),
             }).range(from, to),
           );
         }
@@ -168,68 +237,38 @@ function footnoteRefDecorator(editorView: () => EditorView) {
     });
 
     return Decoration.set(widgets, true);
-  });
-}
+  },
+  {},
+);
 
-const inlineFootnoteDecorator = decoratorStateField((state) => {
-  const widgets: any[] = [];
+const footnoteDefDecorator = decoratorStateField(
+  (state: EditorState, _tr, range) => {
+    const widgets: any[] = [];
 
-  syntaxTree(state).iterate({
-    enter: ({ type, from, to, node }) => {
-      if (type.name !== "InlineFootnote") {
-        return;
-      }
-
-      if (isCursorInRange(state, [from, to])) {
-        return;
-      }
-
-      const cursor = node.cursor();
-      let content = "";
-      cursor.firstChild();
-      do {
-        if (cursor.name === "InlineFootnoteContent") {
-          content = state.sliceDoc(cursor.from, cursor.to);
-          break;
+    syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
+      enter: ({ type, from, to }) => {
+        if (type.name !== "FootnoteDefinition") {
+          return;
         }
-      } while (cursor.nextSibling());
 
-      if (content) {
-        widgets.push(
-          Decoration.replace({
-            widget: new InlineFootnoteWidget(content),
-          }).range(from, to),
-        );
-      }
-    },
-  });
+        const firstLine = state.doc.lineAt(from);
+        const lastLine = state.doc.lineAt(to);
+        for (let l = firstLine.number; l <= lastLine.number; l++) {
+          widgets.push(
+            Decoration.line({
+              class: "sb-footnote-def-line",
+            }).range(state.doc.line(l).from),
+          );
+        }
+      },
+    });
 
-  return Decoration.set(widgets, true);
-});
-
-const footnoteDefDecorator = decoratorStateField((state) => {
-  const widgets: any[] = [];
-
-  syntaxTree(state).iterate({
-    enter: ({ type, from, to }) => {
-      if (type.name !== "FootnoteDefinition") {
-        return;
-      }
-
-      const firstLine = state.doc.lineAt(from);
-      const lastLine = state.doc.lineAt(to);
-      for (let l = firstLine.number; l <= lastLine.number; l++) {
-        widgets.push(
-          Decoration.line({
-            class: "sb-footnote-def-line",
-          }).range(state.doc.line(l).from),
-        );
-      }
-    },
-  });
-
-  return Decoration.set(widgets, true);
-});
+    return Decoration.set(widgets, true);
+  },
+  {},
+);
 
 const footnoteTooltip = hoverTooltip((view, pos) => {
   const tree = syntaxTree(view.state);

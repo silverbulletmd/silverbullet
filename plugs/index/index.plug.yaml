@@ -234,6 +234,11 @@ functions:
     events:
       - editor:lint
 
+  lintThemeFonts:
+    path: lint.ts:lintThemeFonts
+    events:
+      - editor:lint
+
   lintObjects:
     path: lint.ts:lintObjects
     events:
@@ -286,6 +291,10 @@ functions:
       - page:click
   cycleTaskStateByRef:
     path: ./task.ts:cycleTaskStateByRef
+  knownTaskStates:
+    path: ./task.ts:knownTaskStates
+  setTaskStateAtPos:
+    path: ./task.ts:setTaskStateAtPos
   taskToggleCommand:
     path: ./task.ts:taskCycleCommand
     command:

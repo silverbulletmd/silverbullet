@@ -175,6 +175,11 @@ export function querySlashCommand(
   return {
     name: "Query…",
     description: "Build a query in the Workbench and insert it here",
+    icon: "search",
+    aliases: ["query", "database"],
+    group: "Insert",
+    priority: 40,
+    exceptContexts: ["FencedCode", "FrontMatter", "LuaDirective"],
     run: async () => {
       const head = client.editorView.state.selection.main.head;
       await showQueryEditor(client, builder, {

@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { createPageViaPagePicker } from "../fixtures/actions.ts";
+import { createPageViaPagePicker, docText } from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
@@ -19,12 +19,6 @@ async function selectText(page: Page, text: string): Promise<void> {
     });
     view.focus();
   }, text);
-}
-
-async function editorText(page: Page): Promise<string> {
-  return page.evaluate(() =>
-    (globalThis as any).client.editorView.state.doc.toString(),
-  );
 }
 
 test("a fresh space can be edited, saved and reopened", async ({
@@ -66,10 +60,10 @@ test.describe("formatting and search", () => {
 
     await selectText(page, "bold phrase");
     await page.keyboard.press(`${mod}+b`);
-    await expect.poll(() => editorText(page)).toContain("**bold phrase**");
+    await expect.poll(() => docText(page)).toContain("**bold phrase**");
     await selectText(page, "italic phrase");
     await page.keyboard.press(`${mod}+i`);
-    await expect.poll(() => editorText(page)).toContain("_italic phrase_");
+    await expect.poll(() => docText(page)).toContain("_italic phrase_");
     await selectText(page, "First item\nSecond item");
     await page.keyboard.press(shiftChord("8"));
 
@@ -94,7 +88,7 @@ test.describe("formatting and search", () => {
     await panel.locator('button[name="replaceAll"]').click();
 
     await expect
-      .poll(() => editorText(page))
+      .poll(() => docText(page))
       .toBe("green pear\ngreen pear pie\nblueberry\n");
     await waitForPersistedContent(
       sbServer,
@@ -137,7 +131,7 @@ test.describe("rich-text paste", () => {
     );
     await gotoSilverBulletPage(page, sbServer, "Paste");
     await expect
-      .poll(() => editorText(page))
+      .poll(() => docText(page))
       .toMatch(
         /\*\*Hello\*\* \*world\* \[Reference\]\(https:\/\/example\.com\)/,
       );

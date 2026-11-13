@@ -1,5 +1,5 @@
 import { isolateHistory } from "@codemirror/commands";
-import type { ChangeSet, Text } from "@codemirror/state";
+import { type ChangeSet, StateEffect, type Text } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
@@ -24,12 +24,14 @@ import type {
 import type { Client } from "./client.ts";
 import { diffAndPrepareChanges } from "./codemirror/cm_util.ts";
 import {
+  buildEditorExtensions,
   buildMarkdownLanguageExtension,
   createEditorState,
   createInactiveEditorState,
   type EditorMode,
   externalUpdate,
   forceParseVisibleRegion,
+  inactiveEditor,
 } from "./codemirror/editor_state.ts";
 import { externalSource } from "./codemirror/external_presence.ts";
 import {
@@ -46,6 +48,7 @@ import {
 } from "./document_editor_resolver.ts";
 import { computeExternalChanges } from "./external_merge.ts";
 import { parsePageMetaLastModified } from "./lib/page_meta.ts";
+import { recordMark } from "./lib/perf.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { browserMediaCapabilities, type MediaCapabilities } from "./media.ts";
 import { MediaDocumentViewer } from "./media_document_viewer.ts";
@@ -56,7 +59,6 @@ import {
   TextDocumentEditor,
   TextDocumentOpenError,
 } from "./text_document_editor.ts";
-import { recordMark } from "./lib/perf.ts";
 
 const frontMatterRegex = /^---\n(([^\n]|\n)*?)---\n/;
 
@@ -125,8 +127,30 @@ export class ContentManager {
     }
   }
 
+  /** Rebuild the editor's extensions from the current configuration */
   rebuildEditorState(): void {
     const editorView = this.client.editorView;
+    // Boot creates the editor only after the theme is applied, and the UI's
+    // first effects can run before that; the editor starts from the current
+    // options anyway
+    if (!editorView) return;
+    const mode = this.hostEditorMode;
+    if (mode && !editorView.state.facet(inactiveEditor)) {
+      // Reconfigure in place: a new state would drop the parse tree, the
+      // measured line heights and undo history, so the page loses its live
+      // preview past the first screen and jumps while scrolling. Widgets keep
+      // their elements; they render again in them, so their heights hold.
+      editorView.dispatch({
+        effects: StateEffect.reconfigure.of(
+          buildEditorExtensions(
+            this.client,
+            mode,
+            this.client.currentPageMeta()?.perm === "ro",
+          ),
+        ),
+      });
+      return;
+    }
     const previousSelection = editorView.state.selection;
     const previousScrollTop = editorView.scrollDOM.scrollTop;
     const previousScrollLeft = editorView.scrollDOM.scrollLeft;

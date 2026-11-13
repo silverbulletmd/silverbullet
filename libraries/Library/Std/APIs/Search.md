@@ -84,7 +84,7 @@ if modes then
       rememberPhrase = true,
       segments = {
         { label = "Content", default = true, placeholder = "Content" },
-        { label = "Tool", placeholder = "Tool Pages" },
+        { label = "Tool Pages", placeholder = "Tool Pages" },
         { label = "All", placeholder = "All Pages" },
       },
       dropdown = {
@@ -154,6 +154,7 @@ if modes then
   -- are read again on every opening.
   command.define {
     name = "Space: Search",
+    opensInput = true,
     menu = { location = "edit", group = "3_find", order = 2, label = "Search Space…" },
     key = "Ctrl-Shift-f",
     mac = "Cmd-Shift-f",
@@ -218,7 +219,7 @@ if relatedOk and relatedStatus and relatedStatus.backend == "semantic" then
     for _, m in ipairs(result.items) do
       local link = widget.markdown(markdown.link(m.page), { evaluate = false })
       local summary = widget.markdownSummary(m.excerpt or "", { sourcePage = m.page })
-      table.insert(lines, "* " .. link .. " " .. summary)
+      table.insert(lines, "* " .. link .. ": " .. summary)
     end
     return table.concat(lines, "\n")
   end

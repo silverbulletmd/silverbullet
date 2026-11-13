@@ -1,3 +1,5 @@
+import { APPLY_THEME_JS } from "../space_theme.ts";
+
 export const panelHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,9 +31,7 @@ globalThis.addEventListener("message", (message) => {
   switch (data.type) {
     case "html":
       document.body.innerHTML = data.html;
-      if(data.theme) {
-        document.getElementsByTagName("html")[0].setAttribute("data-theme", data.theme);
-      }
+      sbApplyTheme(data);
       if (data.script) {
         try {
           eval(data.script);
@@ -68,12 +68,13 @@ globalThis.addEventListener("message", (message) => {
 
       break;
     case "theme":
-      if (data.theme) {
-        document.documentElement.setAttribute("data-theme", data.theme);
-      }
+      sbApplyTheme(data);
       break;
   }
 });
+
+// Fills the #sb-theme container panelStyles() put in the HTML
+${APPLY_THEME_JS}
 
 function updateHeight() {
   const body = document.body, html = document.documentElement;

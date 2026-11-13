@@ -1,8 +1,11 @@
+import type { ThemeInfo } from "@silverbulletmd/silverbullet/lib/themes";
 import { collectTooling, type ToolBlock, type ToolingFile } from "./tooling.ts";
 
 export type Tooling = {
   scripts: ToolBlock[];
   styles: ToolBlock[];
+  themeStyles: ToolBlock[];
+  themes: ThemeInfo[];
   files: ToolingFile[];
 };
 

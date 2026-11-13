@@ -1,4 +1,6 @@
 @use "markdown_body" as mb;
+@use "editor_tables" as tables;
+@use "conflict_widget" as conflict;
 
 .cm-focused {
   outline: none !important;
@@ -41,10 +43,16 @@ $comment-border: 1px;
     max-width: var(--#{"editor-width"});
     padding: 5px 20px;
 
+    // With a mouse, a gutter wide enough for the ⋮ line handle (18px plus its
+    // 4px gap): at 20px a narrow window hid it on every line
+    @media (hover: hover) and (pointer: fine) {
+      padding-left: 28px;
+    }
+
     // One source column of block markup (indent, list and quote markers).
-    // A proportional theme can widen it through --editor-column-width; the
-    // list, quote and comment indents all follow.
-    --editor-column: var(--editor-column-width, 1ch);
+    // A space style can widen it through --editor-column-width; the list,
+    // quote and comment indents all follow.
+    --editor-column: var(--editor-column-width);
     --editor-base-font: 1em;
     --blockquote-bar: 2px;
     --blockquote-step: calc(2 * var(--editor-column));
@@ -83,21 +91,30 @@ $comment-border: 1px;
     background-color: var(--editor-directive-background-color);
   }
 
-  .sb-line-h1,
+  // Heading lines: ink at every level, size and weight carry the hierarchy
+  .sb-line-h1 {
+    font-size: 1.4em;
+    letter-spacing: -0.02em;
+  }
+
+  .sb-line-h2 {
+    font-size: 1.15em;
+    letter-spacing: -0.01em;
+  }
+
   h1 {
     font-size: 1.5em;
   }
 
-  .sb-line-h2,
   h2 {
     font-size: 1.2em;
   }
 
-  .sb-line-h3,
   h3 {
     font-size: 1.1em;
   }
 
+  .sb-line-h3,
   .sb-line-h4,
   h4,
   .sb-line-h5,
@@ -230,6 +247,11 @@ $comment-border: 1px;
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: pre;
+
+    // In the bullet colour, not the fainter source-markup grey
+    .sb-meta {
+      color: var(--editor-list-bullet-color);
+    }
   }
 
   .sb-col-slot .cm-list-bullet {
@@ -248,8 +270,43 @@ $comment-border: 1px;
   }
 
   .cm-tooltip-autocomplete {
+    border-radius: var(--ui-radius-lg);
+    padding: 4px;
+    box-shadow: var(--ui-shadow-popover);
+    overflow: hidden;
+
+    > ul {
+      font-family: var(--ui-font);
+      font-size: 0.85em;
+      // CodeMirror's 10em shows barely three two-line slash rows
+      max-height: min(24em, 50vh);
+
+      > li {
+        border-radius: var(--ui-radius-sm);
+        padding: 4px 8px 4px 4px;
+      }
+    }
+
     .sb-page-decoration-icon {
       margin-left: 5px;
+    }
+
+    // A slash menu row's icon, in front of its label
+    .sb-slash-icon {
+      display: inline-flex;
+      margin-left: 5px;
+      vertical-align: -0.2em;
+      opacity: 0.8;
+    }
+
+    // The slash menu's group headers ("Basic blocks", "Lists", …)
+    > ul > completion-section {
+      border-bottom: none;
+      padding: 8px 8px 2px;
+      font-family: var(--ui-font);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ui-label-color);
     }
 
     .cm-completionDetail {
@@ -262,6 +319,12 @@ $comment-border: 1px;
     .cm-completionLabel {
       display: inline-block;
       margin-left: 5px;
+    }
+
+    // Code (Lua) completions: the label in the code font, as it will be typed
+    li:has(.cm-completionIcon-lua) .cm-completionLabel {
+      font-family: var(--editor-monospace-font);
+      font-size: 0.95em;
     }
 
     .cm-completionIcon {
@@ -343,43 +406,34 @@ $comment-border: 1px;
     line-height: 1;
   }
 
-  // Safari fixes native checkboxes at ~13px regardless of CSS width. Draw a
-  // consistent box for both editor tasks and rendered Markdown.
+  // The checkbox itself is drawn by the shared rule in components.scss; in
+  // text it scales with the font. Rounded squares, round for tasks.
   input[type="checkbox"] {
-    appearance: none;
-    -webkit-appearance: none;
-    display: inline-block;
-    box-sizing: border-box;
-    width: 1.3em;
-    height: 1.3em;
-    margin: 0;
-    padding: 0;
-    border: 1.5px solid currentColor;
-    border-radius: 3px;
-    background: transparent;
-    cursor: pointer;
-    position: relative;
-    vertical-align: middle;
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.12em;
   }
 
-  input[type="checkbox"]:checked::after {
-    content: "";
-    position: absolute;
-    left: 28%;
-    top: 8%;
-    width: 32%;
-    height: 64%;
-    border: solid currentColor;
-    border-width: 0 1.5px 1.5px 0;
-    transform: rotate(45deg);
+  :is(.sb-checkbox, .sb-task) input[type="checkbox"] {
+    border-radius: 50%;
+    vertical-align: 0.02em;
+    margin: 0 0.15em 0 0;
   }
 
   .sb-hashtag,
   .hashtag {
-    border-radius: 6px;
+    border-radius: var(--editor-hashtag-border-radius);
     padding: 0 3px;
     margin: 0 1px 0 0;
     font-size: 0.9em;
+  }
+
+  // Hashtags as soft accent pills
+  .sb-hashtag[data-tag-name] {
+    font-size: 0.8em;
+    font-weight: 500;
+    padding: 2px 10px;
+    margin: 0 2px;
   }
 
   a.sb-hashtag {
@@ -430,12 +484,48 @@ $comment-border: 1px;
 
   .sb-wiki-link {
     border-radius: 5px;
-    // Cancel padding with negative margins to extend the chip background
-    // without moving adjacent text or growing the line.
-    padding: 0 5px;
-    margin: 0 -5px;
-    text-decoration: none;
+    font-weight: 500;
+    text-decoration: var(--editor-link-text-decoration);
+    text-underline-offset: 3px;
     cursor: pointer;
+  }
+
+  // Links in rendered widgets and tables: the same offset, so the underline clears the text
+  a.wiki-link {
+    text-underline-offset: 3px;
+  }
+
+  // External links: a dotted underline and an arrow, so they read apart from page links
+  .sb-naked-url,
+  :is(a.sb-link, .sb-lua-directive-block a, .sb-lua-directive-inline a, .sb-markdown-widget a, .sb-page-widget a)[href*="://"] {
+    text-decoration: underline dotted 1.5px color-mix(in srgb, var(--ui-accent-text-color) 40%, transparent);
+    text-underline-offset: 3px;
+
+    // A thin arrow drawn as a mask, so it keeps a light stroke whatever the font
+    &::after {
+      $arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M17 7 7 17M8 7h9v9'/%3E%3C/svg%3E");
+      // A plain inline box sized by padding: an inline-block would be an atomic
+      // inline, which always allows a line break before it, leaving the arrow
+      // alone at the start of the next line
+      content: "";
+      padding-left: 0.62em;
+      margin-left: 0.06em;
+      background-color: color-mix(in srgb, var(--ui-accent-text-color) 45%, var(--root-background-color));
+      -webkit-mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat;
+      mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat;
+    }
+  }
+
+  a.sb-link[href*="://"] .sb-link {
+    text-decoration: none;
+  }
+
+  // CodeMirror flanks every widget, including the empty ones that hide link
+  // markup, with zero-width <img> cursor anchors. An image always allows a line
+  // break on either side, so a comma after a link could wrap on its own. Out of
+  // flow, they keep their place for the caret but no longer offer a break.
+  .cm-widgetBuffer {
+    position: absolute;
   }
 
   .sb-lua-directive-inline {
@@ -455,7 +545,7 @@ $comment-border: 1px;
     display: inline-flex;
     align-items: center;
     gap: 0.4em;
-    color: var(--top-loading-color, #888);
+    color: var(--top-loading-color);
     opacity: 0.7;
     vertical-align: middle;
     animation: sb-loading-appear 0.2s ease-out 0.3s both;
@@ -505,6 +595,9 @@ $comment-border: 1px;
     width: var(--editor-column);
     text-align: center;
     letter-spacing: normal;
+    font-family: var(--ui-font);
+    font-size: 0.75em;
+    color: var(--subtle-color);
     cursor: pointer;
     opacity: 0.4;
     user-select: none;
@@ -516,6 +609,22 @@ $comment-border: 1px;
 
   .sb-task-deadline {
     background-color: rgba(22, 22, 22, 0.07);
+  }
+
+  // Custom task states, in the editor and in rendered widgets: a quiet label
+  // in the interface font, the brackets faint
+  .sb-task-slot .sb-atom,
+  .sb-task > .sb-task-mark {
+    color: var(--meta-subtle-color);
+  }
+
+  .sb-task-slot [data-task-state] .sb-task-state,
+  .sb-task > .sb-task-state {
+    font-family: var(--ui-font);
+    font-size: 0.72em;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: var(--ui-label-color);
   }
 
   .sb-line-frontmatter-outside,
@@ -561,72 +670,7 @@ $comment-border: 1px;
     }
   }
 
-  .sb-line-table-outside {
-    display: none;
-  }
-
-  .sb-line-tbl-header {
-    font-weight: bold;
-  }
-
-  .sb-line-tbl-header .meta {
-    font-weight: normal;
-  }
-
-  .sb-table-widget {
-    display: inline-block;
-    vertical-align: top;
-    width: 100%;
-    font-weight: normal;
-    overflow: auto;
-    border-radius: 4px 4px 0 0;
-  }
-
-  .sb-html-widget {
-    font-weight: normal;
-  }
-
-  .sb-html-widget-inline {
-    display: inline;
-  }
-
-  div.sb-html-widget {
-    display: block;
-  }
-
-  table {
-    width: 100%;
-    border-spacing: 0;
-    border-radius: 4px 4px 0 0;
-    overflow: hidden;
-  }
-
-  thead tr {
-    font-weight: bold;
-  }
-
-  thead tr td {
-    // Primarily to make the column headers look reasonable with the button bar that may be put on top
-    padding: 11px 8px;
-  }
-
-  th,
-  td {
-    padding: 8px;
-    white-space: nowrap;
-  }
-
-  .sb-table-align-left {
-    text-align: left;
-  }
-
-  .sb-table-align-right {
-    text-align: right;
-  }
-
-  .sb-table-align-center {
-    text-align: center;
-  }
+  @include tables.rules;
 
   // dont apply background color twice for (fenced) code blocks
   .sb-line-code .sb-code {
@@ -652,7 +696,8 @@ $comment-border: 1px;
   }
 
   // Code keeps a fixed-width face when the prose font is proportional: its
-  // alignment carries meaning.
+  // alignment carries meaning. Scaled to the prose's x-height, or a small-eyed
+  // serif makes code look a size bigger than the text around it.
   .sb-code,
   .sb-lua-directive-source,
   .sb-line-fenced-code,
@@ -660,10 +705,93 @@ $comment-border: 1px;
   .sb-frontmatter,
   .sb-line-tbl:not(:has(.sb-table-widget)) {
     font-family: var(--editor-monospace-font, monospace);
+    font-size-adjust: var(--editor-font-x-height, none);
+  }
+
+  // Scaled, inline code's text sits off the prose's baseline grid; at its own
+  // full line-height its inline box would then grow the line it's in.
+  .sb-code,
+  .sb-lua-directive-source {
+    line-height: 1;
+  }
+
+  // Attributes as quiet pills, in the editor font even in frontmatter
+  .sb-attribute {
+    font-size: 0.8em;
+    color: var(--subtle-color);
+    background: var(--ui-accent-surface-color);
+    box-shadow: inset 0 0 0 1px var(--ui-accent-muted-soft-color);
+    border-radius: var(--ui-radius-pill);
+    padding: 2px 10px;
+    margin: 0 2px;
+    white-space: nowrap;
+
+    > * {
+      font-family: var(--editor-font);
+      color: inherit;
+    }
+
+    .sb-meta {
+      display: none;
+    }
+
+    .sb-attribute-name::after {
+      content: ": ";
+    }
+
+    .sb-attribute-value {
+      color: var(--root-color);
+    }
   }
 
   .sb-line-fenced-code .sb-code {
     background-color: transparent;
+  }
+
+  // Inline code as a small rounded chip; a code block as one rounded card
+  .cm-line:not(.sb-line-fenced-code) .sb-code {
+    border-radius: 5px;
+    padding: 1px 5px;
+  }
+
+  .sb-highlight {
+    border-radius: 3px;
+    padding: 0 2px;
+  }
+
+  .cm-line:not(.sb-line-fenced-code) + .sb-line-fenced-code {
+    border-top-left-radius: var(--ui-radius-lg);
+    border-top-right-radius: var(--ui-radius-lg);
+  }
+
+  .sb-line-fenced-code:has(+ .cm-line:not(.sb-line-fenced-code)) {
+    border-bottom-left-radius: var(--ui-radius-lg);
+    border-bottom-right-radius: var(--ui-radius-lg);
+  }
+
+  // Code and raw frontmatter text sits inset in its card. Padding on the line
+  // itself keeps the background continuous; the indent is added to, so the
+  // negative text-indent still hangs wrapped rows under the first.
+  .cm-line:is(.sb-line-fenced-code, .sb-line-code, .sb-frontmatter):not(.sb-fenced-code-iframe, .sb-fenced-code-hide) {
+    padding-left: calc(var(--sb-indent) + 16px);
+    padding-right: 16px;
+
+    .sb-code-info,
+    .sb-frontmatter-marker {
+      padding-right: 0;
+    }
+  }
+
+  // Raw frontmatter as one rounded card, like a code block. Its first line is
+  // the document's first, so match on the frontmatter lines around it.
+  .cm-line.sb-frontmatter:not(.sb-frontmatter + .sb-frontmatter) {
+    border-top-left-radius: var(--ui-radius-lg);
+    border-top-right-radius: var(--ui-radius-lg);
+  }
+
+  .cm-line.sb-frontmatter:not(:has(+ .sb-frontmatter)) {
+    border-bottom-left-radius: var(--ui-radius-lg);
+    border-bottom-right-radius: var(--ui-radius-lg);
   }
 
   .sb-comment {
@@ -689,10 +817,16 @@ $comment-border: 1px;
     line-height: 0;
   }
 
-  .sb-lua-wrapper {
-    ::selection {
-      background-color: var(--editor-selection-background-color) !important;
-    }
+  // Native selection inside widgets and atomic links in the theme's colour.
+  // A focused one (a wiki link after a double- or right-click) otherwise gets
+  // CodeMirror's `:focus ::selection { Highlight }`, the system light blue,
+  // which swallows the link text in dark themes.
+  .sb-lua-wrapper ::selection,
+  .cm-content [contenteditable="false"] ::selection,
+  .cm-content [contenteditable="false"]::selection,
+  .cm-content :focus::selection,
+  .cm-content :focus ::selection {
+    background-color: var(--editor-selection-background-color) !important;
   }
 
   // An inline span around a block adds descent that CodeMirror offsetHeight
@@ -777,11 +911,13 @@ $comment-border: 1px;
       transition: opacity 0.12s;
     }
 
-    &:not(:hover):not(:focus-within) .sb-widget-menu-bar {
+    &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within)
+      .sb-widget-menu-bar {
       visibility: hidden;
     }
 
-    &:is(:hover, :focus-within) > .sb-object-preview-label {
+    &:is(:has(.sb-hover-revealed, [aria-expanded="true"]), :focus-within)
+      > .sb-object-preview-label {
       opacity: 0;
     }
 
@@ -803,7 +939,8 @@ $comment-border: 1px;
         margin-right: 0;
       }
 
-      &:not(:hover):not(:focus-within) .sb-widget-menu-bar {
+      &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within)
+        .sb-widget-menu-bar {
         visibility: visible;
       }
     }
@@ -818,27 +955,39 @@ $comment-border: 1px;
     user-select: none;
   }
 
-  // The ghost tag icon of a page without frontmatter: an overlay in the left
-  // padding, level with line 1's first row and as tall as it, styled like the
-  // form's add line. It reserves no space; the plugin places it and shows it
-  // on hover only.
-  .cm-scroller > .sb-frontmatter-ghost {
+  // The line handle: an overlay in the left padding, level with the first row
+  // of the hovered line and as tall as it: a bare, subtle icon button. It
+  // reserves no space; the plugin places and shows it.
+  .cm-scroller > .sb-line-handle {
     position: absolute;
     z-index: 2;
     display: flex;
     align-items: center;
     padding: 0 2px;
+    border: none;
+    background: none;
+    color: var(--subtle-color);
+    font: inherit;
     font-size: 0.9em;
     line-height: 1;
+    cursor: pointer;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.12s;
+
+    &:hover {
+      color: var(--root-color);
+    }
+
+    .sb-line-handle-icon {
+      display: block;
+    }
 
     &[hidden] {
       display: none;
     }
 
-    &.sb-frontmatter-ghost-shown {
+    &.sb-line-handle-shown {
       opacity: 1;
       pointer-events: auto;
     }
@@ -846,7 +995,7 @@ $comment-border: 1px;
 
   // Touch screens have no hover to reveal it
   @media (hover: none) {
-    .cm-scroller > .sb-frontmatter-ghost {
+    .cm-scroller > .sb-line-handle {
       display: none;
     }
   }
@@ -937,13 +1086,17 @@ $comment-border: 1px;
     }
   }
 
+  .sb-lua-directive-block {
+    border-radius: var(--ui-radius-lg);
+  }
+
   // An inline value's frame is a ring inside the text's own height: a border
   // and vertical padding made it taller than the line, so frames on adjacent
   // lines overlapped
   .sb-lua-directive-inline {
     padding: 0 2px;
     border: none;
-    box-shadow: inset 0 0 0 1px var(--editor-widget-background-color);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ui-surface-border-color), var(--subtle-color) 30%);
 
     // A child as wide as the line (a marquee, a full-width inline-block)
     // plus this padding would wrap the closing padding onto a line of its own
@@ -990,10 +1143,13 @@ $comment-border: 1px;
     background: var(--editor-widget-background-color);
     opacity: 0;
     pointer-events: none;
+    transition: opacity 0.12s;
   }
 
-  :is(.sb-lua-directive-block, .sb-lua-directive-inline):is(:hover, :focus-within)
-    .sb-widget-menu-bar,
+  // Shown once the mouse rests on its own widget (`installHoverReveal`), not
+  // on any hover: a nested widget's ⋯ shows apart from its parent's
+  :is(.sb-lua-directive-block, .sb-lua-directive-inline):is(.sb-hover-revealed, :focus-within)
+    > div > .sb-widget-menu-bar,
   .sb-widget-menu-bar:has([aria-expanded="true"]) {
     opacity: 1;
     pointer-events: auto;
@@ -1068,121 +1224,25 @@ $comment-border: 1px;
       background-color: var(--editor-code-background-color);
     }
 
-    button:not(.sb-button):not(.sb-button-primary):not(.sb-button-danger):not(.sb-button-icon) {
-      font-family: var(--editor-font);
-      font-size: inherit;
-      white-space: nowrap;
-    }
-
   }
 
-  .sb-lua-directive-inline:has(> button) {
+  // A control has its own frame: the ring around it would only collapse into
+  // stray bars beside it
+  .sb-lua-directive-inline:has(> button),
+  .sb-lua-directive-inline:has(:is(input, select, textarea, [contenteditable="true"])) {
     box-shadow: none;
     border-radius: 0;
   }
 
-  .sb-conflict-manual {
-    display: block;
-    white-space: normal;
-    padding: 6px 8px;
-    background-color: var(--alert-warning-background-color);
-    font-size: 0.85em;
-  }
+  .sb-lua-directive-inline:has(:is(input, select, textarea, [contenteditable="true"])) {
+    padding: 0;
 
-  .sb-conflict-widget {
-    display: block;
-    margin: 10px 0;
-    border: 1px solid var(--alert-warning-border-color);
-    border-radius: 5px;
-    overflow: hidden;
-    white-space: normal;
-  }
-
-  .sb-conflict-button-bar {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 8px;
-    background-color: var(--alert-warning-background-color);
-
-    button {
-      border: 1px solid var(--button-border-color);
-      border-radius: 4px;
-      background: var(--button-background-color);
-      color: var(--button-color);
-      cursor: pointer;
-      padding: 3px 8px;
-      font-family: var(--editor-font);
-      font-size: 0.85em;
-      white-space: nowrap;
-
-      &:hover {
-        background: var(--button-hover-background-color);
-      }
-    }
-
-    .sb-comment-label {
-      margin-left: auto;
-      float: none;
+    > * {
+      max-width: 100%;
     }
   }
 
-  .sb-conflict-prompt {
-    padding: 6px 8px 0;
-    font-size: 0.8em;
-    color: var(--editor-meta-color);
-  }
-
-  .sb-conflict-sections {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 1px;
-    background-color: var(--editor-widget-background-color);
-  }
-
-  .sb-conflict-section {
-    min-width: 0;
-    padding: 6px 8px;
-    background-color: var(--root-background-color);
-    cursor: pointer;
-
-    &:hover,
-    &:focus-visible {
-      background-color: var(--hover-background-color);
-      outline: 1px solid var(--action-button-hover-color);
-      outline-offset: -1px;
-    }
-  }
-
-  .sb-conflict-section-header {
-    margin-bottom: 4px;
-    font-size: 0.8em;
-    font-weight: 600;
-    color: var(--editor-meta-color);
-  }
-
-  .sb-conflict-section-hash {
-    margin-left: 6px;
-    font-weight: normal;
-    font-family: var(--editor-monospace-font, monospace);
-    font-size: 0.9em;
-    opacity: 0.6;
-  }
-
-  .sb-conflict-section-body {
-    margin: 0;
-    padding: 4px 6px;
-    max-height: 240px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    font-family: var(--editor-monospace-font, monospace);
-    font-size: 0.85em;
-    color: var(--editor-code-color);
-    background-color: var(--editor-code-background-color);
-    border-radius: 3px;
-  }
+  @include conflict.rules;
 
   .sb-inline-content>div>.content>* {
     max-width: 100%;
@@ -1192,6 +1252,44 @@ $comment-border: 1px;
   .sb-inline-content {
     margin: 0;
     overflow: hidden;
+  }
+
+  // Embeds (![[Page]], ![](image.png)): an image hugs its own size with
+  // rounded corners; a transcluded page is a padded surface card that names
+  // its source (data-sb-source, set in lua_widget.ts)
+  .sb-inline-content.sb-lua-directive-block {
+    border: 0;
+    min-height: 0;
+
+    &:has(> div > .content > :is(img, video)) {
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    > div > .content > :is(img, video) {
+      border-radius: var(--ui-radius-lg);
+      outline: 1px solid var(--ui-surface-border-color);
+      outline-offset: -1px;
+    }
+
+    &:not(:has(> div > .content > :is(img, video, audio, object))) {
+      padding: 10px 18px 12px;
+      background: var(--ui-accent-surface-color);
+      border: 1px solid var(--ui-surface-border-color);
+      border-radius: var(--ui-radius-xl);
+    }
+
+    &[data-sb-source]:not(:has(> div > .content > :is(img, video, audio, object)))::before {
+      content: "↳ " attr(data-sb-source);
+      display: block;
+      margin-bottom: 4px;
+      padding-right: 32px;
+      font: 500 12.5px/1.4 var(--ui-font);
+      color: var(--subtle-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 
   .sb-fenced-code-iframe {
@@ -1215,7 +1313,11 @@ $comment-border: 1px;
     border-left-style: solid;
     // Add the border gap without losing a nested admonition’s list indent.
     padding-left: calc(var(--sb-indent) + 5px);
+    padding-right: 14px;
     background-image: none;
+    // One tinted card per callout, with a bold title line in its tone
+    background-color: color-mix(in srgb, var(--admonition-color) 8%, var(--root-background-color));
+    color: var(--root-color);
 
     // The border replaces the quote spacer. Keep its inline box for posAtCoords,
     // but remove its width so the first row stays aligned.
@@ -1224,7 +1326,21 @@ $comment-border: 1px;
     }
   }
 
+  .sb-admonition-title {
+    background-color: color-mix(in srgb, var(--admonition-color) 8%, var(--root-background-color));
+    border-top-right-radius: var(--ui-radius-lg);
+    padding-top: 8px;
+    font-weight: 600;
+    color: color-mix(in oklab, var(--admonition-color), var(--root-color) 25%);
+  }
+
+  .sb-admonition:not(:has(+ .sb-admonition:not(.sb-admonition-title))) {
+    border-bottom-right-radius: var(--ui-radius-lg);
+    padding-bottom: 8px;
+  }
+
   .sb-admonition-type::before {
+    margin-right: 0.35em;
     content: "";
     mask: var(--admonition-icon) no-repeat;
     -webkit-mask: var(--admonition-icon) no-repeat;
@@ -1314,10 +1430,10 @@ $comment-border: 1px;
     gap: 0.5em;
     width: 100%;
     vertical-align: top;
-    font-size: 80%;
+    font-family: var(--ui-font);
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
+    color: var(--ui-label-color);
     -webkit-user-select: none;
     user-select: none;
 
@@ -1330,10 +1446,10 @@ $comment-border: 1px;
   }
 
   .sb-baked-label {
+    font-family: var(--ui-font);
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-    font-size: 85%;
+    color: var(--ui-label-color);
   }
 
   .sb-baked-expr {

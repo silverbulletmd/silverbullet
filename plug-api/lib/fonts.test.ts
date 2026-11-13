@@ -2,12 +2,16 @@ import { expect, test } from "vitest";
 import vectors from "./font_value_vectors.json" with { type: "json" };
 import {
   BUILTIN_FONTS,
+  clampXHeight,
+  defaultFontLabel,
   type FontEntry,
   fontSelectionFor,
   fontStylesheet,
   isSafeFontValue,
+  PROPORTIONAL_COLUMN,
   parseFontValue,
   resolveFamily,
+  UI_FONT,
 } from "./fonts.ts";
 
 const available = {
@@ -124,6 +128,18 @@ test("malformed faces are skipped rather than breaking the stylesheet", () => {
   expect(css).toContain("--editor-font:Odder, serif");
 });
 
+test("a proportional editor font narrows the source column; a monospace one keeps 1ch", () => {
+  const sel = (editor: string) =>
+    fontStylesheet(
+      { ui: ["inter"], editor: [editor], code: ["jetbrains-mono"], available },
+      "/",
+    );
+  expect(sel("inter")).toContain(
+    `--editor-column-width:${PROPORTIONAL_COLUMN}`,
+  );
+  expect(sel("jetbrains-mono")).not.toContain("--editor-column-width");
+});
+
 test("the editor size becomes --editor-font-size, in pixels", () => {
   const css = fontStylesheet(
     { ...fontSelectionFor({ editorSize: 21 }), available },
@@ -151,17 +167,37 @@ test("an editor size out of range or not a number is left out", () => {
   }
 });
 
-test("a selection falls back to the global default, never for code", () => {
-  expect(fontSelectionFor({ editor: "inter" }, "system-serif")).toEqual({
-    ui: ["system-serif"],
-    editor: ["inter", "system-serif"],
+test("a measured x-height becomes --editor-font-x-height", () => {
+  const sel = { ...fontSelectionFor({ editor: "inter" }), available };
+  expect(fontStylesheet(sel, "/", 0.4012)).toContain(
+    "--editor-font-x-height:0.401",
+  );
+  expect(fontStylesheet(sel, "/")).not.toContain("--editor-font-x-height");
+  expect(fontStylesheet(sel, "/", "1;}html{x:1" as any)).not.toContain(
+    "--editor-font-x-height",
+  );
+});
+
+test("an x-height is clamped to a sane range, and a failed one is dropped", () => {
+  expect(clampXHeight(0.4)).toBe(0.4);
+  expect(clampXHeight(0.1)).toBe(0.3);
+  expect(clampXHeight(0.95)).toBe(0.7);
+  for (const failed of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    expect(clampXHeight(failed), String(failed)).toBeUndefined();
+  }
+});
+
+test("a selection holds the space's own fonts", () => {
+  expect(fontSelectionFor({ editor: "inter" })).toEqual({
+    ui: ["inter"],
+    editor: ["inter"],
     code: [],
     editorSize: undefined,
-    available: {},
+    available: BUILTIN_FONTS,
   });
 });
 
-test("the font value check agrees with the server's, value for value", () => {
+test("the font value check accepts the safe vectors and rejects the unsafe ones", () => {
   for (const value of vectors.safe)
     expect(isSafeFontValue(value), value).toBe(true);
   for (const value of vectors.unsafe)
@@ -198,10 +234,78 @@ test("a fallback font's own files load when the slot falls back to it", () => {
   const css = fontStylesheet(
     fontSelectionFor(
       { ui: "inter", editor: "uninstalled", available: { ...available, lora } },
-      "lora",
+      { editor: "lora" },
     ),
     "/",
   );
   expect(css).toContain("--editor-font:Lora, Georgia, serif");
   expect(css).toContain('url("/.fs/Library/Fonts/Lora/Lora.ttf")');
+});
+
+test("a theme's suggestion fills a slot the space leaves unset", () => {
+  const theme = { ui: "system-sans", editor: "inter", code: "system-mono" };
+  expect(fontSelectionFor({}, theme)).toMatchObject({
+    ui: ["system-sans", "inter"],
+    editor: ["inter"],
+    code: ["system-mono"],
+  });
+});
+
+test("the interface font is the theme's, whatever the space says", () => {
+  expect(fontSelectionFor({ ui: "lora" }, { ui: "system-mono" }).ui).toEqual([
+    "system-mono",
+    UI_FONT,
+  ]);
+  expect(fontSelectionFor({ ui: "lora" }).ui).toEqual([UI_FONT]);
+});
+
+test("the space's own font beats the theme's suggestion", () => {
+  const sel = fontSelectionFor(
+    { editor: "jetbrains-mono", code: "inter" },
+    { editor: "inter", code: "system-mono" },
+  );
+  expect(sel.editor).toEqual(["jetbrains-mono", "inter"]);
+  expect(sel.code).toEqual(["inter", "system-mono"]);
+});
+
+test("a suggestion naming a missing font falls through to the built-in default", () => {
+  const sel = fontSelectionFor({ available }, { editor: "nonexistent" });
+  expect(resolveFamily(sel.editor, available)).toBe(
+    "'iA-Mono', Menlo, monospace",
+  );
+});
+
+test("the theme's editor size applies only when the space sets none", () => {
+  expect(fontSelectionFor({}, { editorSize: 20 }).editorSize).toBe(20);
+  expect(
+    fontSelectionFor({ editorSize: 16 }, { editorSize: 20 }).editorSize,
+  ).toBe(16);
+});
+
+test("with nothing set, code is iA Writer Mono and the size is the theme's", () => {
+  const sel = fontSelectionFor({ available });
+  expect(resolveFamily(sel.code, available)).toBe(
+    "'iA-Mono', Menlo, monospace",
+  );
+  expect(sel.editorSize).toBeUndefined();
+});
+
+const ink = { displayName: "Ink", fonts: { editor: "inter", code: "nope" } };
+
+test("the default label names a usable theme suggestion", () => {
+  expect(defaultFontLabel(available, "editor", ink)).toBe(
+    "Default (Inter, suggested by Ink)",
+  );
+});
+
+test("an unusable suggestion is not shown", () => {
+  expect(defaultFontLabel(available, "code", ink)).toBe(
+    "Default (iA Writer Mono)",
+  );
+});
+
+test("with nothing set the label is the built-in default", () => {
+  expect(defaultFontLabel({}, "editor", undefined)).toBe(
+    "Default (iA Writer Mono)",
+  );
 });

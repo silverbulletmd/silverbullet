@@ -143,7 +143,6 @@ impl MultiManager {
             server_config.runtime_idle_timeout.saturating_mul(60),
             std::sync::atomic::Ordering::SeqCst,
         );
-        *deps.default_font.write().unwrap() = server_config.default_font.clone();
         // Before any instance opens its index (see `search_policy::boot`).
         let deps = InstanceDeps {
             search: search_policy::boot(deps.search, &server_config, &config, config_exists),
@@ -234,15 +233,6 @@ impl MultiManager {
             .runtime_idle_timeout
     }
 
-    pub fn default_font(&self) -> Option<String> {
-        self.state
-            .lock()
-            .unwrap()
-            .server_config
-            .default_font
-            .clone()
-    }
-
     pub fn mcp_enabled(&self) -> bool {
         self.state.lock().unwrap().server_config.mcp
     }
@@ -292,9 +282,6 @@ impl MultiManager {
             }
             config.runtime_idle_timeout = minutes;
         }
-        if let Some(value) = patch.default_font {
-            config.default_font = value;
-        }
         config
             .validate(&inner.config)
             .map_err(ApiError::Validation)?;
@@ -329,7 +316,6 @@ impl MultiManager {
             config.runtime_idle_timeout * 60,
             std::sync::atomic::Ordering::SeqCst,
         );
-        *self.deps.default_font.write().unwrap() = config.default_font.clone();
         if !config.runtime_api {
             for instance in inner.instances.values() {
                 if let Some(runtime) = &instance.runtime {
@@ -883,7 +869,6 @@ mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
-            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Single(Some(

@@ -2,7 +2,11 @@ import { syntaxTree } from "@codemirror/language";
 import type { EditorState, Range } from "@codemirror/state";
 import { Decoration, WidgetType } from "@codemirror/view";
 import type { Client } from "../../client.ts";
-import { decoratorStateField, isCursorInRange } from "../util.ts";
+import {
+  decoratorStateField,
+  holdsOnlyInlines,
+  isCursorInRange,
+} from "../util.ts";
 
 class ResolveWidget extends WidgetType {
   constructor(
@@ -73,7 +77,9 @@ function decorateCommentRegions(state: EditorState, client: Client) {
   const decorations: Range<Decoration>[] = [];
   syntaxTree(state).iterate({
     enter: (node) => {
-      if (node.name !== "CommentBlock") return;
+      if (node.name !== "CommentBlock") {
+        return holdsOnlyInlines(node.type) ? false : undefined;
+      }
       const range: [number, number] = [node.from, node.to];
       const markers = node.node.getChildren("CommentMarker");
       // An unclosed comment yields only its opening marker, and it runs to the

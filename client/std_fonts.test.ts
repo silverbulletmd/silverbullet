@@ -17,17 +17,18 @@ async function stdConfig(extraLua = "") {
   return loadConfig([{ ref: "test", code: `${lua}\n${extraLua}` }], {}, false);
 }
 
-test("Std registers the built-in fonts, with only the code font defaulted", async () => {
+test("Std registers the built-in fonts, with no font setting defaulted, so a theme can suggest", async () => {
   const config = await stdConfig();
   expect(Object.keys(config.get("fonts.available", {})).sort()).toEqual([
     "ia-writer-mono",
     "inter",
+    "lora",
     "system-mono",
     "system-sans",
     "system-serif",
   ]);
-  expect(config.get("fonts.code", undefined)).toBe("ia-writer-mono");
-  expect(config.get("fonts.editorSize", undefined)).toBe(18);
+  expect(config.get("fonts.code", undefined)).toBeUndefined();
+  expect(config.get("fonts.editorSize", undefined)).toBeUndefined();
   expect(config.get("fonts.ui", undefined)).toBeUndefined();
   expect(config.get("fonts.editor", undefined)).toBeUndefined();
 });

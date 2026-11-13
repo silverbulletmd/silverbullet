@@ -156,9 +156,9 @@
   }
 
   .sb-wbo-heat {
-    --cell: 10px;
+    --sb-cell: 10px;
     display: grid;
-    grid-template-rows: auto repeat(7, var(--cell));
+    grid-template-rows: auto repeat(7, var(--sb-cell));
     // Keep cells at their size; the label column must not soak up the card's width
     justify-content: start;
     gap: 3px;
@@ -179,7 +179,7 @@
   .sb-wbo-heat-day {
     padding-right: 4px;
     font-size: 9px;
-    line-height: var(--cell);
+    line-height: var(--sb-cell);
   }
 
   .sb-wbo-heat-foot {
@@ -203,8 +203,8 @@
   }
 
   .sb-wbo-cell {
-    width: var(--cell, 10px);
-    height: var(--cell, 10px);
+    width: var(--sb-cell, 10px);
+    height: var(--sb-cell, 10px);
     padding: 0;
     border: 0;
     border-radius: 2px;

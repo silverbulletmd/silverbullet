@@ -18,6 +18,8 @@ export type Action<Deps> = {
   label: string;
   icon: WidgetActionId;
   run: (deps: Deps) => Promise<void>;
+  /** Why it can't run now: shown greyed out with this as its tooltip */
+  disabled?: string;
 };
 
 export async function copyText(client: Client, text: string): Promise<void> {

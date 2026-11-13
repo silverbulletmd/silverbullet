@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import { encodePageURI } from "@silverbulletmd/silverbullet/lib/ref";
 import { extractHashtag } from "../../../plug-api/lib/tags.ts";
@@ -7,10 +8,12 @@ import type { Client } from "../../client.ts";
 import { decoratorStateField } from "../util.ts";
 
 export function hashtagPlugin(client: Client) {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         if (type.name !== "Hashtag") {
           return;
@@ -45,5 +48,5 @@ export function hashtagPlugin(client: Client) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

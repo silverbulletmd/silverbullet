@@ -57,10 +57,12 @@ function extractAdmonitionFields(rawText: string): AdmonitionFields | null {
 }
 
 export function admonitionPlugin() {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node: SyntaxNodeRef) => {
         const { type, from, to } = node;
 
@@ -130,5 +132,5 @@ export function admonitionPlugin() {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

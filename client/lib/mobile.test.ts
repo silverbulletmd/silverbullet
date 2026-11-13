@@ -1,7 +1,10 @@
-import { afterEach, expect, test } from "vitest";
+// @vitest-environment happy-dom
+import { afterEach, expect, test, vi } from "vitest";
 import {
+  KEYBOARD_PRIME_MS,
   noteKeyboardActivity,
   noteSoftKeyboardVisible,
+  primeSoftKeyboard,
   resetModalFilterFocusForTests,
   shouldFocusModalFilter,
 } from "./mobile.ts";
@@ -146,6 +149,52 @@ test("a coarse pointer focuses while the on-screen keyboard is already up", () =
     noteSoftKeyboardVisible(false);
     expect(shouldFocusModalFilter()).toBe(false);
   } finally {
+    restore();
+  }
+});
+
+test("a primed keyboard lets a tap-opened modal focus its filter, then lapses", () => {
+  const restore = mockPointer("coarse");
+  vi.useFakeTimers();
+  try {
+    expect(shouldFocusModalFilter()).toBe(false);
+    primeSoftKeyboard();
+    expect(document.activeElement?.tagName).toBe("INPUT");
+    expect(shouldFocusModalFilter()).toBe(true);
+    vi.advanceTimersByTime(KEYBOARD_PRIME_MS);
+    expect(shouldFocusModalFilter()).toBe(false);
+    // Nothing took over, so the hidden input let go of the keyboard
+    expect(document.activeElement).toBe(document.body);
+  } finally {
+    vi.useRealTimers();
+    restore();
+  }
+});
+
+test("priming does nothing with a fine pointer", () => {
+  const restore = mockPointer("fine");
+  try {
+    const before = document.activeElement;
+    primeSoftKeyboard();
+    expect(document.activeElement).toBe(before);
+  } finally {
+    restore();
+  }
+});
+
+test("priming again restarts the wait, so an earlier tap's timer can't cut it short", () => {
+  const restore = mockPointer("coarse");
+  vi.useFakeTimers();
+  try {
+    primeSoftKeyboard();
+    vi.advanceTimersByTime(KEYBOARD_PRIME_MS - 100);
+    primeSoftKeyboard();
+    vi.advanceTimersByTime(200);
+    expect(shouldFocusModalFilter()).toBe(true);
+    vi.advanceTimersByTime(KEYBOARD_PRIME_MS);
+    expect(shouldFocusModalFilter()).toBe(false);
+  } finally {
+    vi.useRealTimers();
     restore();
   }
 });

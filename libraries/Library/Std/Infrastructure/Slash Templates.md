@@ -15,8 +15,13 @@ You can configure some specifics about your slash template in its template pageâ
 
 Optional keys:
 
+* `displayName`: The label shown in the menu instead of the name (which still finds it when typed)
 * `description`: The description of the slash command
-* `priority`: To prioritize the slash command higher in the list
+* `icon`: A Feather icon name, an `md-*` editor icon or inline `<svg>` markup
+* `aliases`: More words that find the slash command when typed after `/`
+* `group`: The menu section it's listed under, e.g. `Basic blocks`
+* `priority`: To prioritize the slash command higher in its group
+* `block`: `insert` to insert it as a block of its own (after the current line when that has text), or `convert` to turn the current line into it (the line's text goes where `|^|` is)
 * `onlyContexts` (advanced): To only make the slash command appear in certain (AST node based) contexts
 * `exceptContexts` (advanced): To make the slash command appear everywhere _except_ in these (AST node) contexts
 
@@ -42,8 +47,13 @@ tag.define {
           schema.string(),
         },
       },
+      displayName = schema.string(),
       description = schema.string(),
+      icon = schema.string(),
+      aliases = schema.array("string"),
+      group = schema.string(),
       priority = schema.number(),
+      block = { type = "string", enum = {"insert", "convert"} },
       onlyContexts = schema.array("string"),
       exceptContexts = schema.array("string"),
     },
@@ -59,13 +69,23 @@ local function defineSlashTemplates()
     local name = components[#components]
     slashCommand.define {
       name = name,
+      displayName = st.displayName,
       description = st.description,
+      icon = st.icon,
+      aliases = st.aliases,
+      group = st.group,
       priority = st.priority,
       onlyContexts = st.onlyContexts,
       exceptContexts = st.exceptContexts,
       run = function()
         local tpl = template.fromPage(st.name, st.raw)
-        editor.insertAtCursor(tpl(), false, true)
+        if st.block == "insert" then
+          slashCommand.insertBlock(tpl())
+        elseif st.block == "convert" then
+          slashCommand.convertLine(tpl())
+        else
+          editor.insertAtCursor(tpl(), false, true)
+        end
       end
     }
   end

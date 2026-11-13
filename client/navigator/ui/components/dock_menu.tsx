@@ -1,11 +1,11 @@
 import type { JSX } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { openPopupMenu } from "../../../components/popup_menu.ts";
-import { moveDock } from "../../navigator.ts";
 import {
   CHROME_ICON_PROPS,
   iconElement,
 } from "../../../components/chrome_icons.tsx";
+import { togglePopupMenu } from "../../../components/popup_menu.ts";
+import { moveDock } from "../../navigator.ts";
 
 const LABELS: Record<string, string> = {
   "page-top": "Top of page",
@@ -63,11 +63,7 @@ export function DockMenu({
         aria-haspopup="menu"
         onClick={(e) => {
           const button = e.currentTarget;
-          if (button.getAttribute("aria-expanded") === "true") {
-            close.current?.();
-            return;
-          }
-          close.current = openPopupMenu(
+          close.current = togglePopupMenu(
             button,
             supported.map((dock) => ({
               kind: "item" as const,
@@ -76,8 +72,10 @@ export function DockMenu({
               icon: iconElement(dockIcon(dock)),
               current: dock === current,
             })),
-            (dock) => {
-              if (dock !== current) void moveDock(name, dock);
+            {
+              onPick: (dock) => {
+                if (dock !== current) void moveDock(name, dock);
+              },
             },
           );
         }}

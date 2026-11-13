@@ -1,5 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
-import type { Range } from "@codemirror/state";
+import type { EditorState, Range } from "@codemirror/state";
 import { Decoration, WidgetType } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 import { isCheckboxState } from "../syntax/task.ts";
@@ -191,7 +191,7 @@ function pendingMarkerSlots(
  * difference (`pad`), accumulated over enclosing items.
  */
 export function listIndentPlugin() {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const doc = state.doc;
     const slice: Slice = (from, to) => doc.sliceString(from, to);
     const lines: Range<Decoration>[] = [];
@@ -210,6 +210,8 @@ export function listIndentPlugin() {
     // one (see `pendingMarkerSlots`).
     const paragraphRows: number[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to, node }) => {
         if (type.name === "Paragraph") {
           const first = doc.lineAt(from).number;
@@ -340,5 +342,5 @@ export function listIndentPlugin() {
       if (pending) slots.set(row, pending);
     }
     return Decoration.set([...lines, ...[...slots.values()].flat()], true);
-  });
+  }, {});
 }

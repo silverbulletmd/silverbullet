@@ -52,6 +52,12 @@
         box-sizing: border-box;
         position: relative;
 
+        // Lines up with the editor's wider left gutter with a mouse (the ⋮
+        // line handle's room, see .cm-content in editor.scss)
+        @media (hover: hover) and (pointer: fine) {
+          padding-left: 28px;
+        }
+
       }
     }
 
@@ -65,10 +71,39 @@
 
       -webkit-app-region: drag;
 
+      .sb-page-name {
+        position: relative;
+        display: block;
+      }
+
+      .sb-page-name:not(.sb-page-name-focused) .sb-input {
+        color: transparent;
+      }
+
+      .sb-page-name-display {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        font-family: var(--ui-font);
+        font-size: inherit;
+        font-weight: bold;
+        letter-spacing: -0.02em;
+        line-height: 1.35;
+        white-space: pre;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sb-page-name-folder {
+        color: var(--top-page-folder-color);
+        font-weight: var(--top-page-folder-font-weight);
+      }
+
       .sb-input {
         font-family: var(--ui-font);
         font-size: inherit;
         font-weight: bold;
+        letter-spacing: -0.02em;
         line-height: 1.35;
         color: inherit;
         background-color: transparent;
@@ -181,6 +216,11 @@
 }
 
 @media only screen and (max-width: 600px) {
+
+  // On a phone the page name matters more than its folder
+  #sb-top .main #sb-current-page .sb-page-name-folder {
+    display: none;
+  }
 
   #sb-top .sb-mobile-dock-button {
     display: grid;
@@ -307,17 +347,19 @@
       (var(--sb-editor-pane-width, 100vw) - var(--#{"editor-width"})) / 2 + 20px));
   top: 60px;
 
-  font-size: 15px;
+  font-size: var(--ui-font-size-sm);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 
+  // Small cards; a coloured dot (colors.scss) marks the kind
   >div {
     pointer-events: auto;
-    padding: 3px 8px;
-    margin-bottom: 3px;
-    border-radius: 0;
+    padding: 8px 12px 8px 14px;
+    margin-bottom: 6px;
+    border-radius: var(--ui-radius-lg);
+    box-shadow: var(--ui-shadow-card);
     display: flex;
     align-items: center;
     gap: 8px;

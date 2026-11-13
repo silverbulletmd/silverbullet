@@ -1,55 +1,30 @@
 // @vitest-environment happy-dom
 import { expect, test } from "vitest";
-import { widgetMenuEntries } from "./widget_menu.ts";
+import { type WidgetCaps, widgetMenuEntries } from "./widget_menu.ts";
 
-const base = {
+const base: WidgetCaps = {
   definition: false,
   open: false,
   edit: true,
-  query: false,
   copy: true,
-  bake: true,
   remove: false,
 };
-const labels = (caps: any) =>
+const labels = (caps: WidgetCaps) =>
   widgetMenuEntries(caps).map((e) =>
-    e.kind === "item" ? e.label : e.kind === "separator" ? "—" : e.text,
+    e.kind === "separator" ? "—" : e.kind === "info" ? e.text : e.label,
   );
 
-test("a plain ${…} widget", () => {
-  expect(labels(base)).toEqual([
-    "Edit source",
-    "Reload",
-    "Copy as Markdown",
-    "—",
-    "Bake into page",
-  ]);
-});
-
-test("a query widget offers the query builder after Edit source", () => {
-  expect(labels({ ...base, query: true }).slice(0, 2)).toEqual([
-    "Edit source",
-    "Edit in query builder",
-  ]);
-});
-
-test("the menu has no live entries and always says Reload", () => {
-  const texts = labels(base);
-  expect(texts).toContain("Reload");
-  expect(texts.join(" ")).not.toMatch(/live|static|Reload now/i);
+test("a code widget", () => {
+  expect(labels(base)).toEqual(["Edit source", "Copy as Markdown"]);
 });
 
 test("an HTML-only widget in read-only mode", () => {
-  expect(labels({ ...base, copy: false, bake: false })).toEqual([
-    "Edit source",
-    "Reload",
-  ]);
+  expect(labels({ ...base, edit: false, copy: false })).toEqual([]);
 });
 
 test("a deletable object ends with Delete, apart from the rest", () => {
-  expect(labels({ ...base, copy: false, bake: false, remove: true })).toEqual([
+  expect(labels({ ...base, copy: false, remove: true })).toEqual([
     "Edit source",
-    "Reload",
     "—",
     "Delete",
   ]);

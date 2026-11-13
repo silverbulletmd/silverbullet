@@ -1,10 +1,11 @@
-import type { Client } from "./client.ts";
 import { timeout } from "@silverbulletmd/silverbullet/lib/async";
-import type { DocumentMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
-import documentEditorJS from "./document_editor_js.ts";
 import type { DocumentEditorContent } from "@silverbulletmd/silverbullet/type/client";
+import type { DocumentMeta } from "@silverbulletmd/silverbullet/type/index";
+import type { Client } from "./client.ts";
+import documentEditorJS from "./document_editor_js.ts";
 import type { DocumentEditorResolution } from "./document_editor_resolver.ts";
+import { applyThemeMessage, type ThemeMessage } from "./space_theme.ts";
 
 export type ActiveDocumentEditor = {
   name: string;
@@ -48,7 +49,10 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
     this.messageListener = (event) => void this.handleMessage(event);
     globalThis.addEventListener("message", this.messageListener);
 
-    const { iframe, ready } = IFrameDocumentEditor.createIframe(content);
+    const { iframe, ready } = IFrameDocumentEditor.createIframe(
+      content,
+      this.client.spaceTheme.message,
+    );
     this.iframe = iframe;
 
     this.parent.appendChild(this.iframe);
@@ -196,13 +200,14 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
     this.sendMessage({
       type: "set-theme",
       internal: true,
-      data: {
-        theme: this.client.ui.viewState.uiOptions.darkMode ? "dark" : "light",
-      },
+      data: this.client.spaceTheme.message,
     });
   }
 
-  private static createIframe(content: DocumentEditorContent): {
+  private static createIframe(
+    content: DocumentEditorContent,
+    theme: ThemeMessage,
+  ): {
     iframe: HTMLIFrameElement;
     ready: Promise<void>;
   } {
@@ -235,10 +240,8 @@ export class IFrameDocumentEditor implements ActiveDocumentEditor {
     base.href = document.baseURI;
     doc.head.prepend(base);
 
-    // This isn't great, but the only way to get the up-to-date theme without
-    // using media queries
-    const theme = document.querySelector("html")?.getAttribute("data-theme");
-    doc.querySelector("html")!.setAttribute("data-theme", theme ?? "light");
+    // Later changes come as `set-theme` messages
+    applyThemeMessage(theme, doc);
 
     const iframe = document.createElement("iframe");
     iframe.srcdoc = doc.documentElement.outerHTML;

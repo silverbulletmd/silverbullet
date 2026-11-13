@@ -4,6 +4,7 @@
   color: var(--root-color);
 }
 
+// Beats CodeMirror's injected cursor colour.
 .cm-cursor,
 .cm-dropCursor {
   border-left: 1.2px solid var(--editor-caret-color) !important;
@@ -63,6 +64,13 @@
     background-color: var(--panel-background-color);
   }
 
+  // Side panels start below the borderless top bar; a hairline marks where they meet it
+  >.sb-panel,
+  >.sb-nav-root-lhs,
+  >.sb-nav-root-rhs {
+    border-top: 1px solid var(--ui-surface-border-color);
+  }
+
   // --panel-border-color is white in the light theme and cannot separate a dock
   // from the editor.
   .sb-nav-root-lhs {
@@ -80,11 +88,29 @@
 }
 
 .sb-notifications {
-  font-family: var(--editor-font);
+  font-family: var(--ui-font);
 }
 
 .sb-notifications>div {
   border: var(--notifications-border-color) 1px solid;
+  color: var(--root-color);
+
+  &::before {
+    content: "";
+    flex: 0 0 auto;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--alert-info-color);
+  }
+}
+
+.sb-notifications>.sb-notification-error::before {
+  background: var(--alert-error-color);
+}
+
+.sb-notifications>.sb-notification-warning::before {
+  background: var(--alert-warning-color);
 }
 
 .sb-notification-info {
@@ -128,7 +154,7 @@
   color: var(--modal-color);
   background-color: var(--modal-background-color);
   border: var(--modal-border-color) 1px solid;
-  box-shadow: rgba(0, 0, 0, 0.35) 0px 20px 20px;
+  box-shadow: 0 24px 60px var(--modal-shadow-color);
 }
 
 #sb-editor {
@@ -140,22 +166,122 @@
     background-color: var(--editor-selection-background-color);
   }
 
+  // Inline widgets inside a selection (see selected_widgets.ts), which the
+  // selection layer leaves out
+  .sb-widget-selected {
+    background-color: var(--editor-selection-background-color);
+    border-radius: 0;
+  }
+
+  // CodeMirror's own find colours are fixed yellow/orange (light) and
+  // cyan/magenta (dark), whatever the theme.
+  .cm-searchMatch {
+    background-color: var(--editor-search-match-background-color);
+  }
+
+  .cm-searchMatch-selected {
+    background-color: var(--editor-search-match-selected-background-color);
+  }
+
   .cm-panels-bottom {
     color: var(--editor-panels-bottom-color);
     background-color: var(--editor-panels-bottom-background-color);
     border-top: var(--editor-panels-bottom-border-color) 1px solid;
 
+    // Find/replace and Go to line: the same inputs and buttons as .sb-input
+    // and a plain .sb-button, over CodeMirror's gradient base theme.
+    .cm-search,
+    .cm-dialog {
+      font-family: var(--ui-font);
+      font-size: var(--ui-font-size-sm);
+    }
+
     .cm-search {
-      .cm-textfield {
-        background-color: var(--editor-panels-bottom-input-background-color);
+      padding: 8px 44px 8px 12px;
+
+      input,
+      button,
+      label {
+        margin: 3px 6px 3px 0;
+      }
+    }
+
+    .cm-textfield {
+      font: inherit;
+      padding: 0.45em 0.8em;
+      color: var(--root-color);
+      background-color: var(--editor-panels-bottom-input-background-color);
+      border: 1px solid var(--ui-surface-border-color);
+      border-radius: var(--ui-radius-md);
+
+      &:focus-visible {
+        outline: none;
+        border-color: var(--ui-accent-color);
+        box-shadow: 0 0 0 3px var(--tone-accent-soft);
+      }
+    }
+
+    .cm-button {
+      font: inherit;
+      font-weight: 500;
+      padding: 0.45em 1em;
+      color: var(--root-color);
+      background: var(--root-background-color);
+      border: 1px solid var(--ui-surface-border-color);
+      border-radius: var(--ui-radius-md);
+      cursor: pointer;
+
+      &:hover {
+        background: var(--ui-accent-surface-color);
       }
 
-      .cm-button {
-        background-image: var(--editor-panels-bottom-button-background-image);
+      &:active {
+        background: var(--tone-accent-soft);
+      }
 
-        &:active {
-          background-image: var(--editor-panels-bottom-button-active-background-image);
-        }
+      &:focus-visible {
+        outline: var(--ui-focus-ring);
+        outline-offset: 1px;
+      }
+    }
+
+    .cm-search label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 6px;
+      font-size: 12.5px;
+      color: var(--subtle-color);
+      vertical-align: middle;
+      cursor: pointer;
+
+      input[type="checkbox"] {
+        margin: 0;
+      }
+    }
+
+    .cm-search button[name="close"] {
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      display: grid;
+      place-content: center;
+      width: 28px;
+      height: 28px;
+      margin: 0;
+      border-radius: var(--ui-radius-sm);
+      font-size: 18px;
+      line-height: 1;
+      color: var(--subtle-color);
+      cursor: pointer;
+
+      &:hover {
+        background: var(--tone-accent-soft);
+        color: var(--root-color);
+      }
+
+      &:focus-visible {
+        outline: var(--ui-focus-ring);
       }
     }
   }
@@ -163,6 +289,8 @@
   .cm-editor .cm-tooltip-autocomplete {
     background-color: var(--root-background-color);
     color: var(--modal-color);
+    // CodeMirror's own border is light-only: in dark the popup would melt into the page
+    border: 1px solid var(--modal-border-color);
 
     li .cm-completionDetail {
       color: var(--editor-completion-detail-color);
@@ -173,15 +301,25 @@
       color: var(--editor-completion-detail-selected-color);
     }
 
+    ul li[aria-selected] {
+      background: var(--editor-completion-selected-background-color);
+      color: var(--editor-completion-selected-color);
+    }
+
     ul:hover li[aria-selected] {
       background: transparent;
       color: var(--modal-color);
     }
 
+    // Its detail loses the fill too, or it stays light text on the page colour
+    ul:hover li[aria-selected]:not(:hover) .cm-completionDetail {
+      color: var(--editor-completion-detail-color);
+    }
+
     ul li:hover,
     ul li[aria-selected]:hover {
-      background: #17c;
-      color: white;
+      background: var(--editor-completion-selected-background-color);
+      color: var(--editor-completion-selected-color);
     }
   }
 
@@ -214,6 +352,27 @@
   background-color: var(--editor-hashtag-background-color);
   border: 1px solid var(--editor-hashtag-border-color);
   cursor: pointer;
+}
+
+// Plain buttons a widget renders, such as widgets.button and
+// widgets.commandButton: soft accent pills in the interface font. Zero
+// specificity, so a widget's own styles and space-style rules still win.
+:where(.sb-markdown-widget, .sb-lua-directive-block, .sb-lua-directive-inline) :where(button:not([class])) {
+  font-family: var(--ui-font);
+  font-size: 0.85em;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: var(--ui-radius-md);
+  background: var(--tone-accent-soft);
+  color: var(--ui-accent-text-color);
+  cursor: pointer;
+}
+
+:where(.sb-lua-directive-inline) :where(button:not([class]):hover) {
+  background: var(--ui-accent-color);
+  color: var(--ui-accent-contrast-color);
 }
 
 .sb-at-mention {
@@ -380,13 +539,13 @@ tbody tr:nth-of-type(even) {
 }
 
 .sb-deleted {
-  color: var(--editor-code-deleted-color, #dc2626);
-  background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));
+  color: var(--editor-code-deleted-color);
+  background-color: var(--editor-code-deleted-bg);
 }
 
 .sb-inserted {
-  color: var(--editor-code-inserted-color, #16a34a);
-  background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
+  color: var(--editor-code-inserted-color);
+  background-color: var(--editor-code-inserted-bg);
 }
 
 .sb-admonition {
@@ -452,6 +611,12 @@ a,
   color: var(--editor-code-atom-color);
 }
 
+// Raw frontmatter: YAML keys are labels, so ink rather than the code atom red
+.cm-line.sb-frontmatter :is(.sb-atom, .sb-attribute-name) {
+  color: var(--ui-label-color);
+  font-weight: 600;
+}
+
 .sb-page-var-tag {
   color: var(--editor-page-var-tag-color);
   background-color: var(--editor-page-var-tag-background-color);
@@ -495,7 +660,7 @@ a.sb-wiki-link-ambiguous,
   border-radius: 3px;
   padding: 0 2px;
   font-size: 0.75em;
-  background-color: #f3eeee;
+  background-color: var(--subtle-background-color);
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
@@ -503,13 +668,40 @@ a.sb-wiki-link-ambiguous,
 }
 
 .sb-footnote-ref-unresolved {
-  color: var(--editor-error-color, #d32f2f);
-  border-color: var(--editor-error-color, #d32f2f);
-  background-color: rgba(211, 47, 47, 0.1);
+  color: var(--editor-error-color);
+  border-color: var(--editor-error-color);
+  background-color: color-mix(in srgb, var(--editor-error-color) 10%, transparent);
+}
+
+/* Footnote previews read like the page they come from */
+.sb-footnote-tooltip {
+  font-family: var(--editor-font);
+  font-size: calc(var(--editor-font-size) * 0.85);
+  line-height: 1.5;
+  max-width: 36em;
+  padding: 10px 14px;
+  color: var(--root-color);
+  background: var(--root-background-color);
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-card);
+
+  > :first-child {
+    margin-top: 0;
+  }
+
+  > :last-child {
+    margin-bottom: 0;
+  }
+}
+
+.cm-tooltip:has(> .sb-footnote-tooltip) {
+  border: 0;
+  background: transparent;
 }
 
 .sb-footnote-tooltip-error {
-  color: var(--editor-error-color, #d32f2f);
+  color: var(--editor-error-color);
 }
 
 .sb-line-comment {

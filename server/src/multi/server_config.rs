@@ -25,11 +25,8 @@ pub struct ServerConfig {
     /// Omitted on save when unset, so saving never writes the defaults into `server.json`.
     #[serde(default, skip_serializing_if = "SearchConfig::is_default")]
     pub search: SearchConfig,
-    /// The font (a `fonts.available` key or a CSS font-family) for pages with
-    /// no space, and the interface and editor font of any space that sets
-    /// none of its own. Unset means each space's built-in default.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub default_font: Option<String>,
+    /// Settings this version does not know, kept on save. A `defaultFont`
+    /// from versions with a server-wide default font lands here, ignored.
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
@@ -54,32 +51,7 @@ impl SearchConfig {
     }
 }
 
-/// The client's rule for a font value it writes into a `<style>` element
-/// (`isSafeFontValue` in `plug-api/lib/fonts.ts`): names, spaces, commas and
-/// hyphens, with quotes in pairs, so nothing can end the declaration or open
-/// a string. Both sides test against `plug-api/lib/font_value_vectors.json`.
-pub fn is_safe_font_value(value: &str) -> bool {
-    let count = value.chars().count();
-    (1..=200).contains(&count)
-        && value
-            .chars()
-            .all(|c| c.is_alphanumeric() || matches!(c, ' ' | '_' | ',' | '\'' | '"' | '-'))
-        && value.matches('\'').count().is_multiple_of(2)
-        && value.matches('"').count().is_multiple_of(2)
-}
-
-/// A default font setting as stored: trimmed, blank as unset, and only a
-/// value the client can use. Server and Desktop both store it this way.
-pub fn normalize_font_value(value: Option<&str>) -> Result<Option<String>, String> {
-    match value.map(str::trim).filter(|value| !value.is_empty()) {
-        None => Ok(None),
-        Some(value) if is_safe_font_value(value) => Ok(Some(value.to_owned())),
-        Some(_) => Err("default font must be a font name or a CSS font-family of letters, digits, spaces, quotes, hyphens and commas".into()),
-    }
-}
-
 /// A change to some server settings: each field left `None` stays as it is.
-/// `default_font: Some(None)` clears the default font.
 #[derive(Debug, Default)]
 pub struct ServerConfigPatch {
     pub primary_url: Option<String>,
@@ -87,7 +59,6 @@ pub struct ServerConfigPatch {
     pub runtime_api: Option<bool>,
     pub mcp: Option<bool>,
     pub runtime_idle_timeout: Option<u64>,
-    pub default_font: Option<Option<String>>,
 }
 
 fn default_true() -> bool {
@@ -115,7 +86,6 @@ impl Default for ServerConfig {
             runtime_idle_timeout: DEFAULT_RUNTIME_IDLE_TIMEOUT,
             mcp: false,
             search: SearchConfig::default(),
-            default_font: None,
             extra: BTreeMap::new(),
         }
     }
@@ -150,13 +120,6 @@ impl ServerConfig {
                 message: "server name must contain between 1 and 100 characters".into(),
             }]);
         }
-        self.default_font =
-            normalize_font_value(self.default_font.as_deref()).map_err(|message| {
-                vec![FieldError {
-                    field: "defaultFont".into(),
-                    message,
-                }]
-            })?;
         let Some(value) = &self.primary_url else {
             return Ok(());
         };
@@ -236,48 +199,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_font_value_check_agrees_with_the_client_value_for_value() {
-        let vectors: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../plug-api/lib/font_value_vectors.json"
-        ))
-        .unwrap();
-        for (list, expected) in [("safe", true), ("unsafe", false)] {
-            for value in vectors[list].as_array().unwrap() {
-                let value = value.as_str().unwrap();
-                assert_eq!(is_safe_font_value(value), expected, "{value:?}");
-            }
-        }
-        assert!(is_safe_font_value(&"a".repeat(200)));
-        assert!(!is_safe_font_value(&"a".repeat(201)));
-    }
-
-    #[test]
-    fn default_font_is_omitted_when_unset_and_validated_when_set() {
-        let config: ServerConfig = serde_json::from_str("{}").unwrap();
-        assert!(config.default_font.is_none());
-        assert!(serde_json::to_value(&config)
-            .unwrap()
-            .get("defaultFont")
-            .is_none());
-
-        let mut config: ServerConfig =
-            serde_json::from_str(r#"{"defaultFont":"  inter "}"#).unwrap();
+    fn a_legacy_default_font_loads_and_is_ignored() {
+        let mut config: ServerConfig = serde_json::from_str(r#"{"defaultFont":"inter"}"#).unwrap();
         config.validate(&MultiConfig::default()).unwrap();
-        assert_eq!(config.default_font.as_deref(), Some("inter"));
-        assert_eq!(
-            serde_json::to_value(&config).unwrap()["defaultFont"],
-            "inter"
-        );
-
-        let mut blank: ServerConfig = serde_json::from_str(r#"{"defaultFont":"  "}"#).unwrap();
-        blank.validate(&MultiConfig::default()).unwrap();
-        assert!(blank.default_font.is_none());
-
-        // It lands in a <style> element: nothing that could close a declaration.
-        let mut bad: ServerConfig =
-            serde_json::from_str(r#"{"defaultFont":"x; } body { display:none"}"#).unwrap();
-        let errors = bad.validate(&MultiConfig::default()).unwrap_err();
-        assert_eq!(errors[0].field, "defaultFont");
+        assert_eq!(config.extra["defaultFont"], "inter");
     }
 
     #[test]

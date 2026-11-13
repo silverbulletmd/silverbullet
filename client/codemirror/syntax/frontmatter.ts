@@ -53,11 +53,13 @@ export function shouldRenderFrontmatterLivePreview({
 }
 
 export function frontmatterPlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     const shortWikiLinks = client.config.get("shortWikiLinks", true);
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter(node) {
         if (node.name === "FrontMatterMarker") {
           const parent = node.node.parent!;
@@ -228,5 +230,5 @@ export function frontmatterPlugin(client: Client) {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

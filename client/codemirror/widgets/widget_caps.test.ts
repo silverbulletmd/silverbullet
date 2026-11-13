@@ -1,6 +1,6 @@
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import { expect, test } from "vitest";
-import { type ShownValue, widgetCaps } from "./lua_widget.ts";
+import { type ShownValue, shownCaps, widgetCaps } from "./lua_widget.ts";
 
 const shown: ShownValue = {
   kind: "markdown",
@@ -11,52 +11,22 @@ const shown: ShownValue = {
 const env = { readOnly: false };
 const ref = { path: "Library/Sketch.md" } as Ref;
 
-test("a ${…} directive offers everything", () => {
-  expect(widgetCaps({ kind: "directive", wrappers: [] }, shown, env)).toEqual({
+test("read-only keeps Copy and drops editing", () => {
+  const code = { kind: "code" as const, codeText: "x" };
+  expect(widgetCaps(code, shown, env)).toEqual({
     definition: false,
     open: false,
     edit: true,
-    query: false,
     copy: true,
-    bake: true,
     remove: false,
   });
-});
-
-test("a query[[…]] directive can be opened in the query builder", () => {
-  const d = { kind: "directive" as const, wrappers: [] };
-  const q = 'query[[from t = index.tag "task"]]';
-  expect(widgetCaps(d, shown, { ...env, expression: q }).query).toBe(true);
-  expect(widgetCaps(d, shown, { ...env, expression: ` ${q}` }).query).toBe(
-    true,
-  );
-  expect(widgetCaps(d, shown, { ...env, expression: "1 + 1" }).query).toBe(
-    false,
-  );
-  // Not when read-only, nor for an assignment, whose name would be lost
-  expect(widgetCaps(d, shown, { readOnly: true, expression: q }).query).toBe(
-    false,
-  );
-  expect(
-    widgetCaps({ ...d, label: "open" }, shown, { ...env, expression: q }).query,
-  ).toBe(false);
-});
-
-test("read-only keeps Copy and drops editing", () => {
-  const caps = widgetCaps({ kind: "directive", wrappers: [] }, shown, {
-    ...env,
-    readOnly: true,
+  expect(widgetCaps(code, shown, { readOnly: true })).toMatchObject({
+    edit: false,
+    copy: true,
   });
-  expect(caps).toMatchObject({ edit: false, copy: true, bake: false });
 });
 
 test("each host's own rules", () => {
-  expect(widgetCaps({ kind: "code", codeText: "x" }, shown, env)).toMatchObject(
-    {
-      bake: false,
-      edit: true,
-    },
-  );
   expect(
     widgetCaps(
       { kind: "transclusion", codeText: "x", openRef: ref },
@@ -87,9 +57,9 @@ test("each host's own rules", () => {
   ).toMatchObject({ definition: true, edit: false });
 });
 
-test("an error, a view", () => {
-  const d = { kind: "directive" as const, wrappers: [] };
-  expect(widgetCaps(d, { ...shown, luaError: true }, env)).toMatchObject({
+test("a ${…}'s shown value: an error, a view", () => {
+  expect(shownCaps(shown)).toEqual({ copy: true, bake: true });
+  expect(shownCaps({ ...shown, luaError: true })).toEqual({
     copy: true,
     bake: false,
   });
@@ -100,15 +70,9 @@ test("an error, a view", () => {
     bakeable: false,
     copyable: rows,
   });
-  expect(widgetCaps(d, view(true), env)).toMatchObject({
-    copy: true,
-    bake: false,
-  });
-  expect(widgetCaps(d, view(false), env)).toMatchObject({
-    copy: false,
-    bake: false,
-  });
-  expect(widgetCaps(d, { ...shown, copyable: false }, env)).toMatchObject({
+  expect(shownCaps(view(true))).toEqual({ copy: true, bake: false });
+  expect(shownCaps(view(false))).toEqual({ copy: false, bake: false });
+  expect(shownCaps({ ...shown, copyable: false })).toEqual({
     copy: false,
     bake: true,
   });

@@ -36,7 +36,8 @@ export type WikiLinkProcessorOptions = {
   client: Client;
   state: EditorState;
   shortWikiLinks: boolean;
-  callback: (e: MouseEvent, ref: any) => void;
+  /** `shift` is how far edits have moved the link since this build */
+  callback: (e: MouseEvent, ref: any, shift: number) => void;
 };
 
 export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
@@ -162,7 +163,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
           isReadOnlyCursorAt(state, matchFrom, matchTo) ? " sb-link-cursor" : ""
         }`,
         from: matchFrom,
-        callback: (e) => callback(e, ref),
+        callback: (e, at) => callback(e, ref, at - matchFrom),
         content: alias?.includes("${")
           ? (label) =>
               renderMarkdownInto(label, alias, liveContextForClient(client), {

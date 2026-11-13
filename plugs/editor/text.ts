@@ -1,14 +1,11 @@
+import { lineStart } from "@silverbulletmd/silverbullet/lib/lines";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
-import { listifyLines, taskifyLines } from "./line_prefix.ts";
+import { headingLines, listifyLines, taskifyLines } from "./line_prefix.ts";
 
 export async function quoteSelection() {
   let text = await editor.getText();
   const selection = await editor.getSelection();
-  let from = selection.from;
-  while (from >= 0 && text[from] !== "\n") {
-    from--;
-  }
-  from++;
+  const from = lineStart(text, selection.from);
   if (text[from] === ">" && text[from + 1] === " ") {
     text = text.slice(from + 2, selection.to);
     text = text.replaceAll("\n> ", "\n");
@@ -31,16 +28,38 @@ export async function listifySelection() {
 }
 
 export async function taskifyLine() {
-  const selection = await editor.getSelection();
-  const result = taskifyLines(
-    await editor.getText(),
-    selection.from,
-    selection.to,
-    await editor.getCursor(),
-  );
+  const [selection, text, cursor] = await Promise.all([
+    editor.getSelection(),
+    editor.getText(),
+    editor.getCursor(),
+  ]);
+  const result = taskifyLines(text, selection.from, selection.to, cursor);
   if (!result) return;
   await editor.replaceRange(result.from, result.to, result.insert);
   await editor.moveCursor(result.cursor);
+}
+
+/** Sets the selected lines to the command's heading `level`; 0 is normal text */
+export async function setHeading(cmdDef: { level: number }) {
+  const [selection, text, cursor] = await Promise.all([
+    editor.getSelection(),
+    editor.getText(),
+    editor.getCursor(),
+  ]);
+  const result = headingLines(
+    text,
+    selection.from,
+    selection.to,
+    cursor,
+    cmdDef.level,
+  );
+  if (!result) return;
+  await editor.replaceRange(result.from, result.to, result.insert);
+  if (selection.from === selection.to) {
+    await editor.moveCursor(result.cursor);
+  } else {
+    await editor.setSelection(result.from, result.from + result.insert.length);
+  }
 }
 
 export async function wikiLinkSelection() {
@@ -59,11 +78,7 @@ export async function wikiLinkSelection() {
 export async function numberListifySelection() {
   let text = await editor.getText();
   const selection = await editor.getSelection();
-  let from = selection.from;
-  while (from >= 0 && text[from] !== "\n") {
-    from--;
-  }
-  from++;
+  const from = lineStart(text, selection.from);
   text = text.slice(from, selection.to);
   let counter = 1;
   text = `1. ${text.replaceAll(/\n(?!\n)/g, () => {

@@ -48,7 +48,8 @@ test("a space-style font override still wins over the configured font", async ({
 }) => {
   await open(
     page,
-    '<div id="custom-styles"><style>:root{--editor-font: Courier}</style></div>',
+    // As index.html declares them
+    '<style id="sb-fonts"></style><div id="sb-theme"></div><div id="custom-styles"><style>:root{--editor-font: Courier}</style></div>',
     await fontsBundle(),
   );
   await page.evaluate((inter) => {
@@ -66,11 +67,6 @@ test("a space-style font override still wins over the configured font", async ({
     );
   }, inter);
   expect(await editorFont(page)).toBe("Courier");
-  expect(
-    await page.evaluate(
-      () => document.getElementById("sb-fonts")?.nextElementSibling?.id,
-    ),
-  ).toBe("custom-styles");
   await page.evaluate(() => document.getElementById("custom-styles")!.remove());
   expect(await editorFont(page)).toBe("Inter, system-ui, sans-serif");
 });
@@ -91,50 +87,6 @@ test("the last fonts are cached per space and applied before config loads", asyn
   expect(await editorFont(page)).toBe("");
   await page.evaluate(() => (globalThis as any).fonts.applyCachedFonts());
   expect(await editorFont(page)).toBe("Inter, system-ui, sans-serif");
-});
-
-test("the global default font fills in the interface and editor, never code", async ({
-  page,
-}) => {
-  await open(page, '<div id="custom-styles"></div>', await fontsBundle());
-  const vars = await page.evaluate((inter) => {
-    const { fonts } = globalThis as any;
-    fonts.applyFonts({ available: { inter } }, "inter");
-    const style = getComputedStyle(document.documentElement);
-    return ["--ui-font", "--editor-font", "--editor-monospace-font"].map((v) =>
-      style.getPropertyValue(v).trim(),
-    );
-  }, inter);
-  expect(vars).toEqual([
-    "Inter, system-ui, sans-serif",
-    "Inter, system-ui, sans-serif",
-    "'iA-Mono', Menlo, monospace",
-  ]);
-});
-
-test("a page with no space applies the global default font, and remembers it", async ({
-  page,
-}) => {
-  const script = await fontsBundle();
-  await open(page, "", script);
-  const vars = () =>
-    page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement);
-      return ["--ui-font", "--editor-font", "--editor-monospace-font"].map(
-        (v) => style.getPropertyValue(v).trim(),
-      );
-    });
-  await page.evaluate(() => (globalThis as any).fonts.applyGlobalFont("inter"));
-  // The same sheet a space without fonts of its own gets, code included.
-  expect(await vars()).toEqual([
-    "Inter, system-ui, sans-serif",
-    "Inter, system-ui, sans-serif",
-    "'iA-Mono', Menlo, monospace",
-  ]);
-  await page.reload();
-  await page.addScriptTag({ content: script });
-  await page.evaluate(() => (globalThis as any).fonts.applyCachedGlobalFont());
-  expect((await vars())[0]).toBe("Inter, system-ui, sans-serif");
 });
 
 test("a theme's font override on html, as theme.scss writes it, still wins", async ({
@@ -167,11 +119,11 @@ test("while the index is still building, an unknown font keeps the cached one", 
     fonts.applyFonts({ editor: "lora", available: { lora } });
     // Fresh index: Lora's library page isn't loaded yet.
     const early = { editor: "lora", available: {} };
-    fonts.applyFonts(early, undefined, { indexReady: false });
+    fonts.applyFonts(early, { indexReady: false });
     const whileIndexing = read();
     const cached = localStorage.getItem(fonts.fontCacheKey(document.baseURI));
     // Index done and Lora still unknown: it really is gone.
-    fonts.applyFonts(early, undefined, { indexReady: true });
+    fonts.applyFonts(early, { indexReady: true });
     return {
       whileIndexing,
       cachedLora: cached?.includes("Lora"),
@@ -209,6 +161,8 @@ test("the bundled fonts load from the client's own files", async ({ page }) => {
       "16px Inter",
       "bold 16px Inter",
       "italic 16px Inter",
+      "16px Lora",
+      "italic 16px Lora",
     ]) {
       const faces = await document.fonts.load(spec);
       result[spec] = faces.filter((f) => f.status === "loaded").length;
@@ -220,6 +174,9 @@ test("the bundled fonts load from the client's own files", async ({ page }) => {
     "16px Inter": 1,
     "bold 16px Inter": 1,
     "italic 16px Inter": 1,
+    "16px Lora": 1,
+    "italic 16px Lora": 1,
   });
-  expect(requested).toContain("/.client/Inter-Bold.woff2");
+  expect(requested).toContain("/.client/InterVariable.woff2");
+  expect(requested).toContain("/.client/Lora-Variable.woff2");
 });

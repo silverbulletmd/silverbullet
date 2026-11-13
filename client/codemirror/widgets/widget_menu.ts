@@ -1,30 +1,31 @@
 import { h } from "preact";
-import type { PopupEntry } from "../../components/popup_menu.ts";
 import {
   CopyIcon,
   DefinitionIcon,
   iconElement,
 } from "../../components/chrome_icons.tsx";
+import type { PopupEntry } from "../../components/popup_menu.ts";
 
 export type WidgetActionId =
   | "definition"
   | "open"
   | "edit"
+  | "show"
   | "query"
+  // An icon only (the Workbench's refresh buttons): no widget menu reloads
   | "reload"
   | "copy"
   | "bake"
   | "remove"
+  | "moveUp"
+  | "moveDown"
   | "revert";
 
 export type WidgetCaps = {
   definition: boolean;
   open: boolean;
   edit: boolean;
-  /** A `query[[…]]` the Workbench's query builder can open */
-  query: boolean;
   copy: boolean;
-  bake: boolean;
   /** Delete the object the widget shows */
   remove: boolean;
 };
@@ -38,16 +39,19 @@ const editIcon = feather(
 );
 
 export const moreIcon = feather(
-  "more-horizontal",
-  '<circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle>',
+  "more-vertical",
+  '<circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle>',
+);
+
+const eyeIcon = feather(
+  "eye",
+  '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>',
 );
 
 const ICONS: Record<Exclude<WidgetActionId, "copy" | "definition">, string> = {
-  open: feather(
-    "eye",
-    '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>',
-  ),
+  open: eyeIcon,
   edit: editIcon,
+  show: eyeIcon,
   query: feather(
     "sliders",
     '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>',
@@ -59,6 +63,14 @@ const ICONS: Record<Exclude<WidgetActionId, "copy" | "definition">, string> = {
   bake: feather(
     "package",
     '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line>',
+  ),
+  moveUp: feather(
+    "arrow-up",
+    '<line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline>',
+  ),
+  moveDown: feather(
+    "arrow-down",
+    '<line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline>',
   ),
   revert: feather(
     "rotate-ccw",
@@ -80,10 +92,11 @@ export function widgetActionIcon(id: WidgetActionId): string | Node {
 export function widgetMenuItem<Id extends WidgetActionId>(
   id: Id,
   label: string,
-): PopupEntry<Id> {
+): Extract<PopupEntry<Id>, { kind: "item" }> {
   return { kind: "item", id, label, icon: widgetActionIcon(id) };
 }
 
+/** The menu of a widget other than a `${…}` (that's `directiveMenuEntries`) */
 export function widgetMenuEntries(
   caps: WidgetCaps,
 ): PopupEntry<WidgetActionId>[] {
@@ -93,13 +106,7 @@ export function widgetMenuEntries(
   if (caps.definition) action("definition", "Go to definition");
   if (caps.open) action("open", "Open");
   if (caps.edit) action("edit", "Edit source");
-  if (caps.query) action("query", "Edit in query builder");
-  action("reload", "Reload");
   if (caps.copy) action("copy", "Copy as Markdown");
-  if (caps.bake) {
-    out.push({ kind: "separator" });
-    action("bake", "Bake into page");
-  }
   if (caps.remove) {
     out.push({ kind: "separator" });
     action("remove", "Delete");

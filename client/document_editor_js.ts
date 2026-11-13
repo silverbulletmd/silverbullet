@@ -1,4 +1,8 @@
+import { APPLY_THEME_JS } from "./space_theme.ts";
+
 export default `
+${APPLY_THEME_JS}
+
 const pendingRequests = new Map();
 let requestID = 0;
 
@@ -46,9 +50,9 @@ globalThis.addEventListener("message", (message) => {
         request.resolve(data.result);
       }
     } break;
-    case "set-theme": {
-      document.querySelector("html").setAttribute("data-theme", data.theme);
-    } break;
+    case "set-theme":
+      sbApplyTheme(data);
+      break;
   }
 });
 

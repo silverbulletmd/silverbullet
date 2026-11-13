@@ -49,7 +49,7 @@ Place the widget by calling `board.tasks()` in a page expression, with `widgets.
 A plain expression runs once when the page opens and re-runs only when something it read changes. Time, `datastore`, `config`, network calls and Lua globals are not tracked, so render those through `widget.new { content = ..., refreshOn = {...} }`.
 
 # Tones and colour
-Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with CSS variables `--tone-<name>` and `--tone-<name>-soft` defined for light and dark mode. In your own CSS colour with `var(--tone-danger)` rather than fixed values. If you must use a fixed colour, check it in both themes.
+Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with CSS variables `--tone-<name>` and `--tone-<name>-soft` that every theme sets to read well on its background. In your own CSS colour with `var(--tone-danger)` rather than fixed values. If you must use a fixed colour, check it in a light and a dark theme.
 
 # DOM builder
 * `dom.tag { attr = "value", child, child }`: string keys are attributes, and `on*` keys are event handlers. `class` also takes a list (`{ "card", urgent and "card-urgent" }`), and `style` takes a table (`{ width = "40%" }`).
@@ -71,7 +71,7 @@ Put `space-lua` and `space-style` blocks on a page under `Library/`; they do not
 * Widget classes: give widget roots your own class and scope rules under it.
 * Editor rules need SilverBullet's specificity: `body.book-page #sb-main .cm-editor { ... }`.
 
-For theme variables, light and dark mode, and how to inspect an element before styling it, load the Styling skill.
+For themes, theme variables, light and dark, and how to inspect an element before styling it, load the Styling skill.
 
 # Safety
 Build markup with `dom.*` and `dom.text`, not by concatenating HTML strings. If you must, escape text with `string.escapeHtml(s)`. To show Markdown written by a user, imported or generated, use `widget.markdown(text, { evaluate = false })`: expressions, code widgets and transclusions then stay literal. Never evaluate page content you are only displaying.
@@ -79,6 +79,6 @@ Build markup with `dom.*` and `dom.text`, not by concatenating HTML strings. If 
 # Check what you built
 Check your work: read the result of the `write`/`edit` (it reports script load errors), then `read` the page with `rendered: true` (evaluated output plus lint problems), then take a `screenshot` when the look matters.
 
-`space.lint()` without a page checks every page, so run it before calling work done. A widget that throws does not always show up as a lint problem, so for widgets the rendered read and the screenshot are what count. `system.recentLogs(50)` holds "Lua widget error on ..." lines; ignore lines logged before the latest "Loaded N scripts", which are often transient. Scripts and styles reload after each `write` or `edit` of a page that holds them; after changing files any other way, including `space.writePage` from `lua`, call `system.reboot()` first. After a reboot, navigate to the page again (`editor.navigate(page)`, then `editor.awaitRender()`) so widgets re-render before you read or screenshot it. For dark mode, set `js.window.document.documentElement.setAttribute("data-theme", "dark")` with `lua`, take a screenshot, then set it back to `"light"`.
+`space.lint()` without a page checks every page, so run it before calling work done. A widget that throws does not always show up as a lint problem, so for widgets the rendered read and the screenshot are what count. `system.recentLogs(50)` holds "Lua widget error on ..." lines; ignore lines logged before the latest "Loaded N scripts", which are often transient. Scripts and styles reload after each `write` or `edit` of a page that holds them; after changing files any other way, including `space.writePage` from `lua`, call `system.reboot()` first. After a reboot, navigate to the page again (`editor.navigate(page)`, then `editor.awaitRender()`) so widgets re-render before you read or screenshot it. Check the look in a light and a dark theme by switching with `theme.setDeviceTheme(...)`, and restore the device theme you recorded before switching: on SilverBullet Desktop it is the user's own. The Styling skill has the steps.
 
 To add to an existing namespace in a large library page, `read` it with `outline: true` (headings, code blocks and functions with line numbers), then read just the part you need with `offset`/`limit`, rather than reading the whole page.

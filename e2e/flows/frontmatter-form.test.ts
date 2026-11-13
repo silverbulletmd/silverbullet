@@ -1,5 +1,10 @@
 import type { Page } from "@playwright/test";
-import { navFrame, navInput } from "../fixtures/actions.ts";
+import {
+  clickRevealedMenu,
+  docText,
+  navFrame,
+  navInput,
+} from "../fixtures/actions.ts";
 import {
   expect,
   gotoSilverBulletPage,
@@ -70,12 +75,6 @@ const spaceFiles = {
   "Notes/Linked.md":
     '---\nnote: "see [[Person/Alice]] soon"\nsummary: plain words\nrefs:\n  - First\n---\nLinked body.\n',
 };
-
-function docText(page: Page): Promise<string> {
-  return page.evaluate(() =>
-    (globalThis as any).client.editorView.state.doc.toString(),
-  );
-}
 
 function form(page: Page) {
   return page.locator(".sb-frontmatter-preview .sb-fm-form");
@@ -222,8 +221,9 @@ test.describe("frontmatter form", () => {
   }) => {
     await openApollo(sbPage, sbServer);
     const preview = sbPage.locator(".sb-frontmatter-preview");
-    await preview.hover();
-    await preview.locator('button[data-button="menu"]').first().click();
+    await clickRevealedMenu(
+      preview.locator('button[data-button="menu"]').first(),
+    );
     await sbPage.getByRole("menuitem", { name: "Delete" }).click();
     await expect.poll(() => docText(sbPage)).toBe("Apollo body text.\n");
     await expect(preview).toHaveCount(0);

@@ -1,22 +1,18 @@
 // @vitest-environment happy-dom
 
 import { history, undo } from "@codemirror/commands";
-import { EditorState, type StateField } from "@codemirror/state";
-import { type DecorationSet, EditorView } from "@codemirror/view";
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { describe, expect, test } from "vitest";
-import { buildExtendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
+import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import {
-  frontmatterGhostEnabled,
-  ghostPlacement,
+  addTagAvailable,
   insertFrontmatter,
   NEW_FRONTMATTER,
-} from "./frontmatter_ghost.ts";
-import {
-  frontmatterPreviewPlugin,
-  parseFrontmatterPreview,
-} from "./frontmatter_preview.ts";
+} from "./add_tag.ts";
+import { parseFrontmatterPreview } from "./syntax/frontmatter_preview.ts";
 
-describe("add-attribute ghost on a page without frontmatter", () => {
+describe("Add tag on a page without frontmatter", () => {
   const pageRender = () => "form";
   function client(
     options: {
@@ -63,63 +59,29 @@ describe("add-attribute ghost on a page without frontmatter", () => {
     });
 
   test("only on an editable page without frontmatter, with the default form on", () => {
-    expect(
-      frontmatterGhostEnabled(at("# Plain\nBody"), client() as never),
-    ).toBe(true);
-    expect(frontmatterGhostEnabled(at(""), client() as never)).toBe(true);
+    expect(addTagAvailable(client() as never, at("# Plain\nBody"))).toBe(true);
+    expect(addTagAvailable(client() as never, at(""))).toBe(true);
     const plain = "Body";
-    expect(
-      frontmatterGhostEnabled(at("---\na: 1\n---\nBody"), client() as never),
-    ).toBe(false);
-    // Frontmatter shown as source (cursor inside) is still frontmatter
-    expect(
-      frontmatterGhostEnabled(at("---\na: 1\n---\nBody", 5), client() as never),
-    ).toBe(false);
-    expect(frontmatterGhostEnabled(at(plain, 0, true), client() as never)).toBe(
+    expect(addTagAvailable(client() as never, at("---\na: 1\n---\nBody"))).toBe(
       false,
     );
+    // Frontmatter shown as source (cursor inside) is still frontmatter
     expect(
-      frontmatterGhostEnabled(at(plain), client({ readOnly: true }) as never),
+      addTagAvailable(client() as never, at("---\na: 1\n---\nBody", 5)),
+    ).toBe(false);
+    expect(addTagAvailable(client() as never, at(plain, 0, true))).toBe(false);
+    expect(
+      addTagAvailable(client({ readOnly: true }) as never, at(plain)),
     ).toBe(false);
     expect(
-      frontmatterGhostEnabled(
-        at(plain),
+      addTagAvailable(
         client({ settings: { "liveEdit.frontmatter": false } }) as never,
-      ),
-    ).toBe(false);
-    expect(
-      frontmatterGhostEnabled(
         at(plain),
-        client({ syntaxRendering: true }) as never,
       ),
     ).toBe(false);
-  });
-
-  test("adds no decorations of its own: the ghost is an overlay", () => {
-    const extension = frontmatterPreviewPlugin(client() as never);
-    const editor = EditorState.create({
-      doc: "First line\nSecond line",
-      selection: { anchor: 0 },
-      extensions: [buildExtendedMarkdownLanguage(), extension],
-    });
-    expect(editor.field(extension as StateField<DecorationSet>).size).toBe(0);
-  });
-
-  test("the ghost icon sits left of line 1's first row, or not at all", () => {
-    const row = { top: 60, bottom: 90 };
     expect(
-      ghostPlacement({ row, textLeft: 124, bound: 104, width: 10 }),
-    ).toEqual({ left: 110, top: 60, height: 30 });
-    // Left of a heading marker hanging into the padding
-    expect(ghostPlacement({ row, textLeft: 92, bound: 0, width: 10 })).toEqual({
-      left: 78,
-      top: 60,
-      height: 30,
-    });
-    // Too narrow: hidden, never moved elsewhere
-    expect(
-      ghostPlacement({ row, textLeft: 12, bound: 0, width: 10 }),
-    ).toBeUndefined();
+      addTagAvailable(client({ syntaxRendering: true }) as never, at(plain)),
+    ).toBe(false);
   });
 
   test("inserting frontmatter is one undo step, and the caret stays in the body", () => {

@@ -110,18 +110,20 @@ test.describe("configuration tab", () => {
     ).toBeVisible();
 
     // Discarding also takes back a font that was only being previewed.
-    const uiFont = () =>
+    const editorFont = () =>
       page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue(
-          "--ui-font",
+          "--editor-font",
         ),
       );
+    // SilverBullet Light suggests Lora, so preview a different font.
+    const shown = await editorFont();
     await tab(page)
-      .getByRole("combobox", { name: "Interface font" })
-      .selectOption("inter");
-    await expect.poll(uiFont).toContain("Inter");
+      .getByRole("combobox", { name: "Editor font" })
+      .selectOption("system-serif");
+    await expect.poll(editorFont).not.toBe(shown);
     await tab(page).getByRole("button", { name: "Discard" }).click();
-    await expect.poll(uiFont).not.toContain("Inter");
+    await expect.poll(editorFont).toBe(shown);
 
     // A lone family name could be a missing font library's name, so it is
     // not used as is; the field says how to write it instead.

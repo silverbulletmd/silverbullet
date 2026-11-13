@@ -7,6 +7,7 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import type { Client } from "../../client.ts";
+import type { PopupEntry } from "../../components/popup_menu.ts";
 import { lezerToParseTree } from "../../markdown_parser/parse_tree.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import {
@@ -18,6 +19,10 @@ import {
   hideBlockSource,
   isCursorInRange,
 } from "../util.ts";
+import { registerWidgetMenu } from "../widgets/block_menu.ts";
+import { blockSpanAt } from "../widgets/block_span.ts";
+import { registerMarkdownWidget } from "../widgets/code_widget.ts";
+import { widgetMenuItem } from "../widgets/widget_menu.ts";
 import { attachWidgetEventHandlers } from "../widgets/widget_util.ts";
 
 export class TableViewWidget extends WidgetType {
@@ -62,12 +67,27 @@ export class TableViewWidget extends WidgetType {
       });
     });
 
-    void renderMarkdownInto(
-      dom,
-      cloneTree(this.t),
-      liveContextForClient(this.client, { taskRefs: "page" }),
-      { annotationPositions: true },
-    ).then((filled) => {
+    registerWidgetMenu(dom, {
+      label: "Table",
+      block: true,
+      entries: () => tableMenuEntries(this.client, dom, this.tableBodyText),
+      span: () => {
+        const from = tableSourceAt(this.client, dom);
+        return from === undefined
+          ? undefined
+          : blockSpanAt(this.client.editorView.state, from);
+      },
+    });
+
+    const render = (target: HTMLElement) =>
+      renderMarkdownInto(
+        target,
+        cloneTree(this.t),
+        liveContextForClient(this.client, { taskRefs: "page" }),
+        { annotationPositions: true },
+      );
+    registerMarkdownWidget(dom, render);
+    void render(dom).then((filled) => {
       if (!filled) return;
       dom.style.minHeight = "";
       setTimeout(() => {
@@ -95,10 +115,53 @@ export class TableViewWidget extends WidgetType {
   }
 }
 
+/** Where a shown table's source starts now */
+function tableSourceAt(client: Client, dom: HTMLElement): number | undefined {
+  if (!dom.isConnected) return;
+  try {
+    return client.editorView.posAtDOM(dom, 0);
+  } catch {
+    return;
+  }
+}
+
+/**
+ * A rendered table's menu (behind the margin ⋮, which adds Move and Delete):
+ * Edit source where the page can be edited, Copy as Markdown
+ */
+export function tableMenuEntries(
+  client: Client,
+  dom: HTMLElement,
+  source: string,
+): PopupEntry[] {
+  const readOnly = client.isReadOnlyMode() || client.editorView.state.readOnly;
+  const edit: PopupEntry = {
+    ...widgetMenuItem("edit", "Edit source"),
+    run: () => {
+      const anchor = tableSourceAt(client, dom);
+      if (anchor === undefined) return;
+      client.editorView.dispatch({ selection: { anchor } });
+      client.focus();
+    },
+  };
+  const copy: PopupEntry = {
+    ...widgetMenuItem("copy", "Copy as Markdown"),
+    run: () => {
+      void client.clientSystem
+        .localSyscall("editor.copyToClipboard", [source.trim()])
+        .then(() => client.ui.flashNotification("Copied as Markdown"))
+        .catch(console.error);
+    },
+  };
+  return readOnly ? [copy] : [edit, copy];
+}
+
 export function tablePlugin(editor: Client) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node) => {
         const { from, to, name } = node;
         if (name !== "Table") return;
@@ -119,5 +182,5 @@ export function tablePlugin(editor: Client) {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

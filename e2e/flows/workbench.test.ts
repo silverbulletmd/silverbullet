@@ -1,6 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
+  docText,
+  openWidgetMenu,
   navigateViaPagePicker,
   runCommandViaPalette,
 } from "../fixtures/actions.ts";
@@ -649,11 +651,6 @@ test.describe("query builder round trip", () => {
     },
   });
 
-  const pageText = (page: Page) =>
-    page.evaluate(() =>
-      (globalThis as any).client.editorView.state.doc.toString(),
-    ) as Promise<string>;
-
   test("a query on the page opens in the builder and is updated in place", async ({
     page,
     sbServer,
@@ -661,8 +658,10 @@ test.describe("query builder round trip", () => {
     await gotoSilverBulletPage(page, sbServer, "Dashboard");
     const widget = page.locator("#sb-editor table").first();
     await expect(widget.locator("tbody tr")).toHaveCount(3);
-    await widget.hover();
-    await page.getByRole("button", { name: "Widget actions" }).first().click();
+    await openWidgetMenu(
+      page,
+      page.locator("#sb-editor .sb-lua-directive-block").first(),
+    );
     await page.getByRole("menuitem", { name: "Edit in query builder" }).click();
 
     // The query's parts are the builder's controls again
@@ -682,7 +681,7 @@ test.describe("query builder round trip", () => {
       .getByLabel("Limit")
       .fill("2");
     await bar.getByRole("button", { name: "Update page" }).click();
-    const text = await pageText(page);
+    const text = await docText(page);
     expect(text.startsWith("Open work\n${query[[")).toBe(true);
     expect(text.endsWith("]]}\nAfter")).toBe(true);
     expect(text.match(/query\[\[/g)).toHaveLength(1);
@@ -693,7 +692,7 @@ test.describe("query builder round trip", () => {
       .getByLabel("Limit")
       .fill("1");
     await bar.getByRole("button", { name: "Update page" }).click();
-    const again = await pageText(page);
+    const again = await docText(page);
     expect(again.match(/query\[\[/g)).toHaveLength(1);
     expect(again).toContain("limit 1");
     expect(again.endsWith("]]}\nAfter")).toBe(true);

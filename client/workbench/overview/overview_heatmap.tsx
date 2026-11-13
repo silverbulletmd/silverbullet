@@ -22,7 +22,7 @@ export function Heatmap({ activity }: { activity: OverviewActivity }) {
       <div
         className="sb-wbo-heat"
         style={{
-          gridTemplateColumns: `auto repeat(${weeks.length}, var(--cell))`,
+          gridTemplateColumns: `auto repeat(${weeks.length}, var(--sb-cell))`,
         }}
       >
         {monthLabels(weeks).map(({ column, label }) => (

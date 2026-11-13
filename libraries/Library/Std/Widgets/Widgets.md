@@ -237,13 +237,22 @@ function widgets.linkedMentionsMarkdown(pageName)
   return table.concat(rows, "")
 end
 
+-- The source page as a path: a muted folder, then the page name as the link
+local function mentionSource(r)
+  local folder, leaf = r.page:match("^(.*/)([^/]+)$")
+  return widget.new {
+    markdown = (folder or "") .. markdown.link(r.page .. "@" .. r.range[1], leaf or r.page),
+    cssClasses = { "sb-mention-source" },
+    evaluate = false,
+  }
+end
+
 local function linkedMentionsSummary(pageName)
   local rows = {}
   for _, r in ipairs(mentions(pageName)) do
-    local link = widget.markdown("**" .. markdown.link(r.page .. "@" .. r.range[1], r.page) .. "**", { evaluate = false })
     local line = (r.snippet or ""):match("^[^\n]*")
     local summary = widget.markdownSummary(line, { sourcePage = r.page })
-    table.insert(rows, "* " .. link .. " " .. summary)
+    table.insert(rows, "* " .. mentionSource(r) .. " — " .. summary)
   end
   return table.concat(rows, "\n")
 end
@@ -269,6 +278,23 @@ view.define {
     if md == "" then return "" end
     return widget.markdown(md)
   end,
+}
+```
+
+```space-style
+/* A mention's source: interface type, muted folder, full-weight page name */
+.sb-mention-source {
+  font-family: var(--ui-font);
+  font-size: 0.8em;
+  font-weight: 500;
+  color: var(--subtle-color);
+}
+
+/* `:is(#sb-main, body)` outranks the widget link rules scoped under #sb-main */
+:is(#sb-main, body) .sb-mention-source a.wiki-link {
+  color: var(--ui-accent-text-color);
+  font-weight: 600;
+  text-decoration: none;
 }
 ```
 

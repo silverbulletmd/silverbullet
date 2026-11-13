@@ -141,7 +141,6 @@ pub async fn build_multi_stack(
         runtime_availability: runtime_availability.clone(),
         // Set from server.json when the manager boots.
         runtime_idle_timeout: Default::default(),
-        default_font: Default::default(),
         runtime,
         metrics: metrics.clone(),
         auth: InstanceAuth::Accounts {
@@ -251,7 +250,6 @@ pub async fn build_multi_stack(
     let routing_manager = manager.clone();
     let primary_manager = manager.clone();
     let name_manager = manager.clone();
-    let font_manager = manager.clone();
     let central = Arc::new(
         silverbullet_server::handlers::central_auth::CentralAuth::new(
             providers.clone(),
@@ -286,8 +284,7 @@ pub async fn build_multi_stack(
             }),
         )?
         .with_primary_url(Arc::new(move || primary_manager.primary_url()))
-        .with_server_name(Arc::new(move || name_manager.server_name()))
-        .with_default_font(Arc::new(move || font_manager.default_font())),
+        .with_server_name(Arc::new(move || name_manager.server_name())),
     );
     let mut dashboard_state = DashboardState::new(
         manager.clone(),

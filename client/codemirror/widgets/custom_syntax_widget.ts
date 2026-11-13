@@ -4,6 +4,7 @@ import { Decoration } from "@codemirror/view";
 import type { Client } from "../../client.ts";
 import type { CustomSyntaxSpec } from "../../markdown_parser/custom_syntax.ts";
 import { isViewValue } from "../../navigator/view_value.ts";
+import { callWithTracking } from "../../space_lua/runtime.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
@@ -14,7 +15,6 @@ import {
   type LuaWidgetContent,
   OccurrenceKeys,
 } from "./lua_widget.ts";
-import { callWithTracking } from "../../space_lua/runtime.ts";
 
 export type CustomSyntaxExtension = CustomSyntaxSpec & {
   // CSS class applied to the start delimiter in the editor
@@ -43,113 +43,118 @@ export type CustomSyntaxExtension = CustomSyntaxSpec & {
 };
 
 export function customSyntaxPlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
-    const widgets: Range<Decoration>[] = [];
-    const keys = new OccurrenceKeys();
+  return decoratorStateField(
+    (state: EditorState, _tr, range) => {
+      const widgets: Range<Decoration>[] = [];
+      const keys = range?.keys ?? new OccurrenceKeys();
 
-    if (!client.clientSystem.scriptsLoaded) {
-      return Decoration.none;
-    }
+      if (!client.clientSystem.scriptsLoaded) {
+        return Decoration.none;
+      }
 
-    const syntaxExtensions: Record<string, CustomSyntaxExtension> =
-      client.config.get("syntaxExtensions", {});
+      const syntaxExtensions: Record<string, CustomSyntaxExtension> =
+        client.config.get("syntaxExtensions", {});
 
-    if (Object.keys(syntaxExtensions).length === 0) {
-      return Decoration.none;
-    }
+      if (Object.keys(syntaxExtensions).length === 0) {
+        return Decoration.none;
+      }
 
-    syntaxTree(state).iterate({
-      enter: (node) => {
-        const spec = syntaxExtensions[node.name];
-        if (!spec) {
-          return;
-        }
-
-        const markName = `${spec.name}Mark`;
-        const bodyName = `${spec.name}Body`;
-        const bodyNode = node.node.getChild(bodyName);
-
-        if (spec.startMarkerClass || spec.endMarkerClass) {
-          const marks = node.node.getChildren(markName);
-          if (marks.length >= 1 && spec.startMarkerClass) {
-            widgets.push(
-              Decoration.mark({ class: spec.startMarkerClass }).range(
-                marks[0].from,
-                marks[0].to,
-              ),
-            );
+      syntaxTree(state).iterate({
+        from: range?.from,
+        to: range?.to,
+        enter: (node) => {
+          const spec = syntaxExtensions[node.name];
+          if (!spec) {
+            return;
           }
-          if (marks.length >= 2 && spec.endMarkerClass) {
-            widgets.push(
-              Decoration.mark({ class: spec.endMarkerClass }).range(
-                marks[marks.length - 1].from,
-                marks[marks.length - 1].to,
-              ),
-            );
-          }
-        }
 
-        if (spec.bodyClass && bodyNode && bodyNode.from < bodyNode.to) {
-          widgets.push(
-            Decoration.mark({ class: spec.bodyClass }).range(
-              bodyNode.from,
-              bodyNode.to,
-            ),
-          );
-        }
+          const markName = `${spec.name}Mark`;
+          const bodyName = `${spec.name}Body`;
+          const bodyNode = node.node.getChild(bodyName);
 
-        const widgetRenderFn = spec.renderWidget ?? spec.render;
-        if (widgetRenderFn && !isCursorInRange(state, [node.from, node.to])) {
-          const bodyText = bodyNode
-            ? state.sliceDoc(bodyNode.from, bodyNode.to)
-            : "";
-          const codeText = state.sliceDoc(node.from, node.to);
-
-          widgets.push(
-            Decoration.widget({
-              widget: new LuaWidget({
-                client,
-                cacheKey: keys.key(
-                  `custom-syntax:${spec.name}:${bodyText}:${client.currentName()}`,
+          if (spec.startMarkerClass || spec.endMarkerClass) {
+            const marks = node.node.getChildren(markName);
+            if (marks.length >= 1 && spec.startMarkerClass) {
+              widgets.push(
+                Decoration.mark({ class: spec.startMarkerClass }).range(
+                  marks[0].from,
+                  marks[0].to,
                 ),
-                expressionText: bodyText,
-                callback: async (body, pageName, track) => {
-                  try {
-                    const result = await callWithTracking(
-                      widgetRenderFn,
-                      track,
-                      body,
-                      pageName,
-                    );
-                    if (
-                      spec.renderClass &&
-                      result &&
-                      typeof result === "object" &&
-                      !isViewValue(result) &&
-                      !Array.isArray(result)
-                    ) {
-                      result.cssClasses = [
-                        ...(result.cssClasses || []),
-                        spec.renderClass,
-                      ];
-                    }
-                    return result;
-                  } catch (e: any) {
-                    return `**Error in ${spec.name} render:** ${e.message}`;
-                  }
-                },
-                host: { kind: "code", codeText },
-              }),
-            }).range(node.to),
-          );
-
-          if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
-            widgets.push(invisibleDecoration.range(node.from, node.to));
+              );
+            }
+            if (marks.length >= 2 && spec.endMarkerClass) {
+              widgets.push(
+                Decoration.mark({ class: spec.endMarkerClass }).range(
+                  marks[marks.length - 1].from,
+                  marks[marks.length - 1].to,
+                ),
+              );
+            }
           }
-        }
-      },
-    });
 
-    return Decoration.set(widgets, true);
-  });
+          if (spec.bodyClass && bodyNode && bodyNode.from < bodyNode.to) {
+            widgets.push(
+              Decoration.mark({ class: spec.bodyClass }).range(
+                bodyNode.from,
+                bodyNode.to,
+              ),
+            );
+          }
+
+          const widgetRenderFn = spec.renderWidget ?? spec.render;
+          if (widgetRenderFn && !isCursorInRange(state, [node.from, node.to])) {
+            const bodyText = bodyNode
+              ? state.sliceDoc(bodyNode.from, bodyNode.to)
+              : "";
+            const codeText = state.sliceDoc(node.from, node.to);
+
+            widgets.push(
+              Decoration.widget({
+                widget: new LuaWidget({
+                  client,
+                  cacheKey: keys.key(
+                    `custom-syntax:${spec.name}:${bodyText}:${client.currentName()}`,
+                  ),
+                  expressionText: bodyText,
+                  callback: async (body, pageName, track) => {
+                    try {
+                      const result = await callWithTracking(
+                        widgetRenderFn,
+                        track,
+                        body,
+                        pageName,
+                      );
+                      if (
+                        spec.renderClass &&
+                        result &&
+                        typeof result === "object" &&
+                        !isViewValue(result) &&
+                        !Array.isArray(result)
+                      ) {
+                        result.cssClasses = [
+                          ...(result.cssClasses || []),
+                          spec.renderClass,
+                        ];
+                      }
+                      return result;
+                    } catch (e: any) {
+                      return `**Error in ${spec.name} render:** ${e.message}`;
+                    }
+                  },
+                  host: { kind: "code", codeText },
+                }),
+              }).range(node.to),
+            );
+
+            if (!client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+              widgets.push(invisibleDecoration.range(node.from, node.to));
+            }
+          }
+        },
+      });
+
+      return Decoration.set(widgets, true);
+    },
+    { keyed: true },
+  );
 }

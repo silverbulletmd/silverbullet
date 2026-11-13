@@ -1,8 +1,9 @@
-import { chromium } from "@playwright/test";
+import { chromium, type Page } from "@playwright/test";
 import { adminApi, login, test } from "../fixtures/authenticated.ts";
 import {
   expect,
   gotoSilverBulletPage,
+  type SBServer,
   waitForPersistedContent,
 } from "../fixtures/core.ts";
 
@@ -20,6 +21,20 @@ hostnameTest.skip(
   ({ browserName }) => browserName !== "chromium" && !process.env.SB_E2E_HOST,
   "The fixture hostname mapping uses Chromium; set SB_E2E_HOST for other browsers.",
 );
+
+async function spaceIdNamed(
+  page: Page,
+  server: SBServer,
+  name: string,
+): Promise<string> {
+  const spaces = await adminApi<Record<string, { name: string }>>(
+    page,
+    server,
+    "GET",
+    "spaces",
+  );
+  return Object.entries(spaces).find(([, space]) => space.name === name)![0];
+}
 
 test.describe("runtime administration", () => {
   test.use({
@@ -61,39 +76,17 @@ test.describe("runtime administration", () => {
 
     await page.getByRole("link", { name: "Server", exact: true }).click();
     await page.getByLabel("Server Name").fill("Example Server");
-    await page.getByLabel("Default font").selectOption("inter");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect
-      .poll(
-        async () =>
-          (
-            await adminApi<{ defaultFont: string | null }>(
-              page,
-              sbServer,
-              "GET",
-              "server-config",
-            )
-          ).defaultFont,
-      )
-      .toBe("inter");
-    const config = await adminApi<{
-      runtimeApi: boolean;
-      serverName: string;
-    }>(page, sbServer, "GET", "server-config");
-    expect(config).toMatchObject({
-      runtimeApi: false,
-      serverName: "Example Server",
-    });
-    // The dashboard itself switches, and keeps it across a reload.
-    const uiFont = () =>
-      page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--ui-font",
+      .poll(async () =>
+        adminApi<{ runtimeApi: boolean; serverName: string }>(
+          page,
+          sbServer,
+          "GET",
+          "server-config",
         ),
-      );
-    await expect.poll(uiFont).toContain("Inter");
-    await page.reload();
-    await expect.poll(uiFont).toContain("Inter");
+      )
+      .toMatchObject({ runtimeApi: false, serverName: "Example Server" });
   });
 });
 
@@ -144,10 +137,10 @@ hostnameTest(
     );
     await page.getByLabel("Path", { exact: true }).fill("/work");
     await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page).not.toHaveURL(/\/new$/);
-    const workId = decodeURIComponent(
-      new URL(page.url()).pathname.split("/").pop()!,
-    );
+    // Entered from the spaces list, so creating returns there
+    await expect(page).toHaveURL(/\/\.dashboard\/?$/);
+    await expect(page.getByRole("status")).toHaveText("Space created.");
+    const workId = await spaceIdNamed(page, sbServer, "Work");
     await adminApi(page, sbServer, "PATCH", `spaces/${workId}`, {
       access: "write",
     });
@@ -167,19 +160,21 @@ hostnameTest(
       .selectOption(`host:team.localhost:${sbServer.port}`);
     await page.getByLabel("Path", { exact: true }).fill("/wiki");
     await page.getByRole("button", { name: "Create", exact: true }).click();
-    await expect(page).not.toHaveURL(/\/new$/);
-    const wikiId = decodeURIComponent(
-      new URL(page.url()).pathname.split("/").pop()!,
-    );
+    await expect(page).toHaveURL(/\/\.dashboard\/?$/);
+    const wikiId = await spaceIdNamed(page, sbServer, "Wiki");
     await adminApi(page, sbServer, "PATCH", `spaces/${wikiId}`, {
       access: "write",
     });
 
+    // Opened directly rather than from the list, so saving stays here
+    await page.goto(`${sbServer.url}/.dashboard/${encodeURIComponent(wikiId)}`);
     await page.getByLabel("Path", { exact: true }).fill("/docs");
     await page
       .getByRole("button", { name: "Save changes", exact: true })
       .click();
-    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Space settings saved.", { exact: true }),
+    ).toBeVisible();
     const wiki = await adminApi<any>(page, sbServer, "GET", `spaces/${wikiId}`);
     expect(wiki.binding).toEqual({
       host: `team.localhost:${sbServer.port}`,
@@ -256,7 +251,7 @@ test("an administrator creates a member and saves a space grant", async ({
     .getByRole("checkbox", { name: "casey: Write", exact: true })
     .check();
   await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Saved");
+  await expect(page.getByRole("status")).toHaveText("Space settings saved.");
   await page.reload();
   await expect(
     page.getByRole("checkbox", { name: "casey: Write", exact: true }),

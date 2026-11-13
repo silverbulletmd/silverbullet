@@ -1,6 +1,8 @@
 ---
 description: Create a tag schema
 tags: meta/template/slash
+icon: md-code
+group: Space Lua
 onlyContexts:
 - "FencedCode:space-lua"
 ---

@@ -11,8 +11,14 @@ import {
 } from "@codemirror/state";
 import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
+import type { NodeType } from "@lezer/common";
 import type { Client } from "../client.ts";
 import { createIconElement } from "../lib/icon.ts";
+import {
+  type DecorationBuilder,
+  type IncrementalDecorations,
+  updateDecorations,
+} from "./decoration_regions.ts";
 import { pointerPreviewHeld } from "./editing/pointer_preview.ts";
 import { frontmatterDisablesWidgets } from "./syntax/frontmatter_block.ts";
 
@@ -23,7 +29,8 @@ type LinkOptions = {
   title: string;
   cssClass: string;
   from: number;
-  callback: (e: MouseEvent) => void;
+  /** `from` is where the link starts now: mapped decorations keep old widgets */
+  callback: (e: MouseEvent, from: number) => void;
   /** Renders the label (e.g. an alias with `${}`) into it; `text` shows until then */
   content?: (label: HTMLElement) => Promise<unknown>;
 };
@@ -50,6 +57,15 @@ export class LinkWidget extends WidgetType {
       anchor.append(document.createTextNode(this.options.text));
     }
 
+    const currentFrom = () => {
+      try {
+        return (
+          EditorView.findFromDOM(anchor)?.posAtDOM(anchor) ?? this.options.from
+        );
+      } catch {
+        return this.options.from;
+      }
+    };
     let altPressHandled = false;
     const activate = (e: MouseEvent) => {
       if (e.button !== 0) return;
@@ -67,7 +83,7 @@ export class LinkWidget extends WidgetType {
       e.preventDefault();
       e.stopPropagation();
       try {
-        this.options.callback(e);
+        this.options.callback(e, currentFrom());
       } catch (e) {
         console.error("Error handling wiki link click", e);
       }
@@ -83,7 +99,7 @@ export class LinkWidget extends WidgetType {
       if (touchCount === 0) {
         e.preventDefault();
         e.stopPropagation();
-        this.options.callback(new MouseEvent("click", e));
+        this.options.callback(new MouseEvent("click", e), currentFrom());
       }
       touchCount = 0;
     });
@@ -127,11 +143,14 @@ export class HtmlWidget extends WidgetType {
   }
 }
 
+/**
+ * A field of decorations built from the page. Pass `incremental` when the
+ * builder honors its `range` argument: while typing or moving the cursor,
+ * only the touched blocks then rebuild (see decoration_regions.ts).
+ */
 export function decoratorStateField(
-  stateToDecoratorMapper: (
-    state: EditorState,
-    tr?: Transaction,
-  ) => DecorationSet,
+  stateToDecoratorMapper: DecorationBuilder,
+  incremental?: IncrementalDecorations,
 ) {
   return StateField.define<DecorationSet>({
     create(state: EditorState) {
@@ -153,6 +172,15 @@ export function decoratorStateField(
         tr.state.field(pointerPreviewHeld, false)
       ) {
         return tr.docChanged ? value.map(tr.changes) : value;
+      }
+      if (incremental) {
+        const updated = updateDecorations(
+          value,
+          tr,
+          stateToDecoratorMapper,
+          incremental,
+        );
+        if (updated) return updated;
       }
       return stateToDecoratorMapper(tr.state, tr);
     },
@@ -183,6 +211,16 @@ export class ButtonWidget extends WidgetType {
     anchor.setAttribute("title", this.title);
     return anchor;
   }
+}
+
+/**
+ * Whether a node holds only inline content, so a walk looking for blocks can
+ * skip it: inline content lives in leaf blocks, and these are the common ones.
+ */
+export function holdsOnlyInlines(type: NodeType): boolean {
+  return (
+    type.name === "Paragraph" || type.is("Heading") || type.name === "Table"
+  );
 }
 
 /**

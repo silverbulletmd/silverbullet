@@ -99,7 +99,12 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
         )}
       </div>
       <div class="sb-revision-preview-message">{preview.message}</div>
-      <pre class="sb-revision-preview-body">
+      <pre
+        class={
+          "sb-revision-preview-body" +
+          (showContent ? "" : " sb-revision-preview-diff")
+        }
+      >
         {showContent ? (
           contentFailed ? (
             "Could not load full content."
@@ -127,12 +132,19 @@ function PreviewBody({ preview }: { preview: RevisionPreview }) {
 function DiffBody({ diff }: { diff: RevisionPreview["diff"] }) {
   return (
     <>
-      {diff!.map((line, i) => (
-        <span key={i} class={line.cssClass}>
-          {line.text}
-          {i < diff!.length - 1 ? "\n" : ""}
-        </span>
-      ))}
+      {diff!.map((line, i) => {
+        // The +/- sign gets a gutter column of its own; hunk headers and
+        // "\ No newline" notes keep their whole text
+        const signed = /^[-+ ]/.test(line.text);
+        return (
+          <div key={i} class={line.cssClass}>
+            <span class="sb-revision-diff-sign">
+              {signed ? line.text[0] : ""}
+            </span>
+            {(signed ? line.text.slice(1) : line.text) || " "}
+          </div>
+        );
+      })}
     </>
   );
 }

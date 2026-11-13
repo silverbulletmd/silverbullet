@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "preact/hooks";
 import type { Client } from "../client.ts";
-import type { PanelConfig, PanelSlot } from "../types/ui.ts";
 import { panelHtml } from "../sandbox/panel_html.ts";
+import { followTheme } from "../sandbox/theme_message.ts";
+import type { PanelConfig, PanelSlot } from "../types/ui.ts";
 import { forwardShortcuts } from "./forward_shortcuts.ts";
 
 export function Panel({
@@ -47,7 +48,7 @@ function IFramePanel({
       type: "html",
       html: config.html,
       script: config.script,
-      theme: document.getElementsByTagName("html")[0].dataset.theme,
+      ...editor.spaceTheme.message,
     });
   }
 
@@ -134,22 +135,12 @@ function IFramePanel({
     };
   }, []);
 
-  // The theme only rides along with the `html` message, which a long-lived
-  // panel receives once. Without this, toggling dark mode leaves every
-  // persistent panel iframe on the theme it booted with.
-  useEffect(() => {
-    const observer = new MutationObserver(() => {
-      iFrameRef.current?.contentWindow?.postMessage({
-        type: "theme",
-        theme: document.documentElement.dataset.theme,
-      });
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["data-theme"],
-    });
-    return () => observer.disconnect();
-  }, []);
+  // A long-lived panel receives the `html` message, and its theme, once
+  useEffect(
+    () =>
+      followTheme(editor.spaceTheme, () => iFrameRef.current?.contentWindow),
+    [],
+  );
 
   return (
     <div className="sb-panel" style={{ flex: config.mode }}>

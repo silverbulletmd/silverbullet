@@ -20,6 +20,7 @@ import {
   createMediaElement,
   readTransclusionContent,
 } from "../../markdown_renderer/inline.ts";
+import { transclusionEvent } from "../../space_lua/dependencies.ts";
 import {
   decoratorStateField,
   invisibleDecoration,
@@ -28,140 +29,145 @@ import {
 } from "../util.ts";
 import { LoadingWidget } from "../widgets/loading_widget.ts";
 import { LuaWidget, OccurrenceKeys } from "../widgets/lua_widget.ts";
-import { transclusionEvent } from "../../space_lua/dependencies.ts";
+import { frontmatterInRange } from "./frontmatter_block.ts";
 
 export function inlineContentPlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
-    const widgets: Range<Decoration>[] = [];
-    const keys = new OccurrenceKeys();
-    const renderMode = widgetRenderMode(client, state);
-    if (renderMode === "disabled") {
-      return Decoration.set([]);
-    }
+  return decoratorStateField(
+    (state: EditorState, _tr, range) => {
+      const widgets: Range<Decoration>[] = [];
+      const keys = range?.keys ?? new OccurrenceKeys();
+      const renderMode = widgetRenderMode(client, state);
+      if (renderMode === "disabled") {
+        return Decoration.set([]);
+      }
 
-    syntaxTree(state).iterate({
-      enter: ({ type, from, to }) => {
-        if (type.name !== "Image") {
-          return;
-        }
+      syntaxTree(state).iterate({
+        from: range?.from,
+        to: range?.to,
+        enter: ({ type, from, to }) => {
+          if (type.name !== "Image") {
+            return;
+          }
 
-        const text = state.sliceDoc(from, to);
+          const text = state.sliceDoc(from, to);
 
-        const transclusion = parseTransclusion(text);
-        if (!transclusion) {
-          return;
-        }
-        resolveTransclusionUrl(
-          transclusion,
-          client.currentPath(),
-          client.clientSystem.allKnownFiles,
-        );
+          const transclusion = parseTransclusion(text);
+          if (!transclusion) {
+            return;
+          }
+          resolveTransclusionUrl(
+            transclusion,
+            client.currentPath(),
+            client.clientSystem.allKnownFiles,
+          );
 
-        const renderingSyntax =
-          client.ui.viewState.uiOptions.markdownSyntaxRendering;
-        const cursorIsInRange = isCursorInRange(state, [from, to]);
-        if (cursorIsInRange) {
-          return;
-        }
-        if (!renderingSyntax && !cursorIsInRange) {
-          widgets.push(invisibleDecoration.range(from, to));
-        }
+          const renderingSyntax =
+            client.ui.viewState.uiOptions.markdownSyntaxRendering;
+          const cursorIsInRange = isCursorInRange(state, [from, to]);
+          if (cursorIsInRange) {
+            return;
+          }
+          if (!renderingSyntax && !cursorIsInRange) {
+            widgets.push(invisibleDecoration.range(from, to));
+          }
 
-        if (renderMode === "loading") {
+          if (renderMode === "loading") {
+            widgets.push(
+              Decoration.widget({
+                widget: new LoadingWidget(true),
+                block: true,
+              }).range(from),
+            );
+            return;
+          }
+
           widgets.push(
             Decoration.widget({
-              widget: new LoadingWidget(true),
+              widget: new LuaWidget({
+                client,
+                cacheKey: keys.key(`widget:${client.currentPath()}:${text}`),
+                expressionText: text,
+                host: {
+                  kind: "transclusion",
+                  codeText: text,
+                  openRef: parseToRef(transclusion.url),
+                },
+                callback: async (_body, _page, track) => {
+                  // Resolve local URLs (only for markdown links, wikilinks are absolute)
+                  if (
+                    isLocalURL(transclusion.url) &&
+                    transclusion.linktype !== "wikilink"
+                  ) {
+                    transclusion.url = resolveMarkdownLink(
+                      client.currentName(),
+                      decodeURI(transclusion.url),
+                    );
+                  }
+
+                  const event = transclusionEvent(transclusion.url);
+                  if (event) track?.(event);
+                  try {
+                    let content;
+                    try {
+                      const result = await readTransclusionContent(
+                        client.space,
+                        transclusion,
+                      );
+                      const syntaxExtensions = client.config.get(
+                        "syntaxExtensions",
+                        {},
+                      );
+                      const mdLang =
+                        buildExtendedMarkdownLanguage(syntaxExtensions);
+                      const tree = parse(mdLang, result.text, result.offset);
+                      if (result.offset === 0 && tree.children) {
+                        tree.children = tree.children.filter(
+                          (c) => c.type !== "FrontMatter",
+                        );
+                      }
+                      const { node, copyMarkdown } = await renderMarkdown(
+                        tree,
+                        liveContextForClient(client, {
+                          sourcePage: nameFromTransclusion(transclusion),
+                          taskRefs: "page",
+                          track,
+                        }),
+                      );
+                      content = { html: node, markdown: copyMarkdown };
+                    } catch {
+                      const element = createMediaElement(transclusion);
+                      if (!element) {
+                        throw new Error(
+                          `Unsupported content: ${transclusion.url}`,
+                        );
+                      }
+                      content = { html: element };
+                    }
+
+                    return {
+                      _isWidget: true,
+                      display: "block",
+                      cssClasses: ["sb-inline-content"],
+                      ...content,
+                    };
+                  } catch (e: any) {
+                    return {
+                      _isWidget: true,
+                      display: "block",
+                      cssClasses: ["sb-inline-content"],
+                      markdown: `**Error:** ${e.message}`,
+                    };
+                  }
+                },
+              }),
               block: true,
             }).range(from),
           );
-          return;
-        }
+        },
+      });
 
-        widgets.push(
-          Decoration.widget({
-            widget: new LuaWidget({
-              client,
-              cacheKey: keys.key(`widget:${client.currentPath()}:${text}`),
-              expressionText: text,
-              host: {
-                kind: "transclusion",
-                codeText: text,
-                openRef: parseToRef(transclusion.url),
-              },
-              callback: async (_body, _page, track) => {
-                // Resolve local URLs (only for markdown links, wikilinks are absolute)
-                if (
-                  isLocalURL(transclusion.url) &&
-                  transclusion.linktype !== "wikilink"
-                ) {
-                  transclusion.url = resolveMarkdownLink(
-                    client.currentName(),
-                    decodeURI(transclusion.url),
-                  );
-                }
-
-                const event = transclusionEvent(transclusion.url);
-                if (event) track?.(event);
-                try {
-                  let content;
-                  try {
-                    const result = await readTransclusionContent(
-                      client.space,
-                      transclusion,
-                    );
-                    const syntaxExtensions = client.config.get(
-                      "syntaxExtensions",
-                      {},
-                    );
-                    const mdLang =
-                      buildExtendedMarkdownLanguage(syntaxExtensions);
-                    const tree = parse(mdLang, result.text, result.offset);
-                    if (result.offset === 0 && tree.children) {
-                      tree.children = tree.children.filter(
-                        (c) => c.type !== "FrontMatter",
-                      );
-                    }
-                    const { node, copyMarkdown } = await renderMarkdown(
-                      tree,
-                      liveContextForClient(client, {
-                        sourcePage: nameFromTransclusion(transclusion),
-                        taskRefs: "page",
-                        track,
-                      }),
-                    );
-                    content = { html: node, markdown: copyMarkdown };
-                  } catch {
-                    const element = createMediaElement(transclusion);
-                    if (!element) {
-                      throw new Error(
-                        `Unsupported content: ${transclusion.url}`,
-                      );
-                    }
-                    content = { html: element };
-                  }
-
-                  return {
-                    _isWidget: true,
-                    display: "block",
-                    cssClasses: ["sb-inline-content"],
-                    ...content,
-                  };
-                } catch (e: any) {
-                  return {
-                    _isWidget: true,
-                    display: "block",
-                    cssClasses: ["sb-inline-content"],
-                    markdown: `**Error:** ${e.message}`,
-                  };
-                }
-              },
-            }),
-            block: true,
-          }).range(from),
-        );
-      },
-    });
-
-    return Decoration.set(widgets, true);
-  });
+      return Decoration.set(widgets, true);
+    },
+    { keyed: true, pageWide: frontmatterInRange },
+  );
 }

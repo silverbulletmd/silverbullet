@@ -7,7 +7,7 @@ import type { Client } from "./client.ts";
 
 vi.hoisted(() => {
   vi.stubGlobal("document", {
-    documentElement: { style: {} },
+    documentElement: { style: {}, dataset: {} },
     addEventListener() {},
   });
   vi.stubGlobal("navigator", { platform: "Linux", userAgent: "", vendor: "" });
@@ -77,6 +77,7 @@ function setup() {
       saveTimeout: undefined,
     },
     bootConfig: { readOnly: false },
+    spaceTheme: { scheme: "light" },
     config: { get: (_key: string, fallback: unknown) => fallback },
     clientSystem: {
       commandHook: {

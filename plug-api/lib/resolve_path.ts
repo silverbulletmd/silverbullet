@@ -72,6 +72,10 @@ export class BasenameIndex implements PathIndex {
     return this.paths.has(path);
   }
 
+  get size(): number {
+    return this.paths.size;
+  }
+
   candidates(basename: string): Path[] {
     const bucket = this.byBasename.get(basename.toLowerCase());
     return bucket ? ([...bucket] as Path[]) : [];

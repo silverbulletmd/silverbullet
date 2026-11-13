@@ -49,9 +49,8 @@ export type AppViewState = {
 
   uiOptions: {
     vimMode: boolean;
-    darkMode?: boolean;
     markdownSyntaxRendering: boolean;
-    keyboardBar: boolean;
+    markupBar: boolean;
     forcedROMode: boolean;
     customStyles?: string;
   };
@@ -100,9 +99,8 @@ export const initialViewState: AppViewState = {
   isOnline: true,
   uiOptions: {
     vimMode: false,
-    darkMode: undefined,
     markdownSyntaxRendering: false,
-    keyboardBar: true,
+    markupBar: true,
     forcedROMode: false,
   },
   isMobile: false,
@@ -227,8 +225,6 @@ export type BootConfig = {
   disableServiceWorker?: boolean;
   syncProtocolVersion?: number;
   revisions?: "managed" | "unmanaged" | "disabled";
-  /** Server- or app-wide default for the interface and editor fonts. */
-  defaultFont?: string;
   /** Every other space root on this origin, e.g. ["/private", "/work"]. */
   spacePrefixes?: string[];
   /** Repository pages (names without .md) the server ships, e.g. "Library/Repository/Std". */

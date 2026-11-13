@@ -18,7 +18,7 @@ const GUTTER = 8;
 type Placement = { top: number; right: number };
 
 /**
- * A small "⋯" button opening a menu of a row's actions, right-aligned under
+ * A small "⋮" button opening a menu of a row's actions, right-aligned under
  * it. Arrow keys move between the enabled items, Escape closes it back onto
  * the button; a click outside, a scroll or a resize closes it.
  */
@@ -99,7 +99,21 @@ export function RowMenu({ label, items }: RowMenuProps) {
           });
         }}
       >
-        ⋯
+        <svg
+          viewBox="0 0 24 24"
+          width="14"
+          height="14"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="1" />
+          <circle cx="12" cy="5" r="1" />
+          <circle cx="12" cy="19" r="1" />
+        </svg>
       </button>
       {open && (
         <div

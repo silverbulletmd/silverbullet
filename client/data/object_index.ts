@@ -52,7 +52,8 @@ const reindexInProgressKey = ["$reindexInProgress"];
 const tagDecorationsKey = ["$tagDecorations"];
 
 // Bump this one every time a full reindex is needed
-const desiredIndexVersion = 15;
+// 16: slash templates gained displayName, icon, aliases and group
+const desiredIndexVersion = 16;
 
 type TagDefinition = {
   tagPage?: string;

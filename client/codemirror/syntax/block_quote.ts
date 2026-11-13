@@ -118,5 +118,5 @@ function decorateBlockQuote(state: EditorState) {
 }
 
 export function blockquotePlugin() {
-  return decoratorStateField(decorateBlockQuote);
+  return decoratorStateField(decorateBlockQuote, {});
 }

@@ -1,16 +1,15 @@
-import { Input, Select } from "@silverbulletmd/silverbullet/ui";
-import { useEffect, useState } from "preact/hooks";
-import type { Client } from "../../client.ts";
 import {
-  applyFontStylesheet,
-  baseOf,
-  DEFAULT_FONT,
+  defaultFontLabel,
   type FontEntry,
   fontSelectionFor,
-  fontStylesheet,
+  installFonts,
   parseFontValue,
   usableEntry,
 } from "@silverbulletmd/silverbullet/lib/fonts";
+import type { ThemeInfo } from "@silverbulletmd/silverbullet/lib/themes";
+import { Input, Select } from "@silverbulletmd/silverbullet/ui";
+import { useEffect, useState } from "preact/hooks";
+import type { Client } from "../../client.ts";
 
 const CUSTOM = "\u0000custom";
 
@@ -29,7 +28,7 @@ export function useFontPreview(
   client: Client,
   valueOf: (path: string) => unknown,
 ): void {
-  const ui = valueOf("fonts.ui") as string | undefined;
+  const theme = useActiveTheme(client);
   const editor = valueOf("fonts.editor") as string | undefined;
   const code = valueOf("fonts.code") as string | undefined;
   const editorSize = valueOf("fonts.editorSize") as number | undefined;
@@ -38,26 +37,54 @@ export function useFontPreview(
       "fonts.available",
       {},
     );
-    applyFontStylesheet(
-      fontStylesheet(
-        fontSelectionFor(
-          { ui, editor, code, editorSize, available },
-          client.bootConfig.defaultFont,
-        ),
-        baseOf(document),
-      ),
+    installFonts(
+      fontSelectionFor({ editor, code, editorSize, available }, theme?.fonts),
     );
-  }, [ui, editor, code, editorSize]);
+  }, [editor, code, editorSize, theme]);
+}
+
+/** The theme on screen, a preview included, kept current. */
+function useActiveTheme(client: Client): ThemeInfo | undefined {
+  const [theme, setTheme] = useState(client.spaceTheme.active);
+  useEffect(() => {
+    setTheme(client.spaceTheme.active);
+    return client.spaceTheme.onChange(setTheme);
+  }, [client]);
+  return theme;
+}
+
+/** The editor size field; unset, it shows the size in effect. */
+export function EditorSizeInput(props: {
+  client: Client;
+  value: number | undefined;
+  label: string;
+  disabled: boolean;
+  onChange: (value: number | undefined) => void;
+}) {
+  const theme = useActiveTheme(props.client);
+  return (
+    <Input
+      aria-label={props.label}
+      disabled={props.disabled}
+      type="number"
+      placeholder={String(theme?.fonts?.editorSize ?? 18)}
+      value={props.value == null ? "" : String(props.value)}
+      onInput={(e) => {
+        const v = e.currentTarget.value;
+        props.onChange(v === "" ? undefined : Number(v));
+      }}
+    />
+  );
 }
 
 /**
  * A `fonts.*` setting: a font from `fonts.available`, the default, or a
- * custom CSS font-family.
+ * custom CSS font-family. The code font offers monospace fonts only.
  */
 export function FontSelect(props: {
   client: Client;
   value: string | undefined;
-  kind: "any" | "mono";
+  slot: "editor" | "code";
   label: string;
   disabled: boolean;
   onChange: (value: string | undefined) => void;
@@ -71,13 +98,9 @@ export function FontSelect(props: {
   const [customMode, setCustomMode] = useState(false);
   const isCustom =
     customMode || (value !== "" && !usableEntry(available, value));
-  const globalDefault = props.client.bootConfig.defaultFont;
-  const defaultName =
-    usableEntry(available, globalDefault ?? DEFAULT_FONT)?.name ??
-    globalDefault ??
-    usableEntry(available, DEFAULT_FONT)?.name;
+  const theme = useActiveTheme(props.client);
   const groups = GROUPS.filter(
-    ([kind]) => props.kind === "any" || kind === props.kind,
+    ([kind]) => props.slot !== "code" || kind === "mono",
   );
   return (
     <div className="sb-wb-cfg-font">
@@ -91,11 +114,9 @@ export function FontSelect(props: {
           if (v !== CUSTOM) props.onChange(v === "" ? undefined : v);
         }}
       >
-        {props.kind === "any" && (
-          <option value="">
-            {defaultName ? `Default (${defaultName})` : "Default"}
-          </option>
-        )}
+        <option value="">
+          {defaultFontLabel(available, props.slot, theme)}
+        </option>
         {groups.map(([kind, title]) => {
           const fonts = Object.entries(available).filter(
             ([key, f]) => usableEntry(available, key) && f.kind === kind,

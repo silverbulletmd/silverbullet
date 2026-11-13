@@ -8,10 +8,12 @@ import {
 } from "../util.ts";
 
 export function cleanBlockPlugin() {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter(node) {
         if (
           node.name === "HorizontalRule" &&
@@ -27,5 +29,5 @@ export function cleanBlockPlugin() {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

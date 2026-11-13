@@ -1,4 +1,3 @@
-@use "tokens";
 @use "editor";
 @use "modals";
 @use "theme";
@@ -16,6 +15,7 @@
 @use "view_content";
 @use "../capture/capture";
 @use "keyboard_bar";
+@use "markup_bar";
 @use "workbench";
 @use "workbench_query";
 @use "workbench_data";

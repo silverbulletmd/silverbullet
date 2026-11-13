@@ -1,13 +1,13 @@
 import type { EditorState, Extension } from "@codemirror/state";
+import { normalizeTagList } from "@silverbulletmd/silverbullet/lib/tags";
 import type { Client } from "../../client.ts";
 import { findFrontmatterBlock, parseFrontmatter } from "./frontmatter_block.ts";
 import {
   hookLookup,
-  normalizeTags,
-  objectPreviewField,
   type ObjectPreview,
   type ObjectPreviewHost,
   type ObjectRenderer,
+  objectPreviewField,
   previewsEnabled,
   type RendererLookup,
   selectionShowsSource,
@@ -46,7 +46,7 @@ export function parseFrontmatterPreview(
       pageMeta: {
         ...parsed,
         name: pageName,
-        tags: normalizeTags(parsed.tags),
+        tags: normalizeTagList(parsed.tags),
       },
       context,
     };

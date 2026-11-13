@@ -61,29 +61,6 @@ impl SpacePrefixes {
     }
 }
 
-/// The server- or app-wide default font (a `fonts.available` key or a CSS
-/// font-family), reported at `/.config` as the interface and editor font of
-/// a space that sets none. Read on each load, like `SpacePrefixes`, so a
-/// change reaches running spaces without a restart. Unset by default.
-#[derive(Clone)]
-pub struct DefaultFont(Arc<dyn Fn() -> Option<String> + Send + Sync>);
-
-impl Default for DefaultFont {
-    fn default() -> Self {
-        Self::from_fn(|| None)
-    }
-}
-
-impl DefaultFont {
-    pub fn from_fn(current: impl Fn() -> Option<String> + Send + Sync + 'static) -> Self {
-        Self(Arc::new(current))
-    }
-
-    pub fn current(&self) -> Option<String> {
-        (self.0)()
-    }
-}
-
 /// Shared state for the HTTP server. Holds what the file/config/bundle
 /// endpoints need; further capabilities (auth, runtime evaluation) attach
 /// additional state as they are introduced.
@@ -100,7 +77,6 @@ pub struct ServerState {
     /// The origin's other space roots, served alongside `boot_config`. Empty
     /// for a server that hosts a single space.
     pub space_prefixes: SpacePrefixes,
-    pub default_font: DefaultFont,
     /// Repository pages (names without `.md`) the bundled layer ships,
     /// reported at `/.config` so the client can mark them built in. The
     /// bundled layer is static, so this is computed once at startup.
@@ -118,7 +94,7 @@ pub struct ServerState {
     /// (`SB_HEAD_HTML`). Empty by default.
     pub additional_head_html: String,
     /// PWA theme color (`SB_THEME_COLOR`), surfaced in the generated
-    /// `manifest.json`. Defaults to `#e1e1e1`.
+    /// `manifest.json`. Defaults to `#fcfcfd`.
     pub theme_color: String,
     /// Space description (`SB_DESCRIPTION`), surfaced in the generated
     /// `manifest.json`.

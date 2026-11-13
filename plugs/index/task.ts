@@ -1,12 +1,9 @@
 import {
-  config,
-  editor,
-  events,
-  index,
-  markdown,
-  space,
-  sync,
-} from "@silverbulletmd/silverbullet/syscalls";
+  getNameFromPath,
+  getOffsetFromLineColumn,
+  isMarkdownPath,
+  parseToRef,
+} from "@silverbulletmd/silverbullet/lib/ref";
 
 import {
   addParentPointers,
@@ -19,11 +16,14 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
-  getNameFromPath,
-  getOffsetFromLineColumn,
-  isMarkdownPath,
-  parseToRef,
-} from "@silverbulletmd/silverbullet/lib/ref";
+  config,
+  editor,
+  events,
+  index,
+  markdown,
+  space,
+  sync,
+} from "@silverbulletmd/silverbullet/syscalls";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
 
 export const completeStates = ["x", "X"];
@@ -41,6 +41,43 @@ function sortedTaskStateNames(allStates: Record<string, any>): string[] {
   return Object.entries(allStates)
     .sort(([, a]: any, [, b]: any) => (a.order ?? 0) - (b.order ?? 0))
     .map(([name]) => name);
+}
+
+/**
+ * The custom task states to offer and cycle through: those defined with
+ * `taskState.define`, in their order, then any other states tasks in the
+ * space use, alphabetically. So states work without being defined.
+ */
+export async function knownTaskStates(): Promise<string[]> {
+  const defined = sortedTaskStateNames(await config.get("taskStates", {}));
+  // Only the distinct states cross over from the index, not every task
+  const used: unknown[] = await index.queryLuaObjects<unknown>("task", {
+    distinct: true,
+    select: { type: "Variable", name: "state", ctx: {} as any },
+  });
+  const others = used.filter(
+    (state): state is string =>
+      typeof state === "string" &&
+      state !== "" &&
+      !completeStates.includes(state) &&
+      !incompleteStates.includes(state) &&
+      !defined.includes(state),
+  );
+  return [...defined, ...others.sort()];
+}
+
+/** The state a click moves `state` to: a checkbox toggles, a custom state cycles. */
+async function stateAfter(state: string): Promise<string> {
+  if (completeStates.includes(state)) return " ";
+  if (incompleteStates.includes(state)) return "x";
+  return nextTaskState(await knownTaskStates(), state);
+}
+
+/** The state after `state` among `states`, or `state` itself when there's none. */
+export function nextTaskState(states: string[], state: string): string {
+  if (states.length === 0) return state;
+  const idx = states.indexOf(state);
+  return states[(idx === -1 ? 0 : idx + 1) % states.length];
 }
 
 async function convertListItemToTask(node: ParseTree) {
@@ -98,24 +135,12 @@ async function cycleTaskState(
     return;
   }
 
-  let changeTo: string | undefined;
-  if (completeStates.includes(stateText)) {
-    changeTo = " ";
-  } else if (incompleteStates.includes(stateText)) {
-    changeTo = "x";
-  } else {
-    // Not a checkbox, but a custom state
-    const allStates = await config.get("taskStates", {});
-    const states = sortedTaskStateNames(allStates);
-    console.log("All states", states);
-    let currentStateIndex = states.indexOf(stateText);
-    if (currentStateIndex === -1) {
-      console.error("Unknown state", stateText);
-      currentStateIndex = 0;
-    }
-    const nextStateIndex = (currentStateIndex + 1) % states.length;
-    changeTo = states[nextStateIndex];
-  }
+  await applyTaskState(node, await stateAfter(stateText));
+}
+
+/** Sets a TaskState node's state, following it into tasks it references */
+async function applyTaskState(node: ParseTree, changeTo: string) {
+  const stateText = node.children![1].text!;
   await editor.dispatch({
     changes: {
       from: node.children![1].from,
@@ -241,26 +266,35 @@ export async function updateTaskState(
 
 let taskCycleLock = false;
 
+/** The TaskState node at `pos` (inside it, or in its brackets), if any */
+async function taskStateNodeAt(pos: number): Promise<ParseTree | undefined> {
+  const tree = await markdown.parseMarkdown(await editor.getText());
+  addParentPointers(tree);
+  let node = nodeAtPos(tree, pos);
+  if (node?.type === "TaskMark") node = node.parent!;
+  return node?.type === "TaskState" ? node : undefined;
+}
+
 export async function taskCycleAtPos(pos: number) {
   if (taskCycleLock) return;
   taskCycleLock = true;
   try {
-    const text = await editor.getText();
-    const mdTree = await markdown.parseMarkdown(text);
-    addParentPointers(mdTree);
-
-    let node = nodeAtPos(mdTree, pos);
-    if (node) {
-      if (node.type === "TaskMark") {
-        node = node.parent!;
-      }
-      if (node.type === "TaskState") {
-        await cycleTaskState(node, false);
-      }
-    }
+    const node = await taskStateNodeAt(pos);
+    if (node) await cycleTaskState(node, false);
   } finally {
     taskCycleLock = false;
   }
+}
+
+/**
+ * Sets the state of the task whose TaskState node contains `pos` to `state`
+ * (" " to do, "x" done, or a custom state), as a click cycling to it would.
+ * For the line handle's "Set state" menu.
+ */
+export async function setTaskStateAtPos(pos: number, state: string) {
+  const taskState = await taskStateNodeAt(pos);
+  if (!taskState || taskState.children![1].text === state) return;
+  await applyTaskState(taskState, state);
 }
 
 export async function taskCycleCommand() {
@@ -395,20 +429,7 @@ export async function cycleTaskStateByRef(
   path: string,
   oldState: string,
 ): Promise<string> {
-  let newState: string;
-  if (completeStates.includes(oldState)) {
-    newState = " ";
-  } else if (incompleteStates.includes(oldState)) {
-    newState = "x";
-  } else {
-    const allStates = await config.get("taskStates", {});
-    const states = sortedTaskStateNames(allStates);
-    let idx = states.indexOf(oldState);
-    if (idx === -1) {
-      idx = 0;
-    }
-    newState = states[(idx + 1) % states.length];
-  }
+  const newState = await stateAfter(oldState);
   await updateTaskState(path, oldState, newState);
   await events.dispatchEvent("task:stateChange", {
     newState,

@@ -1,0 +1,69 @@
+import { describe, expect, test } from "vitest";
+import { bubblePosition, selectionCentreX } from "./selection_bubble.ts";
+
+describe("bubblePosition", () => {
+  const viewport = { width: 1000, height: 800 };
+  const size = { width: 100, height: 30 };
+
+  test("above when there is room", () => {
+    expect(
+      bubblePosition({ left: 400, top: 200, bottom: 220 }, size, viewport),
+    ).toEqual({ left: 350, top: 162, placement: "above" });
+  });
+
+  test("below near the top", () => {
+    expect(
+      bubblePosition({ left: 400, top: 20, bottom: 40 }, size, viewport),
+    ).toEqual({ left: 350, top: 48, placement: "below" });
+  });
+
+  test("clamped at the right edge", () => {
+    expect(
+      bubblePosition({ left: 990, top: 200, bottom: 220 }, size, viewport),
+    ).toEqual({ left: 892, top: 162, placement: "above" });
+  });
+
+  test("flips below when the space above is under the top bar", () => {
+    // Room above in the viewport (162 >= 0), but the top bar ends at 180
+    expect(
+      bubblePosition(
+        { left: 400, top: 200, bottom: 220, minTop: 180 },
+        size,
+        viewport,
+      ),
+    ).toEqual({ left: 350, top: 228, placement: "below" });
+    // Clear of the top bar: stays above
+    expect(
+      bubblePosition(
+        { left: 400, top: 300, bottom: 320, minTop: 180 },
+        size,
+        viewport,
+      ).placement,
+    ).toBe("above");
+  });
+
+  test("clamped at the bottom edge", () => {
+    // Flipped below a selection near the bottom of a short viewport
+    expect(
+      bubblePosition({ left: 400, top: 20, bottom: 790 }, size, viewport),
+    ).toEqual({ left: 350, top: 762, placement: "below" });
+  });
+
+  test("clamped at the left edge", () => {
+    expect(
+      bubblePosition({ left: 10, top: 200, bottom: 220 }, size, viewport).left,
+    ).toBe(8);
+  });
+});
+
+describe("selectionCentreX", () => {
+  test("the middle of the first row's selected span", () => {
+    expect(selectionCentreX(400, 480)).toBe(440);
+  });
+
+  test("the left edge when the span is unknown or empty", () => {
+    expect(selectionCentreX(400)).toBe(400);
+    expect(selectionCentreX(400, 400)).toBe(400);
+    expect(selectionCentreX(400, 380)).toBe(400);
+  });
+});

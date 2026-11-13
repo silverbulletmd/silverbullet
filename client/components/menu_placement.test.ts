@@ -1,5 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { MENU_MAX_WIDTH, placeMenu, placePopupMenu } from "./menu_placement.ts";
+import {
+  MENU_MAX_WIDTH,
+  placeMenu,
+  placePopupMenu,
+  placeSubmenu,
+} from "./menu_placement.ts";
 
 const rect = (over: Partial<DOMRect>): DOMRect =>
   ({
@@ -63,4 +68,52 @@ test("placePopupMenu: below and right-aligned, flipped above near the bottom, ke
   expect(
     placePopupMenu({ top: 100, bottom: 124, right: 100 }, size, vp),
   ).toEqual({ top: 128, left: 8 });
+});
+
+test("placePopupMenu: start-aligned extends rightwards from the button, kept on screen", () => {
+  const vp = { width: 1000, height: 800 };
+  const size = { width: 220, height: 200 };
+  expect(
+    placePopupMenu(
+      { top: 100, bottom: 124, left: 300, right: 318 },
+      size,
+      vp,
+      "start",
+    ),
+  ).toEqual({ top: 128, left: 300 });
+  // No room to the right: shifted left to stay on screen
+  expect(
+    placePopupMenu(
+      { top: 100, bottom: 124, left: 900, right: 918 },
+      size,
+      vp,
+      "start",
+    ),
+  ).toEqual({ top: 128, left: 772 });
+  // Still flips above near the bottom
+  expect(
+    placePopupMenu(
+      { top: 700, bottom: 724, left: 300, right: 318 },
+      size,
+      vp,
+      "start",
+    ),
+  ).toEqual({ top: 496, left: 300 });
+});
+
+test("placeSubmenu: right of the parent level with its row, else left of it, kept on screen", () => {
+  const vp = { width: 1000, height: 800 };
+  const size = { width: 200, height: 150 };
+  const parent = { left: 100, right: 300 };
+  // Room on the right: its first row lines up with the opening row
+  expect(placeSubmenu({ top: 120 }, parent, size, vp)).toEqual({
+    top: 115,
+    left: 298,
+  });
+  // No room on the right: leftwards, overlapping the parent's edge by as much
+  expect(
+    placeSubmenu({ top: 120 }, { left: 700, right: 900 }, size, vp),
+  ).toEqual({ top: 115, left: 502 });
+  // Near the bottom: pulled up to stay on screen
+  expect(placeSubmenu({ top: 760 }, parent, size, vp).top).toBe(642);
 });

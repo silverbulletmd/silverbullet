@@ -19,7 +19,7 @@
   box-sizing: border-box;
   padding: 2px 6px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   background: transparent;
   color: inherit;
   font: inherit;
@@ -47,7 +47,7 @@
   display: inline-flex;
   padding: 2px 4px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   background: none;
   color: var(--subtle-color);
   cursor: pointer;
@@ -109,7 +109,7 @@
   box-sizing: border-box;
   padding: 2px 6px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
 }
 .sb-in-chip-list { display: contents; }
 .sb-in-chip {
@@ -117,7 +117,7 @@
   align-items: center;
   min-width: 0;
   max-width: 100%;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
 }
 .sb-in-chip.sb-in-chip-link {
   background-color: var(--editor-wiki-link-page-background-color);
@@ -146,7 +146,7 @@
 .sb-in-x, .sb-in-more, .sb-in-add {
   padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   background: none;
   color: var(--subtle-color);
   font: inherit;
@@ -154,6 +154,23 @@
 }
 .sb-in-x { padding: 0 4px 0 0; color: inherit; opacity: 0.6; }
 .sb-in-x:hover, .sb-in-more:hover, .sb-in-add:hover { color: var(--root-color); opacity: 1; }
+/* A chip's label and its × share one pill */
+.sb-in-chip.sb-hashtag { gap: 2px; padding: 2px 4px 2px 10px; }
+.sb-in-chip .sb-in-x {
+  display: inline-grid;
+  place-content: center;
+  width: 1.3em;
+  height: 1.3em;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 0.9em;
+  line-height: 1;
+  opacity: 0.55;
+}
+.sb-in-chip .sb-in-x:hover { opacity: 1; background: var(--tone-accent-soft); }
 
 .sb-in-dropdown {
   position: absolute;
@@ -165,12 +182,20 @@
   min-width: 12em;
   max-width: min(26em, 85vw);
   margin-top: 2px;
-  padding: 4px 0;
+  padding: 4px;
   border: 1px solid var(--modal-border-color);
-  border-radius: 6px;
+  border-radius: var(--ui-radius-lg);
   background: var(--modal-background-color);
   color: var(--root-color);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--ui-shadow-card);
+  /* Interface controls: the interface font at a fixed size, whatever the text around them */
+  font-family: var(--ui-font);
+  font-size: var(--ui-font-size-sm);
+
+  .sb-in-option {
+    padding: 5px 10px;
+    border-radius: var(--ui-radius-sm);
+  }
 }
 .sb-in-dropdown[hidden] { display: none; }
 .sb-in-menu { left: auto; right: 0; min-width: 9em; }
@@ -203,7 +228,7 @@
   display: block;
   padding: 2px 6px;
   border: 1px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-sm);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   cursor: text;
@@ -212,7 +237,8 @@
 .sb-in-link { cursor: pointer; }
 .sb-in-menu-root { position: relative; display: inline-flex; flex-shrink: 0; }
 .sb-in-more { flex-shrink: 0; margin-top: 2px; opacity: 0; }
-.sb-in-menu-owner:hover .sb-in-more,
+/* Once the mouse rests on its owner (installHoverReveal), not on any hover */
+.sb-in-menu-owner.sb-hover-revealed .sb-in-more,
 .sb-in-menu-owner:focus-within .sb-in-more,
 .sb-in-menu-open .sb-in-more,
 .sb-in-more:focus { opacity: 1; }
@@ -268,7 +294,7 @@
   column-gap: 12px;
   padding: 4px 10px;
   border: 1px solid var(--ui-surface-border-color);
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
   font-size: 0.9em;
   line-height: 1.4;
 }
@@ -309,10 +335,32 @@
   cursor: pointer;
 }
 .sb-fm-add-attr:hover { color: var(--root-color); }
+/* In a form: a soft accent pill, like the plain buttons widgets render */
+:is(.sb-markdown-widget, .sb-lua-directive-block, .sb-lua-directive-inline) .sb-fm-add-attr {
+  padding: 3px 12px;
+  border-radius: var(--ui-radius-md);
+  background: var(--tone-accent-soft);
+  color: var(--ui-accent-text-color);
+  font-family: var(--ui-font);
+  font-size: 0.85em;
+  font-weight: 500;
+  white-space: nowrap;
+}
 .sb-fm-add-item { margin-left: 16px; }
-/* The same background as the YAML it replaces */
-.sb-frontmatter-preview .sb-fm-form { background-color: var(--editor-frontmatter-background-color); }
+/* The same background as the YAML it replaces. Object forms are controls, not
+   page text: the interface font, a touch smaller since Inter runs larger than
+   most editor fonts. */
+.sb-frontmatter-preview .sb-fm-form {
+  background-color: var(--editor-frontmatter-background-color);
+  border: 0;
+  border-radius: var(--ui-radius-xl);
+  padding: 8px 16px;
+  column-gap: 20px;
+}
+.sb-frontmatter-preview .sb-fm-form,
+.sb-data-block-preview .sb-fm-form { font-family: var(--ui-font); font-size: 0.74em; }
 .sb-data-block-preview .sb-fm-form { background-color: var(--editor-code-background-color); }
+.sb-frontmatter-preview .sb-fm-key { font-weight: 500; color: var(--ui-label-color); }
 .sb-fm-add-row { grid-column: 1 / -1; padding: 2px 0 4px; }
 .sb-fm-warning { display: inline-flex; color: var(--alert-warning-color); cursor: help; }
 .sb-fm-locked {
@@ -335,4 +383,49 @@
   .sb-fm-key { grid-column: 1; padding: 6px 0 0; }
   .sb-fm-aside { grid-column: 2; padding-top: 6px; }
   .sb-fm-value { grid-column: 1 / -1; }
+}
+
+/* Inputs in an inline widget: framed fields in the interface font that stay
+   on the text line, sized to their content rather than the line */
+#sb-main .cm-editor .sb-lua-directive-inline {
+  .sb-in-text,
+  .sb-in-number,
+  .sb-in-date,
+  .sb-in-select {
+    font-family: var(--ui-font);
+    font-size: 0.85em;
+    padding: 0.3em 0.75em;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: var(--ui-radius-md);
+    background: var(--root-background-color);
+
+    &:focus {
+      outline: none;
+      border-color: var(--ui-accent-color);
+      box-shadow: 0 0 0 3px var(--tone-accent-soft);
+    }
+  }
+
+  :is(.sb-in-text, .sb-in-select, .sb-in-number, .sb-in-linkfield, .sb-in-date-field, .sb-in-chips) {
+    width: auto;
+    min-width: 9em;
+    max-width: 100%;
+    vertical-align: middle;
+  }
+
+  :is(.sb-in-text, .sb-in-select, .sb-in-number, .sb-in-linkfield) {
+    display: inline-block;
+  }
+
+  :is(.sb-in-date-field, .sb-in-chips) {
+    display: inline-flex;
+  }
+
+  .sb-in-boolean {
+    vertical-align: middle;
+  }
+
+  .sb-in-date.sb-in-invalid {
+    border-color: var(--danger-color);
+  }
 }

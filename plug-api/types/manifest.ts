@@ -1,6 +1,6 @@
 import type { Manifest as PlugosManifest } from "../../client/plugos/types.ts";
-import type { NamespaceOperation } from "./namespace.ts";
 import type { LuaFunctionDocumentation } from "./index.ts";
+import type { NamespaceOperation } from "./namespace.ts";
 
 export type CodeWidgetT = {
   codeWidget?: string;
@@ -85,6 +85,13 @@ export type CommandDef = {
    */
   requireServiceWorker?: boolean;
 
+  /**
+   * The command opens a picker or another text input. Run from a tap (an
+   * action button, say) on a touch device, it brings up the on-screen
+   * keyboard for that input right away.
+   */
+  opensInput?: boolean;
+
   // When true, this binding is NOT registered while vim mode is active,
   // so the key falls through to vim.
   disableInVim?: boolean;
@@ -138,8 +145,18 @@ export type PlugNamespaceHookT = {
 };
 
 export type SlashCommandDef = {
+  /** What the user types after `/`; also what it's known by */
   name: string;
+  /** The label shown in the menu instead of `name`, e.g. "Heading 1" for `h1` */
+  displayName?: string;
   description?: string;
+  /** A Feather icon name, an `md-*` editor icon or inline `<svg>` markup */
+  icon?: string;
+  /** More words that find this command when typed after `/` */
+  aliases?: string[];
+  /** The menu section it's listed under, e.g. "Basic blocks" (see SLASH_GROUPS) */
+  group?: string;
+  /** Higher sorts earlier within its group */
   priority?: number;
   // Parent AST nodes in which this slash command is available, defaults to everywhere
   onlyContexts?: string[];

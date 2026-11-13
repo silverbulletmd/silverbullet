@@ -232,12 +232,18 @@ test("the editor's text size follows --editor-font-size", async ({ page }) => {
   await mountEditor(page, "# Heading\n\nSome text\n", 560);
   const sizes = () =>
     page.evaluate(() =>
-      [".cm-editor", ".sb-line-h1"].map(
-        (sel) => getComputedStyle(document.querySelector(sel)!).fontSize,
+      [".cm-editor", ".sb-line-h1"].map((sel) =>
+        Number.parseFloat(
+          getComputedStyle(document.querySelector(sel)!).fontSize,
+        ),
       ),
     );
-  expect(await sizes()).toEqual(["18px", "27px"]);
+  const [text, heading] = await sizes();
+  expect(text).toBe(18);
+  expect(heading).toBeGreaterThan(text);
   await page.addStyleTag({ content: "html { --editor-font-size: 22px; }" });
   // Headings are sized in em, so they scale with it.
-  expect(await sizes()).toEqual(["22px", "33px"]);
+  const [text2, heading2] = await sizes();
+  expect(text2).toBe(22);
+  expect(heading2 / text2).toBeCloseTo(heading / text, 5);
 });

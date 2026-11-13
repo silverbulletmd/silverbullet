@@ -20,7 +20,7 @@ This defines the [JSON schema](https://json-schema.org/) for built-in configurat
 -- UI categories for the configuration manager, listed in display order.
 config.defineCategory {
   name = "Appearance",
-  description = "Fonts for the interface, the editor and code.",
+  description = "Theme and fonts for the interface, the editor and code.",
   priority = 60,
 }
 config.defineCategory {
@@ -113,8 +113,9 @@ config.define("index", {
 
 -- Fonts are picked by key from fonts.available, which Std and font libraries
 -- extend with config.set("fonts.available.<key>", {...}). A value that is not
--- a key is used as a CSS font-family stack. ui and editor have no default so
--- a server- or app-wide default font can apply when a space sets none.
+-- a key is used as a CSS font-family stack. editor has no default so a
+-- theme's suggestion can apply when a space sets none. The interface font is
+-- the theme's.
 local fontEntrySchema = {
   type = "object",
   properties = {
@@ -138,32 +139,41 @@ local fontEntrySchema = {
   required = { "name", "family", "kind" },
 }
 
+config.define("theme", {
+  type = "string",
+  description = "Theme for everyone using this space. Each device can pick its own with Theme: Select",
+  ui = { category = "Appearance", label = "Theme", priority = 5, theme = true },
+})
+
+config.define("accentColor", {
+  type = "string",
+  description = "Accent colour for links, buttons, checkboxes and selections, on top of the theme's. Any CSS colour, such as #c2410c. Leave empty for the theme's own.",
+  ui = { category = "Appearance", label = "Accent color", priority = 5, color = true },
+})
+
 config.define("fonts", {
   type = "object",
   properties = {
     ui = {
       type = "string",
-      description = "Font for menus, panels and the page title: a font from the list, or a CSS font-family",
-      ui = { category = "Appearance", label = "Interface font", priority = 4, font = "any" },
+      description = "No longer used: the interface font comes from the theme. Kept so older configuration still validates",
     },
     editor = {
       type = "string",
       description = "Font for page text in the editor: a font from the list, or a CSS font-family",
-      ui = { category = "Appearance", label = "Editor font", priority = 3, font = "any" },
+      ui = { category = "Appearance", label = "Editor font", priority = 3, font = "editor" },
     },
     editorSize = {
       type = "number",
-      default = 18,
       minimum = 10,
       maximum = 48,
       description = "Size of page text in the editor, in pixels; headings and code scale with it",
-      ui = { category = "Appearance", label = "Editor font size", priority = 2 },
+      ui = { category = "Appearance", label = "Editor font size", priority = 2, fontSize = true },
     },
     code = {
       type = "string",
-      default = "ia-writer-mono",
       description = "Monospace font for code, frontmatter, tables being edited and Lua expressions",
-      ui = { category = "Appearance", label = "Code font", priority = 1, font = "mono" },
+      ui = { category = "Appearance", label = "Code font", priority = 1, font = "code" },
     },
     available = {
       type = "object",
@@ -181,6 +191,9 @@ config.set("fonts.available.ia-writer-mono", {
 })
 config.set("fonts.available.inter", {
   name = "Inter", family = "Inter, system-ui, sans-serif", kind = "sans", license = "OFL-1.1",
+})
+config.set("fonts.available.lora", {
+  name = "Lora", family = "Lora, Georgia, serif", kind = "serif", license = "OFL-1.1",
 })
 config.set("fonts.available.system-sans", {
   name = "System sans", family = "system-ui, sans-serif", kind = "sans",
@@ -436,6 +449,7 @@ config.define("commands", {
         enum = {"rw", "ro"},
       },
       requireEditor = schema.nullable("string"),
+      opensInput = schema.nullable "boolean",
       run = schema.func(),
     },
   },
@@ -448,7 +462,11 @@ config.define("slashCommands", {
     type = "object",
     properties = {
       name = schema.string(),
+      displayName = schema.nullable "string",
       description = schema.nullable "string",
+      icon = schema.nullable "string",
+      aliases = schema.nullableArray "string",
+      group = schema.nullable "string",
       priority = schema.nullable "number",
       onlyContexts = schema.nullableArray "string",
       exceptContexts = schema.nullableArray "string",
@@ -561,6 +579,10 @@ config.define("actionButtons", {
         type = "boolean",
         description = "Optional: when true, button only appears on servers that manage accounts (multi-space)"
       },
+      readOnly = {
+        type = "boolean",
+        description = "Optional: when set to true, button only appears in a read-only space; when false, only in an editable one"
+      },
       dropdown = {
         type = "boolean",
         description = "Optional: set to false to keep this button outside the dropdown menu on mobile (default: true)"
@@ -572,28 +594,77 @@ config.define("actionButtons", {
   }
 })
 
-config.define("keyboardBar", {
-  description = "Buttons in the bar shown above the on-screen keyboard (or at the bottom with an external keyboard) while editing on a touch device. Set to an empty list to hide the bar. See [[^Library/Std/APIs/Keyboard Bar]].",
-  type = "array",
-  items = {
-    type = "object",
-    properties = {
-      icon = {
-        type = "string",
-        description = "Icon name: a Feather icon (https://feathericons.com) or one of the md-* editor icons"
-      },
-      description = schema.string(),
-      command = {
-        type = "string",
-        description = "Command to run when tapped (replaces run)"
-      },
-      run = schema.func(),
-      onlyContexts = schema.nullableArray "string",
-      exceptContexts = schema.nullableArray "string",
+local function markupButtonSchema(extra)
+  local properties = {
+    icon = {
+      type = "string",
+      description = "Icon name: a Feather icon (https://feathericons.com) or one of the md-* editor icons"
     },
+    description = schema.string(),
+    command = {
+      type = "string",
+      description = "Command to run when tapped (replaces run)"
+    },
+    run = schema.func(),
+    onlyContexts = schema.nullableArray "string",
+    exceptContexts = schema.nullableArray "string",
+  }
+  for k, v in pairs(extra or {}) do
+    properties[k] = v
+  end
+  return {
+    type = "object",
+    properties = properties,
     required = {"icon"},
     additionalProperties = false
   }
+end
+
+-- The line menu's buttons also take a submenu group and a tick
+local lineButtonSchema = markupButtonSchema {
+  group = { type = "string", description = "Buttons with the same group share one submenu row, labelled with it" },
+  activeContexts = schema.nullableArray "string",
+}
+
+config.define("markupBar", {
+  description = "The markup bar: buttons for editing, shown above the keyboard on touch devices and, on desktop, in the formatting bubble and the line handle menu. Each has its own list, in display order. Each device can also hide them with Editor: Toggle Markup Bar. See [[^Library/Std/APIs/Markup Bar]].",
+  type = "object",
+  properties = {
+    selectionBubble = {
+      type = "boolean",
+      default = true,
+      description = "Show a formatting bubble over selected text (desktop)",
+      ui = { category = "Editor", label = "Show a formatting bubble over selected text (desktop)", priority = -2 },
+    },
+    lineHandle = {
+      type = "boolean",
+      default = true,
+      description = "Show the ⋮ line actions handle beside lines of text in the left margin (desktop). When off, its Add tag entry goes too; widgets keep their ⋮ menu",
+      ui = { category = "Editor", label = "Show the ⋮ line actions handle in the left margin (desktop)", priority = -3 },
+    },
+    mobile = {
+      type = "array",
+      description = "The bar above the keyboard on phones and tablets, in order. Set to an empty list to hide it",
+      items = markupButtonSchema(),
+    },
+    selection = {
+      type = "array",
+      description = "The formatting bubble over selected text on desktop, in order. Set to an empty list to hide it",
+      items = markupButtonSchema(),
+    },
+    line = {
+      type = "array",
+      description = "The menu of the ⋮ line handle on desktop, in order",
+      items = lineButtonSchema,
+    },
+  },
+  additionalProperties = false,
+})
+
+config.define("keyboardBar", {
+  description = "Deprecated: use markupBar.mobile. When a space sets this, the bar above the keyboard uses it instead of markupBar.mobile. See [[^Library/Std/APIs/Markup Bar]].",
+  type = "array",
+  items = markupButtonSchema(),
 })
 
 config.define("workbench.pinnedTags", {
@@ -635,6 +706,13 @@ config.set("actionButtons", {
     dropdown = false,
   },
   {
+    icon = "search",
+    description = "Search",
+    command = "Space: Search",
+    priority = 2.8,
+    dropdown = false,
+  },
+  {
     icon = "book",
     description = "Open page",
     command = "Navigate: Page Picker",
@@ -652,6 +730,7 @@ config.set("actionButtons", {
     description = "Toggle the Workbench",
     command = "Workbench: Toggle",
     priority = 0.5,
+    readOnly = false,
   },
   {
     icon = "chevron-left",
@@ -691,19 +770,20 @@ local function insertCompletionTrigger(char)
   editor.startCompletion()
 end
 
-config.set("keyboardBar", {
-  { icon = "md-format-list-bulleted", description = "Bullet list", command = "Text: Listify Selection", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
-  { icon = "md-checklist", description = "New task", command = "Text: Taskify Line", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+-- The bar above the keyboard on phones and tablets, in this order
+config.set("markupBar.mobile", {
+  { icon = "md-format-list-bulleted", description = "Turn into bullet item", command = "Text: Listify Selection", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
   { icon = "md-format-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
   { icon = "md-format-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
-  { icon = "md-checklist", description = "Make task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
   { icon = "check-square", description = "Cycle task state", command = "Task: Cycle State", onlyContexts = {"Task"} },
   { icon = "arrow-up", description = "Move up", command = "Outline: Move Up", onlyContexts = {"ListItem"} },
   { icon = "arrow-down", description = "Move down", command = "Outline: Move Down", onlyContexts = {"ListItem"} },
   { icon = "chevrons-right", description = "Tab", command = "Editor: Indent", onlyContexts = {"FencedCode"} },
   { icon = "chevrons-left", description = "Shift-Tab", command = "Editor: Outdent", onlyContexts = {"FencedCode"} },
-  { icon = "md-link", description = "Wiki link", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "paperclip", description = "Attach file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "paperclip", description = "Upload file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "hash", description = "Tag", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
@@ -715,5 +795,57 @@ config.set("keyboardBar", {
   { icon = "rotate-ccw", description = "Undo", command = "Editor: Undo" },
   { icon = "rotate-cw", description = "Redo", command = "Editor: Redo" },
   { icon = "terminal", description = "Run command", command = "Open Command Palette" },
+})
+
+-- The formatting bubble over selected text on desktop, in this order
+config.set("markupBar.selection", {
+  { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-format-strikethrough", description = "Strikethrough", command = "Text: Strikethrough", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-code", description = "Code", command = "Text: Code", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "edit-3", description = "Highlight", command = "Text: Marker", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "md-link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "external-link", description = "Link to URL", command = "Text: Link Selection", exceptContexts = {"FencedCode", "FrontMatter"} },
+})
+
+-- The menu of the ⋮ line handle on desktop, in this order (after Add tag and
+-- Set state, which it builds itself; a blank line lists the slash menu's
+-- blocks, which it also builds itself)
+config.set("markupBar.line", {
+  -- A list item
+  { icon = "md-format-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
+  { icon = "md-format-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
+  { icon = "arrow-up", description = "Move up", command = "Outline: Move Up", onlyContexts = {"ListItem"} },
+  { icon = "arrow-down", description = "Move down", command = "Outline: Move Down", onlyContexts = {"ListItem"} },
+  -- A heading
+  { icon = "md-format-size", description = "Heading 1", group = "Heading", command = "Text: Heading 1", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading1"} },
+  { icon = "md-format-size", description = "Heading 2", group = "Heading", command = "Text: Heading 2", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading2"} },
+  { icon = "md-format-size", description = "Heading 3", group = "Heading", command = "Text: Heading 3", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading3"} },
+  { icon = "md-format-size", description = "Heading 4", group = "Heading", command = "Text: Heading 4", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading4"} },
+  { icon = "type", description = "Normal text", group = "Heading", command = "Text: Normal Text", onlyContexts = {"ATXHeading"} },
+  { icon = "arrow-up", description = "Move section up", command = "Outline: Move Up", onlyContexts = {"ATXHeading"} },
+  { icon = "arrow-down", description = "Move section down", command = "Outline: Move Down", onlyContexts = {"ATXHeading"} },
+  { icon = "md-format-indent-increase", description = "Demote section", command = "Outline: Move Right", onlyContexts = {"ATXHeading"} },
+  { icon = "md-format-indent-decrease", description = "Promote section", command = "Outline: Move Left", onlyContexts = {"ATXHeading"} },
+  -- A table row
+  { icon = "arrow-up", description = "Move row up", command = "Outline: Move Up", onlyContexts = {"TableRow"} },
+  { icon = "arrow-down", description = "Move row down", command = "Outline: Move Down", onlyContexts = {"TableRow"} },
+  -- A paragraph
+  { icon = "md-format-size", description = "Heading 1", group = "Turn into heading", command = "Text: Heading 1", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "md-format-size", description = "Heading 2", group = "Turn into heading", command = "Text: Heading 2", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "md-format-size", description = "Heading 3", group = "Turn into heading", command = "Text: Heading 3", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "md-format-size", description = "Heading 4", group = "Turn into heading", command = "Text: Heading 4", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "md-format-list-bulleted", description = "Turn into bullet item", command = "Text: Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "md-format-list-numbered", description = "Turn into numbered item", command = "Text: Number Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "md-format-quote", description = "Turn into quote", command = "Text: Quote Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "paperclip", description = "Upload file", command = "File: Upload", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  -- A list item that is no task yet
+  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  -- A heading or a list item with nested items: Collapse when open, Expand when folded
+  { icon = "md-unfold-less", description = "Collapse", command = "Outline: Toggle Fold", onlyContexts = {"ATXHeading", "@hasChildren"}, exceptContexts = {"@folded"} },
+  { icon = "md-unfold-more", description = "Expand", command = "Outline: Toggle Fold", onlyContexts = {"@folded"} },
+  -- A table, with its source showing
+  { icon = "grid", description = "Format table", command = "Table: Format", onlyContexts = {"Table"} },
 })
 ```

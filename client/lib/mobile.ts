@@ -65,6 +65,47 @@ export function noteSoftKeyboardVisible(visible: boolean): void {
 export function resetModalFilterFocusForTests(): void {
   hardwareKeyboardLikely = false;
   softKeyboardVisible = false;
+  primer?.blur();
+}
+
+/** How long a primed keyboard waits for an input to take over focus. */
+export const KEYBOARD_PRIME_MS = 1500;
+
+let primer: HTMLInputElement | undefined;
+let primerTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Whether a primed keyboard is up, waiting for an input to take it over. */
+function keyboardPrimed(): boolean {
+  return primer !== undefined && document.activeElement === primer;
+}
+
+/**
+ * Bring up the on-screen keyboard for an input that is about to open.
+ *
+ * iOS raises the keyboard only for a focus made inside the user's tap, and a
+ * picker opens a moment later, after its command has run. So, inside the
+ * tap, focus a hidden input: the keyboard comes up, and when the picker's
+ * filter takes focus the keyboard stays with it (see `shouldFocusModalFilter`).
+ * If nothing takes over within `KEYBOARD_PRIME_MS`, the hidden input lets go
+ * and the keyboard goes away again. Does nothing with a fine pointer.
+ *
+ * Must be called synchronously from the tap's event handler.
+ */
+export function primeSoftKeyboard(): void {
+  if (!isMobileDevice() || typeof document === "undefined") return;
+  if (!primer) {
+    primer = document.createElement("input");
+    primer.type = "text";
+    primer.setAttribute("aria-hidden", "true");
+    primer.tabIndex = -1;
+    // 16px: iOS zooms the page into a focused input with smaller text
+    primer.style.cssText =
+      "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;font-size:16px;border:0;padding:0;pointer-events:none;";
+    document.body.appendChild(primer);
+  }
+  primer.focus({ preventScroll: true });
+  clearTimeout(primerTimer);
+  primerTimer = setTimeout(() => primer?.blur(), KEYBOARD_PRIME_MS);
 }
 
 /**
@@ -79,7 +120,13 @@ export function resetModalFilterFocusForTests(): void {
  * on a tablet with a keyboard attached. So does an on-screen keyboard that is
  * already up (e.g. opened from the keyboard bar): focus moves to the filter
  * and the keyboard stays, instead of typing on into the editor behind it.
+ * And so does a keyboard a button primed with `primeSoftKeyboard`.
  */
 export function shouldFocusModalFilter(): boolean {
-  return !isMobileDevice() || hardwareKeyboardLikely || softKeyboardVisible;
+  return (
+    !isMobileDevice() ||
+    hardwareKeyboardLikely ||
+    softKeyboardVisible ||
+    keyboardPrimed()
+  );
 }

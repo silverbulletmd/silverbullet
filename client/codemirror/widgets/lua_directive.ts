@@ -1,5 +1,10 @@
 import { syntaxTree } from "@codemirror/language";
-import type { EditorState, Range } from "@codemirror/state";
+import {
+  type EditorState,
+  type Extension,
+  type Range,
+  StateField,
+} from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import type { SyntaxNode } from "@lezer/common";
 import {
@@ -11,6 +16,8 @@ import { mdLinkRegex } from "../../markdown_parser/constants.ts";
 import { marksTemplate } from "../../space_lua/page_definitions.ts";
 import type { PageScope } from "../../space_lua/page_scope.ts";
 import { renderPageDirective } from "../../space_lua/render_widget.ts";
+import { dirtyRegions } from "../decoration_regions.ts";
+import { frontmatterInRange } from "../syntax/frontmatter_block.ts";
 import {
   decoratorStateField,
   hideBlockSource,
@@ -30,23 +37,80 @@ function isPageLuaBlock(node: SyntaxNode, state: EditorState): boolean {
   return !!info && state.sliceDoc(info.from, info.to).trim() === "page-lua";
 }
 
-/** Whether the page has a `page-lua` block or an assignment directive. */
-export function hasPageDefinitions(state: EditorState): boolean {
-  let found = false;
+type PageFacts = {
+  /** A `page-lua` block or an assignment directive */
+  definitions: boolean;
+  /** Marked `#meta/template`, which shows its directives as source */
+  template: boolean;
+};
+
+/** What in `from`–`to` (the whole page by default) affects every directive */
+function scanPageFacts(
+  state: EditorState,
+  from?: number,
+  to?: number,
+): PageFacts {
+  const facts: PageFacts = { definitions: false, template: false };
   syntaxTree(state).iterate({
+    from,
+    to,
     enter: (node) => {
-      if (found) return false;
+      if (node.name === "FrontMatterCode" || node.name === "Hashtag") {
+        if (marksTemplate(node.name, state.sliceDoc(node.from, node.to))) {
+          facts.template = true;
+        }
+        return false;
+      }
       if (node.name === "FencedCode") {
-        if (isPageLuaBlock(node.node, state)) found = true;
+        if (isPageLuaBlock(node.node, state)) facts.definitions = true;
         return false;
       }
       if (node.name === "LuaDirective") {
-        if (assignmentNameOf(node.node, state)) found = true;
+        if (assignmentNameOf(node.node, state)) facts.definitions = true;
         return false;
       }
     },
   });
-  return found;
+  return facts;
+}
+
+/**
+ * Whether `from`–`to` holds anything `scanPageFacts` looks for. Page-lua
+ * blocks are also numbered across the page, so these always rebuild it all.
+ */
+function holdsPageFacts(state: EditorState, from: number, to: number) {
+  const facts = scanPageFacts(state, from, to);
+  return facts.definitions || facts.template;
+}
+
+/** The page facts, rescanned only when an edit touches what they come from */
+const pageFactsField = StateField.define<PageFacts>({
+  create: (state) => scanPageFacts(state),
+  update(value, tr) {
+    if (!tr.docChanged && syntaxTree(tr.startState) === syntaxTree(tr.state)) {
+      return value;
+    }
+    const regions = dirtyRegions(tr);
+    if (
+      regions?.every(
+        (r) =>
+          !holdsPageFacts(tr.state, r.from, r.to) &&
+          !holdsPageFacts(
+            tr.startState,
+            tr.changes.invertedDesc.mapPos(r.from, -1),
+            tr.changes.invertedDesc.mapPos(r.to, 1),
+          ),
+      )
+    ) {
+      return value;
+    }
+    return scanPageFacts(tr.state);
+  },
+});
+
+/** Whether the page has a `page-lua` block or an assignment directive. */
+export function hasPageDefinitions(state: EditorState): boolean {
+  return scanPageFacts(state).definitions;
 }
 
 /**
@@ -109,143 +173,148 @@ export function directiveWrappers(
   return out;
 }
 
-export function luaDirectivePlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
-    const widgets: Range<Decoration>[] = [];
-    const keys = new OccurrenceKeys();
+export function luaDirectivePlugin(client: Client): Extension {
+  const decorations = decoratorStateField(
+    (state: EditorState, _tr, range) => {
+      const widgets: Range<Decoration>[] = [];
+      const keys = range?.keys ?? new OccurrenceKeys();
 
-    let shouldRender = true;
-
-    const renderMode = widgetRenderMode(client, state);
-    if (renderMode === "disabled") {
-      return Decoration.none;
-    }
-
-    // Pages without definitions keep the plain path: no scope, no waiting
-    let scope: PageScope | null | undefined = null;
-    if (renderMode !== "loading" && hasPageDefinitions(state)) {
-      const pageName = client.currentName();
-      const scopes = client.clientSystem.pageScopes;
-      const latest = scopes.latest(pageName);
-      scope = latest.scope;
-      if (latest.needsBuild) {
-        // A missing page settles as missing: its first save rebuilds us
-        scopes.get(pageName).then(
-          () => client.editorView.dispatch({}),
-          () => {},
-        );
+      const renderMode = widgetRenderMode(client, state);
+      if (renderMode === "disabled") {
+        return Decoration.none;
       }
-    }
-    let blockIndex = 0;
+      const facts = state.field(pageFactsField);
+      // Disable rendering of Lua directives in #meta/template pages
+      if (facts.template) {
+        return Decoration.none;
+      }
 
-    syntaxTree(state).iterate({
-      enter: (node) => {
-        // Disable rendering of Lua directives in #meta/template pages
-        if (marksTemplate(node.name, state.sliceDoc(node.from, node.to))) {
-          shouldRender = false;
-          return;
+      // Pages without definitions keep the plain path: no scope, no waiting
+      let scope: PageScope | null | undefined = null;
+      if (renderMode !== "loading" && facts.definitions) {
+        const pageName = client.currentName();
+        const scopes = client.clientSystem.pageScopes;
+        const latest = scopes.latest(pageName);
+        scope = latest.scope;
+        if (latest.needsBuild) {
+          // A missing page settles as missing: its first save rebuilds us
+          scopes.get(pageName).then(
+            () => client.editorView.dispatch({}),
+            () => {},
+          );
         }
+      }
+      let blockIndex = 0;
 
-        if (node.name === "FencedCode") {
-          if (scope && isPageLuaBlock(node.node, state)) {
-            const error = scope.blockErrors.get(blockIndex++);
-            if (error) {
-              widgets.push(
-                Decoration.widget({
-                  widget: new PageLuaErrorWidget(error),
-                  block: true,
-                  side: 1,
-                }).range(node.to),
-              );
+      syntaxTree(state).iterate({
+        from: range?.from,
+        to: range?.to,
+        enter: (node) => {
+          if (node.name === "FencedCode") {
+            if (scope && isPageLuaBlock(node.node, state)) {
+              const error = scope.blockErrors.get(blockIndex++);
+              if (error) {
+                widgets.push(
+                  Decoration.widget({
+                    widget: new PageLuaErrorWidget(error),
+                    block: true,
+                    side: 1,
+                  }).range(node.to),
+                );
+              }
             }
+            return false;
           }
-          return false;
-        }
 
-        if (node.name !== "LuaDirective") {
-          return;
-        }
+          if (node.name !== "LuaDirective") {
+            return;
+          }
 
-        // Shown source is code: it keeps the monospace face when the prose
-        // font is proportional.
-        const markSource = () =>
-          widgets.push(sourceMark.range(node.from, node.to));
+          // Shown source is code: it keeps the monospace face when the prose
+          // font is proportional.
+          const markSource = () =>
+            widgets.push(sourceMark.range(node.from, node.to));
 
-        if (isCursorInRange(state, [node.from, node.to])) {
-          markSource();
-          return;
-        }
-
-        const hideSource = () => {
-          if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+          if (isCursorInRange(state, [node.from, node.to])) {
             markSource();
             return;
           }
-          hideBlockSource(widgets, state, node.from, node.to, "start");
-        };
 
-        if (renderMode === "loading") {
+          const hideSource = () => {
+            if (client.ui.viewState.uiOptions.markdownSyntaxRendering) {
+              markSource();
+              return;
+            }
+            hideBlockSource(widgets, state, node.from, node.to, "start");
+          };
+
+          if (renderMode === "loading") {
+            widgets.push(
+              Decoration.widget({
+                widget: new LoadingWidget(false),
+              }).range(node.from),
+            );
+            hideSource();
+            return;
+          }
+
+          const expressionText = directiveExpr(
+            state.sliceDoc(node.from, node.to),
+          );
+          const assignmentName = assignmentNameOf(node.node, state);
+          if (awaitsPageScope(scope, assignmentName)) {
+            widgets.push(
+              Decoration.widget({
+                widget: new LoadingWidget(false),
+              }).range(node.from),
+            );
+            hideSource();
+            return;
+          }
+          const pageName = client.currentName();
+          const scopes = client.clientSystem.pageScopes;
+          const currentPageMeta = client.currentPageMeta();
+          const baseKey = directiveCacheKey(
+            expressionText,
+            currentPageMeta?.name,
+          );
+          const cacheKey = keys.key(
+            scope ? `${baseKey}:${scope.key}` : baseKey,
+          );
           widgets.push(
             Decoration.widget({
-              widget: new LoadingWidget(false),
+              widget: new LuaWidget({
+                client,
+                cacheKey,
+                expressionText,
+                callback: async (bodyText, _page, track) =>
+                  renderPageDirective(
+                    client,
+                    bodyText,
+                    currentPageMeta,
+                    scope ? await scopes.tryGet(pageName) : null,
+                    { assignmentName, track },
+                  ),
+                host: {
+                  kind: "directive",
+                  wrappers: directiveWrappers(node.node, state, pageName),
+                  label: assignmentName,
+                },
+              }),
             }).range(node.from),
           );
+
           hideSource();
-          return;
-        }
+        },
+      });
 
-        const expressionText = directiveExpr(
-          state.sliceDoc(node.from, node.to),
-        );
-        const assignmentName = assignmentNameOf(node.node, state);
-        if (awaitsPageScope(scope, assignmentName)) {
-          widgets.push(
-            Decoration.widget({
-              widget: new LoadingWidget(false),
-            }).range(node.from),
-          );
-          hideSource();
-          return;
-        }
-        const pageName = client.currentName();
-        const scopes = client.clientSystem.pageScopes;
-        const currentPageMeta = client.currentPageMeta();
-        const baseKey = directiveCacheKey(
-          expressionText,
-          currentPageMeta?.name,
-        );
-        const cacheKey = keys.key(scope ? `${baseKey}:${scope.key}` : baseKey);
-        widgets.push(
-          Decoration.widget({
-            widget: new LuaWidget({
-              client,
-              cacheKey,
-              expressionText,
-              callback: async (bodyText, _page, track) =>
-                renderPageDirective(
-                  client,
-                  bodyText,
-                  currentPageMeta,
-                  scope ? await scopes.tryGet(pageName) : null,
-                  { assignmentName, track },
-                ),
-              host: {
-                kind: "directive",
-                wrappers: directiveWrappers(node.node, state, pageName),
-                label: assignmentName,
-              },
-            }),
-          }).range(node.from),
-        );
-
-        hideSource();
-      },
-    });
-
-    if (!shouldRender) {
-      return Decoration.set([]);
-    }
-
-    return Decoration.set(widgets, true);
-  });
+      return Decoration.set(widgets, true);
+    },
+    {
+      keyed: true,
+      pageWide: (state, from, to) =>
+        frontmatterInRange(state, from, to) || holdsPageFacts(state, from, to),
+    },
+  );
+  return [pageFactsField, decorations];
 }

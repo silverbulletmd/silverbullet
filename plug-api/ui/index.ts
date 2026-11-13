@@ -13,8 +13,6 @@ export { Checkbox } from "./checkbox.tsx";
 export type { CopyButtonProps } from "./copy_button.tsx";
 export { CopyButton } from "./copy_button.tsx";
 export { cx } from "./cx.ts";
-export type { DefaultFontSelectProps } from "./default_font_select.tsx";
-export { DefaultFontSelect } from "./default_font_select.tsx";
 export type { Description, StructuredDescription } from "./description.ts";
 export type { CheckboxFieldProps, FieldProps } from "./field.tsx";
 export { CheckboxField, Field } from "./field.tsx";

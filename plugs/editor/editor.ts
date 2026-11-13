@@ -1,8 +1,11 @@
+import { counterpartTheme } from "@silverbulletmd/silverbullet/lib/themes";
 import {
   clientStore,
   codeWidget,
+  config,
   editor,
   system,
+  theme,
 } from "@silverbulletmd/silverbullet/syscalls";
 
 // Run on "editor:init"
@@ -23,13 +26,6 @@ export async function setEditorMode() {
   if (await clientStore.get("vimMode")) {
     await editor.setUiOption("vimMode", true);
   }
-  // Only set the darkmode value if it was deliberatly set in the clientstore,
-  // otherwise leave it so the client can choose depending on the system
-  // settings
-  const darkMode = await clientStore.get("darkMode");
-  if (darkMode != null) {
-    await editor.setUiOption("darkMode", darkMode);
-  }
   const markdownSyntaxRendering = await clientStore.get(
     "markdownSyntaxRendering",
   );
@@ -40,8 +36,12 @@ export async function setEditorMode() {
     );
     await editor.rebuildEditorState();
   }
-  if ((await clientStore.get("keyboardBar")) === false) {
-    await editor.setUiOption("keyboardBar", false);
+  // `keyboardBar` is the key from before the markup bar's rename
+  const markupBar =
+    (await clientStore.get("markupBar")) ??
+    (await clientStore.get("keyboardBar"));
+  if (markupBar === false) {
+    await editor.setUiOption("markupBar", false);
   }
 }
 
@@ -52,13 +52,6 @@ export async function openTagNavigator() {
   return false;
 }
 
-export async function toggleDarkMode() {
-  let darkMode = await editor.getUiOption("darkMode");
-  darkMode = !darkMode;
-  await clientStore.set("darkMode", darkMode);
-  await editor.reloadUI();
-}
-
 export async function toggleMarkdownSyntaxRendering() {
   let renderingSyntax = await editor.getUiOption("markdownSyntaxRendering");
   renderingSyntax = !renderingSyntax;
@@ -67,10 +60,10 @@ export async function toggleMarkdownSyntaxRendering() {
   await editor.rebuildEditorState();
 }
 
-export async function toggleKeyboardBar() {
-  const enabled = !(await editor.getUiOption("keyboardBar"));
-  await clientStore.set("keyboardBar", enabled);
-  await editor.setUiOption("keyboardBar", enabled);
+export async function toggleMarkupBar() {
+  const enabled = !(await editor.getUiOption("markupBar"));
+  await clientStore.set("markupBar", enabled);
+  await editor.setUiOption("markupBar", enabled);
 }
 
 export async function centerCursorCommand() {
@@ -143,4 +136,50 @@ export async function reloadSystem() {
   await system.reboot();
   await codeWidget.refreshAll();
   await editor.flashNotification("System and widgets reloaded!");
+}
+
+export async function selectTheme() {
+  const [themes, active, device, configured] = await Promise.all([
+    theme.list(),
+    theme.getActive(),
+    theme.getDeviceTheme(),
+    config.get<string | undefined>("theme", undefined),
+  ]);
+  // With no override the active theme is already what the space default gives
+  const spaceDefault =
+    device === undefined ? active : themes.find((t) => t.page === configured);
+  const options = [
+    {
+      name: spaceDefault
+        ? `Use space default (${spaceDefault.displayName})`
+        : "Use space default (follows system)",
+      description: spaceDefault?.scheme ?? "",
+      page: undefined as string | undefined,
+    },
+    ...[...themes]
+      .sort((a, b) => a.displayName.localeCompare(b.displayName))
+      .map((t) => ({
+        name: t.displayName,
+        description: t.page === active.page ? `${t.scheme}, current` : t.scheme,
+        page: t.page as string | undefined,
+      })),
+  ];
+  const selected = await editor.filterBox("Theme", options, "Pick a theme");
+  if (!selected) {
+    return;
+  }
+  await theme.setDeviceTheme((selected as (typeof options)[number]).page);
+}
+
+export async function toggleTheme() {
+  const active = await theme.getActive();
+  const counterpart = counterpartTheme(active, await theme.list());
+  if (!counterpart) {
+    await editor.flashNotification(
+      `${active.displayName} has no ${active.scheme === "dark" ? "light" : "dark"} counterpart`,
+      "info",
+    );
+    return;
+  }
+  await theme.setDeviceTheme(counterpart.page);
 }

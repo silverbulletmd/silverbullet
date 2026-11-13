@@ -2,6 +2,7 @@ import type { Completion } from "@codemirror/autocomplete";
 import { config, index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { knownTaskStates } from "./task.ts";
 
 export async function attributeCompletion(
   tags: string[],
@@ -167,7 +168,7 @@ export async function completeTaskState(completeEvent: CompleteEvent) {
   if (!taskMatch) {
     return null;
   }
-  const allStates = Object.keys(await config.get("taskStates", {}));
+  const allStates = await knownTaskStates();
   const typed = taskMatch[2];
 
   let options: string[];

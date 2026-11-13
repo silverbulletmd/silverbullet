@@ -1,187 +1,39 @@
 @use "fonts";
 
-@use "tokens";
+@use "dark_palette" as dark;
 
-html {
-  --ui-accent-text-color: var(--ui-accent-color);
-  --text-field-focus-color: color-mix(in srgb, var(--ui-accent-color) 45%, var(--ui-surface-border-color));
-  --highlight-color: rgba(255, 255, 0, 0.5);
-  --link-color: #0330cb;
-  --link-missing-color: #9e4705;
-  --link-invalid-color: #bb08e7;
-  --meta-color: #650007;
-  --meta-subtle-color: #959595;
-  --subtle-color: #676767;
-  --subtle-background-color: rgba(72, 72, 72, 0.1);
-
-  /* Shared panel-surface palette — chrome colors for plug panels (e.g.
-     Configuration Manager, Object Graph). Bundled into components.css, so
-     panels consume these instead of hardcoding their own light/dark values. */
-  --ui-surface-background-color: var(--root-background-color);
-  --ui-surface-color: var(--root-color);
-  --ui-surface-subtle-color: var(--subtle-color);
-  --ui-surface-border-color: #d8dce1;
-  --ui-surface-section-background-color: var(--subtle-background-color);
-  --ui-surface-hover-background-color: var(--subtle-background-color);
-
-  --root-background-color: #fff;
-  --root-color: #20252d;
-
-  --top-color: inherit;
-  --top-background-color: #eee;
-  --top-border-color: #cacaca;
-  --top-sync-error-color: var(--top-color);
-  --top-sync-error-background-color: #fdf8cb;
-  --top-saved-color: #111;
-  --top-unsaved-color: #5e5e5e;
-  --top-loading-color: #7a7a7a;
-
-  --panel-background-color: #f6f7f8;
-  --panel-border-color: var(--ui-surface-border-color);
-
-  --bhs-background-color: #fff;
-  --bhs-border-color: rgb(193, 193, 193);
-
-  --modal-color: inherit;
-  --modal-background-color: #fff;
-  --modal-border-color: var(--ui-surface-border-color);
-  --modal-backdrop-color: transparent;
-  --modal-header-label-color: var(--ui-accent-text-color);
-  --modal-help-background-color: #eee;
-  --modal-help-color: #555;
-  --modal-selected-option-background-color: color-mix(in srgb, var(--ui-accent-color) 12%, var(--modal-background-color));
-  --modal-selected-option-color: var(--root-color);
-  --modal-hint-background-color: #212476;
-  --modal-hint-color: #eee;
-  --modal-hint-inactive-background-color: #e1e1e1;
-  --modal-hint-inactive-color: #111;
-  --modal-description-color: #6b6b6b;
-  --modal-selected-option-description-color: var(--subtle-color);
-
-  --notifications-background-color: inherit;
-  --notifications-border-color: var(--ui-surface-border-color);
-  --notification-info-background-color: color-mix(in srgb, var(--alert-info-color) 10%, var(--modal-background-color));
-  --notification-error-background-color: color-mix(in srgb, var(--alert-error-color) 10%, var(--modal-background-color));
-  --notification-warning-background-color: color-mix(in srgb, var(--alert-warning-color) 10%, var(--modal-background-color));
-
-  --button-background-color: #f6f7f8;
-  --button-hover-background-color: #edf0f3;
-  --button-color: var(--root-color);
-  --button-border-color: var(--ui-surface-border-color);
+// Built-in defaults sit under :where() so any theme or space-style rule, even a
+// plain `html { … }`, overrides them without a specificity fight.
+//
+// Two levels: a small base palette, and specific variables that derive from it.
+// Derivations resolve on `html`, so a theme overriding a base variable on
+// `html` re-derives everything below.
+:where(html) {
+  // Accent and primary buttons, shared by the editor, the Dashboard, the
+  // login page and the setup wizard.
+  --ui-accent-color: #0059b8;
+  --ui-accent-contrast-color: #fff;
+  --primary-button-color: var(--ui-accent-contrast-color);
   --primary-button-background-color: var(--ui-accent-color);
   --primary-button-hover-background-color: color-mix(in srgb,
-      var(--ui-accent-color),
+      var(--primary-button-background-color),
       black 18%);
-  --primary-button-color: var(--ui-accent-contrast-color);
   --primary-button-border-color: transparent;
 
-  --text-field-background-color: var(--button-background-color);
+  // Base palette
+  --root-background-color: #fcfcfd;
+  --root-color: #1f2330;
+  --subtle-color: #6e7485;
+  --subtle-background-color: rgba(31, 35, 48, 0.05);
+  --ui-surface-border-color: #e4e6ee;
 
-  --progress-background-color: #eee;
-  --progress-sync-color: black;
-  --progress-index-color: #0772be;
+  --link-color: var(--ui-accent-text-color);
+  --link-missing-color: #c2410c;
+  --link-invalid-color: #bb08e7;
+  --meta-color: #a6abba;
+  --meta-subtle-color: #b9bdc9;
 
-  --action-button-background-color: transparent;
-  --action-button-color: #292929;
-  --action-button-hover-color: #0772be;
-  --action-button-active-color: #0772be;
-
-  --editor-caret-color: black;
-  --editor-selection-background-color: #d7e1f6;
-  --editor-panels-bottom-color: inherit;
-  --editor-panels-bottom-background-color: #e1e1e1;
-  --editor-panels-bottom-border-color: #cacaca;
-  --editor-completion-detail-color: #555;
-  --editor-completion-detail-selected-color: #d2d2d2;
-  --editor-list-bullet-color: rgb(150, 150, 150);
-  --editor-heading-color: #333;
-  --editor-heading-meta-color: var(--meta-subtle-color);
-  --editor-hashtag-background-color: #002b6aad;
-  --editor-hashtag-color: #e2e9ff;
-  --editor-hashtag-border-color: #0120416b;
-  --editor-at-mention-color: #1a56b0;
-  --editor-at-mention-signature-color: #6b6b64;
-  --editor-at-mention-background-color: #e8f0fe;
-  --editor-at-mention-border-color: #c4d7f5;
-  --editor-ruler-color: rgb(76, 75, 75);
-  --editor-naked-url-color: var(--link-color);
-  --editor-code-color: #7c828e;
-  --editor-link-color: var(--link-color);
-  --editor-link-url-color: var(--link-color);
-  --editor-link-meta-color: var(--meta-subtle-color);
-  --editor-wiki-link-page-background-color: rgba(77, 141, 255, 0.07);
-  --editor-page-var-tag-color: #4b3fa3;
-  --editor-page-var-tag-background-color: rgba(108, 92, 231, 0.12);
-  --editor-wiki-link-page-color: var(--link-color);
-  --editor-wiki-link-page-missing-color: var(--link-missing-color);
-  --editor-wiki-link-page-invalid-color: var(--link-invalid-color);
-  --editor-wiki-link-color: #8f96c2;
-  --editor-command-button-color: inherit;
-  --editor-command-button-background-color: #e3dfdf;
-  --editor-command-button-hover-background-color: inherit;
-  --editor-command-button-meta-color: var(--meta-subtle-color);
-  --editor-command-button-border-color: gray;
-  --editor-line-meta-color: var(--meta-subtle-color);
-  --editor-meta-color: var(--meta-color);
-  --editor-table-head-background-color: #333;
-  --editor-table-head-color: #eee;
-  --editor-table-even-background-color: #f3f3f3;
-  --editor-blockquote-background-color: var(--subtle-background-color);
-  --editor-blockquote-color: var(--subtle-color);
-  --editor-blockquote-border-color: rgb(74, 74, 74);
-  // Use a lighter tint than quotes; the outline already distinguishes the region.
-  --editor-comment-background-color: rgba(72, 72, 72, 0.05);
-  --editor-comment-border-color: rgb(178, 178, 178);
-  --editor-code-background-color: var(--subtle-background-color);
-  --editor-struct-color: darkred;
-  --editor-highlight-background-color: var(--highlight-color);
-  --editor-external-edit-color: rgba(255, 191, 71, 0.28);
-  --editor-external-caret-color: #e8a33d;
-  --editor-code-comment-color: var(--meta-subtle-color);
-  --editor-code-variable-color: #024866;
-  --editor-code-typename-color: #038138;
-  --editor-code-string-color: #540293;
-  --editor-code-number-color: #01833c;
-  --editor-code-operator-color: #808080;
-  --editor-code-info-color: var(--subtle-color);
-  --editor-code-atom-color: #5a0000;
-  --editor-frontmatter-background-color: rgba(255, 246, 189, 0.3);
-  --editor-frontmatter-color: var(--subtle-color);
-  --editor-frontmatter-marker-color: #89000080;
-  --editor-widget-background-color: rgb(238, 238, 238);
-  --editor-task-marker-color: var(--subtle-color);
-  --editor-task-state-color: var(--subtle-color);
-
-  --editor-directive-mark-color: #6c0101;
-  --editor-directive-color: #696969;
-  --editor-directive-background-color: #ebebeb7d;
-
-  --editor-panels-bottom-input-background-color: #fff;
-  --editor-panels-bottom-button-background-image: linear-gradient(#eff1f5,
-      #d9d9df);
-  --editor-panels-bottom-button-active-background-image: linear-gradient(#b4b4b4,
-      #d0d3d6);
-
-  --ui-font: "iA-Mono", "Menlo", monospace;
-  --editor-font: "iA-Mono", "Menlo";
-  --editor-monospace-font: "iA-Mono", "Menlo", monospace;
-  --editor-font-size: 18px;
-  --editor-width: 800px;
-
-  --danger-color: #dc3545;
-  --danger-contrast-color: #fff;
-  --success-color: #16a34a;
-  --alert-error-background-color: #fef2f2;
-  --alert-error-color: #dc3545;
-  --alert-error-border-color: #fecaca;
-  --alert-warning-background-color: #fffbeb;
-  --alert-warning-color: #b45309;
-  --alert-warning-border-color: #fde68a;
-  --alert-info-background-color: #eaf4fd;
-  --alert-info-color: #0b4a7a;
-  --alert-info-border-color: #cfe6fb;
-  --badge-background-color: #edf0f3;
-  --badge-color: #535d69;
+  --highlight-color: color-mix(in srgb, #f5c518 32%, transparent);
 
   // Semantic tones for space-style: the colour for text and marks,
   // -soft for backgrounds.
@@ -193,207 +45,233 @@ html {
   --tone-danger-soft: #fbe2e4;
   --tone-info: #1d5fa8;
   --tone-info-soft: #e1ecf8;
-  --tone-neutral: #55606c;
-  --tone-neutral-soft: #eceff2;
+  --tone-neutral: color-mix(in srgb, var(--subtle-color), var(--root-color) 25%);
+  --tone-neutral-soft: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 50%);
   --tone-accent: var(--ui-accent-color);
   --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 14%, transparent);
-}
 
-html[data-theme="light"] {
-  color-scheme: light;
-}
+  --editor-code-color: #7c828e;
+  --editor-code-variable-color: #024866;
+  --editor-code-typename-color: #038138;
+  --editor-code-string-color: #540293;
+  --editor-code-number-color: #01833c;
+  --editor-code-operator-color: #808080;
+  --editor-code-atom-color: #5a0000;
+  // Between the subtle text grey and the meta grey: quieter than code, still readable
+  --editor-code-comment-color: color-mix(in srgb, var(--subtle-color), var(--meta-color));
 
-@mixin dark-theme {
-  color-scheme: dark;
+  --editor-width: 800px;
 
-  --ui-accent-color: #79a9f2;
-  --ui-accent-contrast-color: #13243e;
-  --ui-accent-text-color: var(--ui-accent-color);
+  --ui-font: Inter, system-ui, sans-serif;
+  --editor-font: "iA-Mono", "Menlo";
+  --editor-monospace-font: "iA-Mono", "Menlo", monospace;
+  --editor-font-size: 18px;
+  --editor-font-x-height: none;
+  // One indent step (list, quote and comment markup); `ch` resolves in the editor font
+  --editor-column-width: 1ch;
 
-  --highlight-color: rgba(255, 255, 0, 0.5);
-  --link-color: #7e99fc;
-  --link-missing-color: #9e4705;
-  --link-invalid-color: #d444f8;
-  --meta-color: #d6222e;
-  --meta-subtle-color: #959595;
-  --subtle-color: #959595;
-  --subtle-background-color: rgba(105, 105, 105, 0.1);
+  // Shared surfaces
+  --ui-accent-text-color: color-mix(in oklab, var(--ui-accent-color), var(--root-color) 15%);
+  // A darker accent fill that carries light text, for themes that want filled
+  // hashtag pills or completion selection.
+  --ui-accent-strong-color: color-mix(in srgb, var(--ui-accent-color), black 20%);
+  --ui-accent-strong-contrast-color: color-mix(in srgb, var(--ui-accent-color) 8%, white);
+  // The accent marks what you act on (links, caret, selection, checkboxes,
+  // buttons). Everything else takes a muted version: the accent's hue at a
+  // quarter of its chroma, so it sits with any tint without turning the page
+  // that colour.
+  --ui-accent-muted-color: oklch(from var(--ui-accent-color) l calc(c * 0.25) h);
+  --ui-accent-muted-soft-color: color-mix(in srgb, var(--ui-accent-muted-color) 14%, transparent);
+  // Labels (headings, table heads, card titles, form keys) are ink, not accent.
+  --ui-label-color: color-mix(in oklab, var(--root-color), var(--subtle-color) 25%);
+  // A faint wash: cards, frontmatter, code blocks, panels.
+  --ui-accent-surface-color: color-mix(in srgb, var(--ui-accent-muted-color) 6%, var(--root-background-color));
+  --ui-surface-background-color: var(--root-background-color);
+  --ui-surface-color: var(--root-color);
+  --ui-surface-subtle-color: var(--subtle-color);
+  --ui-surface-section-background-color: var(--subtle-background-color);
+  --ui-surface-hover-background-color: var(--subtle-background-color);
+  // Corner radii: menu items, controls, popovers and blocks, cards, pills.
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 8px;
+  --ui-radius-lg: 10px;
+  --ui-radius-xl: 12px;
+  --ui-radius-pill: 99px;
+  // A card lifted off the page (tables, notifications, menus), and a popover.
+  --ui-shadow-card:
+    0 1px 2px color-mix(in srgb, var(--root-color) 6%, transparent),
+    0 8px 24px -12px color-mix(in srgb, var(--ui-accent-muted-color) 30%, transparent);
+  --ui-shadow-popover: 0 12px 32px -8px var(--modal-shadow-color);
+  // The keyboard focus outline of controls (with a 1px outline-offset).
+  --ui-focus-ring: 3px solid var(--tone-accent-soft);
+  // Interface text in controls: buttons, menus, notifications.
+  --ui-font-size-sm: 13.5px;
 
-  // Shared panel-surface palette (dark). Only the concrete border needs a
-  // dark value; the rest reference tokens that already flip with the theme.
-  --ui-surface-border-color: #343b44;
-
-  --root-background-color: #111;
-  --root-color: #e9edf2;
-
-  --top-color: #fff;
-  --top-background-color: #222;
-  --top-border-color: rgb(62, 62, 62);
+  // Top bar
+  --top-color: var(--root-color);
+  --top-background-color: var(--root-background-color);
+  --top-border-color: transparent;
   --top-sync-error-color: var(--top-color);
-  --top-sync-error-background-color: #622626;
-  --top-saved-color: #fff;
-  --top-unsaved-color: #c7c7c7;
-  --top-loading-color: #c7c7c7;
+  --top-sync-error-background-color: var(--tone-warning-soft);
+  --top-saved-color: var(--root-color);
+  --top-unsaved-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 70%);
+  --top-loading-color: var(--subtle-color);
+  // currentColor keeps the folder in step with the saved/unsaved/loading colour
+  --top-page-folder-color: var(--subtle-color);
+  --top-page-folder-font-weight: 500;
 
-  --panel-background-color: #191919;
-  --panel-border-color: rgb(62, 62, 62);
-
-  --bhs-background-color: #111;
-  --bhs-border-color: rgb(62, 62, 62);
-
-  --modal-color: var(--root-color);
-  --modal-background-color: #191919;
-  --modal-border-color: var(--ui-surface-border-color);
-  --modal-backdrop-color: transparent;
-  --modal-header-label-color: var(--ui-accent-text-color);
-  --modal-help-background-color: #333;
-  --modal-help-color: #ccc;
-  --modal-selected-option-background-color: color-mix(in srgb, var(--ui-accent-color) 12%, var(--modal-background-color));
-  --modal-selected-option-color: var(--root-color);
-  --modal-hint-background-color: #212476;
-  --modal-hint-color: #eee;
-  --modal-hint-inactive-background-color: #353535;
-  --modal-hint-inactive-color: #ccc;
-  --modal-description-color: #969696;
-  --modal-selected-option-description-color: var(--subtle-color);
-
-  --notifications-background-color: #333;
-  --notifications-border-color: var(--ui-surface-border-color);
-  --notification-info-background-color: color-mix(in srgb, var(--alert-info-color) 10%, var(--modal-background-color));
-  --notification-error-background-color: color-mix(in srgb, var(--alert-error-color) 10%, var(--modal-background-color));
-  --notification-warning-background-color: color-mix(in srgb, var(--alert-warning-color) 10%, var(--modal-background-color));
-
-  --button-background-color: #20242a;
-  --button-hover-background-color: #292f36;
-  --button-color: var(--root-color);
-  --button-border-color: var(--ui-surface-border-color);
-  --primary-button-background-color: var(--ui-accent-color);
-  --primary-button-hover-background-color: color-mix(in srgb,
-      var(--ui-accent-color),
-      black 18%);
-  --primary-button-color: var(--ui-accent-contrast-color);
-  --primary-button-border-color: transparent;
-
-  --progress-background-color: #555;
-  --progress-sync-color: white;
-  --progress-index-color: yellow;
-
-  --text-field-background-color: var(--button-background-color);
+  --progress-background-color: var(--ui-surface-border-color);
+  --progress-sync-color: var(--root-color);
+  --progress-index-color: var(--ui-accent-color);
 
   --action-button-background-color: transparent;
-  --action-button-color: #adadad;
-  --action-button-hover-color: #37a1ed;
-  --action-button-active-color: #37a1ed;
+  --action-button-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 35%);
+  --action-button-hover-color: var(--ui-accent-text-color);
 
-  --editor-caret-color: #fff;
-  --editor-selection-background-color: #d7e1f630;
-  --editor-panels-bottom-color: #fff;
-  --editor-panels-bottom-background-color: #262626;
-  --editor-panels-bottom-border-color: rgb(62, 62, 62);
-  --editor-completion-detail-color: #aaa;
-  --editor-completion-detail-selected-color: #d2d2d2;
-  --editor-list-bullet-color: rgb(150, 150, 150);
-  --editor-heading-color: #d1d1d1;
-  --editor-heading-meta-color: var(--meta-subtle-color);
-  --editor-hashtag-background-color: #004bbb;
-  --editor-hashtag-color: #e2e9ff;
-  --editor-hashtag-border-color: #007bff6b;
-  --editor-at-mention-color: #8ab4f8;
-  --editor-at-mention-signature-color: #9a9a90;
-  --editor-at-mention-background-color: rgba(138, 180, 248, 0.15);
-  --editor-at-mention-border-color: rgba(138, 180, 248, 0.35);
-  --editor-ruler-color: rgb(76, 75, 75);
+  // Panels
+  --panel-background-color: var(--ui-accent-surface-color);
+  --panel-border-color: var(--ui-surface-border-color);
+
+  --bhs-background-color: var(--root-background-color);
+  --bhs-border-color: color-mix(in srgb, var(--root-background-color), var(--subtle-color) 41%);
+
+  // Modals
+  --modal-color: var(--root-color);
+  --modal-background-color: var(--root-background-color);
+  --modal-border-color: var(--ui-surface-border-color);
+  --modal-backdrop-color: rgba(20, 22, 40, 0.18);
+  --modal-shadow-color: rgba(20, 22, 40, 0.2);
+  --modal-header-label-color: var(--ui-label-color);
+  --modal-help-background-color: transparent;
+  --modal-help-color: var(--subtle-color);
+  --modal-selected-option-background-color: var(--tone-accent-soft);
+  --modal-selected-option-color: var(--ui-accent-text-color);
+  --modal-hint-background-color: var(--tone-accent-soft);
+  --modal-hint-color: var(--ui-accent-text-color);
+  --modal-description-color: var(--subtle-color);
+  --modal-selected-option-description-color: var(--ui-accent-text-color);
+
+  // Notifications and alerts
+  --notifications-border-color: var(--ui-surface-border-color);
+  // Notifications are cards on the modal colour; a dot in the alert colour marks the kind
+  --notification-info-background-color: var(--modal-background-color);
+  --notification-error-background-color: var(--modal-background-color);
+  --notification-warning-background-color: var(--modal-background-color);
+
+  --danger-color: var(--tone-danger);
+  --danger-contrast-color: var(--root-background-color);
+  --success-color: var(--tone-success);
+  --alert-error-color: var(--tone-danger);
+  --alert-error-background-color: var(--tone-danger-soft);
+  --alert-error-border-color: color-mix(in srgb, var(--tone-danger) 20%, var(--tone-danger-soft));
+  --alert-warning-color: var(--tone-warning);
+  --alert-warning-background-color: var(--tone-warning-soft);
+  --alert-warning-border-color: color-mix(in srgb, var(--tone-warning) 20%, var(--tone-warning-soft));
+  --alert-info-color: var(--tone-info);
+  --alert-info-background-color: var(--tone-info-soft);
+  --alert-info-border-color: color-mix(in srgb, var(--tone-info) 20%, var(--tone-info-soft));
+  --badge-background-color: var(--tone-neutral-soft);
+  --badge-color: var(--tone-neutral);
+
+  // Controls
+  --button-background-color: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 23%);
+  --button-hover-background-color: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 43.5%);
+  --button-color: var(--root-color);
+  --button-border-color: var(--ui-surface-border-color);
+
+  --text-field-background-color: var(--button-background-color);
+  --text-field-focus-color: color-mix(in srgb, var(--ui-accent-color) 45%, var(--ui-surface-border-color));
+
+  // Editor
+  --editor-text-color: var(--root-color);
+  --editor-error-color: var(--danger-color);
+  --editor-accent-muted: color-mix(in srgb, var(--meta-subtle-color) 60%, transparent);
+  --editor-caret-color: var(--ui-accent-color);
+  --editor-selection-background-color: color-mix(in srgb, var(--ui-accent-color) 25%, var(--root-background-color));
+  --editor-panels-bottom-color: var(--root-color);
+  --editor-panels-bottom-background-color: var(--ui-accent-surface-color);
+  --editor-panels-bottom-border-color: var(--ui-surface-border-color);
+  --editor-panels-bottom-input-background-color: var(--root-background-color);
+  --editor-completion-selected-background-color: var(--tone-accent-soft);
+  --editor-completion-selected-color: var(--ui-accent-text-color);
+  --editor-completion-detail-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 72%);
+  --editor-completion-detail-selected-color: var(--editor-completion-selected-color);
+  --editor-list-bullet-color: color-mix(in srgb, var(--ui-accent-muted-color) 65%, var(--root-background-color));
+  --editor-heading-color: var(--root-color);
+  --editor-heading-meta-color: var(--meta-color);
+  --editor-hashtag-background-color: var(--ui-accent-muted-soft-color);
+  --editor-hashtag-color: var(--ui-label-color);
+  --editor-hashtag-border-color: transparent;
+  --editor-hashtag-border-radius: 99px;
+  --editor-at-mention-color: var(--ui-accent-color);
+  --editor-at-mention-signature-color: var(--subtle-color);
+  --editor-at-mention-background-color: color-mix(in srgb, var(--editor-at-mention-color) 11%, transparent);
+  --editor-at-mention-border-color: color-mix(in srgb, var(--editor-at-mention-color) 30%, transparent);
+  --editor-ruler-color: var(--ui-surface-border-color);
   --editor-naked-url-color: var(--link-color);
   --editor-link-color: var(--link-color);
   --editor-link-url-color: var(--link-color);
   --editor-link-meta-color: var(--meta-subtle-color);
-  --editor-wiki-link-page-background-color: #a3bce712;
-  --editor-page-var-tag-color: #c4bdf6;
-  --editor-page-var-tag-background-color: rgba(151, 138, 240, 0.2);
   --editor-wiki-link-page-color: var(--link-color);
   --editor-wiki-link-page-missing-color: var(--link-missing-color);
   --editor-wiki-link-page-invalid-color: var(--link-invalid-color);
-  --editor-wiki-link-color: #8f96c2;
-  --editor-command-button-color: #fff;
-  --editor-command-button-background-color: #555;
-  --editor-command-button-hover-background-color: #777;
-  --editor-command-button-meta-color: var(--meta-subtle-color);
-  --editor-command-button-border-color: #666;
+  --editor-wiki-link-page-background-color: transparent;
+  // Wiki links and bare URLs, in the editor and in widgets: `underline` draws
+  // them like written links.
+  --editor-link-text-decoration: underline 1.5px color-mix(in srgb, var(--ui-accent-text-color) 40%, transparent);
+  --editor-page-var-tag-color: var(--ui-label-color);
+  --editor-page-var-tag-background-color: var(--ui-accent-muted-soft-color);
   --editor-line-meta-color: var(--meta-subtle-color);
   --editor-meta-color: var(--meta-color);
-  --editor-table-head-background-color: rgba(72, 72, 72, 0.4);
-  --editor-table-head-color: #eee;
-  --editor-table-even-background-color: rgba(72, 72, 72, 0.3);
-  --editor-blockquote-background-color: var(--subtle-background-color);
+  --editor-struct-color: var(--meta-color);
+  --editor-table-head-background-color: var(--ui-accent-surface-color);
+  --editor-table-head-color: var(--ui-label-color);
+  --editor-table-even-background-color: color-mix(in srgb, var(--ui-accent-muted-color) 3%, var(--root-background-color));
+  --editor-blockquote-background-color: transparent;
   --editor-blockquote-color: var(--subtle-color);
-  --editor-blockquote-border-color: rgb(128, 128, 128);
-  --editor-comment-background-color: rgba(255, 255, 255, 0.06);
-  --editor-comment-border-color: rgb(110, 110, 110);
-  --editor-code-background-color: var(--subtle-background-color);
-  --editor-struct-color: #d6222e;
-  --editor-highlight-background-color: var(--highlight-color);
-  --editor-external-edit-color: rgba(255, 191, 71, 0.18);
-  --editor-external-caret-color: #d99a2b;
-  --editor-code-comment-color: var(--meta-subtle-color);
-  --editor-code-variable-color: #41a3ce;
-  --editor-code-typename-color: #038138;
-  --editor-code-string-color: #986db9;
-  --editor-code-number-color: #986db9;
+  --editor-blockquote-border-color: color-mix(in srgb, var(--ui-accent-muted-color) 60%, var(--root-background-color));
+  // Half the quote tint; the outline already distinguishes the region.
+  --editor-comment-background-color: color-mix(in srgb, var(--subtle-background-color) 50%, transparent);
+  --editor-comment-border-color: color-mix(in srgb, var(--root-background-color), var(--meta-subtle-color) 72.5%);
+  // Translucent, not the opaque surface: code lines sit above CodeMirror's
+  // selection layer, so an opaque fill would hide the selection.
+  --editor-code-background-color: color-mix(in srgb, var(--ui-accent-muted-color) 6%, transparent);
   --editor-code-info-color: var(--subtle-color);
-  --editor-code-atom-color: #d6222e;
-  --editor-frontmatter-background-color: rgb(41, 40, 35, 0.5);
+  --editor-code-inserted-color: var(--success-color);
+  --editor-code-inserted-bg: var(--tone-success-soft);
+  --editor-code-deleted-color: var(--danger-color);
+  --editor-code-deleted-bg: var(--tone-danger-soft);
+  --editor-highlight-background-color: var(--highlight-color);
+  --editor-search-match-background-color: color-mix(in srgb, var(--highlight-color) 70%, transparent);
+  --editor-search-match-selected-background-color: var(--highlight-color);
+  --editor-external-edit-color: var(--tone-warning-soft);
+  --editor-external-caret-color: var(--tone-warning);
+  --editor-frontmatter-background-color: var(--ui-accent-surface-color);
   --editor-frontmatter-color: var(--subtle-color);
-  --editor-frontmatter-marker-color: #fff;
-  --editor-widget-background-color: rgba(72, 72, 72, 0.5);
-  --editor-task-marker-color: var(--subtle-color);
+  --editor-frontmatter-marker-color: color-mix(in srgb, var(--meta-color) 50%, transparent);
+  --editor-widget-background-color: var(--ui-accent-surface-color);
+  --editor-task-marker-color: var(--meta-color);
   --editor-task-state-color: var(--subtle-color);
-
-  --editor-directive-mark-color: #ba0303;
-  --editor-directive-color: #898989;
-  --editor-directive-background-color: #4c4c4c7d;
-
-  --editor-panels-bottom-input-background-color: inherit;
-  --editor-panels-bottom-button-background-image: linear-gradient(#393939,
-      #111);
-  --editor-panels-bottom-button-active-background-image: linear-gradient(#111,
-      #333);
-
-  --danger-color: #f87171;
-  --danger-contrast-color: #fff;
-  --success-color: #4ade80;
-  --alert-error-background-color: rgba(220, 53, 69, 0.1);
-  --alert-error-color: #f87171;
-  --alert-error-border-color: rgba(220, 53, 69, 0.3);
-  --alert-warning-background-color: rgba(180, 83, 9, 0.1);
-  --alert-warning-color: #fbbf24;
-  --alert-warning-border-color: rgba(180, 83, 9, 0.3);
-  --alert-info-background-color: #14324f;
-  --alert-info-color: #8fc4ef;
-  --alert-info-border-color: rgba(143, 196, 239, 0.3);
-  --badge-background-color: #242a31;
-  --badge-color: #b9c2cd;
-
-  --tone-success: #6cc487;
-  --tone-success-soft: #1c3424;
-  --tone-warning: #e7b05a;
-  --tone-warning-soft: #3a2c14;
-  --tone-danger: #f08a8a;
-  --tone-danger-soft: #3d2023;
-  --tone-info: #8fc4ef;
-  --tone-info-soft: #192c40;
-  --tone-neutral: #aab4be;
-  --tone-neutral-soft: #2a3038;
-  --tone-accent: var(--ui-accent-color);
-  --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 22%, transparent);
+  --editor-directive-mark-color: #6c0101;
+  --editor-directive-color: var(--subtle-color);
+  --editor-directive-background-color: color-mix(in srgb, var(--meta-subtle-color) 8%, transparent);
 }
 
-html[data-theme="dark"] {
-  @include dark-theme;
+html[data-sb-scheme="light"] {
+  color-scheme: light;
+}
+
+// SilverBullet Dark, which every dark theme starts from. Panels learn
+// `data-sb-scheme` too, so they follow it.
+:where(html[data-sb-scheme="dark"]) {
+  color-scheme: dark;
+  @include dark.dark-palette;
 }
 
 @media (prefers-color-scheme: dark) {
-  html:not([data-theme]):has(body.sb-standalone) {
-    @include dark-theme;
+  :where(html:not([data-sb-scheme]):has(body.sb-standalone)) {
+    color-scheme: dark;
+    @include dark.dark-palette;
   }
 }
 
@@ -418,7 +296,7 @@ html[data-markdown-syntax-rendering="on"] {
   }
 
   --admonition-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>');
-  --admonition-color: #00b8d4;
+  --admonition-color: var(--tone-info);
 }
 
 .sb-admonition[admonition="warning" i] {
@@ -433,7 +311,7 @@ html[data-markdown-syntax-rendering="on"] {
   }
 
   --admonition-icon: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>');
-  --admonition-color: #ff9100;
+  --admonition-color: var(--tone-warning);
 }
 
 .sb-admonition[admonition="danger" i] {
@@ -448,7 +326,7 @@ html[data-markdown-syntax-rendering="on"] {
   }
 
   --admonition-icon: url('data:image/svg+xml,<svg  width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x-octagon"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"></polygon><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>');
-  --admonition-color: #d50000;
+  --admonition-color: var(--tone-danger);
 }
 
 .sb-admonition[admonition="success" i] {
@@ -463,5 +341,5 @@ html[data-markdown-syntax-rendering="on"] {
   }
 
   --admonition-icon: url('data:image/svg+xml,<svg  width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-check-circle"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>');
-  --admonition-color: #00c853;
+  --admonition-color: var(--tone-success);
 }

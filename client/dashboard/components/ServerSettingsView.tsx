@@ -1,11 +1,4 @@
-import { applyGlobalFont } from "@silverbulletmd/silverbullet/lib/fonts";
-import {
-  Alert,
-  Button,
-  DefaultFontSelect,
-  Input,
-  Field,
-} from "@silverbulletmd/silverbullet/ui";
+import { Alert, Button, Field, Input } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import { adminApi, formatApiError } from "../api.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
@@ -19,9 +12,7 @@ export function ServerSettingsView({
   const [config, setConfig] = useState<{
     primaryUrl: string | null;
     serverName: string;
-    defaultFont: string | null;
   }>();
-  const [defaultFont, setDefaultFont] = useState("");
   const [serverName, setServerName] = useState("SilverBullet");
   const [primaryUrl, setPrimaryUrl] = useState("");
   const [error, setError] = useState("");
@@ -39,7 +30,6 @@ export function ServerSettingsView({
         setConfig(value);
         setServerName(value.serverName ?? "SilverBullet");
         setPrimaryUrl(value.primaryUrl ?? location.origin);
-        setDefaultFont(value.defaultFont ?? "");
       })
       .catch(handleError);
   }, []);
@@ -52,12 +42,10 @@ export function ServerSettingsView({
       const value = await adminApi("PUT", "server-config", {
         primaryUrl: primaryUrl.trim(),
         serverName: serverName.trim(),
-        defaultFont: defaultFont || null,
       });
       setConfig(value);
       setServerName(value.serverName);
       updateServerName(value.serverName);
-      applyGlobalFont(value.defaultFont ?? undefined);
       setPrimaryUrl(value.primaryUrl);
       notify("Server settings saved.");
       if (new URL(value.primaryUrl).origin !== location.origin) {
@@ -103,17 +91,6 @@ export function ServerSettingsView({
               onInput={(event) => {
                 setPrimaryUrl(event.currentTarget.value);
               }}
-            />
-          </Field>
-
-          <Field
-            label="Default font"
-            hint="For the dashboard and sign-in, and the interface and editor font of every space that doesn't pick its own. Code keeps its own font."
-          >
-            <DefaultFontSelect
-              id="server-default-font"
-              value={defaultFont}
-              onChange={setDefaultFont}
             />
           </Field>
 

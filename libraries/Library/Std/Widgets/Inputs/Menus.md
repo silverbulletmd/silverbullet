@@ -93,7 +93,7 @@ local function cycleIndex(index, count, delta)
   return ((index - 1 + delta) % count) + 1
 end
 
---- A quiet ⋯ button that opens a small menu, shown when its `sb-in-menu-owner` ancestor is hovered or focused.
+--- A quiet ⋯ button that opens a small menu, shown when the mouse rests on its `sb-in-menu-owner` ancestor, or it has focus.
 --- @param opts table { items: table | function() (a list of { label, onSelect, disabled?, reason?, danger? }, { header }, { separator = true }), title?: string, keepFocus?: boolean }
 --- @return table an inline widget
 --- @see API/widgets

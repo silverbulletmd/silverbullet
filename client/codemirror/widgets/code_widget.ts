@@ -20,6 +20,28 @@ export type DomWidget = {
   reload?(): Promise<void>;
 };
 
+/**
+ * Lets `reloadAllWidgets` render the markdown in `dom` again in place, once
+ * what it shows may have changed (scripts reloaded). The element, and the
+ * height the editor measured for it, stay.
+ */
+export function registerMarkdownWidget(
+  dom: HTMLElement,
+  render: (target: HTMLElement) => Promise<boolean>,
+) {
+  activeWidgets.add({
+    dom,
+    invalidatePrewarm() {},
+    async renderContent() {},
+    async reload() {
+      const fresh = document.createElement(dom.tagName);
+      if (!(await render(fresh)) || !dom.isConnected) return;
+      disposeRendered(dom);
+      dom.replaceChildren(...Array.from(fresh.childNodes));
+    },
+  });
+}
+
 export async function reloadAllWidgets() {
   for (const widget of [...activeWidgets]) {
     if (!widget.dom?.isConnected) {

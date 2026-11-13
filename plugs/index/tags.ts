@@ -170,24 +170,6 @@ export async function frontmatterTagComplete(completeEvent: CompleteEvent) {
   };
 }
 
-/**
- * A YAML `tags` value as a list of tag names: accepts a list, or a string of
- * "tag1, tag2", "tag1 tag2" or "#tag1 #tag2"
- */
-export function normalizeTagList(value: unknown): string[] {
-  const raw =
-    typeof value === "string"
-      ? value.split(/,\s*|\s+/)
-      : Array.isArray(value)
-        ? value
-        : [];
-  return [
-    ...new Set(
-      raw.map((t) => String(t).replace(/^#/, "")).filter((t) => t !== ""),
-    ),
-  ];
-}
-
 export function updateITags<T>(obj: ObjectValue<T>, frontmatter: FrontMatter) {
   const itags = new Set<string>([obj.tag, ...(frontmatter.tags || [])]);
   for (const tag of obj.tags || []) {

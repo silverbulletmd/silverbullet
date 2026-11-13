@@ -206,7 +206,7 @@ async fn manage_runtime(state: Arc<AdminState>, id: String, reset: bool) -> Resp
 }
 
 async fn handle_server_config(State(state): State<Arc<AdminState>>) -> Response {
-    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled(), "runtimeIdleTimeout": state.manager.runtime_idle_timeout(), "mcp": state.manager.mcp_enabled(), "defaultFont": state.manager.default_font() })).into_response()
+    Json(json!({ "primaryUrl": state.manager.primary_url(), "serverName": state.manager.server_name(), "runtimeApi": state.manager.runtime_enabled(), "runtimeIdleTimeout": state.manager.runtime_idle_timeout(), "mcp": state.manager.mcp_enabled() })).into_response()
 }
 
 /// One field of a server-config update: absent is `None`; present but not
@@ -265,17 +265,6 @@ fn server_config_patch(
                     "runtimeIdleTimeout must be a whole number of minutes from 0 to {MAX_RUNTIME_IDLE_TIMEOUT}"
                 )
             },
-        )?,
-        // null clears it.
-        default_font: patch_field(
-            body,
-            "defaultFont",
-            |value| match value {
-                serde_json::Value::Null => Some(None),
-                serde_json::Value::String(font) => Some(Some(font.clone())),
-                _ => None,
-            },
-            || "defaultFont must be a string or null".into(),
         )?,
     })
 }
@@ -1241,7 +1230,6 @@ pub(crate) mod tests {
             runtime_enabled: Arc::new(std::sync::atomic::AtomicBool::new(true)),
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
-            default_font: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
             auth: InstanceAuth::Accounts {

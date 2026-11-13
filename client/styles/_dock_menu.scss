@@ -44,8 +44,37 @@
   color: var(--modal-color);
 }
 
+.sb-dock-menu-hint {
+  margin-left: auto;
+  padding-left: 16px;
+  color: var(--subtle-color);
+  font-size: var(--ui-font-size-sm);
+}
+
+// A row that opens a submenu: its chevron sits where a hint would
+.sb-dock-menu-chevron {
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--subtle-color);
+  box-sizing: content-box;
+  flex-shrink: 0;
+}
+
+.sb-dock-menu-submenu[aria-expanded="true"] {
+  background: var(--subtle-background-color);
+}
+
 .sb-dock-menu-item:hover {
   background: var(--subtle-background-color);
+}
+
+.sb-dock-menu-item[aria-disabled="true"] {
+  color: var(--subtle-color);
+  cursor: default;
+}
+
+.sb-dock-menu-item[aria-disabled="true"]:hover {
+  background: transparent;
 }
 
 .sb-dock-menu-current {

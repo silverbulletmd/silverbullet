@@ -1,6 +1,8 @@
 ---
 description: Create a Lua command
 tags: meta/template/slash
+icon: md-code
+group: Space Lua
 onlyContexts:
 - "FencedCode:space-lua"
 ---

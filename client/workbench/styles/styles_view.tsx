@@ -16,6 +16,7 @@ const STATUS_TITLES: Record<StyleStatus, string> = {
   applied: "Applied",
   empty:
     "No rules parsed: the browser dropped this CSS, which usually means a syntax error",
+  inactive: "Not applied: this block belongs to a theme that isn't active",
 };
 
 export function StylesView({ client, focusTarget }: TabProps) {
@@ -27,9 +28,10 @@ export function StylesView({ client, focusTarget }: TabProps) {
     () => blocks.fromOrigin.filter((s) => refMatches(s, blocks.phrase)),
     [blocks.fromOrigin, blocks.phrase],
   );
+  const applied = useMemo(() => styles.filter((s) => s.active), [styles]);
   const totalRules = useMemo(
-    () => styles.reduce((n, s) => n + s.rules, 0),
-    [styles],
+    () => applied.reduce((n, s) => n + s.rules, 0),
+    [applied],
   );
 
   return (
@@ -46,7 +48,7 @@ export function StylesView({ client, focusTarget }: TabProps) {
           <BlockNote>Styles haven't loaded yet.</BlockNote>
         ) : styles.length === 0 ? (
           <BlockNote>
-            This space has no <code>space-style</code> blocks.
+            This space has no <code>space-style</code> blocks or themes.
           </BlockNote>
         ) : (
           <BlockTable label="Styles" columns={["Style", "Priority", "Rules"]}>
@@ -59,7 +61,14 @@ export function StylesView({ client, focusTarget }: TabProps) {
                   label={blocks.labels.get(s.ref) ?? { page: s.ref }}
                   status={status}
                   statusTitle={STATUS_TITLES[status]}
-                  numbers={[s.priority, s.rules]}
+                  numbers={[s.priority, s.active ? s.rules : "–"]}
+                  marker={
+                    s.theme ? (
+                      <span className="sb-wb-chip" title={s.theme}>
+                        Theme: {s.themeName}
+                      </span>
+                    ) : null
+                  }
                   onOpen={() =>
                     void openBlockSource(client, s, "space-style", styles)
                   }
@@ -72,8 +81,11 @@ export function StylesView({ client, focusTarget }: TabProps) {
       {load && styles.length > 0 ? (
         <div className="sb-wb-footer">
           <span>
-            {styles.length} style{styles.length === 1 ? "" : "s"}
+            {applied.length} style{applied.length === 1 ? "" : "s"}
           </span>
+          {applied.length < styles.length ? (
+            <span>{styles.length - applied.length} inactive</span>
+          ) : null}
           <span>
             {totalRules} rule{totalRules === 1 ? "" : "s"}
           </span>

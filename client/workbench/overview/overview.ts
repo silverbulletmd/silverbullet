@@ -231,7 +231,10 @@ export type Runtime = {
 
 export async function loadRuntime(client: Client): Promise<Runtime> {
   const scripts = client.clientSystem.spaceLuaEnv.lastLoad?.scripts ?? [];
-  const styles = client.spaceStyles.lastLoad?.styles ?? [];
+  // Blocks of themes that aren't active aren't applied, so they aren't counted
+  const styles = (client.spaceStyles.lastLoad?.styles ?? []).filter(
+    (r) => r.active,
+  );
   return {
     version: await system.getVersion(),
     scripts: scripts.length,

@@ -6,6 +6,7 @@ import type { DecorationSet } from "@codemirror/view";
 import { EditorView } from "@codemirror/view";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { buildExtendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
+import { readOnlyReveal } from "../util.ts";
 import {
   frontmatterPreviewForState,
   frontmatterPreviewPlugin,
@@ -356,10 +357,11 @@ describe("frontmatter preview widget focus", () => {
 
   function mount(
     render: (meta: Record<string, unknown>, context: any) => unknown,
+    readOnly = false,
   ) {
     const stub = {
       currentName: () => "Teams/Example",
-      isReadOnlyMode: () => false,
+      isReadOnlyMode: () => readOnly,
       config: {
         get: (path: string[], fallback: unknown) =>
           path.join(".") === "tags.team.renderFrontmatter" ? render : fallback,
@@ -381,6 +383,8 @@ describe("frontmatter preview widget focus", () => {
         extensions: [
           buildExtendedMarkdownLanguage(),
           frontmatterPreviewPlugin(stub as never),
+          EditorState.readOnly.of(readOnly),
+          readOnlyReveal,
         ],
       }),
     });
@@ -537,6 +541,53 @@ describe("frontmatter preview widget focus", () => {
 
       expect(view.state.selection.main.head).toBe(doc.indexOf("306"));
       expect(mounted.parent.querySelector("input")).toBeNull();
+    } finally {
+      view?.destroy();
+      vi.useRealTimers();
+    }
+  });
+
+  test("on a read-only page, a click or Alt-click reveals the YAML, still read-only", async () => {
+    vi.useFakeTimers();
+    let view: EditorView | undefined;
+    try {
+      const contexts: any[] = [];
+      const mounted = mount((_meta, context) => {
+        contexts.push(context);
+        const row = document.createElement("div");
+        row.innerHTML = "<span>team</span><a href='#'>link</a>";
+        return row;
+      }, true);
+      view = mounted.view;
+      await flush();
+      expect(contexts[0].readOnly).toBe(true);
+
+      const click = (selector: string, altKey: boolean) => {
+        const target = mounted.parent.querySelector(selector)!;
+        target.dispatchEvent(
+          new MouseEvent("mousedown", {
+            bubbles: true,
+            cancelable: true,
+            altKey,
+          }),
+        );
+      };
+      for (const [selector, altKey] of [
+        ["span", false],
+        ["a", true],
+      ] as const) {
+        view.dispatch({ selection: { anchor: doc.length } });
+        await flush();
+        click(selector, altKey);
+        await flush();
+        expect(view.state.selection.main.head).toBe(doc.indexOf("tags"));
+        expect(view.state.field(readOnlyReveal)).toEqual({
+          from: 0,
+          to: doc.indexOf("Body") - 1,
+        });
+        expect(mounted.parent.querySelector("span")).toBeNull();
+      }
+      expect(view.state.doc.toString()).toBe(doc);
     } finally {
       view?.destroy();
       vi.useRealTimers();

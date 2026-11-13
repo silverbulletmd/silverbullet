@@ -13,7 +13,7 @@
   --sb-nav-muted: var(--subtle-color);
   // One row, top padding to bottom padding (see `.sb-nav-row`). The modal's
   // list cap is a multiple of it, so the cap lands between rows.
-  --sb-nav-row-height: 36px;
+  --sb-nav-row-height: 34px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -32,7 +32,7 @@
   height: auto;
 }
 
-// Round the shared 250px list cap to whole 36px rows to avoid a clipped row.
+// Round the list cap to whole rows to avoid a clipped row.
 .sb-nav-root-modal .sb-nav-body {
   flex: 0 1 auto;
   max-height: calc(7 * var(--sb-nav-row-height));
@@ -68,7 +68,7 @@
   gap: 8px;
   flex: 0 0 auto;
   padding: 13px 10px 10px 10px;
-  border-bottom: 1px solid var(--ui-surface-border-color);
+  border-bottom: 1px solid transparent;
 }
 
 .sb-nav-help {
@@ -108,7 +108,7 @@
   height: 26px;
   padding: 0 20px 0 8px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--ui-radius-sm);
   font-size: 12px;
   color: var(--subtle-color);
   background-color: color-mix(in srgb,
@@ -183,6 +183,7 @@
 
 .sb-nav-title {
   color: var(--modal-header-label-color);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -257,11 +258,15 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  padding: 2px 8px 8px;
 }
 
+// Rows: rounded and inset; the selection marks the current page
 .sb-nav-row {
   height: var(--sb-nav-row-height);
   --sb-nav-band: transparent;
+  border-radius: var(--ui-radius-md);
+  font-size: 14.5px;
 }
 
 .sb-nav-row:has(> .sb-nav-text) {
@@ -275,9 +280,15 @@
   --sb-nav-muted: var(--modal-selected-option-color);
 }
 
+// The selection is a translucent wash: layer it over the surface the row sits
+// on (set per context below), so the actions match the row instead of
+// doubling the wash
 .sb-nav-row.sb-nav-selected .sb-row-actions {
-  background-color: var(--modal-selected-option-background-color);
-  background-image: none;
+  background-image: linear-gradient(
+    var(--modal-selected-option-background-color),
+    var(--modal-selected-option-background-color)
+  );
+  border-radius: 0 var(--ui-radius-md) var(--ui-radius-md) 0;
 }
 
 .sb-row-action {
@@ -288,12 +299,17 @@
   color: var(--modal-selected-option-color);
 }
 
+// Folders: the same colour as pages, no band
 .sb-nav-row.sb-nav-folder {
-  --sb-nav-band: color-mix(in srgb,
-      var(--ui-surface-section-background-color) 60%,
-      transparent);
-  font-weight: 600;
+  --sb-nav-band: transparent;
+  font-weight: 500;
   background-image: none;
+}
+
+// Page paths: the folder part quieter than the name, as in the title
+.sb-nav-folder-part {
+  color: var(--subtle-color);
+  font-weight: 400;
 }
 
 .sb-nav-row.sb-nav-folder.sb-nav-selected {
@@ -317,7 +333,7 @@
 }
 
 .sb-nav-create {
-  border-top: 1px solid var(--ui-surface-border-color);
+  border-top: 1px solid transparent;
 }
 
 .sb-nav-create-pinned {
@@ -342,8 +358,8 @@
   color: var(--editor-hashtag-color);
   background-color: var(--editor-hashtag-background-color);
   border: 1px solid var(--editor-hashtag-border-color);
-  border-radius: 6px;
-  padding: 0 3px;
+  border-radius: var(--editor-hashtag-border-radius);
+  padding: 1px 8px;
   font-size: 0.8em;
 }
 
@@ -365,7 +381,7 @@
   font-family: var(--ui-font);
 }
 
-.sb-nav-selected .sb-nav-chip:not(.sb-hashtag) {
+.sb-nav-selected .sb-nav-chip:not(.sb-hashtag, .sb-nav-chip-hint) {
   background-color: color-mix(in srgb,
       var(--modal-selected-option-color) 22%,
       transparent);
@@ -378,7 +394,9 @@
 }
 
 .sb-nav-error {
+  margin: 4px;
   padding: 12px 10px;
+  border-radius: var(--ui-radius-md);
   font-size: 0.9em;
   color: var(--alert-error-color);
   background-color: var(--alert-error-background-color);
@@ -387,7 +405,24 @@
 .sb-nav-error-inline {
   padding: 6px 10px;
   font-size: 0.8em;
-  border-bottom: 1px solid var(--ui-surface-border-color);
+}
+
+// Nothing to show because of a setting, not a failure (a view's `notice`)
+.sb-nav-empty-state {
+  margin: 4px;
+  padding: 14px;
+  border: 1px dashed var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-md);
+  color: var(--subtle-color);
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+
+  b {
+    display: block;
+    color: var(--ui-label-color);
+    font-weight: 600;
+  }
 }
 
 // Softer than an error: the view still works, one affordance doesn't.
@@ -455,22 +490,261 @@
 
 .sb-nav-input:focus-visible {
   outline: none;
-  box-shadow: inset 0 -1px var(--text-field-focus-color);
 }
 
-.sb-nav-row[aria-current="page"] {
-  position: relative;
-  border-radius: 0;
+.sb-nav-root .sb-segments {
+  background: var(--ui-accent-muted-soft-color);
+}
 
-  &::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--ui-accent-color);
+// The sidebars: the dock and close buttons act on the whole sidebar, so they
+// sit on the top row with the view switcher, and the filter gets a line of
+// its own: a rounded field
+.sb-nav-root-lhs,
+.sb-nav-root-rhs {
+  .sb-nav-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "segments dock close" "filter filter filter";
+    align-items: center;
+    gap: 8px 2px;
+    padding: 10px 10px 6px;
+    font-size: 14px;
+
+    > :not(.sb-nav-header-row):not(.sb-nav-segment-row) {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .sb-nav-header-row {
+    display: contents;
+  }
+
+  .sb-nav-title {
+    grid-area: segments;
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  // With a view switcher on the top row, the title would only repeat it
+  .sb-nav-header:has(.sb-nav-segment-row) .sb-nav-title {
+    display: none;
+  }
+
+  .sb-nav-input {
+    grid-area: filter;
+    padding: 5px 10px;
+    border-radius: var(--ui-radius-md);
+    background: var(--root-background-color);
+    box-shadow: inset 0 0 0 1px var(--ui-surface-border-color);
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 1.5px var(--ui-accent-color);
+    }
+  }
+
+  // Inside the filter field's right end: without an area of its own the
+  // grid gave it a new row, so every reload pushed the whole tree down
+  .sb-nav-header-row .sb-nav-spinner {
+    grid-area: filter;
+    justify-self: end;
+    margin-right: 10px;
     pointer-events: none;
+  }
+
+  .sb-dock-menu-anchor {
+    grid-area: dock;
+  }
+
+  .sb-nav-header-row .sb-nav-close {
+    grid-area: close;
+  }
+
+  .sb-nav-segment-row {
+    grid-area: segments;
+    padding: 0;
+  }
+
+  // Trees: the actions take their own place at the end of the row, so a
+  // long name ends in "…" before them instead of running underneath. Row
+  // specificity, to win over the selected row's wash for the overlay
+  .sb-nav-row .sb-row-actions {
+    position: static;
+    flex: none;
+    align-self: center;
+    margin: -4px 0 -4px auto;
+    padding: 0;
+    background: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+// Pickers and Search as a modal: a search field with a quiet label, a
+// compact toolbar, and dense rows. Selection is a neutral wash, so a bright
+// accent doesn't flood the list.
+// The modal's own frame carries the card: one border, one radius.
+.sb-modal:has(> .sb-nav-root-modal) {
+  border-radius: 14px;
+  border: 1px solid var(--ui-surface-border-color);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--root-color) 8%, transparent), 0 24px 60px -20px color-mix(in srgb, var(--root-color) 40%, transparent);
+  overflow: hidden;
+}
+
+.sb-nav-root.sb-nav-root-modal {
+  .sb-nav-header {
+    padding: 0;
+    border-bottom: 1px solid var(--ui-surface-border-color);
+  }
+
+  .sb-nav-header-row {
+    font-size: 17px;
+    padding: 14px 14px 12px 18px;
+    gap: 10px;
+    align-items: center;
+
+    &::before {
+      content: "";
+      flex: 0 0 18px;
+      height: 18px;
+      background: var(--subtle-color);
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-3.5-3.5'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+  }
+
+  .sb-nav-title {
+    font-size: 15px;
+    padding: 0;
+  }
+
+  .sb-nav-input {
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--root-color);
+    padding: 0;
+
+    &::placeholder {
+      color: var(--meta-color);
+      opacity: 1;
+    }
+  }
+
+  .sb-nav-segment-row {
+    padding: 0 14px 12px 18px;
+    gap: 8px;
+  }
+
+  // The switcher stays one line; on a narrow screen the mode menu moves under it
+  .sb-segments {
+    flex-wrap: nowrap;
+    padding: 2px;
+    font-size: 13px;
+    background: color-mix(in srgb, var(--root-color) 5%, transparent);
+  }
+
+  .sb-segment {
+    padding: 3px 11px;
+    color: var(--subtle-color);
+    font-weight: 500;
+    white-space: nowrap;
+
+    &.sb-segment-active {
+      color: var(--root-color);
+    }
+  }
+
+  .sb-nav-segment-row-actions {
+    flex-wrap: wrap;
+    row-gap: 6px;
+
+    .sb-segments-wrap {
+      flex: 0 0 auto;
+    }
+
+    .sb-nav-dropdown {
+      margin-left: auto;
+    }
+  }
+
+  .sb-nav-dropdown {
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+    font-size: 13px;
+    color: var(--subtle-color);
+    padding: 3px 22px 3px 8px;
+    min-width: 0;
+    width: auto;
+
+    &:hover {
+      color: var(--root-color);
+      background-color: color-mix(in srgb, var(--root-color) 5%, transparent);
+      border-radius: var(--ui-radius-md);
+    }
+  }
+
+  .sb-nav-help {
+    font-size: 12px;
+    padding: 8px 18px 0;
+  }
+
+  .sb-nav-body {
+    padding: 6px;
+  }
+
+  .sb-nav-row {
+    padding: 7px 12px;
+    font-size: 14px;
+    min-height: 0;
+  }
+
+  .sb-nav-text {
+    gap: 2px;
+  }
+
+  .sb-nav-primary {
+    font-weight: 500;
+    color: var(--root-color);
+  }
+
+  .sb-nav-description {
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--subtle-color);
+  }
+
+  .sb-nav-description-text {
+    white-space: normal;
+  }
+
+  .sb-nav-icon {
+    color: var(--subtle-color);
+  }
+
+  // Selection doesn't change the weight: bolder text is wider and would shift the row
+  .sb-nav-row.sb-nav-selected {
+    background: color-mix(in srgb, var(--ui-accent-muted-color) 12%, transparent);
+    color: var(--root-color);
+
+    .sb-nav-primary {
+      color: var(--root-color);
+    }
+
+    .sb-nav-description {
+      color: color-mix(in srgb, var(--subtle-color), var(--root-color) 30%);
+    }
+
+    .sb-nav-icon {
+      color: var(--ui-accent-text-color);
+    }
+  }
+
+  :is(.sb-nav-primary, .sb-nav-description) mark {
+    color: var(--root-color);
+    font-weight: 600;
+    background: color-mix(in srgb, var(--ui-accent-color) 13%, transparent);
+    border-radius: 3px;
+    padding: 0 1px;
   }
 }
 

@@ -9,9 +9,9 @@ import { Icon } from "../../../../plug-api/ui/icon.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
 import { RowText } from "../../../../plug-api/ui/row_text.tsx";
 import type { Client } from "../../../client.ts";
-import { RowSummaryText } from "./row_summary.tsx";
 import type { ActionMeta, Row } from "../../types.ts";
 import type { RowState } from "../engine.ts";
+import { RowSummaryText } from "./row_summary.tsx";
 
 export { Chip };
 
@@ -93,7 +93,9 @@ export function RowItem({
       <RowText
         primary={
           <span className="sb-nav-primary">
-            {highlightMatches(row.primary, phrase)}
+            {row.obj?.name === row.primary
+              ? highlightPath(row.primary, phrase)
+              : highlightMatches(row.primary, phrase)}
           </span>
         }
         description={row.description}
@@ -118,5 +120,19 @@ export function RowItem({
         />
       )}
     </div>
+  );
+}
+
+/** A page or document path, with its folder part in its own span so themes can set it apart. */
+function highlightPath(path: string, phrase?: string) {
+  const slash = path.lastIndexOf("/");
+  if (slash < 0) return highlightMatches(path, phrase);
+  return (
+    <>
+      <span className="sb-nav-folder-part">
+        {highlightMatches(path.slice(0, slash + 1), phrase)}
+      </span>
+      {highlightMatches(path.slice(slash + 1), phrase)}
+    </>
   );
 }

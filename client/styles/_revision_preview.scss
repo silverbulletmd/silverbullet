@@ -43,14 +43,28 @@
   min-height: 0;
   overflow: auto;
   margin: 0 0 12px 0;
-  background: var(--ui-surface-section-background-color);
+  background: var(--root-background-color);
   border: 1px solid var(--ui-surface-border-color);
-  border-radius: 0.5em;
+  border-radius: var(--ui-radius-lg);
   padding: 12px;
-  font-family: var(--editor-font);
+  // Markdown source and diffs: columns and markup only line up in monospace
+  font-family: var(--editor-monospace-font, monospace);
+  font-size: 13px;
+  line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
   user-select: text;
+}
+
+// A diff: full-width rows, tinted by change, with the +/- sign in a gutter
+.sb-revision-preview-diff,
+.sb-choose-version-diff {
+  padding: 4px 0;
+
+  > div {
+    display: flex;
+    padding: 0 12px 0 8px;
+  }
 }
 
 // The shared body above sizes itself inside the revision modal's fixed-height
@@ -60,7 +74,9 @@
   max-height: 60vh;
 }
 
+.sb-revision-diff-sign,
 .sb-choose-version-sign {
+  flex: none;
   display: inline-block;
   width: 2ch;
   user-select: none;
@@ -76,18 +92,44 @@
 }
 
 .sb-revision-diff-add {
-  color: var(--editor-code-inserted-color, #16a34a);
-  background-color: var(--editor-code-inserted-bg, rgba(187, 247, 208, 0.25));
+  background-color: color-mix(in srgb, var(--editor-code-inserted-bg) 70%, transparent);
+
+  .sb-revision-diff-sign,
+  .sb-choose-version-sign {
+    color: var(--editor-code-inserted-color);
+  }
 }
 
 .sb-revision-diff-del {
-  color: var(--editor-code-deleted-color, #dc2626);
-  background-color: var(--editor-code-deleted-bg, rgba(254, 202, 202, 0.25));
+  background-color: color-mix(in srgb, var(--editor-code-deleted-bg) 70%, transparent);
+
+  .sb-revision-diff-sign,
+  .sb-choose-version-sign {
+    color: var(--editor-code-deleted-color);
+  }
+}
+
+// The legend above the choose-version diff is plain text, not a row
+.sb-choose-version-legend {
+  span {
+    padding: 1px 6px;
+    border-radius: var(--ui-radius-sm);
+    font-family: var(--editor-monospace-font, monospace);
+    font-size: 12px;
+  }
+
+  .sb-revision-diff-add {
+    color: var(--editor-code-inserted-color);
+  }
+
+  .sb-revision-diff-del {
+    color: var(--editor-code-deleted-color);
+  }
 }
 
 .sb-revision-diff-hunk {
+  background-color: var(--ui-accent-surface-color);
   color: var(--ui-surface-subtle-color);
-  font-weight: 600;
 }
 
 .sb-revision-preview-footer {

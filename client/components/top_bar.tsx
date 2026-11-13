@@ -162,6 +162,10 @@ function SyncProgressIndicator({
   withLabel?: boolean;
 }) {
   if (percentage === undefined) return null;
+  const color =
+    type === "sync"
+      ? "var(--progress-sync-color)"
+      : "var(--progress-index-color)";
   return (
     <div className="sb-sync-progress">
       <div
@@ -176,7 +180,7 @@ function SyncProgressIndicator({
         <div className="progress-bar">
           <div
             className="progress-ring"
-            style={`background: conic-gradient(var(--progress-${type}-color) ${percentage}%, var(--progress-background-color) 0);`}
+            style={`background: conic-gradient(${color} ${percentage}%, var(--progress-background-color) 0);`}
           />
           <div className="progress-hole">{percentage}</div>
         </div>
@@ -242,6 +246,7 @@ function PageNameEditor({
   onRename: (newName?: string) => Promise<void>;
 }) {
   const [name, setName] = useState(pageName ?? "");
+  const [focused, setFocused] = useState(false);
   // Guards against the blur that fires when a successful rename refocuses the
   // editor, which would otherwise trigger a second (same-name) commit.
   const committing = useRef(false);
@@ -263,15 +268,34 @@ function PageNameEditor({
     }
   };
 
+  // An <input> can't colour parts of its text, so while it isn't focused a
+  // copy on top shows the folder and the last segment apart
+  const slash = name.lastIndexOf("/");
   return (
-    <Input
-      class="sb-page-name-editor"
-      value={name}
-      readOnly={readOnly}
-      onInput={(e) => setName(e.currentTarget.value)}
-      onConfirm={(value) => commit(value)}
-      onBlur={(e) => commit(e.currentTarget.value)}
-    />
+    <span
+      class={focused ? "sb-page-name sb-page-name-focused" : "sb-page-name"}
+    >
+      <Input
+        class="sb-page-name-editor"
+        value={name}
+        readOnly={readOnly}
+        onInput={(e) => setName(e.currentTarget.value)}
+        onConfirm={(value) => commit(value)}
+        onFocus={() => setFocused(true)}
+        onBlur={(e) => {
+          setFocused(false);
+          commit(e.currentTarget.value);
+        }}
+      />
+      {!focused && (
+        <span class="sb-page-name-display" aria-hidden="true">
+          {slash >= 0 && (
+            <span class="sb-page-name-folder">{name.slice(0, slash + 1)}</span>
+          )}
+          <span class="sb-page-name-leaf">{name.slice(slash + 1)}</span>
+        </span>
+      )}
+    </span>
   );
 }
 

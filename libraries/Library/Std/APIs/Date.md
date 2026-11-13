@@ -48,6 +48,13 @@ end
 
 slashCommand.define {
   name = "today",
+  displayName = "Today",
+  description = "Insert today's date",
+  icon = "calendar",
+  aliases = {"date"},
+  group = "Dates",
+  priority = 3,
+  exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective"},
   run = function()
     editor.insertAtCursor(date.today())
   end
@@ -55,6 +62,13 @@ slashCommand.define {
 
 slashCommand.define {
   name = "yesterday",
+  displayName = "Yesterday",
+  description = "Insert yesterday's date",
+  icon = "calendar",
+  aliases = {"date"},
+  group = "Dates",
+  priority = 1,
+  exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective"},
   run = function()
     editor.insertAtCursor(date.yesterday())
   end
@@ -62,6 +76,13 @@ slashCommand.define {
 
 slashCommand.define {
   name = "tomorrow",
+  displayName = "Tomorrow",
+  description = "Insert tomorrow's date",
+  icon = "calendar",
+  aliases = {"date"},
+  group = "Dates",
+  priority = 2,
+  exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective"},
   run = function()
     editor.insertAtCursor(date.tomorrow())
   end

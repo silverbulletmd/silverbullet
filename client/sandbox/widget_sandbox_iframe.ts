@@ -2,6 +2,7 @@ import type { CodeWidgetContent } from "@silverbulletmd/silverbullet/type/client
 import type { Client } from "../client.ts";
 import { trackRender } from "../codemirror/widgets/render_settle.ts";
 import { panelHtml } from "./panel_html.ts";
+import { followTheme } from "./theme_message.ts";
 
 /**
  * Implements sandbox widgets using iframe with a pooling mechanism to speed up loading
@@ -105,6 +106,7 @@ export function mountIFrame(
   // A discarded iframe never loads, so disposal must settle the tracked render
   const disposal = Promise.withResolvers<void>();
   let messageListener: ((evt: any) => void) | undefined;
+  let stopFollowingTheme: (() => void) | undefined;
 
   trackRender(
     Promise.race([preloadedIFrame.ready, disposal.promise]).then(async () => {
@@ -168,6 +170,10 @@ export function mountIFrame(
       };
 
       globalThis.addEventListener("message", messageListener);
+      stopFollowingTheme = followTheme(
+        client.spaceTheme,
+        () => iframe.contentWindow,
+      );
       iframe.onload = null;
       const resolvedContent = await Promise.resolve(content);
       if (disposed) return;
@@ -181,7 +187,7 @@ export function mountIFrame(
             type: "html",
             html: resolvedContent.html,
             script: resolvedContent.script,
-            theme: document.getElementsByTagName("html")[0].dataset.theme,
+            ...client.spaceTheme.message,
           });
         } else if (resolvedContent.url) {
           iframe.contentWindow!.location.href = resolvedContent.url;
@@ -209,6 +215,7 @@ export function mountIFrame(
     if (messageListener) {
       globalThis.removeEventListener("message", messageListener);
     }
+    stopFollowingTheme?.();
     iframePool.delete(preloadedIFrame);
   };
 }

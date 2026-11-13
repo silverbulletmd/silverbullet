@@ -50,6 +50,7 @@ export async function buildClient(): Promise<void> {
           },
         ],
         splitting: true,
+        metafile: true,
       },
     ],
     [
@@ -107,8 +108,10 @@ export async function buildClient(): Promise<void> {
     ],
   ];
 
+  let clientMetafile: esbuild.Metafile | undefined;
   for (const [buildName, buildConfig] of buildConfigs) {
     const result = await esbuild.build(buildConfig);
+    if (buildName === "client") clientMetafile = result.metafile;
 
     if (result.metafile) {
       const text = await esbuild.analyzeMetafile(result.metafile!);
@@ -117,6 +120,10 @@ export async function buildClient(): Promise<void> {
   }
 
   await copyAssets("client_bundle/client/.client");
+  await injectPreloads(
+    "client_bundle/client/.client/index.html",
+    clientMetafile!,
+  );
   await patchServiceWorker();
 
   console.log("Built!");
@@ -156,6 +163,45 @@ async function copyAssets(dist: string) {
   let bundleJs = await readFile(`${dist}/client.js`, "utf-8");
   bundleJs = patchBundledJS(bundleJs);
   await writeFile(`${dist}/client.js`, bundleJs, "utf-8");
+}
+
+/**
+ * Without these hints the browser only discovers client.js's chunks once it
+ * has downloaded and parsed it, and `/.tooling` once all of them have run:
+ * three round trips in a row before boot can even start on a slow link.
+ */
+async function injectPreloads(indexPath: string, metafile: esbuild.Metafile) {
+  const outdir = "client_bundle/client/";
+  const chunks = new Set<string>();
+  const visit = (output: string) => {
+    for (const imp of metafile.outputs[output]?.imports ?? []) {
+      if (imp.kind !== "import-statement" || chunks.has(imp.path)) continue;
+      chunks.add(imp.path);
+      visit(imp.path);
+    }
+  };
+  visit(`${outdir}.client/client.js`);
+  const links = [...chunks]
+    .sort()
+    .map(
+      (path) =>
+        `<link rel="modulepreload" href="${path.slice(outdir.length)}" />`,
+    );
+  // Must match fetchTooling()'s request (same-origin credentials, no custom
+  // headers), or the browser fetches it a second time.
+  links.push(
+    `<link rel="preload" href=".tooling" as="fetch" crossorigin="anonymous" />`,
+  );
+  const html = await readFile(indexPath, "utf-8");
+  const marker = "<!-- sb:preloads -->";
+  if (!html.includes(marker)) {
+    throw new Error(`${indexPath} lacks the ${marker} marker`);
+  }
+  await writeFile(
+    indexPath,
+    html.replace(marker, links.join("\n        ")),
+    "utf-8",
+  );
 }
 
 // Shells and bundles for the server-level surfaces (Dashboard at /.dashboard,

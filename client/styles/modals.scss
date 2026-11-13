@@ -3,7 +3,7 @@
   padding: 0;
   width: 700px;
   max-width: 90%;
-  border-radius: 4px;
+  border-radius: var(--ui-radius-xl);
   overflow: hidden;
   box-sizing: border-box;
 
@@ -16,28 +16,29 @@
     width: 100%;
     max-width: 100%;
     max-height: calc(var(--sb-viewport-height, 100vh) - 16px - var(--sb-top-height) - var(--sb-standalone-top-offset, 0px));
-    border-radius: 0;
   }
 
   .sb-prompt {
-    padding: 13px 10px 10px 10px;
+    padding: 20px 22px 16px;
 
     label {
-      font-weight: bold;
+      font-weight: 600;
+      font-size: 15px;
+      line-height: 1.45;
     }
 
     .sb-input {
       width: 100%;
       box-sizing: border-box;
       margin: 10px 0;
-      padding: 0.4em 0.8em;
+      padding: 0.55em 0.8em;
     }
 
     .sb-prompt-buttons {
       display: flex;
       justify-content: flex-end;
-      margin-top: 10px;
-      gap: 10px;
+      margin-top: 18px;
+      gap: 8px;
 
       a.sb-button {
         display: inline-flex;

@@ -7,15 +7,9 @@ import {
 } from "../../markdown_renderer/compose.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import { activeWidgets } from "./code_widget.ts";
-import { directiveAt } from "./directive_at.ts";
+import { type DirectiveTarget, directiveAt } from "./directive_at.ts";
 
-export type DirectiveTarget = {
-  from: number;
-  to: number;
-  expr: string;
-  // Set for a `${name = expr}` definition
-  assignmentName?: string;
-};
+export type { DirectiveTarget };
 
 export function directiveCacheKey(
   expr: string,

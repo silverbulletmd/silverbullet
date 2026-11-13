@@ -6,6 +6,8 @@ export type ConfiguredActionButton = {
   standalone?: boolean;
   /** Render only where `BootConfig.accountManaged` matches this value. */
   accountManaged?: boolean;
+  /** Render only where the space's read-only mode matches this value. */
+  readOnly?: boolean;
   dropdown?: boolean;
   priority?: number;
   run?: () => void;
@@ -15,6 +17,7 @@ export type ActionButtonContext = {
   isMobile: boolean;
   isStandalone: boolean;
   accountManaged: boolean;
+  readOnly: boolean;
 };
 
 const matches = (want: boolean | undefined, actual: boolean) =>
@@ -30,7 +33,8 @@ export function visibleActionButtons(
         button.icon &&
         matches(button.mobile, ctx.isMobile) &&
         matches(button.standalone, ctx.isStandalone) &&
-        matches(button.accountManaged, ctx.accountManaged),
+        matches(button.accountManaged, ctx.accountManaged) &&
+        matches(button.readOnly, ctx.readOnly),
     )
     .map((button, index) => ({
       ...button,

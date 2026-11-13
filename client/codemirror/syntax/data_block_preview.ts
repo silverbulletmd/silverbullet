@@ -1,5 +1,6 @@
 import { syntaxTree } from "@codemirror/language";
 import type { EditorState, Extension } from "@codemirror/state";
+import { normalizeTagList } from "@silverbulletmd/silverbullet/lib/tags";
 import YAML from "js-yaml";
 import {
   dataBlockTag,
@@ -7,20 +8,20 @@ import {
   splitYamlDocuments,
 } from "../../../plugs/index/data_block.ts";
 import type { Client } from "../../client.ts";
+import { holdsOnlyInlines } from "../util.ts";
 import {
   addedItemField,
   hookLookup,
   isBlank,
-  withLineBreak,
   type LiveDocument,
-  normalizeTags,
   type ObjectPreview,
   type ObjectPreviewHost,
-  objectPreviewField,
   type ObjectRenderer,
+  objectPreviewField,
   type PreviewObject,
   previewsEnabled,
   selectionShowsSource,
+  withLineBreak,
   yamlContext,
 } from "./object_preview.ts";
 
@@ -84,7 +85,9 @@ export function findDataBlocks(state: EditorState): DataBlockSource[] {
   const blocks: DataBlockSource[] = [];
   syntaxTree(state).iterate({
     enter: (node) => {
-      if (node.name !== "FencedCode") return;
+      if (node.name !== "FencedCode") {
+        return holdsOnlyInlines(node.type) ? false : undefined;
+      }
       const block = dataBlockSource(state, node);
       if (block) blocks.push(block);
       return false;
@@ -152,7 +155,7 @@ export function dataBlockObjects(
         ...parsed,
         ref: dataObjectRef(page, doc.from, loaded),
         tag: block.tag,
-        tags: normalizeTags(parsed.tags),
+        tags: normalizeTagList(parsed.tags),
         page,
       },
       context,

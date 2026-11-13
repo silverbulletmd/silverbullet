@@ -564,6 +564,7 @@ export function registerEditorCommands(
     key: "Ctrl-/",
     mac: "Cmd-/",
     menu: { location: "file", group: "3_palette", label: "Command Palette..." },
+    opensInput: true,
     run: async () => {
       await client.startCommandPalette();
       return false;
@@ -577,6 +578,7 @@ export function registerEditorCommands(
       { location: "file", group: "1_new", order: 2, label: "Open Page..." },
       { location: "navigate", group: "2_picker", order: 1, label: "Page..." },
     ],
+    opensInput: true,
     run: async () => {
       await client.startPageNavigate("page");
       return false;
@@ -593,6 +595,7 @@ export function registerEditorCommands(
       order: 4,
       label: "Tool Page...",
     },
+    opensInput: true,
     run: async () => {
       await client.startPageNavigate("tool");
       return false;
@@ -610,6 +613,7 @@ export function registerEditorCommands(
         label: "Document...",
       },
     ],
+    opensInput: true,
     run: async () => {
       await client.startPageNavigate("document");
       return false;
@@ -617,6 +621,7 @@ export function registerEditorCommands(
   });
   hook.registerCommand({
     name: "Navigate: Anything Picker",
+    opensInput: true,
     run: async () => {
       await client.startPageNavigate("all");
       return false;

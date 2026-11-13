@@ -2,7 +2,6 @@ import { EditorState } from "@codemirror/state";
 import { describe, expect, test } from "vitest";
 import {
   movedKeyOrder,
-  normalizeTags,
   selectionShowsSource,
   selectRenderer,
   yamlContext,
@@ -59,12 +58,6 @@ describe("yamlContext", () => {
       tags: "x y",
     });
     expect(parsed.due).toBe("2026-12-01");
-  });
-
-  test("normalizeTags accepts lists and strings", () => {
-    expect(normalizeTags("#a, b c")).toEqual(["a", "b", "c"]);
-    expect(normalizeTags(["a", "#a"])).toEqual(["a"]);
-    expect(normalizeTags(undefined)).toEqual([]);
   });
 });
 

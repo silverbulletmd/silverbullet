@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import {
   isLocalURL,
@@ -14,10 +15,12 @@ import {
 } from "../util.ts";
 
 export function linkPlugin(client: Client) {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         if (type.name !== "Link") {
           return;
@@ -67,5 +70,5 @@ export function linkPlugin(client: Client) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

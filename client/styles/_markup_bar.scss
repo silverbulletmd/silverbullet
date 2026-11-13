@@ -1,0 +1,34 @@
+// The desktop markup bar: the selection bubble (`selection_bubble.tsx`)
+
+.sb-selection-bubble {
+  position: fixed;
+  z-index: 21;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--root-background-color);
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-popover);
+  user-select: none;
+  -webkit-user-select: none;
+
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--ui-radius-sm);
+    background: transparent;
+    color: var(--subtle-color);
+    cursor: pointer;
+
+    &:hover,
+    &:focus-visible {
+      color: var(--root-color);
+    }
+  }
+}

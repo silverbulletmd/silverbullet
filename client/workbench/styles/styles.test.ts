@@ -7,6 +7,7 @@ const style = (source: string, rules: number): StyleRecord => ({
   source,
   priority: 0,
   rules,
+  active: true,
 });
 
 test("CSS the browser parsed no rules from is flagged", () => {
@@ -17,4 +18,10 @@ test("CSS the browser parsed no rules from is flagged", () => {
 test("a block that is only comments or whitespace is not flagged", () => {
   expect(styleStatus(style("/* priority: 10 */\n", 0))).toBe("applied");
   expect(styleStatus(style("  \n", 0))).toBe("applied");
+});
+
+test("a block of an inactive theme is neither applied nor flagged empty", () => {
+  expect(
+    styleStatus({ ...style("body { color: red }", 0), active: false }),
+  ).toBe("inactive");
 });

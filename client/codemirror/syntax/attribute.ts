@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import type { Client } from "../../client.ts";
 import { wikiLinkRegex } from "../../markdown_parser/constants.ts";
@@ -7,11 +8,13 @@ import { InlineMarkdownWidget } from "../widgets/inline_markdown_widget.ts";
 import { processWikiLink, type WikiLinkMatch } from "./wiki_link_processor.ts";
 
 export function attributePlugin(client: Client) {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     const shortWikiLinks = client.config.get("shortWikiLinks", true);
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node) => {
         if (node.type.name !== "Attribute") {
           return;
@@ -77,12 +80,14 @@ export function attributePlugin(client: Client) {
               client,
               shortWikiLinks,
               state,
-              callback: (event, ref) => {
+              callback: (event, ref, shift) => {
                 if (event.altKey) {
                   revealSource(
                     client.editorView,
-                    { anchor: from + wikiLinkMatch.leadingTrivia.length },
-                    { from, to },
+                    {
+                      anchor: from + shift + wikiLinkMatch.leadingTrivia.length,
+                    },
+                    { from: from + shift, to: to + shift },
                   );
                   client.focus();
                   return;
@@ -100,5 +105,5 @@ export function attributePlugin(client: Client) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

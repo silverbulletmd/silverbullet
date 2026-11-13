@@ -156,7 +156,12 @@ export function ConfigurationView({
                 <BlockNote>Loading…</BlockNote>
               )
             ) : section === "configuration" ? (
-              <OptionsSection client={client} model={model} phrase={phrase} />
+              <OptionsSection
+                client={client}
+                model={model}
+                phrase={phrase}
+                showing={showing}
+              />
             ) : (
               <KeyBindingsSection
                 client={client}

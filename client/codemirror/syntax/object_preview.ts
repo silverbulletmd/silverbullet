@@ -7,15 +7,21 @@ import {
 } from "@codemirror/state";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
-import { patchYaml } from "../../../plugs/index/object_edit.ts";
 import {
   yamlTopLevelEntries,
   yamlTopLevelKeys,
 } from "../../../plug-api/lib/yaml_source.ts";
+import { patchYaml } from "../../../plugs/index/object_edit.ts";
 import type { Client } from "../../client.ts";
 import { callWithTracking } from "../../space_lua/runtime.ts";
 import { luaDefinitionRef } from "../../space_lua.ts";
-import { decoratorStateField, widgetRenderMode } from "../util.ts";
+import {
+  decoratorStateField,
+  revealSourceEffect,
+  widgetRenderMode,
+} from "../util.ts";
+import { blockSpanAt } from "../widgets/block_span.ts";
+import { registerWidgetMenu } from "../widgets/block_menu.ts";
 import { LuaWidget, type LuaWidgetContent } from "../widgets/lua_widget.ts";
 import { selectionIntersectsRange } from "./frontmatter_block.ts";
 
@@ -226,19 +232,6 @@ function yamlType(value: unknown): YamlType {
   return "object";
 }
 
-export function normalizeTags(value: unknown): string[] {
-  const values = Array.isArray(value)
-    ? value
-    : typeof value === "string"
-      ? value.split(/,\s*|\s+/)
-      : [];
-  return [
-    ...new Set(
-      values.map((tag) => String(tag).replace(/^#/, "")).filter(Boolean),
-    ),
-  ];
-}
-
 /** The renderer context of a parsed YAML mapping, plus its cleaned values */
 export function yamlContext(
   loaded: Record<string, unknown>,
@@ -360,6 +353,8 @@ function isTouch(pointerType: string): boolean {
 
 const INTERACTIVE =
   "a, button, input, select, textarea, [role=button], [contenteditable], .sb-in-linktext";
+// Controls a click focuses, except in Safari (see the form's mousedown)
+const CLICK_FOCUSED = "button, input[type=checkbox], input[type=radio]";
 
 function dataAttribute(target: EventTarget | null, name: string) {
   return target instanceof Element
@@ -667,9 +662,16 @@ export class ObjectPreviewWidget extends WidgetType {
     view.focus();
   }
 
-  private reveal(view: EditorView, pos: number | undefined) {
-    if (pos === undefined) return;
-    view.dispatch({ selection: { anchor: pos }, scrollIntoView: true });
+  /** Moves the cursor into the source, which read-only pages show only on request */
+  private reveal(view: EditorView, dom: HTMLElement, pos: number | undefined) {
+    const from = this.livePosition(view, dom);
+    if (pos === undefined || from === undefined) return;
+    const to = from + (this.preview.to - this.preview.from);
+    view.dispatch({
+      selection: { anchor: pos },
+      effects: revealSourceEffect.of({ from, to }),
+      scrollIntoView: true,
+    });
     view.focus();
   }
 
@@ -753,13 +755,29 @@ export class ObjectPreviewWidget extends WidgetType {
           interactive !== container &&
           container.contains(interactive)
         ) {
+          // Safari doesn't focus a clicked button or checkbox: focus would go
+          // to the editor, and leaving the form re-renders it under the
+          // click. Focus the control the way other browsers do, once its own
+          // mousedown ran, unless that keeps focus where it is
+          const control = (target as Element).closest(CLICK_FOCUSED);
+          if (control && container.contains(control)) {
+            control.addEventListener(
+              "mousedown",
+              (e) => {
+                if (e.defaultPrevented) return;
+                e.preventDefault();
+                (control as HTMLElement).focus({ preventScroll: true });
+              },
+              { once: true },
+            );
+          }
           return;
         }
-        if (this.readOnly(view)) return;
         event.preventDefault();
         event.stopPropagation();
         this.reveal(
           view,
+          container,
           contentStart(this.liveDocument(view, container, index(target))),
         );
       },
@@ -794,7 +812,6 @@ export class ObjectPreviewWidget extends WidgetType {
     });
     container.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      if (this.readOnly(view)) return;
       const doc = this.liveDocument(view, container, index(event.target));
       if (!doc) return;
       const key = dataAttribute(event.target, "data-key");
@@ -803,6 +820,7 @@ export class ObjectPreviewWidget extends WidgetType {
       event.stopPropagation();
       this.reveal(
         view,
+        container,
         offset === undefined ? contentStart(doc) : doc.from + offset,
       );
     });
@@ -881,11 +899,25 @@ export class ObjectPreviewWidget extends WidgetType {
           editPos: () => contentStart(this.liveDocument(view, container, i)),
           definitionRef,
           remove: host.removal && (() => this.remove(view, container, i)),
+          inMargin: host.kind === "data",
         },
       });
       shownState.contents.push(content);
       wrapper.appendChild(content.toDOM());
       container.appendChild(wrapper);
+    }
+    // A data block is one card: its items' menus, and Move and Delete for the
+    // whole block, from its margin ⋮ (the frontmatter form keeps its ⋯)
+    if (host.kind === "data") {
+      registerWidgetMenu(container, {
+        label: "Data block",
+        block: true,
+        entries: () => [],
+        span: () => {
+          const from = this.livePosition(view, container);
+          return from === undefined ? undefined : blockSpanAt(view.state, from);
+        },
+      });
     }
     return container;
   }

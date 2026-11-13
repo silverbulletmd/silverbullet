@@ -6,19 +6,21 @@ functions:
     path: "./editor.ts:setEditorMode"
     events:
       - editor:init
-  toggleDarkMode:
-    path: "./editor.ts:toggleDarkMode"
-    command:
-      name: "Editor: Toggle Dark Mode"
-      menu: { location: view, group: "2_appearance", order: 1, label: "Toggle Dark Mode" }
   toggleMarkdownSyntaxRendering:
     path: "./editor.ts:toggleMarkdownSyntaxRendering"
     command:
       name: "Editor: Toggle Markdown Syntax Rendering"
+  toggleMarkupBar:
+    path: "./editor.ts:toggleMarkupBar"
+    command:
+      name: "Editor: Toggle Markup Bar"
+  # The command's name before the markup bar's rename, kept for key bindings
+  # and scripts that run it by name
   toggleKeyboardBar:
-    path: "./editor.ts:toggleKeyboardBar"
+    path: "./editor.ts:toggleMarkupBar"
     command:
       name: "Editor: Toggle Keyboard Bar"
+      hide: true
   openTagNavigator:
     path: editor.ts:openTagNavigator
     command:
@@ -190,6 +192,41 @@ functions:
       requireMode: rw
       requireEditor: page
       menu: { location: edit.format, group: "2_block", order: 4, label: "Task" }
+  heading1:
+    path: ./text.ts:setHeading
+    command:
+      name: "Text: Heading 1"
+      level: 1
+      requireMode: rw
+      requireEditor: page
+  heading2:
+    path: ./text.ts:setHeading
+    command:
+      name: "Text: Heading 2"
+      level: 2
+      requireMode: rw
+      requireEditor: page
+  heading3:
+    path: ./text.ts:setHeading
+    command:
+      name: "Text: Heading 3"
+      level: 3
+      requireMode: rw
+      requireEditor: page
+  heading4:
+    path: ./text.ts:setHeading
+    command:
+      name: "Text: Heading 4"
+      level: 4
+      requireMode: rw
+      requireEditor: page
+  normalText:
+    path: ./text.ts:setHeading
+    command:
+      name: "Text: Normal Text"
+      level: 0
+      requireMode: rw
+      requireEditor: page
   wikiLinkSelection:
     path: ./text.ts:wikiLinkSelection
     command:
@@ -247,6 +284,15 @@ functions:
       requireMode: rw
       requireEditor: page
       menu: { location: edit.format, group: "1_inline", order: 4, label: "Highlight" }
+  inlineCode:
+    path: ./text.ts:wrapSelection
+    command:
+      name: "Text: Code"
+      key: "Ctrl-`"
+      wrapper: "`"
+      requireMode: rw
+      requireEditor: page
+      menu: { location: edit.format, group: "1_inline", order: 5, label: "Code" }
   centerCursor:
     path: "./editor.ts:centerCursorCommand"
     command:
@@ -265,8 +311,12 @@ functions:
       requireEditor: page
     slashCommand:
       name: comment
+      displayName: Comment
       description: "Add a comment"
-      exceptContexts: ["FencedCode"]
+      icon: message-square
+      group: Insert
+      priority: 20
+      exceptContexts: ["FencedCode", "FrontMatter", "LuaDirective"]
   commentSelection:
     path: "./comments.ts:commentSelection"
     command:
@@ -280,6 +330,18 @@ functions:
     command:
       name: "Debug: Parse Document"
       requireEditor: page
+
+  # Theme
+  selectTheme:
+    path: "./editor.ts:selectTheme"
+    command:
+      name: "Theme: Select"
+      menu: { location: view, group: "2_appearance", order: 2, label: "Select Theme…" }
+  toggleTheme:
+    path: "./editor.ts:toggleTheme"
+    command:
+      name: "Theme: Toggle Light/Dark"
+      menu: { location: view, group: "2_appearance", order: 1, label: "Toggle Light/Dark" }
 
   # Vim
   toggleVimMode:

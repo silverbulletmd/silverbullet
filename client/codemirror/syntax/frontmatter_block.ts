@@ -27,17 +27,23 @@ function frontmatterParseUpto(state: EditorState): number {
 export function findFrontmatterBlock(
   state: EditorState,
 ): FrontmatterBlock | undefined {
-  let block: FrontmatterBlock | undefined;
   const tree =
     ensureSyntaxTree(state, frontmatterParseUpto(state)) ?? syntaxTree(state);
-  tree.iterate({
-    enter(node) {
-      if (node.name !== "FrontMatter") return;
-      block = { from: node.from, to: node.to };
-      return false;
-    },
-  });
-  return block;
+  // Frontmatter can only open the page
+  const first = tree.topNode.firstChild;
+  return first?.name === "FrontMatter"
+    ? { from: first.from, to: first.to }
+    : undefined;
+}
+
+/** Whether `from`–`to` overlaps the page's frontmatter */
+export function frontmatterInRange(
+  state: EditorState,
+  from: number,
+  to: number,
+): boolean {
+  const block = findFrontmatterBlock(state);
+  return !!block && block.from <= to && block.to >= from;
 }
 
 export type Frontmatter = FrontmatterBlock & {

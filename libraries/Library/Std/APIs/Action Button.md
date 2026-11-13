@@ -17,6 +17,7 @@ Keys to define:
 * `mobile`: when set to `true` this button will only appear on mobile devices
 * `standalone`: when set to `true` this button will only appear in standalone/PWA mode; when `false`, only in browser mode
 * `accountManaged` (optional): when set to `true` this button only appears on account-managed (multi-space) servers
+* `readOnly` (optional): when set to `true` this button only appears in a read-only space; when `false`, only in an editable one
 * `dropdown` (optional): when set to `false`, the button stays visible outside the dropdown menu on mobile (default: `true`)
 
 # Examples
@@ -44,7 +45,7 @@ actionButton.define {
 actionButton = actionButton or {}
 
 --- Adds a button to the top bar.
---- @param spec table { icon: string, command?: string, run?: function, description?: string, priority?: number, mobile?: boolean, standalone?: boolean, accountManaged?: boolean, dropdown?: boolean }; set `command` or `run`
+--- @param spec table { icon: string, command?: string, run?: function, description?: string, priority?: number, mobile?: boolean, standalone?: boolean, accountManaged?: boolean, readOnly?: boolean, dropdown?: boolean }; set `command` or `run`
 function actionButton.define(spec)
   local actionButtonConfig = config.get("actionButtons", {})
   table.insert(actionButtonConfig, spec)

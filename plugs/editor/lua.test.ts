@@ -1,8 +1,8 @@
-import { afterEach, expect, test } from "vitest";
 import type {
   CompleteEvent,
   EnrichedClickEvent,
 } from "@silverbulletmd/silverbullet/type/client";
+import { afterEach, expect, test } from "vitest";
 import { luaComplete, luaNavigate } from "./lua.ts";
 
 const originalSyscall = globalThis.syscall;
@@ -92,6 +92,7 @@ test("luaComplete includes properties from schema-derived locals", async () => {
     from: luaCode.length - 2,
     options: [
       {
+        type: "lua",
         label: "name",
         detail: "string",
       },

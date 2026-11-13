@@ -1,22 +1,23 @@
-import YAML from "js-yaml";
+import { normalizeTagList } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   collectNodesOfType,
   findNodeOfType,
   type ParseTree,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import type { TagObject } from "./tags.ts";
-import type { FrontMatter } from "./frontmatter.ts";
-import { commentedRange, normalizeTagList, updateITags } from "./tags.ts";
-import { isReservedObjectAttribute } from "./position_attributes.ts";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import YAML from "js-yaml";
 import {
   dataBlockTag,
   dataObjectRef,
   splitYamlDocuments,
 } from "./data_block.ts";
+import type { FrontMatter } from "./frontmatter.ts";
+import { isReservedObjectAttribute } from "./position_attributes.ts";
+import type { TagObject } from "./tags.ts";
+import { commentedRange, updateITags } from "./tags.ts";
 
 export { shadowsBuiltinTag, splitYamlDocuments } from "./data_block.ts";
 

@@ -4,6 +4,7 @@ import {
   startCompletion,
 } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import {
@@ -113,7 +114,13 @@ class TaskDropdownWidget extends WidgetType {
         closeCompletion(view);
         return;
       }
-      const cursorPos = this.stateTo - 1;
+      // Resolve at click time: edits may have moved the decoration
+      let cursorPos = this.stateTo - 1;
+      try {
+        cursorPos = view.posAtDOM(span) - 1;
+      } catch {
+        // Use the position it was built at
+      }
       view.dispatch({
         selection: { anchor: cursorPos },
       });
@@ -145,9 +152,11 @@ export function taskListPlugin({
   getView: () => EditorView | null;
   doneStates?: Set<string>;
 }) {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter({ type, from, to, node }) {
         if (type.name !== "Task") return;
         // true/false if this is a checkbox, undefined when it's a custom-status task
@@ -217,5 +226,5 @@ export function taskListPlugin({
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

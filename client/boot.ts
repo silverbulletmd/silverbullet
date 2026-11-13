@@ -15,11 +15,13 @@ import {
   flushCachesAndUnregisterServiceWorker,
   unregisterServiceWorkers,
 } from "./service_worker/util.ts";
+import { applyCachedTheme } from "./space_theme.ts";
 import "./lib/polyfills.ts";
 import { exportKey, importKey } from "@silverbulletmd/silverbullet/lib/crypto";
 import { BoxProxy } from "./lib/box_proxy.ts";
 import type { BootConfig } from "./types/ui.ts";
 import "./debug.ts";
+import { hideBootIndicator } from "./lib/boot_indicator.ts";
 import { recordMark } from "./lib/perf.ts";
 import { bootBlocks } from "./tooling.ts";
 import { bootToolingCache } from "./tooling_cache.ts";
@@ -79,8 +81,10 @@ async function findEncryptionKey(
 }
 
 safeRun(async () => {
-  // Before anything awaits, so the first paint already uses the last fonts.
+  // Before anything awaits, so the first paint already uses the last fonts
+  // and theme.
   applyCachedFonts();
+  const bootTheme = applyCachedTheme();
   consoleLog.install({
     console,
     addEventListener: globalThis.addEventListener.bind(globalThis),
@@ -286,6 +290,7 @@ safeRun(async () => {
     bootConfig!,
     config!,
     tooling,
+    bootTheme,
   );
   if (bootConfig!.logPush) {
     setInterval(() => {
@@ -294,7 +299,12 @@ safeRun(async () => {
   }
   globalThis.client = client;
   clientProxy.setTarget(client);
-  await client.init(encryptionKey);
+  try {
+    await client.init(encryptionKey);
+  } finally {
+    // A failed or abandoned boot must not leave a spinner spinning forever
+    hideBootIndicator();
+  }
   clientReady.resolve(client);
   if (reviewGitConflicts) await client.openNavigatorView("std.gitConflicts");
 });

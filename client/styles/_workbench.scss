@@ -26,6 +26,29 @@
   }
 }
 
+// A phone's Workbench tab bar would wrap its tabs into a pill-shaped blob:
+// one row that scrolls sideways instead, faded at the edge to show there's
+// more, like `.sb-wb-toolbar` below. Keep 600px in step with
+// `MOBILE_MEDIA_QUERY` in `client/lib/mobile.ts`.
+@media only screen and (max-width: 600px) {
+  .sb-nav-root-native .sb-nav-header-row .sb-segments-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    .sb-segments {
+      flex-wrap: nowrap;
+    }
+  }
+}
+
 .sb-nav-native {
   display: flex;
   flex: 1 1 auto;
@@ -112,7 +135,8 @@
     overflow: auto;
     background-color: var(--root-background-color);
     color: var(--root-color);
-    font-family: var(--editor-font);
+    // Interface text, not page prose: only identifiers and code are monospace
+    font-family: var(--ui-font);
   }
 
   // Console log output is code: timings, JSON, stack traces.
@@ -436,6 +460,7 @@
 
   .sb-wb-num {
     color: var(--subtle-color);
+    font-variant-numeric: tabular-nums;
     text-align: right;
   }
 
@@ -462,6 +487,14 @@
 
     .sb-wb-status {
       background-color: var(--alert-warning-color);
+    }
+  }
+
+  .sb-wb-block-inactive {
+    opacity: 0.5;
+
+    .sb-wb-status {
+      background-color: var(--subtle-color);
     }
   }
 
@@ -504,10 +537,6 @@
   .sb-wb-toolbar .sb-wb-menu {
     margin-left: auto;
     opacity: 1;
-  }
-
-  .sb-workbench-body {
-    font-family: var(--ui-font);
   }
 
   .sb-wbm-head,

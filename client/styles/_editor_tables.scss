@@ -1,0 +1,130 @@
+// Tables in the editor: Markdown tables and query results, raised as cards.
+// A mixin, included inside editor.scss's `#sb-main .cm-editor` where these
+// rules always stood, so the cascade order is unchanged.
+@mixin rules {
+  .sb-line-table-outside {
+    display: none;
+  }
+
+  .sb-line-tbl-header {
+    font-weight: bold;
+  }
+
+  .sb-line-tbl-header .meta {
+    font-weight: normal;
+  }
+
+  .sb-table-widget {
+    display: inline-block;
+    vertical-align: top;
+    width: 100%;
+    font-weight: normal;
+  }
+
+  // Tables (Markdown and query results): a raised card with a tinted header,
+  // a bold first column and soft zebra rows. A query result sits at
+  // div > .content > span.wrapper > table (lua_widget.ts, lib/dom.ts)
+  .sb-table-widget,
+  .sb-lua-directive-block:has(> table, > * > table, > div > .content > table:only-child, > div > .content > .wrapper:only-child > table:only-child) {
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: var(--ui-radius-xl);
+    background: var(--root-background-color);
+    box-shadow: var(--ui-shadow-card);
+    overflow: clip;
+  }
+
+  .sb-html-widget {
+    font-weight: normal;
+  }
+
+  .sb-html-widget-inline {
+    display: inline;
+  }
+
+  div.sb-html-widget {
+    display: block;
+  }
+
+  table {
+    width: 100%;
+    border-spacing: 0;
+    overflow: hidden;
+  }
+
+  thead tr {
+    font-weight: bold;
+  }
+
+  thead tr td {
+    // Primarily to make the column headers look reasonable with the button bar that may be put on top
+    padding: 11px 8px;
+  }
+
+  th,
+  td {
+    padding: 8px;
+    white-space: nowrap;
+  }
+
+  .sb-table-align-left {
+    text-align: left;
+  }
+
+  .sb-table-align-right {
+    text-align: right;
+  }
+
+  .sb-table-align-center {
+    text-align: center;
+  }
+
+  .sb-table-widget,
+  .sb-lua-directive-block {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88em;
+    }
+
+    td,
+    th {
+      padding: 9px 16px;
+      border: 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--ui-surface-border-color) 70%, transparent);
+      text-align: left;
+    }
+
+    thead td,
+    thead th {
+      background: var(--editor-table-head-background-color);
+      color: var(--editor-table-head-color);
+      font-size: 0.85em;
+      font-weight: 650;
+      border-bottom: 1px solid var(--ui-accent-muted-soft-color);
+    }
+
+    tbody td:first-child {
+      font-weight: 600;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--editor-table-even-background-color);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+  }
+
+  .sb-lua-directive-block {
+    th {
+      font-weight: 600;
+      font-size: 0.85em;
+    }
+
+    // Tabular figures for numbers only: some fonts (Lora) widen the space with them too
+    td[data-table-cell-type="number"] {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}

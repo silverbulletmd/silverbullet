@@ -1,12 +1,14 @@
+import { syntaxTree } from "@codemirror/language";
 import type { EditorState, Range } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
-import { syntaxTree } from "@codemirror/language";
 import { decoratorStateField } from "./util.ts";
 
 export function disableSpellcheck(selectors: string[]) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: Range<Decoration>[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: ({ type, from, to }) => {
         for (const selector of selectors) {
           if (type.name === selector) {
@@ -21,5 +23,5 @@ export function disableSpellcheck(selectors: string[]) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

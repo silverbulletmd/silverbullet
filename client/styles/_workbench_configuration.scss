@@ -118,6 +118,26 @@
       gap: 4px;
     }
 
+    // A device override note sits under the dropdown.
+    .sb-wb-cfg-theme {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .sb-wb-cfg-theme-note {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 4px 8px;
+      max-width: 20rem;
+      font-size: 12px;
+      color: var(--subtle-color);
+      text-align: right;
+    }
+
     .sb-wb-cfg-font-hint {
       max-width: 14rem;
       font-size: 0.8em;
@@ -309,5 +329,21 @@
 @keyframes sb-wb-cfg-blink {
   50% {
     opacity: 0;
+  }
+}
+
+.sb-config-color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  input[type="color"] {
+    width: 28px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--ui-surface-border-color);
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
   }
 }

@@ -1,13 +1,17 @@
 import { Checkbox, Input, Select } from "@silverbulletmd/silverbullet/ui";
+import type { JSX } from "preact";
+import { useEffect } from "preact/hooks";
 import type { Client } from "../../client.ts";
 import { toLua } from "../../config_management/managed_lua.ts";
+import { resolvedColor } from "../../space_theme.ts";
 import { type Action, copyText } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
 import { BlockNote } from "../shared/block_ui.tsx";
 import { ChangedMark } from "./changed_mark.tsx";
 import type { ConfigurationModel } from "./configuration_model.ts";
-import { FontSelect, useFontPreview } from "./font_select.tsx";
-import type { UiSchema } from "./schema.ts";
+import { EditorSizeInput, FontSelect, useFontPreview } from "./font_select.tsx";
+import { getValueAtPath, type UiSchema } from "./schema.ts";
+import { ThemeSelect } from "./theme_select.tsx";
 
 type FieldDeps = { client: Client; model: ConfigurationModel; path: string };
 
@@ -35,9 +39,12 @@ export function OptionsSection(props: {
   client: Client;
   model: ConfigurationModel;
   phrase: string;
+  /** Whether the Configuration tab is the one on screen. */
+  showing: boolean;
 }) {
   const { client, model } = props;
   useFontPreview(client, (path) => model.valueOf(path));
+  useAccentPreview(client, model.valueOf("accentColor") as string | undefined);
   const categories = visibleCategories(model, props.phrase);
   if (categories.length === 0) {
     return <BlockNote>No options match.</BlockNote>;
@@ -65,6 +72,7 @@ export function OptionsSection(props: {
               client={client}
               model={model}
               field={field}
+              showing={props.showing}
             />
           ))}
         </section>
@@ -77,6 +85,7 @@ function OptionRow(props: {
   client: Client;
   model: ConfigurationModel;
   field: UiSchema;
+  showing: boolean;
 }) {
   const { client, model } = props;
   const { path, schema } = props.field;
@@ -129,6 +138,7 @@ function OptionRow(props: {
           schema={schema}
           label={label}
           disabled={!writable}
+          showing={props.showing}
         />
       </div>
       <ActionMenu actions={actions} deps={{ client, model, path }} />
@@ -136,81 +146,172 @@ function OptionRow(props: {
   );
 }
 
-function Control(props: {
+type ControlProps = {
   client: Client;
   model: ConfigurationModel;
   path: string;
   schema: any;
   label: string;
   disabled: boolean;
-}) {
-  const { model, path, schema, label, disabled } = props;
-  const value = model.valueOf(path) as any;
-  const set = (v: unknown) => model.setField(path, v);
-  if (schema.type === "string" && schema.ui?.font) {
+  showing: boolean;
+  value: any;
+  set: (value: unknown) => void;
+};
+
+/**
+ * The control for each `ui` hint, then for each plain schema type; see the
+ * Configuration tab guide in docs/API/config.md.
+ */
+const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
+  font: (p) => (
+    <FontSelect
+      client={p.client}
+      value={p.value}
+      slot={p.schema.ui.font === "code" ? "code" : "editor"}
+      label={p.label}
+      disabled={p.disabled}
+      onChange={p.set}
+    />
+  ),
+  fontSize: (p) => (
+    <EditorSizeInput
+      client={p.client}
+      value={p.value}
+      label={p.label}
+      disabled={p.disabled}
+      onChange={p.set}
+    />
+  ),
+  theme: (p) => (
+    <ThemeSelect
+      client={p.client}
+      value={p.value}
+      showing={p.showing}
+      saved={
+        getValueAtPath(p.model.source?.values, p.path) as string | undefined
+      }
+      label={p.label}
+      disabled={p.disabled}
+      onChange={p.set}
+    />
+  ),
+  color: ({ label, disabled, value, set }) => {
+    const shown = shownAccentHex();
     return (
-      <FontSelect
-        client={props.client}
-        value={value}
-        kind={schema.ui.font === "mono" ? "mono" : "any"}
-        label={label}
-        disabled={disabled}
-        onChange={set}
-      />
+      <span class="sb-config-color">
+        <input
+          type="color"
+          aria-label={`${label} picker`}
+          disabled={disabled}
+          value={/^#[0-9a-f]{6}$/i.test(value ?? "") ? value : shown}
+          onInput={(e) => set(e.currentTarget.value)}
+        />
+        <Input
+          aria-label={label}
+          disabled={disabled}
+          type="text"
+          placeholder={`Theme default (${shown})`}
+          value={value ?? ""}
+          onInput={(e) => set(e.currentTarget.value)}
+        />
+      </span>
+    );
+  },
+  boolean: ({ label, disabled, value, set }) => (
+    <Checkbox
+      aria-label={label}
+      disabled={disabled}
+      checked={!!value}
+      onChange={(e) => set(e.currentTarget.checked)}
+    />
+  ),
+  enum: ({ schema, label, disabled, value, set }) => (
+    <Select
+      aria-label={label}
+      disabled={disabled}
+      value={value ?? ""}
+      onChange={(e) => set(e.currentTarget.value)}
+    >
+      {schema.enum.map((opt: string) => (
+        <option key={opt} value={opt}>
+          {opt}
+        </option>
+      ))}
+    </Select>
+  ),
+  string: ({ schema, label, disabled, value, set }) => (
+    <Input
+      aria-label={label}
+      disabled={disabled}
+      type={schema.ui?.inputType === "password" ? "password" : "text"}
+      value={value ?? ""}
+      onInput={(e) => set(e.currentTarget.value)}
+    />
+  ),
+  number: ({ label, disabled, value, set }) => (
+    <Input
+      aria-label={label}
+      disabled={disabled}
+      type="number"
+      value={value == null ? "" : String(value)}
+      onInput={(e) => {
+        const v = e.currentTarget.value;
+        set(v === "" ? undefined : Number(v));
+      }}
+    />
+  ),
+};
+
+/** Which of {@link CONTROLS} a field gets: its `ui` hint, else its type. */
+export function controlFor(schema: any): string | undefined {
+  const hint = ["font", "fontSize", "theme", "color"].find(
+    (h) => schema.ui?.[h],
+  );
+  if (hint) return hint;
+  if (schema.type === "string" && schema.enum) return "enum";
+  return ["boolean", "string", "number"].includes(schema.type)
+    ? schema.type
+    : undefined;
+}
+
+function Control(props: Omit<ControlProps, "value" | "set">) {
+  const { model, path } = props;
+  const name = controlFor(props.schema);
+  if (!name) {
+    return (
+      <span className="sb-wb-muted">Configure manually in Library/Config</span>
     );
   }
-  if (schema.type === "boolean") {
-    return (
-      <Checkbox
-        aria-label={label}
-        disabled={disabled}
-        checked={!!value}
-        onChange={(e) => set(e.currentTarget.checked)}
-      />
-    );
-  }
-  if (schema.type === "string" && schema.enum) {
-    return (
-      <Select
-        aria-label={label}
-        disabled={disabled}
-        value={value ?? ""}
-        onChange={(e) => set(e.currentTarget.value)}
-      >
-        {schema.enum.map((opt: string) => (
-          <option key={opt} value={opt}>
-            {opt}
-          </option>
-        ))}
-      </Select>
-    );
-  }
-  if (schema.type === "string") {
-    return (
-      <Input
-        aria-label={label}
-        disabled={disabled}
-        type={schema.ui?.inputType === "password" ? "password" : "text"}
-        value={value ?? ""}
-        onInput={(e) => set(e.currentTarget.value)}
-      />
-    );
-  }
-  if (schema.type === "number") {
-    return (
-      <Input
-        aria-label={label}
-        disabled={disabled}
-        type="number"
-        value={value == null ? "" : String(value)}
-        onInput={(e) => {
-          const v = e.currentTarget.value;
-          set(v === "" ? undefined : Number(v));
-        }}
-      />
-    );
-  }
+  const Widget = CONTROLS[name];
   return (
-    <span className="sb-wb-muted">Configure manually in Library/Config</span>
+    <Widget
+      {...props}
+      value={model.valueOf(path)}
+      set={(v) => model.setField(path, v)}
+    />
+  );
+}
+
+/**
+ * The accent colour on screen as `#rrggbb`: what an unset (or non-hex)
+ * `accentColor` falls back to, since a colour picker only takes hex.
+ */
+function shownAccentHex(): string {
+  return resolvedColor(document, "color", "--ui-accent-color") ?? "#000000";
+}
+
+/**
+ * Shows an edited `accentColor` right away, as fonts do, over whatever theme
+ * is on screen (a previewed one included) until the view goes away. Saving
+ * reapplies the theme for real.
+ */
+function useAccentPreview(client: Client, color: string | undefined): void {
+  useEffect(() => {
+    // "": an unset colour previews the theme's own accent
+    client.spaceTheme.preview({ accent: color ?? "" });
+  }, [client, color]);
+  useEffect(
+    () => () => client.spaceTheme.preview({ accent: undefined }),
+    [client],
   );
 }

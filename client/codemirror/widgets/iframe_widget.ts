@@ -61,14 +61,14 @@ export class IFrameWidget extends WidgetType {
                 iframe.contentWindow!.postMessage({
                   type: "html",
                   html: "",
-                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                  ...this.client.spaceTheme.message,
                 });
               } else {
                 iframe.contentWindow!.postMessage({
                   type: "html",
                   html: widgetContent.html,
                   script: widgetContent.script,
-                  theme: document.getElementsByTagName("html")[0].dataset.theme,
+                  ...this.client.spaceTheme.message,
                 });
               }
             });

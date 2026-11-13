@@ -1,21 +1,13 @@
+import { panelStyles } from "@silverbulletmd/silverbullet/lib/panel_styles";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 
-export function viewer(): { html: string } {
+export async function viewer(): Promise<{ html: string }> {
   return {
     html: `
 <html>
 <head>
+${await panelStyles()}
 <style>
-html {
-  --ui-button-background-color: #e1e1e1;
-  --ui-button-text-color: black;
-  --background-color: #fff;
-}
-html[data-theme="dark"] {
-  --ui-button-background-color: #262626;
-  --ui-button-text-color: white;
-  --background-color: #111;
-}
 html, body {
   margin: 0;
   height: 100%;
@@ -26,7 +18,7 @@ html, body {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: var(--background-color);
+  background-color: var(--root-background-color);
 }
 #image {
   width: 100vw;
@@ -49,10 +41,10 @@ html, body {
   cursor: pointer;
   outline: none;
   padding: 5px;
-  border: 1px solid rgb(108, 108, 108);
-  background-color: var(--ui-button-background-color);
+  border: 1px solid var(--button-border-color);
+  background-color: var(--button-background-color);
   border-radius: 5px;
-  color: var(--ui-button-text-color);
+  color: var(--button-color);
 }
 </style>
 <script type="module">

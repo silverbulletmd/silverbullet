@@ -1,22 +1,24 @@
 // @vitest-environment happy-dom
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { EditorState } from "@codemirror/state";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
+import { afterEach, beforeAll, expect, test, vi } from "vitest";
 import { EventInterest } from "../../event_interest.ts";
+import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import { createRenderContext } from "../../markdown_renderer/compose.ts";
-import { EventHook } from "../../plugos/hooks/event.ts";
-import { System } from "../../plugos/system.ts";
-import { WidgetCache } from "../../widget_cache.ts";
-import type { Tracker } from "../../space_lua/dependencies.ts";
-import { evalExpression } from "../../space_lua/eval.ts";
-import { makeFragment } from "../../space_lua/fragment.ts";
-import { parseExpressionString } from "../../space_lua/parse.ts";
-import { LuaStackFrame, type LuaTable } from "../../space_lua/runtime.ts";
-import { newView } from "../../navigator/view_value.ts";
 import {
   buildTestEnv,
   type TestEnv,
   testHost,
 } from "../../markdown_renderer/compose_test_env.ts";
+import { newView } from "../../navigator/view_value.ts";
+import { EventHook } from "../../plugos/hooks/event.ts";
+import { System } from "../../plugos/system.ts";
+import type { Tracker } from "../../space_lua/dependencies.ts";
+import { evalExpression } from "../../space_lua/eval.ts";
+import { makeFragment } from "../../space_lua/fragment.ts";
+import { parseExpressionString } from "../../space_lua/parse.ts";
+import { LuaStackFrame, type LuaTable } from "../../space_lua/runtime.ts";
+import { WidgetCache } from "../../widget_cache.ts";
 
 let env: TestEnv;
 
@@ -85,6 +87,12 @@ function makeClient() {
       composing: true,
       dispatch: () => {},
       requestMeasure: () => {},
+      // The page the widget's `${x}` is on, for its ⋯ menu
+      state: EditorState.create({
+        doc: "${x}",
+        extensions: [extendedMarkdownLanguage],
+      }),
+      posAtDOM: () => 0,
     },
     isReadOnlyMode: () => false,
     ui: { flashNotification: vi.fn() },

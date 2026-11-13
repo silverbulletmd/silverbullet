@@ -3,9 +3,10 @@ import { ensureSyntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import { afterEach, expect, test, vi } from "vitest";
-import { EventInterest } from "../../event_interest.ts";
-import { EventHook } from "../../plugos/hooks/event.ts";
 import type { Client } from "../../client.ts";
+import type { PopupEntry } from "../../components/popup_menu.ts";
+import { EventInterest } from "../../event_interest.ts";
+import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import {
   createRenderContext,
   type RenderContext,
@@ -15,8 +16,8 @@ import {
   buildTestEnv,
   testHost,
 } from "../../markdown_renderer/compose_test_env.ts";
-import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import { newView } from "../../navigator/view_value.ts";
+import { EventHook } from "../../plugos/hooks/event.ts";
 import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import { LuaStackFrame, type LuaTable } from "../../space_lua/runtime.ts";
@@ -171,7 +172,7 @@ test("an out-of-page view widget can go to its definition", async () => {
   });
   const root = await show(widget, { ...VIEW(true), block: true });
   expect(menuButtons(root).map((b) => b.dataset.button)).toEqual(["menu"]);
-  expect(openMenu(root)).toEqual(["definition", "reload", "copy"]);
+  expect(openMenu(root)).toEqual(["definition", "copy"]);
   pick("definition");
   await Promise.resolve();
   expect(navigate).toHaveBeenCalledWith(ref);
@@ -189,7 +190,7 @@ test("an in-page widget can edit a known source position without searching its t
     host: { kind: "object", editPos: () => 4, definitionRef: null },
   });
   const root = await show(widget, NONE);
-  expect(openMenu(root)).toEqual(["edit", "reload"]);
+  expect(openMenu(root)).toEqual(["edit"]);
   pick("edit");
   expect(dispatch).toHaveBeenCalledWith({ selection: { anchor: 4 } });
   expect(focus).toHaveBeenCalledOnce();
@@ -205,7 +206,7 @@ test("an inline out-of-page widget can go to its definition", async () => {
     host: { kind: "panel", definitionRef: { path: "Test/Page.md" } },
   });
   const root = await show(widget, { ...NONE, block: false });
-  expect(openMenu(root)).toEqual(["definition", "reload"]);
+  expect(openMenu(root)).toEqual(["definition"]);
   pick("definition");
   await Promise.resolve();
   expect(navigate).toHaveBeenCalledWith({ path: "Test/Page.md" });
@@ -228,7 +229,7 @@ test("an in-page inline widget keeps its unwrapped content", async () => {
   expect([...root.childNodes]).toEqual([content]);
 });
 
-test("read-only mode leaves Copy and Reload but no editing actions", async () => {
+test("read-only mode leaves Copy but no editing actions", async () => {
   const widget = new LuaWidget({
     client: fakeClient({ isReadOnlyMode: () => true }),
     cacheKey: "test",
@@ -236,7 +237,7 @@ test("read-only mode leaves Copy and Reload but no editing actions", async () =>
     callback: someValue,
     host: { kind: "directive", wrappers: [] },
   });
-  expect(openMenu(await show(widget, BOTH))).toEqual(["reload", "copy"]);
+  expect(openMenu(await show(widget, BOTH))).toEqual(["copy"]);
 });
 
 test("an object widget offers Go to definition before Edit, and no Copy", async () => {
@@ -250,7 +251,7 @@ test("an object widget offers Go to definition before Edit, and no Copy", async 
     host: { kind: "object", editPos: () => 4, definitionRef: ref },
   });
   const root = await show(widget, BOTH);
-  expect(openMenu(root)).toEqual(["definition", "edit", "reload"]);
+  expect(openMenu(root)).toEqual(["definition", "edit"]);
   expect(
     document.body.querySelector('[data-action="definition"]')?.textContent,
   ).toBe("Go to definition");
@@ -263,8 +264,9 @@ function directiveWidget(
   expressionText: string,
   extra: Record<string, unknown> = {},
   callback: () => Promise<unknown> = someValue,
+  docOf = (source: string) => `Intro\n${source}\nOutro`,
 ) {
-  const doc = `Intro\n\${${expressionText}}\nOutro`;
+  const doc = docOf(`\${${expressionText}}`);
   const state = EditorState.create({
     doc,
     extensions: [extendedMarkdownLanguage],
@@ -296,17 +298,37 @@ test("a plain ${…} widget offers the full menu, with no live entries", async (
   const { widget } = directiveWidget("q()");
   const root = await show(widget, BOTH);
   expect(root.querySelector(".sb-widget-live-dot")).toBeNull();
-  expect(openMenu(root)).toEqual(["edit", "reload", "copy", "bake"]);
+  expect(openMenu(root)).toEqual([
+    "edit",
+    "bake",
+    "copy",
+    "moveUp",
+    "moveDown",
+    "remove",
+  ]);
   expect(document.body.querySelector(".sb-widget-menu-info")).toBeNull();
 });
 
-test("Reload re-runs only this widget", async () => {
-  const { widget } = directiveWidget("q()");
+test("a ${…} of its own is one block: Move up, Move down and Delete, no Reload", async () => {
+  const { widget, dispatch } = directiveWidget(
+    "q()",
+    {},
+    someValue,
+    (source) => `Intro\n\n${source}\n\nOutro`,
+  );
   const root = await show(widget, BOTH);
-  const reload = vi.spyOn(widget, "reload").mockResolvedValue();
-  openMenu(root);
-  pick("reload");
-  expect(reload).toHaveBeenCalledOnce();
+  expect(openMenu(root)).toEqual([
+    "edit",
+    "bake",
+    "copy",
+    "moveUp",
+    "moveDown",
+    "remove",
+  ]);
+  pick("remove");
+  await vi.waitFor(() => expect(dispatch).toHaveBeenCalled());
+  // Its line and one of the blank lines around it
+  expect(dispatch.mock.calls[0][0].changes).toEqual({ from: 7, to: 15 });
 });
 
 test("a list/tree/table view copies its rows; a content view has no Copy; neither offers Bake", async () => {
@@ -327,9 +349,8 @@ test("a list/tree/table view copies its rows; a content view has no Copy; neithe
   liveCtx = createRenderContext(testHost(t), {
     hostPage: { name: "Projects/Sketchbook" },
   });
-  expect(openMenu(await show(widget, VIEW(true)))).toEqual([
+  expect(openMenu(await show(widget, VIEW(true))).slice(0, 2)).toEqual([
     "edit",
-    "reload",
     "copy",
   ]);
   pick("copy");
@@ -340,26 +361,7 @@ test("a list/tree/table view copies its rows; a content view has no Copy; neithe
   );
   document.body.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
   liveCtx = {} as RenderContext;
-  expect(openMenu(await show(widget, VIEW(false)))).toEqual(["edit", "reload"]);
-});
-
-test("Reload on a panel widget re-runs the widget hooks, since its result is a snapshot", async () => {
-  const localSyscall = vi.fn(async () => {});
-  const widget = new LuaWidget({
-    client: fakeClient({ clientSystem: { localSyscall } }),
-    cacheKey: "panel:0",
-    expressionText: "",
-    callback: someValue,
-    host: { kind: "panel", definitionRef: null },
-  });
-  const root = await show(widget, BOTH);
-  const reload = vi.spyOn(widget, "reload");
-  openMenu(root);
-  pick("reload");
-  expect(reload).not.toHaveBeenCalled();
-  expect(localSyscall).toHaveBeenCalledWith("system.invokeFunction", [
-    "index.refreshWidgets",
-  ]);
+  expect(openMenu(await show(widget, VIEW(false)))).not.toContain("copy");
 });
 
 test("the menu closes when focus moves outside it", async () => {
@@ -477,10 +479,31 @@ test("a widget that renders a Lua error is marked with sb-lua-error, and unmarke
   }
 });
 
-test("a sandbox offers only Edit and Reload", async () => {
+test("a ${…} on lines of its own in a list item can still be deleted", async () => {
+  const { widget } = directiveWidget(
+    "q()",
+    { ui: { flashNotification: vi.fn(), viewState: { isMobile: false } } },
+    someValue,
+    (source) => `- Item\n  ${source}\n- Next`,
+  );
+  const root = await show(widget, BOTH);
+  const { widgetMenuEntriesFor } = await import("./block_menu.ts");
+  expect(
+    widgetMenuEntriesFor(widget.opts.client, root).flatMap((e) =>
+      e.kind === "item" ? [e.id] : [],
+    ),
+  ).toContain("remove");
+});
+
+test("a sandbox offers no Copy or Bake", async () => {
   const sandbox = { kind: "sandbox", bakeable: false } as const;
   const plain = directiveWidget("widget.sandbox(s)").widget;
-  expect(openMenu(await show(plain, sandbox))).toEqual(["edit", "reload"]);
+  expect(openMenu(await show(plain, sandbox))).toEqual([
+    "edit",
+    "moveUp",
+    "moveDown",
+    "remove",
+  ]);
 });
 
 test("editable object renders never reuse prewarmed DOM", async () => {
@@ -502,4 +525,73 @@ test("editable object renders never reuse prewarmed DOM", async () => {
   } finally {
     widget.destroy();
   }
+});
+
+test("on desktop a block widget has no ⋯: the margin ⋮ opens the same menu", async () => {
+  const { widget } = directiveWidget("q()", {
+    ui: { flashNotification: vi.fn(), viewState: { isMobile: false } },
+  });
+  const root = await show(widget, BOTH);
+  expect(menuButtons(root)).toEqual([]);
+  const { widgetMenuEntriesFor, widgetMenuSource } = await import(
+    "./block_menu.ts"
+  );
+  const source = widgetMenuSource(root);
+  expect(source).toMatchObject({ label: "Expression", block: true });
+  // Its own menu; the ⋮ adds Move up / Move down / Delete
+  const ids = (entries: PopupEntry[]) =>
+    entries.flatMap((e) => (e.kind === "item" ? [e.id] : []));
+  expect(ids(source!.entries())).toEqual(["edit", "bake", "copy"]);
+  expect(ids(widgetMenuEntriesFor(widget.opts.client, root))).toEqual([
+    "edit",
+    "bake",
+    "copy",
+    "moveUp",
+    "moveDown",
+    "remove",
+  ]);
+});
+
+test("on mobile a block widget keeps its ⋯, opening the same menu", async () => {
+  const { widget } = directiveWidget("q()", {
+    ui: { flashNotification: vi.fn(), viewState: { isMobile: true } },
+  });
+  const root = await show(widget, BOTH);
+  expect(openMenu(root)).toEqual([
+    "edit",
+    "bake",
+    "copy",
+    "moveUp",
+    "moveDown",
+    "remove",
+  ]);
+});
+
+test("panels and the frontmatter form keep their ⋯ on desktop; data items move to the ⋮", async () => {
+  const desktop = { ui: { viewState: { isMobile: false } } };
+  const { widgetMenuSource } = await import("./block_menu.ts");
+  const panel = new LuaWidget({
+    client: fakeClient(desktop),
+    cacheKey: "panel",
+    expressionText: "",
+    callback: someValue,
+    host: { kind: "panel", definitionRef: { path: "X.md" } },
+  });
+  const panelRoot = await show(panel, { ...VIEW(true), block: true });
+  expect(menuButtons(panelRoot)).toHaveLength(1);
+  expect(widgetMenuSource(panelRoot)).toBeUndefined();
+  const object = (inMargin: boolean) =>
+    new LuaWidget({
+      client: fakeClient(desktop),
+      cacheKey: "object",
+      expressionText: "",
+      callback: someValue,
+      host: { kind: "object", editPos: () => 4, definitionRef: null, inMargin },
+    });
+  const frontmatter = await show(object(false), NONE);
+  expect(menuButtons(frontmatter)).toHaveLength(1);
+  expect(widgetMenuSource(frontmatter)).toBeUndefined();
+  const item = await show(object(true), NONE);
+  expect(menuButtons(item)).toEqual([]);
+  expect(widgetMenuSource(item)?.label).toBe("Item");
 });

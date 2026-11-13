@@ -2,12 +2,13 @@ import type { ComponentProps } from "preact";
 import type { X } from "preact-feather";
 
 type FeatherProps = ComponentProps<typeof X>;
+
+import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type { FunctionalComponent } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
-import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
+import { deepEqual } from "../../plug-api/lib/json.ts";
 import { fuzzySearchAndSort } from "../lib/fuzzy_search.ts";
 import { shouldFocusModalFilter } from "../lib/mobile.ts";
-import { deepEqual } from "../../plug-api/lib/json.ts";
 import { AlwaysShownModal } from "./basic_modals.tsx";
 
 /** An option for typed text that isn't in the list; `isNew` tells it apart */
@@ -55,7 +56,6 @@ export function FilterList({
   onSelect: (option: FilterOption | undefined) => void;
   preFilter?: (options: FilterOption[], phrase: string) => FilterOption[];
   phrasePreprocessor?: (phrase: string) => string;
-  darkMode?: boolean;
   allowNew?: boolean;
   completePrefix?: string;
   helpText: string;

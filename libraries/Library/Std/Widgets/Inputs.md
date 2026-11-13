@@ -69,7 +69,7 @@ A "..." context button that opens a context menu. `opts.items` is a list, or a f
 * `{ header = "…" }`: a muted line that can't be picked;
 * `{ separator = true }`.
 
-`opts.title` is the button's tooltip; with `opts.keepFocus`, clicking the button leaves focus where it was (in a field being edited). The button shows when the nearest element with class `sb-in-menu-owner` is hovered or has focus, and always on touch screens. Keys: Enter or Space on the button opens it with focus on the first item; ArrowUp/ArrowDown move, Enter picks, Esc closes (and returns focus to the button when focus was in the menu). A click outside closes it. `widgets.openMenu(node)` opens a menu node the same way, e.g. for a keyboard shortcut.
+`opts.title` is the button's tooltip; with `opts.keepFocus`, clicking the button leaves focus where it was (in a field being edited). The button shows when the mouse rests on the nearest element with class `sb-in-menu-owner` (after a moment, fading again once the mouse is still, like every ⋯ menu), when that element has focus, and always on touch screens. Keys: Enter or Space on the button opens it with focus on the first item; ArrowUp/ArrowDown move, Enter picks, Esc closes (and returns focus to the button when focus was in the menu). A click outside closes it. `widgets.openMenu(node)` opens a menu node the same way, e.g. for a keyboard shortcut.
 
 ```lua
 dom.div {

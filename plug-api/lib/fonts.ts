@@ -1,3 +1,11 @@
+/** The fonts a theme suggests (its `fonts` frontmatter). */
+export type ThemeFonts = {
+  ui?: string;
+  editor?: string;
+  code?: string;
+  editorSize?: number;
+};
+
 /** One file of a font family, as a space path. */
 export type FontFaceSpec = { src: string; weight?: number; style?: string };
 
@@ -12,6 +20,7 @@ export type FontEntry = {
 
 /** The `fonts` config as a space sets it: every part optional. */
 export type FontsConfig = {
+  /** No longer used: a space doesn't pick the interface font; its theme does. */
   ui?: string;
   editor?: string;
   code?: string;
@@ -45,34 +54,39 @@ function isEditorSize(value: unknown): value is number {
 }
 
 /**
- * What a space's `fonts` config selects. `globalDefault` (the server- or
- * app-wide default font) stands in for an interface or editor font the
- * space doesn't set, or sets to a font that is gone; the code font has its
- * own default.
+ * What a space's `fonts` config selects. The interface font is the theme's
+ * (its `ui` suggestion, else {@link UI_FONT}); a space's `fonts.ui` is
+ * ignored. For the editor and code, the active theme's suggestion
+ * (`themeFonts`) fills a slot the space doesn't set; the built-in default font
+ * stands in for one neither sets.
  */
 export function fontSelectionFor(
   fonts: FontsConfig,
-  globalDefault?: string,
+  themeFonts?: ThemeFonts,
 ): FontSelection {
   const chain = (...values: (string | undefined)[]) =>
     values.filter((value): value is string => !!value);
   return {
-    ui: chain(fonts.ui, globalDefault),
-    editor: chain(fonts.editor, globalDefault),
-    code: chain(fonts.code),
-    editorSize: fonts.editorSize,
-    available: fonts.available ?? {},
+    ui: chain(themeFonts?.ui, UI_FONT),
+    editor: chain(fonts.editor, themeFonts?.editor),
+    code: chain(fonts.code, themeFonts?.code),
+    editorSize: fonts.editorSize ?? themeFonts?.editorSize,
+    // The bundled fonts are always there, so the interface font and a
+    // built-in theme's suggestion resolve before Std's config is indexed.
+    available: { ...BUILTIN_FONTS, ...fonts.available },
   };
 }
 
 export const DEFAULT_FONT = "ia-writer-mono";
 
+/** The interface font when the theme suggests none. */
+export const UI_FONT = "inter";
+
 /**
  * Whether a font value can go into a `<style>` element: names, spaces,
  * commas and hyphens, with quotes in pairs, so nothing can end the
- * declaration or open a string that swallows the rest of the sheet. The
- * server checks the same rule (`is_safe_font_value`); both test against
- * `font_value_vectors.json`.
+ * declaration or open a string that swallows the rest of the sheet. Tested
+ * against `font_value_vectors.json`.
  */
 export function isSafeFontValue(value: unknown): value is string {
   return (
@@ -174,12 +188,47 @@ function primaryFamily(stack: string): string {
     .replace(/^['"]|['"]$/g, "");
 }
 
+/** One source column with a proportional editor font, as `--editor-column-width`. */
+export const PROPORTIONAL_COLUMN = "0.75ch";
+
+/** The x-height ratios `--editor-font-x-height` allows. */
+const X_HEIGHT_RANGE = { min: 0.3, max: 0.7 };
+
+/**
+ * A measured x-height (as a fraction of the font size) fit to use: clamped,
+ * or undefined when the measurement failed.
+ */
+export function clampXHeight(ratio: unknown): number | undefined {
+  if (typeof ratio !== "number" || !Number.isFinite(ratio) || ratio <= 0) {
+    return undefined;
+  }
+  return Math.min(X_HEIGHT_RANGE.max, Math.max(X_HEIGHT_RANGE.min, ratio));
+}
+
+/**
+ * The CSS variables the font stylesheet sets. A theme setting one would
+ * override the space's font choice, which the lint warns about.
+ */
+export const FONT_VARIABLES = {
+  ui: "--ui-font",
+  editor: "--editor-font",
+  code: "--editor-monospace-font",
+  editorSize: "--editor-font-size",
+  xHeight: "--editor-font-x-height",
+  column: "--editor-column-width",
+} as const;
+
 /**
  * The stylesheet for a selection: `@font-face` rules for the faces of the
  * fonts the slots show only (browsers fetch a face when text first uses it),
- * then the CSS variables every surface reads.
+ * then the CSS variables every surface reads. `editorXHeight` is the editor
+ * font's measured x-height, which code is scaled to match.
  */
-export function fontStylesheet(sel: FontSelection, fsBase: string): string {
+export function fontStylesheet(
+  sel: FontSelection,
+  fsBase: string,
+  editorXHeight?: number,
+): string {
   const slots = [sel.ui, sel.editor, sel.code].map((chain) =>
     resolveSlot(chain, sel.available),
   );
@@ -194,13 +243,33 @@ export function fontStylesheet(sel: FontSelection, fsBase: string): string {
     }
   }
   const [ui, editor, code] = slots.map((slot) => slot.family);
-  // `html`, the selector theme.scss uses: this sheet comes later, so it beats
-  // the theme, and a space-style on `html` (later still) or `:root` beats it.
-  const size = isEditorSize(sel.editorSize)
-    ? `;--editor-font-size:${sel.editorSize}px`
-    : "";
+  // `html`: this beats theme.scss's `:where(html)` defaults. `#sb-fonts` comes
+  // before `#sb-theme`, so a theme setting these would beat it (the lint warns
+  // about that), and a space-style on `html` (later still) or `:root` does too.
+  const ratio = clampXHeight(editorXHeight);
+  const vars: [string, string | undefined][] = [
+    [FONT_VARIABLES.ui, ui],
+    [FONT_VARIABLES.editor, editor],
+    [FONT_VARIABLES.code, code],
+    [
+      FONT_VARIABLES.editorSize,
+      isEditorSize(sel.editorSize) ? `${sel.editorSize}px` : undefined,
+    ],
+    [FONT_VARIABLES.xHeight, ratio?.toFixed(3)],
+    // A source column is a `0` wide: exact for monospace, but a proportional
+    // `0` is broad, which spreads list and task markers far from their text.
+    [
+      FONT_VARIABLES.column,
+      slots[1].entry && slots[1].entry.kind !== "mono"
+        ? PROPORTIONAL_COLUMN
+        : undefined,
+    ],
+  ];
   rules.push(
-    `html{--ui-font:${ui};--editor-font:${editor};--editor-monospace-font:${code}${size}}`,
+    `html{${vars
+      .filter(([, value]) => value !== undefined)
+      .map(([name, value]) => `${name}:${value}`)
+      .join(";")}}`,
   );
   return rules.join("\n");
 }
@@ -217,56 +286,136 @@ export function fontCacheKey(baseURI: string): string {
 }
 
 /**
- * Installs the font stylesheet just before `#custom-styles`: at equal
- * specificity the later sheet wins, so a space-style `--editor-font`
- * override keeps working as documented.
+ * Fills `#sb-fonts`, which `index.html` declares before the theme and the
+ * space's styles: at equal specificity the later sheet wins, so a space-style
+ * `--editor-font` override keeps working as documented. A document without
+ * one gets it at the end of its head.
  */
 export function applyFontStylesheet(css: string, doc = document): void {
-  let style = doc.getElementById(FONT_STYLE_ID) as HTMLStyleElement | null;
+  let style = doc.getElementById(FONT_STYLE_ID);
   if (!style) {
     style = doc.createElement("style");
     style.id = FONT_STYLE_ID;
-    const customStyles = doc.getElementById("custom-styles");
-    if (customStyles) {
-      customStyles.before(style);
-    } else {
-      doc.head.append(style);
-    }
+    doc.head.append(style);
   }
   style.textContent = css;
 }
 
 /**
- * Applies the space's font settings (see `fontSelectionFor`). Until
- * `indexReady`, library fonts may not be registered yet, so a choice that
- * names no known font keeps the fonts already showing (from the cache)
- * rather than replacing them, and the cache with them, by a fallback.
+ * The x-height of the font `family` shows, measured on a canvas once its
+ * faces have loaded (else a fallback would be measured); undefined where the
+ * browser can't tell.
+ */
+export async function measureXHeight(
+  family: string,
+  doc = document,
+): Promise<number | undefined> {
+  const font = `100px ${family}`;
+  try {
+    if (typeof doc.fonts?.load !== "function") return undefined;
+    await doc.fonts.load(font);
+    const ctx = doc.createElement("canvas").getContext("2d");
+    if (!ctx) return undefined;
+    ctx.font = font;
+    return clampXHeight(ctx.measureText("x").actualBoundingBoxAscent / 100);
+  } catch {
+    return undefined;
+  }
+}
+
+const X_HEIGHT_CACHE_KEY = "silverbullet.fontXHeights";
+
+function rememberedXHeights(): Record<string, number> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(X_HEIGHT_CACHE_KEY) ?? "{}");
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberXHeight(key: string, ratio: number): void {
+  try {
+    localStorage.setItem(
+      X_HEIGHT_CACHE_KEY,
+      JSON.stringify({ ...rememberedXHeights(), [key]: ratio }),
+    );
+  } catch {
+    // No storage: measured again on every load, after a first paint without.
+  }
+}
+
+const installs = new WeakMap<Document, number>();
+
+/**
+ * Installs a selection's stylesheet (and caches it under `cacheKey`), then
+ * measures the editor font and installs it again if its x-height differs
+ * from the one remembered, unless another selection was installed meanwhile.
+ */
+export function installFonts(
+  sel: FontSelection,
+  { doc = document, cacheKey }: { doc?: Document; cacheKey?: string } = {},
+): void {
+  const family = resolveFamily(sel.editor, sel.available);
+  // Per space: the same family name can be another space's library font
+  const xHeightKey = `${fontCacheKey(doc.baseURI)}:${family}`;
+  const install = (xHeight: number | undefined) => {
+    const css = fontStylesheet(sel, baseOf(doc), xHeight);
+    applyFontStylesheet(css, doc);
+    if (!cacheKey) return;
+    try {
+      localStorage.setItem(cacheKey, css);
+    } catch {
+      // Private mode or blocked storage: fonts still apply, just not cached.
+    }
+  };
+  const remembered = clampXHeight(rememberedXHeights()[xHeightKey]);
+  install(remembered);
+  const id = (installs.get(doc) ?? 0) + 1;
+  installs.set(doc, id);
+  void measureXHeight(family, doc).then((measured) => {
+    if (measured === undefined) return;
+    rememberXHeight(xHeightKey, measured);
+    if (installs.get(doc) === id && measured !== remembered) install(measured);
+  });
+}
+
+/**
+ * Applies the space's font settings (see `fontSelectionFor`). Call it only
+ * once the space's config is loaded: before that every chain is empty, so it
+ * would replace the cached fonts, and the cache, by the default font. With
+ * `cache` off (a theme preview) the fonts show but the next boot doesn't
+ * start from them. Until `indexReady`, library fonts may not be registered
+ * yet, so a choice that names no known font keeps the fonts already showing
+ * (from the cache) rather than replacing them, and the cache with them, by a
+ * fallback.
  */
 export function applyFonts(
   fonts: FontsConfig,
-  globalDefault?: string,
   {
     indexReady = true,
     doc = document,
-  }: { indexReady?: boolean; doc?: Document } = {},
+    themeFonts,
+    cache = true,
+  }: {
+    indexReady?: boolean;
+    doc?: Document;
+    themeFonts?: ThemeFonts;
+    cache?: boolean;
+  } = {},
 ): void {
-  const sel = fontSelectionFor(fonts, globalDefault);
+  const sel = fontSelectionFor(fonts, themeFonts);
   const pending = [...sel.ui, ...sel.editor, ...sel.code].some(
     (value) => parseFontValue(value, sel.available).type === "unknown",
   );
   if (pending && !indexReady) {
-    if (!doc.getElementById(FONT_STYLE_ID)) {
-      applyFontStylesheet(fontStylesheet(sel, baseOf(doc)), doc);
-    }
+    if (!doc.getElementById(FONT_STYLE_ID)) installFonts(sel, { doc });
     return;
   }
-  const css = fontStylesheet(sel, baseOf(doc));
-  applyFontStylesheet(css, doc);
-  try {
-    localStorage.setItem(fontCacheKey(doc.baseURI), css);
-  } catch {
-    // Private mode or blocked storage: fonts still apply, just not cached.
-  }
+  installFonts(sel, {
+    doc,
+    cacheKey: cache ? fontCacheKey(doc.baseURI) : undefined,
+  });
 }
 
 /**
@@ -284,8 +433,8 @@ export function applyCachedFonts(doc = document): void {
 }
 
 /**
- * The fonts Std registers, for pages with no space and so no space config:
- * the dashboard, login and setup. A test keeps this in step with Std.
+ * The fonts Std registers, so the default font is there before a space's
+ * config registers it. A test keeps this in step with Std.
  */
 export const BUILTIN_FONTS: Record<string, FontEntry> = {
   "ia-writer-mono": {
@@ -298,6 +447,12 @@ export const BUILTIN_FONTS: Record<string, FontEntry> = {
     name: "Inter",
     family: "Inter, system-ui, sans-serif",
     kind: "sans",
+    license: "OFL-1.1",
+  },
+  lora: {
+    name: "Lora",
+    family: "Lora, Georgia, serif",
+    kind: "serif",
     license: "OFL-1.1",
   },
   "system-sans": {
@@ -317,35 +472,28 @@ export const BUILTIN_FONTS: Record<string, FontEntry> = {
   },
 };
 
-const GLOBAL_FONT_KEY = "silverbullet.defaultFontSheet";
-
 /**
- * Applies the server- or app-wide default font to a page with no space: the
- * same stylesheet a space gets when it sets no fonts of its own, from the
- * built-in fonts, and cached the same way.
+ * What an unset font setting shows in Configuration: "Default (EB Garamond,
+ * suggested by Ink)", or "Default (iA Writer Mono)" when nothing is
+ * suggested or the suggestion can't be used.
  */
-export function applyGlobalFont(
-  value: string | undefined,
-  doc = document,
-): void {
-  const css = fontStylesheet(
-    fontSelectionFor({ available: BUILTIN_FONTS }, value),
-    baseOf(doc),
-  );
-  applyFontStylesheet(css, doc);
-  try {
-    localStorage.setItem(GLOBAL_FONT_KEY, css);
-  } catch {
-    // No storage: the next load shows the default until settings arrive.
+export function defaultFontLabel(
+  available: Record<string, FontEntry>,
+  slot: "editor" | "code",
+  theme: { displayName: string; fonts?: ThemeFonts } | undefined,
+): string {
+  const nameOf = (value: string | undefined) => {
+    if (!value) return undefined;
+    const parsed = parseFontValue(value, available);
+    if (parsed.type === "font") return parsed.entry.name;
+    return parsed.type === "stack" ? parsed.stack : undefined;
+  };
+  const suggested = nameOf(theme?.fonts?.[slot]);
+  if (suggested) {
+    return `Default (${suggested}, suggested by ${theme?.displayName})`;
   }
-}
-
-/** The last global font, before settings arrive, so the page doesn't flash. */
-export function applyCachedGlobalFont(doc = document): void {
-  try {
-    const css = localStorage.getItem(GLOBAL_FONT_KEY);
-    if (css) applyFontStylesheet(css, doc);
-  } catch {
-    // No storage: nothing cached.
-  }
+  const name =
+    usableEntry(available, DEFAULT_FONT)?.name ??
+    BUILTIN_FONTS[DEFAULT_FONT].name;
+  return `Default (${name})`;
 }

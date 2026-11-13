@@ -1,11 +1,14 @@
 import { syntaxTree } from "@codemirror/language";
+import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
 import { decoratorStateField } from "../util.ts";
 
 export function atMentionPlugin() {
-  return decoratorStateField((state) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: any[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node) => {
         if (node.type.name !== "AtMention") {
           return;
@@ -28,5 +31,5 @@ export function atMentionPlugin() {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

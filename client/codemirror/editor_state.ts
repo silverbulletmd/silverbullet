@@ -30,6 +30,7 @@ import {
   type EditorSelection,
   EditorState,
   type Extension,
+  Facet,
   Prec,
 } from "@codemirror/state";
 import {
@@ -51,6 +52,8 @@ import { languageFor, lazyLanguages, loadLanguageFor } from "../languages.ts";
 import { isValidEditor } from "../lib/command_filters.ts";
 import { createIconElement } from "../lib/icon.ts";
 import { keyboardAwareTooltips } from "../lib/keyboard_viewport.ts";
+import { createMarkupIconElement } from "../lib/markup_icons.ts";
+import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { editorHighlightStyle } from "../style.ts";
 import { loadVim } from "../vim_loader.ts";
@@ -71,10 +74,12 @@ import { pointerPreview } from "./editing/pointer_preview.ts";
 import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
+import { parseAhead } from "./parse_ahead.ts";
 import {
   readOnlyFollowCursor,
   readOnlyWidgetLinks,
 } from "./readonly_widget_links.ts";
+import { selectedWidgets } from "./selected_widgets.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
@@ -90,12 +95,54 @@ export type EditorMode =
   | { kind: "page"; pageName: string }
   | { kind: "text-document"; path: Path; language: Language | null };
 
-type DecoratedCompletion = Completion & { icon?: unknown };
+type DecoratedCompletion = Completion & {
+  icon?: unknown;
+  /** A slash menu row's icon, in the markup bar's vocabulary (`md-*` too) */
+  slashIcon?: string;
+};
 
 // Annotation marking a transaction whose changes came from outside the
 // editor's edit stream (e.g. a page re-fetch from storage), so the
 // save-on-change handler can skip it and avoid an immediate re-save loop.
 export const externalUpdate = Annotation.define<boolean>();
+
+// Rejects every document change in a read-only editor (dispatch, replaceRange,
+// insertAtCursor, task checkbox clicks, ...). Selection-only transactions are
+// untouched (changeFilter only sees doc-changing ones), and so are changes
+// marked externalUpdate: the app's own loading/syncing of page content.
+export const readOnlyChangeFilter = EditorState.changeFilter.of((tr) => {
+  if (tr.annotation(externalUpdate)) return true;
+  console.warn("Ignoring document change: the editor is read-only");
+  return false;
+});
+
+// CodeMirror labels its find bar in lowercase ("next", "match case"); every
+// other button and label in SilverBullet is sentence case.
+const sentenceCasePhrases = EditorState.phrases.of({
+  next: "Next",
+  previous: "Previous",
+  all: "All",
+  "match case": "Match case",
+  regexp: "Regexp",
+  "by word": "Whole word",
+  replace: "Replace",
+  "replace all": "Replace all",
+  close: "Close",
+  go: "Go",
+});
+
+export function buildEditorExtensions(
+  client: Client,
+  mode: EditorMode,
+  readOnly: boolean,
+): Extension[] {
+  return [
+    buildSharedEditorExtensions(client, mode, readOnly),
+    mode.kind === "page"
+      ? buildPageExtensions(client, mode.pageName)
+      : buildTextDocumentExtensions(mode.language),
+  ];
+}
 
 export function createEditorState(
   client: Client,
@@ -107,14 +154,14 @@ export function createEditorState(
   return EditorState.create({
     doc: text,
     selection,
-    extensions: [
-      buildSharedEditorExtensions(client, mode, readOnly),
-      mode.kind === "page"
-        ? buildPageExtensions(client, mode.pageName)
-        : buildTextDocumentExtensions(mode.language),
-    ],
+    extensions: buildEditorExtensions(client, mode, readOnly),
   });
 }
+
+/** Set on the placeholder state behind a non-text document editor */
+export const inactiveEditor = Facet.define<boolean, boolean>({
+  combine: (values) => values.some((v) => v),
+});
 
 export function createInactiveEditorState(
   client: Client,
@@ -131,6 +178,7 @@ export function createInactiveEditorState(
       ),
       EditorState.readOnly.of(true),
       EditorView.editable.of(false),
+      inactiveEditor.of(true),
     ],
   });
 }
@@ -167,6 +215,7 @@ export function buildSharedEditorExtensions(
       ? [
           EditorView.editable.of(false),
           EditorState.readOnly.of(true),
+          readOnlyChangeFilter,
           readOnlyCursorActive,
           readOnlyCursorVisible,
           readOnlyReveal,
@@ -177,15 +226,7 @@ export function buildSharedEditorExtensions(
 
   return [
     client.themeCompartment.of(
-      EditorView.theme(
-        {},
-        {
-          dark:
-            client.ui.viewState.uiOptions.darkMode ??
-            globalThis.matchMedia?.("(prefers-color-scheme: dark)").matches ??
-            false,
-        },
-      ),
+      EditorView.theme({}, { dark: client.spaceTheme.scheme === "dark" }),
     ),
 
     // Insert our command key bindings *before* vim mode. Vim in normal-mode is
@@ -207,6 +248,8 @@ export function buildSharedEditorExtensions(
     drawSelection(
       globalThis.sbRuntime?.headless ? { cursorBlinkRate: 0 } : undefined,
     ),
+    selectedWidgets,
+    sentenceCasePhrases,
     regularKeyBindings,
     closeBrackets(),
     keyboardAwareTooltips,
@@ -227,6 +270,7 @@ export function buildPageExtensions(
     client.markdownLanguageCompartment.of(
       buildMarkdownLanguageExtension(client),
     ),
+    parseAhead,
     autocompletion({
       override: [
         client.editorComplete.bind(client),
@@ -245,12 +289,13 @@ export function buildPageExtensions(
         {
           position: 20,
           render(completion) {
-            return (
-              createIconElement(
-                (completion as DecoratedCompletion).icon,
-                "sb-page-decoration-icon",
-              ) ?? null
-            );
+            const { icon, slashIcon } = completion as DecoratedCompletion;
+            if (slashIcon !== undefined) {
+              return (
+                createMarkupIconElement(slashIcon, "sb-slash-icon", 16) ?? null
+              );
+            }
+            return createIconElement(icon, "sb-page-decoration-icon") ?? null;
           },
         },
       ],
@@ -622,12 +667,32 @@ async function enableVimMode(client: Client) {
  */
 export const isMacLike = /(Mac|iPhone|iPod|iPad)/i.test(navigator.platform);
 
-export function buildMarkdownLanguageExtension(client: Client): Extension[] {
-  const syntaxExtensions = client.config.get("syntaxExtensions", {});
-  const markdownLanguage = buildExtendedMarkdownLanguage(syntaxExtensions);
-  return [
-    markdown({
-      base: markdownLanguage,
+let markdownSupportCache:
+  | { key: string; base: Language; support: LanguageSupport }
+  | undefined;
+
+/**
+ * The Markdown language for the configured syntax extensions. A new language
+ * object makes CodeMirror reparse the page from scratch, so rebuilding the
+ * editor's extensions reuses it while the syntax stays the same.
+ */
+function markdownSupport(syntaxExtensions: Record<string, CustomSyntaxSpec>): {
+  base: Language;
+  support: LanguageSupport;
+} {
+  const key = JSON.stringify(
+    Object.entries(syntaxExtensions).map(([id, spec]) => [
+      id,
+      spec.name,
+      spec.mode,
+      spec.startMarker,
+      spec.endMarker,
+    ]),
+  );
+  if (markdownSupportCache?.key !== key) {
+    const base = buildExtendedMarkdownLanguage(syntaxExtensions);
+    const support = markdown({
+      base,
       codeLanguages: (info) => {
         const lang = languageFor(info);
         if (lang) {
@@ -646,7 +711,17 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
         return null;
       },
       addKeymap: false,
-    }),
+    });
+    markdownSupportCache = { key, base, support };
+  }
+  return markdownSupportCache;
+}
+
+export function buildMarkdownLanguageExtension(client: Client): Extension[] {
+  const syntaxExtensions = client.config.get("syntaxExtensions", {});
+  const { base: markdownLanguage, support } = markdownSupport(syntaxExtensions);
+  return [
+    support,
     Prec.high(
       keymap.of([
         {

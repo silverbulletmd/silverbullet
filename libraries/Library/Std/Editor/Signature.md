@@ -1,4 +1,4 @@
-Sign the current block: append your username, or `-- @self` on an owner-only deployment without account usernames, marking the text as written by you rather than addressed to you.
+Sign the current block: append your username (`/sign` puts it where you typed the `/`), or `-- @self` on an owner-only deployment without account usernames, marking the text as written by you rather than addressed to you.
 
 ```space-lua
 local function blockEndOffset(text, pos)
@@ -42,9 +42,30 @@ command.define {
   run = signCurrentBlock,
 }
 
+-- `/sign`: the signature goes where the `/` was, one space from the text
+-- before it
+local function signAtCursor()
+  local me = identity.own()
+  if not me then
+    editor.flashNotification(
+      "This space has no account to sign as", "error")
+    return
+  end
+  local line = editor.getCurrentLine()
+  local before = string.sub(line.text, 1, editor.getCursor() - line.from)
+  local spacing = string.find(before, "%S$") and " " or ""
+  editor.insertAtCursor(spacing .. "-- @" .. me.name)
+end
+
 slashCommand.define {
   name = "sign",
+  displayName = "Signature",
   description = "Sign the current block",
-  run = signCurrentBlock,
+  icon = "pen-tool",
+  aliases = {"signature"},
+  group = "Insert",
+  priority = 10,
+  exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective"},
+  run = signAtCursor,
 }
 ```

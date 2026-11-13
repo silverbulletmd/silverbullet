@@ -25,7 +25,7 @@ pub mod watcher;
 pub use fs_guard::FsGuard;
 pub use listing_cache::ListingCachedSpace;
 pub use router::{build_router, metrics_router};
-pub use state::{DefaultFont, ServerState, ServerVersion};
+pub use state::{ServerState, ServerVersion};
 pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
 
 #[cfg(test)]
@@ -70,13 +70,12 @@ mod test_support {
                 revisions: RevisionsMode::Disabled,
             },
             space_prefixes: Default::default(),
-            default_font: Default::default(),
             bundled_repositories: Vec::new(),
             space_folder_path: "/tmp".into(),
             version: "test-version".into(),
             host_url_prefix: String::new(),
             additional_head_html: String::new(),
-            theme_color: "#e1e1e1".into(),
+            theme_color: "#fcfcfd".into(),
             space_description: "Powerful and programmable note taking app".into(),
             authorizer: None,
             anonymous_readable: false,

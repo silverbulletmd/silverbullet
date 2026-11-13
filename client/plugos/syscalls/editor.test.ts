@@ -1,3 +1,8 @@
+import {
+  BUILTIN_DARK_THEME,
+  BUILTIN_LIGHT_THEME,
+  type ThemeInfo,
+} from "@silverbulletmd/silverbullet/lib/themes";
 import { expect, test, vi } from "vitest";
 import type { Client } from "../../client.ts";
 import { TEXT_DOCUMENT_LIMIT } from "../../document_editor_resolver.ts";
@@ -229,4 +234,84 @@ test("editor.pickMany takes an empty Lua table of items as none", async () => {
   const syscalls = editorSyscalls(client) as Record<string, any>;
   await syscalls["editor.pickMany"].callback({}, { title: "T", items: {} });
   expect(pickMany).toHaveBeenCalledWith({ title: "T", items: [] });
+});
+
+const light: ThemeInfo = {
+  page: BUILTIN_LIGHT_THEME,
+  displayName: "SilverBullet Light",
+  scheme: "light",
+};
+const dark: ThemeInfo = {
+  page: BUILTIN_DARK_THEME,
+  displayName: "SilverBullet Dark",
+  scheme: "dark",
+};
+const paperDay: ThemeInfo = {
+  page: "Library/Paper/Day",
+  displayName: "Paper Day",
+  scheme: "light",
+  counterpart: "Library/Paper/Night",
+};
+const paperNight: ThemeInfo = {
+  page: "Library/Paper/Night",
+  displayName: "Paper Night",
+  scheme: "dark",
+};
+
+function darkModeSetup(active: ThemeInfo) {
+  const setDeviceTheme = vi.fn(async () => {});
+  const dispatch = vi.fn();
+  const client = {
+    spaceTheme: { active, scheme: active.scheme, setDeviceTheme },
+    tooling: { themes: [light, dark, paperDay, paperNight] },
+    ui: { viewDispatch: dispatch, viewState: { uiOptions: {} } },
+  } as unknown as Client;
+  const system = new System();
+  system.registerSyscalls([], editorSyscalls(client));
+  const call = (value: boolean) =>
+    system.localSyscall("editor.setUiOption", ["darkMode", value]);
+  const get = () => system.localSyscall("editor.getUiOption", ["darkMode"]);
+  return { call, get, setDeviceTheme, dispatch };
+}
+
+test("setUiOption darkMode on a built-in light theme overrides to SilverBullet Dark", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    const { call, setDeviceTheme, dispatch } = darkModeSetup(light);
+    await call(true);
+    expect(setDeviceTheme).toHaveBeenCalledWith(BUILTIN_DARK_THEME);
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    await call(true);
+    expect(warn.mock.calls.length).toBeLessThanOrEqual(1);
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test("setUiOption darkMode prefers the active theme's counterpart", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    const { call, setDeviceTheme } = darkModeSetup(paperDay);
+    await call(true);
+    expect(setDeviceTheme).toHaveBeenCalledWith(paperNight.page);
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test("getUiOption darkMode still answers, from the theme's scheme", async () => {
+  expect(await darkModeSetup(dark).get()).toBe(true);
+  expect(await darkModeSetup(paperDay).get()).toBe(false);
+});
+
+test("setUiOption darkMode is a no-op when the scheme already matches", async () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    const { call, setDeviceTheme } = darkModeSetup(dark);
+    await call(true);
+    expect(setDeviceTheme).not.toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
 });

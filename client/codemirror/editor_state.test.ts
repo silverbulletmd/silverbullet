@@ -60,6 +60,7 @@ function clientStub(): Client {
       scriptsLoaded: false,
     },
     contentManager: { isDocumentEditor: () => false },
+    spaceTheme: { scheme: "light" },
     editorComplete: () => null,
     currentPageMeta: () => undefined,
     isReadOnlyMode: () => false,
@@ -68,20 +69,16 @@ function clientStub(): Client {
   } as unknown as Client;
 }
 
-test("editor theme follows the system preference when dark mode is unset", () => {
-  const originalMatchMedia = globalThis.matchMedia;
-  globalThis.matchMedia = vi.fn().mockReturnValue({ matches: true });
-  try {
-    const state = createEditorState(
-      clientStub(),
-      { kind: "page", pageName: "Example" },
-      "# Heading",
-      false,
-    );
-    expect(state.facet(EditorView.darkTheme)).toBe(true);
-  } finally {
-    globalThis.matchMedia = originalMatchMedia;
-  }
+test("the editor's dark look follows the theme's scheme", () => {
+  const client = clientStub();
+  (client as any).spaceTheme.scheme = "dark";
+  const state = createEditorState(
+    client,
+    { kind: "page", pageName: "Example" },
+    "# Heading",
+    false,
+  );
+  expect(state.facet(EditorView.darkTheme)).toBe(true);
 });
 
 test("page mode retains Markdown parsing and wrapping", () => {
@@ -519,4 +516,40 @@ test("text composition defers saving and ignores external updates", () => {
     view: { composing: false },
   } as unknown as ViewUpdate);
   expect(client.save).toHaveBeenCalledOnce();
+});
+
+test("a read-only editor rejects changes but allows selection and external updates", () => {
+  const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  try {
+    const state = createEditorState(
+      clientStub(),
+      { kind: "page", pageName: "Example" },
+      "hello",
+      true,
+    );
+    expect(
+      state.update({ changes: { from: 0, insert: "x" } }).state.doc.toString(),
+    ).toBe("hello");
+    expect(
+      state.update({ selection: { anchor: 2 } }).state.selection.main.head,
+    ).toBe(2);
+    const reload = state.update({
+      changes: { from: 0, to: 5, insert: "reloaded" },
+      annotations: externalUpdate.of(true),
+    });
+    expect(reload.state.doc.toString()).toBe("reloaded");
+    const writable = createEditorState(
+      clientStub(),
+      { kind: "page", pageName: "Example" },
+      "hello",
+      false,
+    );
+    expect(
+      writable
+        .update({ changes: { from: 0, insert: "x" } })
+        .state.doc.toString(),
+    ).toBe("xhello");
+  } finally {
+    warn.mockRestore();
+  }
 });

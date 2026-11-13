@@ -18,6 +18,7 @@ import {
   invisibleDecoration,
   isCursorInRange,
 } from "../util.ts";
+import { registerMarkdownWidget } from "./code_widget.ts";
 import { attachWidgetEventHandlers } from "./widget_util.ts";
 
 /**
@@ -58,12 +59,15 @@ class HtmlWidget extends WidgetType {
       dom.classList.add("sb-html-widget-inline");
     }
 
-    void renderMarkdownInto(
-      dom,
-      cloneTree(this.tree),
-      liveContextForClient(this.client, { taskRefs: "page" }),
-      { annotationPositions: true },
-    ).then((filled) => {
+    const render = (target: HTMLElement) =>
+      renderMarkdownInto(
+        target,
+        cloneTree(this.tree),
+        liveContextForClient(this.client, { taskRefs: "page" }),
+        { annotationPositions: true },
+      );
+    registerMarkdownWidget(dom, render);
+    void render(dom).then((filled) => {
       if (!filled) return;
       setTimeout(() => {
         attachWidgetEventHandlers(dom, this.client, this.sourceText);
@@ -85,9 +89,11 @@ class HtmlWidget extends WidgetType {
  * outside the block.
  */
 export function htmlBlockPlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: Range<Decoration>[] = [];
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node) => {
         if (node.name !== "HTMLBlock") return;
         const { from, to } = node;
@@ -113,7 +119,7 @@ export function htmlBlockPlugin(client: Client) {
       },
     });
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }
 
 /**
@@ -130,7 +136,7 @@ export function htmlBlockPlugin(client: Client) {
  * text in the read-only renderer too).
  */
 export function htmlInlinePlugin(client: Client) {
-  return decoratorStateField((state: EditorState) => {
+  return decoratorStateField((state: EditorState, _tr, range) => {
     const widgets: Range<Decoration>[] = [];
 
     // Inline HTML can occur inside any block that hosts inline content:
@@ -149,6 +155,8 @@ export function htmlInlinePlugin(client: Client) {
     ]);
 
     syntaxTree(state).iterate({
+      from: range?.from,
+      to: range?.to,
       enter: (node) => {
         if (!inlineHostBlocks.has(node.name)) return;
 
@@ -243,5 +251,5 @@ export function htmlInlinePlugin(client: Client) {
     });
 
     return Decoration.set(widgets, true);
-  });
+  }, {});
 }

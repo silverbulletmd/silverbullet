@@ -1,4 +1,9 @@
 import {
+  type ThemeInfo,
+  themeInfoFromFrontmatter,
+} from "@silverbulletmd/silverbullet/lib/themes";
+import {
+  findFrontmatter,
   findToolBlocks,
   isBootScript,
   isToolPage,
@@ -30,29 +35,48 @@ export function compareToolBlocks(a: ToolBlock, b: ToolBlock): number {
 export function collectTooling(files: ToolingFile[]): {
   scripts: ToolBlock[];
   styles: ToolBlock[];
+  themeStyles: ToolBlock[];
+  themes: ThemeInfo[];
 } {
   const scripts: ToolBlock[] = [];
   const styles: ToolBlock[] = [];
+  const themeStyles: ToolBlock[] = [];
+  const themes: ThemeInfo[] = [];
   for (const file of files) {
     const page = file.path.replace(/\.md$/, "");
     if (!isToolPage(page)) {
       continue;
     }
-    for (const block of findToolBlocks(parseMarkdown(file.text))) {
+    const tree = parseMarkdown(file.text);
+    // Unparseable frontmatter yields no tags, so it stays an ordinary page
+    const theme = themeInfoFromFrontmatter(page, findFrontmatter(tree));
+    if (theme && theme !== "invalid") {
+      themes.push(theme);
+    }
+    for (const block of findToolBlocks(tree)) {
       const isLua = block.fence === "space-lua";
-      (isLua ? scripts : styles).push({
+      const entry: ToolBlock = {
         ref: `${page}@${block.from}`,
         page,
         pos: block.from,
         code: block.code,
         priority: block.priority ?? 0,
         boot: isLua && isBootScript(page, block.code),
-      });
+      };
+      if (isLua) {
+        scripts.push(entry);
+      } else if (theme === undefined) {
+        styles.push(entry);
+      } else if (theme !== "invalid") {
+        themeStyles.push(entry);
+      } // A theme without a valid scheme: its styles must not leak into every theme
     }
   }
   return {
     scripts: scripts.sort(compareToolBlocks),
     styles: styles.sort(compareToolBlocks),
+    themeStyles: themeStyles.sort(compareToolBlocks),
+    themes,
   };
 }
 

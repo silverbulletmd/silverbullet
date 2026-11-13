@@ -1,7 +1,9 @@
 import {
+  clickRevealedMenu,
   currentPage,
   navFrame,
   navInput,
+  openWidgetMenu,
   runCommandViaPalette,
 } from "../fixtures/actions.ts";
 import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
@@ -112,8 +114,7 @@ tag.define {
     await expect(preview.locator(".fixture-team-title")).toHaveText(
       "Teams/Example: 306",
     );
-    await preview.hover();
-    await preview.locator('button[data-button="menu"]').click();
+    await clickRevealedMenu(preview.locator('button[data-button="menu"]'));
     await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
     await sbPage.evaluate(() => {
@@ -155,8 +156,7 @@ tag.define {
     await gotoSilverBulletPage(sbPage, sbServer, "Teams/Example");
     const preview = sbPage.locator(".sb-frontmatter-preview");
     await expect(preview.locator(".fixture-team-title")).toBeVisible();
-    await preview.hover();
-    await preview.locator('button[data-button="menu"]').click();
+    await clickRevealedMenu(preview.locator('button[data-button="menu"]'));
     await sbPage.getByRole("menuitem", { name: "Go to definition" }).click();
     await expect(currentPage(sbPage)).toHaveValue("Library/Config");
   });
@@ -170,15 +170,13 @@ tag.define {
     await expect(preview).toContainText(
       "Frontmatter preview returned no content",
     );
-    await preview.hover();
-    await preview.locator('button[data-button="menu"]').click();
+    await clickRevealedMenu(preview.locator('button[data-button="menu"]'));
     await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
 
     await gotoSilverBulletPage(sbPage, sbServer, "Teams/Broken");
     await expect(preview).toContainText("Could not render frontmatter preview");
-    await preview.hover();
-    await preview.locator('button[data-button="menu"]').click();
+    await clickRevealedMenu(preview.locator('button[data-button="menu"]'));
     await sbPage.getByRole("menuitem", { name: "Edit source" }).click();
     await expect(preview).toHaveCount(0);
   });
@@ -411,8 +409,9 @@ test.describe("inline view values", () => {
     await expect(banner).toHaveClass(/sb-page-widget-minimal/);
     await expect(banner.locator(".sb-page-widget-bar")).toHaveCount(0);
     await expect(banner.getByRole("button", { name: "Close" })).toHaveCount(0);
-    await banner.hover();
-    await banner.getByRole("button", { name: "Widget actions" }).click();
+    await clickRevealedMenu(
+      banner.getByRole("button", { name: "Widget actions" }),
+    );
     await expect(
       sbPage.getByRole("menuitem", { name: "Go to definition" }),
     ).toBeVisible();
@@ -455,11 +454,7 @@ test.describe("inline view values", () => {
       [0, "${workshopTree()}"],
       [1, "${readingList()}"],
     ] as const) {
-      await views.nth(index).hover();
-      await views
-        .nth(index)
-        .locator('button[data-button="menu"]')
-        .click({ timeout: 3000 });
+      await openWidgetMenu(sbPage, views.nth(index));
       await widgetMenu.locator('[data-action="edit"]').click();
       expect(
         await sbPage.evaluate(() =>
@@ -485,13 +480,15 @@ test.describe("inline view values", () => {
     await expect(
       tree.getByText("Paper studies", { exact: true }),
     ).toBeVisible();
-    await views.nth(1).hover();
-    await views.nth(1).locator('button[data-button="menu"]').click();
-    for (const label of ["Edit source", "Reload", "Copy as Markdown"]) {
+    await openWidgetMenu(sbPage, views.nth(1));
+    for (const label of ["Edit source", "Copy as Markdown"]) {
       await expect(
         widgetMenu.getByRole("menuitem", { name: label, exact: true }),
       ).toBeVisible();
     }
+    await expect(
+      widgetMenu.getByRole("menuitem", { name: "Reload" }),
+    ).toHaveCount(0);
     await expect(widgetMenu.locator('[data-action="bake"]')).toHaveCount(0);
     await sbPage.keyboard.press("Escape");
     await expect(widgetMenu).toHaveCount(0);
@@ -504,8 +501,7 @@ test.describe("inline view values", () => {
       views.nth(0).getByText("Cover ideas", { exact: true }),
     ).toBeVisible();
     const secondContent = views.nth(3);
-    await secondContent.hover();
-    await secondContent.locator('button[data-button="menu"]').click();
+    await openWidgetMenu(sbPage, secondContent);
     await widgetMenu.locator('[data-action="edit"]').click();
     const selection = await sbPage.evaluate(() =>
       (globalThis as any).sbRuntime.evalLua("editor.getCursor()"),

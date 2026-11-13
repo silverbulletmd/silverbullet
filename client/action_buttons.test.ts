@@ -10,7 +10,12 @@ const btn = (
   icon: "home",
   ...over,
 });
-const ctx = { isMobile: false, isStandalone: false, accountManaged: false };
+const ctx = {
+  isMobile: false,
+  isStandalone: false,
+  accountManaged: false,
+  readOnly: false,
+};
 
 describe("visibleActionButtons", () => {
   test("drops buttons with no icon", () => {
@@ -25,6 +30,18 @@ describe("visibleActionButtons", () => {
     expect(visibleActionButtons([btn({ mobile: true })], ctx)).toEqual([]);
     expect(visibleActionButtons([btn({ mobile: false })], ctx)).toHaveLength(1);
     expect(visibleActionButtons([btn({ standalone: true })], ctx)).toEqual([]);
+  });
+
+  test("readOnly: false hides a button in a read-only space", () => {
+    expect(visibleActionButtons([btn({ readOnly: false })], ctx)).toHaveLength(
+      1,
+    );
+    expect(
+      visibleActionButtons([btn({ readOnly: false })], {
+        ...ctx,
+        readOnly: true,
+      }),
+    ).toEqual([]);
   });
 
   test("accountManaged drops a button the boot config disagrees with", () => {

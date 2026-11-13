@@ -1,3 +1,8 @@
+import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
+import {
+  extractHashtag,
+  normalizeTagList,
+} from "@silverbulletmd/silverbullet/lib/tags";
 import {
   addParentPointers,
   findNodeOfType,
@@ -6,14 +11,11 @@ import {
   renderToText,
   replaceNodesMatching,
 } from "@silverbulletmd/silverbullet/lib/tree";
-import { cleanupJSON } from "@silverbulletmd/silverbullet/lib/json";
-import YAML from "js-yaml";
-import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import YAML from "js-yaml";
 import { determineTags } from "./cheap_yaml.ts";
-import { stripPositionAttributes } from "./position_attributes.ts";
 import { attributeCompletion } from "./complete.ts";
-import { normalizeTagList } from "./tags.ts";
+import { stripPositionAttributes } from "./position_attributes.ts";
 
 export type FrontMatter = {
   tags?: string[];

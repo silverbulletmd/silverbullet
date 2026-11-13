@@ -20,7 +20,7 @@ export function configSyscalls(config: Config): SysCallMapping {
         },
       ],
       returns: [{ description: "Configured value or the supplied default." }],
-      examples: [{ code: 'local theme = config.get("theme", "light")' }],
+      examples: [{ code: 'local short = config.get("shortWikiLinks", true)' }],
     },
     "config.set": {
       callback: (
@@ -44,8 +44,10 @@ export function configSyscalls(config: Config): SysCallMapping {
         },
       ],
       examples: [
-        { code: 'config.set("theme", "dark")' },
-        { code: 'config.set({theme = "dark", fontSize = 14})' },
+        { code: 'config.set("shortWikiLinks", false)' },
+        {
+          code: 'config.set({shortWikiLinks = false, autoCloseBrackets = "(["})',
+        },
       ],
     },
     "lua:config.setLuaValue": {

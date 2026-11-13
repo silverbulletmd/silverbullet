@@ -1,11 +1,11 @@
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import { useEffect, useRef } from "preact/hooks";
 import type { Client } from "../../../client.ts";
-import { openPopupMenu } from "../../../components/popup_menu.ts";
 import {
   moreIcon,
   widgetMenuItem,
 } from "../../../codemirror/widgets/widget_menu.ts";
+import { togglePopupMenu } from "../../../components/popup_menu.ts";
 
 /**
  * A docked view's ⋯ menu: the same button and popup as a `${…}` widget's, for
@@ -35,28 +35,22 @@ export function ViewActionsMenu({
         onClick={(e) => {
           e.stopPropagation();
           const button = e.currentTarget;
-          if (button.getAttribute("aria-expanded") === "true") {
-            close.current?.();
-            return;
-          }
           const entries = [
             ...(definition
               ? [widgetMenuItem("definition", "Go to definition")]
               : []),
             ...(copy ? [widgetMenuItem("copy", "Copy as Markdown")] : []),
           ];
-          close.current = openPopupMenu(
-            button,
-            entries,
-            (id) => {
+          close.current = togglePopupMenu(button, entries, {
+            onPick: (id) => {
               if (id === "definition" && definition) {
                 void client.navigate(definition);
               } else if (id === "copy" && copy) {
                 copy().catch(console.error);
               }
             },
-            "sb-widget-menu",
-          );
+            className: "sb-widget-menu",
+          });
         }}
         dangerouslySetInnerHTML={{ __html: moreIcon }}
       />
