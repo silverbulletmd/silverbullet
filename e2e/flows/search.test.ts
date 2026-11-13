@@ -20,6 +20,7 @@ test.describe("search", () => {
       "index.md": "# Welcome\n",
       "Garden.md": "# Garden\nWater the basil every morning.\n",
       "Kitchen.md": "# Kitchen\nPesto needs garlic.\n",
+      "Library/Mine/Tooling.md": "# Tooling\nThe pruning shears live here.\n",
     },
   });
 
@@ -52,6 +53,24 @@ test.describe("search", () => {
         ]),
       )
       .toEqual([0, "basil morning".length]);
+  });
+
+  test("each segment searches its own scope: Tool Pages finds Library pages", async ({
+    sbPage: page,
+  }) => {
+    const frame = await openPicker(page, shiftChord("f"), "Content");
+    await frame.getByRole("radio", { name: "Tool Pages" }).click();
+    await navInput(page).fill("pruning shears");
+    await expect(
+      frame.locator(".sb-nav-row", { hasText: "Tooling" }).first(),
+    ).toBeVisible({ timeout: 20_000 });
+    await expect(frame.locator(".sb-nav-error")).toHaveCount(0);
+    // Content leaves Library pages out
+    await frame.getByRole("radio", { name: "Content" }).click();
+    await expect(
+      frame.locator(".sb-nav-row", { hasText: "Tooling" }),
+    ).toHaveCount(0);
+    await expect(frame.locator(".sb-nav-error")).toHaveCount(0);
   });
 
   test("exact phrase mode is available from the dropdown", async ({

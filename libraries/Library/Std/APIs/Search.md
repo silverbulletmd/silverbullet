@@ -48,6 +48,13 @@ if modes then
     return true
   end
 
+  -- The backend scope (`search.find`'s `scope`) each picker segment searches
+  local segmentScopes = {
+    ["Content"] = "pages",
+    ["Tool Pages"] = "tool",
+    ["All"] = "all",
+  }
+
   local function find(q, mode, scope)
     return search.find(q, { mode = mode, scope = scope })
   end
@@ -108,9 +115,8 @@ if modes then
       source = function(ctx)
         local q = trim(ctx.phrase)
         if q == "" then return {} end
-        -- The "Content" segment covers the backend's "pages" scope.
-        local scope = ctx.segment and ctx.segment:lower()
-        if scope == "content" then scope = "pages" end
+        -- The backend's scope for each segment, by its label
+        local scope = ctx.segment and segmentScopes[ctx.segment]
         -- A remembered mode the backend no longer lists runs as the default.
         local mode = resolve(ctx.dropdown)
         local ok, result = pcall(find, q, mode, scope)
