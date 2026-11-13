@@ -17,6 +17,20 @@ import {
   type MarkdownExpandOptions,
 } from "./inline.ts";
 import { renderMarkdownToHtml } from "./markdown_render.ts";
+import { renderMarkdownSummary } from "./summary.ts";
+
+test("rendered links and summaries omit destination brackets", () => {
+  const text = "[link](<https://example.com>)";
+  expect(renderMarkdownToHtml(parse(extendedMarkdownLanguage, text))).toContain(
+    'href="https://example.com"',
+  );
+  expect(
+    renderMarkdownSummary(text, {
+      page: "Notes/Source",
+      language: extendedMarkdownLanguage,
+    }),
+  ).toContain('href="https://example.com"');
+});
 
 test.each([
   ["![[image.png|30%]]", "30%", undefined],

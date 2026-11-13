@@ -8,6 +8,15 @@ import {
 } from "@silverbulletmd/silverbullet/lib/transclusion";
 import { expect, test } from "vitest";
 
+test("markdown images omit destination brackets", () => {
+  expect(
+    parseTransclusion("![alt](<https://example.com/image.png>)")?.url,
+  ).toEqual("https://example.com/image.png");
+  expect(parseTransclusion("![alt](<Local image.png>)")?.url).toEqual(
+    "Local image.png",
+  );
+});
+
 test.each([
   ["30%", "", { width: "30%" }],
   ["Sample|12.5%", "Sample", { width: "12.5%" }],
