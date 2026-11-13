@@ -1,6 +1,8 @@
+import { Caret } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import type { Client } from "../../../client.ts";
+import { CloseIcon } from "../../../components/chrome_icons.tsx";
 import { closeView, setViewCollapsed } from "../../navigator.ts";
 import {
   activateOnKey,
@@ -8,7 +10,6 @@ import {
   toggleCollapsed,
 } from "../../page_widget_logic.ts";
 import type { ViewMeta } from "../../types.ts";
-import { CloseIcon } from "../../../components/chrome_icons.tsx";
 import { DockMenu } from "./dock_menu.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
 import { ViewActionsMenu } from "./view_actions_menu.tsx";
@@ -59,7 +60,7 @@ function WidgetBar({
           aria-label={collapsed ? `Expand ${label}` : `Collapse ${label}`}
           onClick={onToggleCollapsed}
         >
-          ▾
+          <Caret down />
         </button>
         {/* `.sb-nav-title` is the panel header's own label class, so the
             title reads identically in every dock; only the strip around it

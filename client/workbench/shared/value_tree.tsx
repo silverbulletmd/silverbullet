@@ -1,4 +1,5 @@
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
+import { Caret } from "@silverbulletmd/silverbullet/ui";
 import { useState } from "preact/hooks";
 import type { Client } from "../../client.ts";
 import {
@@ -79,11 +80,11 @@ function Expandable({ value, client }: { value: unknown; client: Client }) {
     <span className="sb-wb-tree">
       <button
         type="button"
-        className="sb-wb-caret"
+        className="sb-wb-caret sb-caret-inline"
         aria-expanded={open}
         onClick={toggle}
       >
-        {open ? "▾" : "▸"}
+        <Caret down={open} />
       </button>
       <span className="sb-wb-preview">{previewValue(value)}</span>
       {open ? (

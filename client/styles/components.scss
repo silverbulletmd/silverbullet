@@ -578,6 +578,32 @@ body.sb-resizing-y {
 
 .sb-nav-chevron {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  height: 1.05em;
+}
+
+/* plug-api/ui/caret.tsx. Its container centers it (flex, align center). */
+.sb-caret {
+  display: block;
+  flex: 0 0 auto;
+  width: 0.7em;
+  height: 0.7em;
+}
+
+.sb-caret-down {
+  transform: rotate(90deg);
+}
+
+/* For a caret in running text: centered on the lowercase letters around it. */
+.sb-caret-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1em;
+  vertical-align: middle;
 }
 
 .sb-nav-primary {

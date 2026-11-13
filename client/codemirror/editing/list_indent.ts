@@ -7,7 +7,7 @@ import { decoratorStateField } from "../util.ts";
 
 type Slice = (from: number, to: number) => string;
 
-/** The ▾ a custom task state (`[TODO]`) gets from task.ts takes a column. */
+/** The dropdown caret a custom task state (`[TODO]`) gets from task.ts takes a column. */
 function dropdownColumns(taskState: SyntaxNode, slice: Slice): number {
   return isCheckboxState(slice(taskState.from, taskState.to)) ? 0 : 1;
 }
@@ -20,7 +20,7 @@ function dropdownColumns(taskState: SyntaxNode, slice: Slice): number {
  * @param quoteColumns Columns a blockquote marker run already reserves on
  *                     this line, subtracted so the two never double-count.
  * @param slice        The document's text, to tell a custom task state
- *                     (which adds its ▾ column) from a checkbox.
+ *                     (which adds its caret column) from a checkbox.
  */
 export function computeMarkerWidth(
   listItem: SyntaxNode,

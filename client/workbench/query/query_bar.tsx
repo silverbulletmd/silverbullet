@@ -1,7 +1,11 @@
 import { Button } from "@silverbulletmd/silverbullet/ui";
 import { useState } from "preact/hooks";
 import type { Client } from "../../client.ts";
-import { showView } from "../../navigator/navigator.ts";
+import {
+  closeView,
+  resolvedDock,
+  showView,
+} from "../../navigator/navigator.ts";
 import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
 import type { ConsoleSession } from "../console/console_session.ts";
 import { copyText } from "../shared/action.ts";
@@ -49,9 +53,20 @@ export function insertQuery(
     // Still the page's query: later changes update it again
     builder.setTarget({ page: target!.page, from, to: from + text.length });
   } else {
-    client.ui.flashNotification("Inserted");
     builder.setTarget(null);
   }
+}
+
+/** Inserts the query, then closes the workbench and returns to the editor. */
+async function insertAndClose(
+  client: Client,
+  builder: QueryBuilder,
+  text: string,
+): Promise<void> {
+  insertQuery(client, builder, text);
+  const dock = await resolvedDock(WORKBENCH_VIEW);
+  if (dock) await closeView(WORKBENCH_VIEW, dock);
+  client.focus();
 }
 
 export function Highlighted({ code }: { code: string }) {
@@ -102,7 +117,7 @@ export function QueryBar({
         <span className="sb-wbq-actions">
           <Button
             variant={target ? "primary" : "default"}
-            onClick={() => insertQuery(client, builder, text)}
+            onClick={() => void insertAndClose(client, builder, text)}
           >
             {replacing(builder) ? "Update page" : "Insert at cursor"}
           </Button>

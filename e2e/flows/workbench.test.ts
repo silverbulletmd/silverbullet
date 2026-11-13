@@ -60,13 +60,13 @@ test("workbench console evaluates Lua with persistent locals and shows errors", 
   const context = workbench
     .locator(".sb-wb-toolbar")
     .getByRole("button", { name: "Console context" });
-  await expect(context).toHaveText("Space ▾");
+  await expect(context).toHaveText("Space");
   await expect(workbench.locator(".sb-workbench-input select")).toHaveCount(0);
   await context.click();
   await page
     .getByRole("menuitem", { name: "Current page: index", exact: true })
     .click();
-  await expect(context).toHaveText("Page ▾");
+  await expect(context).toHaveText("Page");
   await workbench.locator(".cm-content").click();
   await run("pageAmount * 2");
   await expect(log.locator(".sb-wb-row-result").last()).toContainText("42");
@@ -503,7 +503,8 @@ test.describe("query builder clauses", () => {
       (globalThis as any).client.editorView.state.doc.toString(),
     );
     expect(text.startsWith("Top Before\n${query[[")).toBe(true);
-    await expect(bar).not.toContainText("Insert at cursor goes where");
+    // Inserting closes the workbench
+    await expect(bar).toBeHidden();
   });
 
   test("editing one expression filter after another shows each one's text", async ({
@@ -686,7 +687,15 @@ test.describe("query builder round trip", () => {
     expect(text.endsWith("]]}\nAfter")).toBe(true);
     expect(text.match(/query\[\[/g)).toHaveLength(1);
     expect(text).toContain("limit 2");
-    // Still bound to the page's query: a second change updates it again
+    // Updating closes the workbench; reopening edits the same query again
+    await expect(bar).toBeHidden();
+    // Move the cursor off the query so it renders as a widget again
+    await page.locator("#sb-editor .cm-line").first().click();
+    await openWidgetMenu(
+      page,
+      page.locator("#sb-editor .sb-lua-directive-block").first(),
+    );
+    await page.getByRole("menuitem", { name: "Edit in query builder" }).click();
     await page
       .getByRole("group", { name: "Limit" })
       .getByLabel("Limit")

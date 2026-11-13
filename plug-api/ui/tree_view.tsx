@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
+import { Caret } from "./caret.tsx";
 import { TrailingChips } from "./chips.tsx";
 import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
@@ -736,7 +737,7 @@ function TreeItemRow(props: TreeItemProps) {
               handlers.toggle(node.path);
             }}
           >
-            {isExpanded ? "▾" : "▸"}
+            <Caret down={isExpanded} />
           </span>
         ) : (
           <span class="sb-nav-chevron-spacer" />

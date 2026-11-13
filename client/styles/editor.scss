@@ -595,19 +595,19 @@ $comment-border: 1px;
     flex-direction: column;
   }
 
-  // One editor column, which list_indent.ts reserves for it, whatever the
-  // font makes of the glyph.
+  // One editor column, which list_indent.ts reserves for it.
   .sb-task-dropdown {
-    display: inline-block;
     width: var(--editor-column);
-    text-align: center;
     letter-spacing: normal;
-    font-family: var(--ui-font);
-    font-size: 0.75em;
     color: var(--subtle-color);
     cursor: pointer;
     opacity: 0.4;
     user-select: none;
+
+    .sb-caret {
+      width: 0.45em;
+      height: 0.45em;
+    }
 
     &:hover {
       opacity: 1;

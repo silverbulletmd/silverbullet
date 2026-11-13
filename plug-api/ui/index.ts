@@ -8,6 +8,8 @@ export type { BadgeProps } from "./badge.tsx";
 export { Badge } from "./badge.tsx";
 export type { ButtonLinkProps, ButtonProps, ButtonVariant } from "./button.tsx";
 export { Button, ButtonLink } from "./button.tsx";
+export type { CaretProps } from "./caret.tsx";
+export { Caret, caretElement } from "./caret.tsx";
 export type { CheckboxProps } from "./checkbox.tsx";
 export { Checkbox } from "./checkbox.tsx";
 export type { CopyButtonProps } from "./copy_button.tsx";

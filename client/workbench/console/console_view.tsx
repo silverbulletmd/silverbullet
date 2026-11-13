@@ -1,4 +1,8 @@
-import { Button, revealInContainer } from "@silverbulletmd/silverbullet/ui";
+import {
+  Button,
+  Caret,
+  revealInContainer,
+} from "@silverbulletmd/silverbullet/ui";
 import {
   useEffect,
   useLayoutEffect,
@@ -195,7 +199,9 @@ export function ConsoleView({ client, session, focusTarget }: TabProps) {
           }}
         >
           {context === "space" ? "Space" : "Page"}{" "}
-          <span aria-hidden="true">▾</span>
+          <span className="sb-caret-inline">
+            <Caret down />
+          </span>
         </Button>
         <Button onClick={() => consoleLog.clear()}>Clear</Button>
       </div>

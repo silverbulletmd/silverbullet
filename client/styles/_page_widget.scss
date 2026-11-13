@@ -59,12 +59,13 @@
   background: transparent;
   border: 0;
   color: var(--subtle-color);
-  font-size: 0.8em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;
-  // Rotated rather than swapped for a ▸ glyph: one character, so the strip's
-  // metrics can't shift between the two states.
+  // Rotated rather than swapping the caret's direction, so the turn animates.
   transition: transform 0.12s ease;
 }
 

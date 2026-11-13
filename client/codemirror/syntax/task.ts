@@ -7,6 +7,7 @@ import { syntaxTree } from "@codemirror/language";
 import type { EditorState } from "@codemirror/state";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
+import { caretElement } from "../../../plug-api/ui/caret.tsx";
 import {
   decoratorStateField,
   isCursorInRange,
@@ -100,8 +101,8 @@ class TaskDropdownWidget extends WidgetType {
 
   toDOM(): HTMLElement {
     const span = document.createElement("span");
-    span.className = "sb-task-dropdown";
-    span.textContent = "\u25BE"; // Black Down-Pointing Small Triangle
+    span.className = "sb-task-dropdown sb-caret-inline";
+    span.append(caretElement(true));
     span.addEventListener("mousedown", (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -137,7 +138,7 @@ class TaskDropdownWidget extends WidgetType {
 
 /**
  * Whether a task state (`[ ]`, `[x]`, `[TODO]`, with its brackets) is a
- * plain checkbox. Any other state is a custom one, shown with a ▾ dropdown.
+ * plain checkbox. Any other state is a custom one, shown with a dropdown caret.
  */
 export function isCheckboxState(taskState: string): boolean {
   return taskState === "[ ]" || taskState === "[x]" || taskState === "[X]";
