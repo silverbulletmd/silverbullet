@@ -17,26 +17,31 @@ templates.fullPageItem = template.new([==[
 * [[${name}|${name}]]
 ]==])
 
--- Anchor refs are bare names (no @ or #) — prefix them with $ so the
--- resulting wikilink resolves through the anchor index. Position/header refs
--- already contain @ or # and pass through unchanged.
+--- A link to where an object is, from its `ref`. Anchor refs are bare names
+--- (no @ or #), so they get a `$` to resolve through the anchor index;
+--- position and header refs already contain @ or # and pass through.
+--- @param ref string
+--- @return string
+function templates.refLink(ref)
+  return markdown.link(string.find(ref, "[@#]") and ref or "$" .. ref)
+end
 
 --- Renders a task as a togglable task, linked to where it is.
 --- @param t task
 templates.taskItem = template.new([==[
-* [${state}] [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
+* [${state}] ${templates.refLink(ref)}: ${name}
 ]==])
 
 --- Renders an item, linked to where it is.
 --- @param i item
 templates.itemItem = template.new([==[
-* [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${name}
+* ${templates.refLink(ref)}: ${name}
 ]==])
 
 --- Renders a paragraph, linked to where it is.
 --- @param p paragraph
 templates.paragraphItem = template.new([==[
-* [[${string.find(ref, "[@#]") and ref or "$" .. ref}]] ${text}
+* ${templates.refLink(ref)}: ${text}
 ]==])
 
 --- Renders a tag as a link to its page.

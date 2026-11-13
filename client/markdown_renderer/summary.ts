@@ -10,6 +10,7 @@ import {
   type PathIndex,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve_path";
+import { extractHashtag } from "@silverbulletmd/silverbullet/lib/tags";
 import {
   isBuiltinPath,
   isLocalURL,
@@ -20,6 +21,7 @@ import {
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import { tagPrefix } from "../../plugs/index/constants.ts";
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { Fragment, renderHtml, type Tag } from "./html_render.ts";
 import { wikiLinkTag } from "./inline_tags.ts";
@@ -76,7 +78,22 @@ function project(node: ParseTree, source: SummarySource): Tag {
       return renderToText(node).slice(1);
     case "HardBreak":
       return " ";
-    case "Hashtag":
+    case "Hashtag": {
+      // Drawn as the same tag pill the rendered page shows
+      const tagText = renderToText(node);
+      const tagName = extractHashtag(tagText);
+      const link = tagPrefix + tagName;
+      return {
+        name: "a",
+        attrs: {
+          class: "hashtag sb-hashtag",
+          "data-tag-name": tagName,
+          href: `/${encodePageURI(link)}`,
+          "data-ref": link,
+        },
+        body: tagText,
+      };
+    }
     case "AtMention":
     case "Entity":
       return renderToText(node);
@@ -143,7 +160,13 @@ function mapText(
     typeof tag.body === "string"
       ? fn(tag.body, tag.attrs?.class === "sb-lua-directive")
       : tag.body.map((child) => mapText(child, fn)).filter(Boolean);
-  return body.length ? { ...tag, body } : "";
+  if (!body.length) return "";
+  // The space separating an element from the text before it goes outside
+  // it, or a link would underline it and a tag pill would pad it
+  if (tag.name !== Fragment && typeof body === "string" && body[0] === " ") {
+    return { name: Fragment, body: [" ", { ...tag, body: body.slice(1) }] };
+  }
+  return { ...tag, body };
 }
 
 export function renderMarkdownSummary(

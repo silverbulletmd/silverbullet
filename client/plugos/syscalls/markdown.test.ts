@@ -5,6 +5,7 @@ import {
   buildTestEnv,
   testHost,
 } from "../../markdown_renderer/compose_test_env.ts";
+import { newView } from "../../navigator/view_value.ts";
 import { evalExpression } from "../../space_lua/eval.ts";
 import { parseExpressionString } from "../../space_lua/parse.ts";
 import {
@@ -13,7 +14,6 @@ import {
   LuaStackFrame,
   type LuaTable,
 } from "../../space_lua/runtime.ts";
-import { newView } from "../../navigator/view_value.ts";
 import { markdownSyscalls } from "./markdown.ts";
 
 async function syscalls() {
@@ -202,7 +202,14 @@ test("link makes a wiki link to a page, an object or a name", async () => {
   ).toBe("[[Books/Dune]]");
   expect(
     s("markdown.link", { tag: "task", name: "Call Sam", ref: "Work@12" }),
-  ).toBe("[[Work@12]]");
+  ).toBe("[[Work@12|Work]]");
+  expect(s("markdown.link", "Notes/Log@L4C2")).toBe(
+    "[[Notes/Log@L4C2|Notes/Log]]",
+  );
+  expect(s("markdown.link", "Notes/Log@12", "here")).toBe(
+    "[[Notes/Log@12|here]]",
+  );
+  expect(s("markdown.link", "Notes/Log#Plans")).toBe("[[Notes/Log#Plans]]");
   expect(s("markdown.link", "Books/Dune", "Dune")).toBe("[[Books/Dune|Dune]]");
 });
 
@@ -227,6 +234,10 @@ test("markdown summaries render inline without running source content", async ()
   );
   expect(node.querySelector("code")?.textContent?.trim()).toBe("${literal}");
   expect(node.querySelector("h1, ul, li")).toBeNull();
+  // Hashtags keep their pill, as on the rendered page
+  const tag = node.querySelector("a.sb-hashtag");
+  expect(tag?.textContent).toBe("#trail");
+  expect(tag?.getAttribute("data-tag-name")).toBe("trail");
 });
 
 test("markdown summaries shorten visible text and sanitize links", async () => {

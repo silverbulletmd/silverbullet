@@ -1,17 +1,29 @@
-import type { SysCallMapping } from "../system.ts";
-import { parse } from "../../markdown_parser/parse_tree.ts";
 import {
   type ParseTree,
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
+import * as TagConstants from "../../../plugs/index/constants.ts";
+import { bakeSectionsInText } from "../../baked_sections/bake.ts";
+import type { Client } from "../../client.ts";
+import { wikiLink } from "../../lib/wiki_link.ts";
+import { parse } from "../../markdown_parser/parse_tree.ts";
 import { buildExtendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
+import {
+  applyChrome,
+  expandMarkdownStatic,
+  portableMarkdown,
+  renderMarkdownStatic,
+  renderValue,
+} from "../../markdown_renderer/compose.ts";
+import {
+  liveContextForClient,
+  staticContextForClient,
+} from "../../markdown_renderer/compose_client.ts";
 import {
   expandMarkdown,
   type MarkdownExpandOptions,
   type TaskRefs,
 } from "../../markdown_renderer/inline.ts";
-import type { Client } from "../../client.ts";
-import { bakeSectionsInText } from "../../baked_sections/bake.ts";
 import {
   type MarkdownRenderOptions,
   renderMarkdownToHtml,
@@ -20,22 +32,10 @@ import {
   jsonToMDTable,
   refCellTransformer,
 } from "../../markdown_renderer/result_render.ts";
-import * as TagConstants from "../../../plugs/index/constants.ts";
-import {
-  applyChrome,
-  expandMarkdownStatic,
-  portableMarkdown,
-  renderMarkdownStatic,
-  renderValue,
-} from "../../markdown_renderer/compose.ts";
 import { renderMarkdownSummary } from "../../markdown_renderer/summary.ts";
-import { wikiLink } from "../../lib/wiki_link.ts";
-import { jsToLuaValue } from "../../space_lua/runtime.ts";
 import { isWidgetValue } from "../../space_lua/fragment.ts";
-import {
-  liveContextForClient,
-  staticContextForClient,
-} from "../../markdown_renderer/compose_client.ts";
+import { jsToLuaValue } from "../../space_lua/runtime.ts";
+import type { SysCallMapping } from "../system.ts";
 
 export function markdownSyscalls(client: Client): SysCallMapping {
   return {
@@ -285,7 +285,7 @@ export function markdownSyscalls(client: Client): SysCallMapping {
       callback: (_ctx, target: unknown, alias?: string) =>
         wikiLink(target, alias),
       description:
-        "Markdown for a wiki link: to a page, to an object by its ref, or to a page or ref given as a string. Nothing when there's nothing to link to, so a missing attribute leaves an empty table cell.",
+        "Markdown for a wiki link: to a page, to an object by its ref, or to a page or ref given as a string. A link to a position in a page (`Page@123`) shows the page name unless you give an alias. Nothing when there's nothing to link to, so a missing attribute leaves an empty table cell.",
       parameters: [
         {
           name: "target",

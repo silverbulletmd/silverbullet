@@ -29,7 +29,7 @@ const CORPUS: Record<string, [markdown: string, html: string]> = {
   ],
   "task-item-select": [
     "${query[[from t = T.tasks select templates.taskItem(t)]]}",
-    '<span class="p"><ul><li><span class="sb-task" data-external-task-ref="Alpha@10"><input type="checkbox" data-state=" "> <a href="/Alpha%4010" class="wiki-link" data-ref="Alpha@10">Alpha@10</a> Write</span></li><li><span class="sb-task" data-external-task-ref="$anchorone"><input type="checkbox" checked="checked" data-state="x"> <a href="/%24anchorone" class="wiki-link" data-ref="$anchorone">$anchorone</a> Ship</span></li></ul></span>',
+    '<span class="p"><ul><li><span class="sb-task" data-external-task-ref="Alpha@10"><input type="checkbox" data-state=" "> <a href="/Alpha%4010" class="wiki-link" data-ref="Alpha@10">Alpha</a>: Write</span></li><li><span class="sb-task" data-external-task-ref="$anchorone"><input type="checkbox" checked="checked" data-state="x"> <a href="/%24anchorone" class="wiki-link" data-ref="$anchorone">$anchorone</a>: Ship</span></li></ul></span>',
   ],
   "tag-item-select": [
     "${query[[from t = T.tags select templates.tagItem(t)]]}",

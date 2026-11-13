@@ -1,14 +1,20 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
+import { wikiLink } from "../lib/wiki_link.ts";
 import { viewRowsMarkdown } from "../navigator/rows_markdown.ts";
 import type { Space } from "../space.ts";
 import { evalStatement } from "../space_lua/eval.ts";
 import { PageScopes } from "../space_lua/page_scope.ts";
 import { parseBlock } from "../space_lua/parse.ts";
-import { jsToLuaValue, LuaEnv, LuaStackFrame } from "../space_lua/runtime.ts";
+import {
+  jsToLuaValue,
+  LuaEnv,
+  LuaStackFrame,
+  luaValueToJS,
+} from "../space_lua/runtime.ts";
 import { luaBuildStandardEnv } from "../space_lua/stdlib.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
+import { extractSpaceLuaFromPageText } from "../space_lua_blocks_test_util.ts";
 import {
   createRenderContext,
   type RenderHost,
@@ -55,6 +61,14 @@ export async function buildTestEnv(
 ): Promise<TestEnv> {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set("jsonschema", jsToLuaValue({ validateObject: () => null }));
+  // markdown.link, which the Std item templates use
+  env.set(
+    "markdown",
+    jsToLuaValue({
+      link: (target: unknown, alias?: string) =>
+        wikiLink(luaValueToJS(target, LuaStackFrame.lostFrame), alias),
+    }),
+  );
   const run = async (lua: string) => {
     const block = parseBlock(lua);
     try {
