@@ -248,7 +248,7 @@ $comment-border: 1px;
     text-align: right;
     white-space: pre;
 
-    // In the bullet colour, not the fainter source-markup grey
+    // In the bullet color, not the fainter source-markup gray
     .sb-meta {
       color: var(--editor-list-bullet-color);
     }
@@ -654,6 +654,13 @@ $comment-border: 1px;
 
   .sb-quote-spacer {
     display: inline;
+
+    // A zero-width character gives the box the line's height: alone on an
+    // empty `> ` line it otherwise measures 0px tall, and the cursor drawn
+    // beside it with it (invisible in a freshly inserted callout)
+    &::before {
+      content: "\200b";
+    }
   }
 
   // Pin revealed markers to body size so headings match their hidden spacers.
@@ -817,7 +824,7 @@ $comment-border: 1px;
     line-height: 0;
   }
 
-  // Native selection inside widgets and atomic links in the theme's colour.
+  // Native selection inside widgets and atomic links in the theme's color.
   // A focused one (a wiki link after a double- or right-click) otherwise gets
   // CodeMirror's `:focus ::selection { Highlight }`, the system light blue,
   // which swallows the link text in dark themes.
@@ -1112,7 +1119,7 @@ $comment-border: 1px;
   }
 
   // Inline widget tables look like plain Markdown tables. Header and even-row
-  // colours already come from the thead/tbody rules in colors.scss.
+  // colors already come from the thead/tbody rules in colors.scss.
   .sb-table-scroll .sb-view-table {
     th,
     td {
@@ -1496,7 +1503,7 @@ div:not(.cm-focused).cm-fat-cursor {
   padding: 0 0.45em;
   margin-right: 0.35em;
   border-radius: 4px;
-  // Centres the tag in the inline value's outline (equal gap above and below)
+  // Centers the tag in the inline value's outline (equal gap above and below)
   vertical-align: 0.15em;
   white-space: nowrap;
 }

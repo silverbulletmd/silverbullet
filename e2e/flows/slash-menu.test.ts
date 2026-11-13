@@ -89,7 +89,12 @@ test.describe("slash menu", () => {
     await expect(
       options(sbPage).filter({ hasText: "Bulleted list" }),
     ).toHaveCount(1);
-    await expect(options(sbPage).filter({ hasText: "To-do" })).toHaveCount(1);
+    // By its label: other rows' descriptions mention tasks too
+    await expect(
+      menu(sbPage).locator(".cm-completionLabel").getByText("Task", {
+        exact: true,
+      }),
+    ).toHaveCount(1);
   });
 
   test("typing /h1 still turns the line into a heading", async ({
@@ -122,6 +127,15 @@ test.describe("slash menu", () => {
     await expect
       .poll(async () => (await docLines(sbPage)).slice(1, 3))
       .toEqual(["> **warning** Warning", "> "]);
+    // The cursor waits on the empty line, and can be seen there (beside the
+    // hidden `> `, it once measured 0px tall)
+    await expect
+      .poll(() =>
+        sbPage
+          .locator(".cm-cursor-primary")
+          .evaluate((el) => el.getBoundingClientRect().height),
+      )
+      .toBeGreaterThan(10);
   });
 
   test("Bulleted list turns the current line into a list item", async ({
@@ -168,7 +182,7 @@ const EXPECTED: Record<string, Expectation> = {
   Quote: { blank: ["> "], text: [`> ${TEXT}`], caretAtEnd: true },
   "Bulleted list": { blank: ["* "], text: [`* ${TEXT}`], caretAtEnd: true },
   "Numbered list": { blank: ["1. "], text: [`1. ${TEXT}`], caretAtEnd: true },
-  "To-do": { blank: ["* [ ] "], text: [`* [ ] ${TEXT}`], caretAtEnd: true },
+  Task: { blank: ["* [ ] "], text: [`* [ ] ${TEXT}`], caretAtEnd: true },
   ...Object.fromEntries(
     ["note", "warning", "danger", "success"].map((type) => {
       const title = `> **${type}** ${type[0].toUpperCase()}${type.slice(1)}`;

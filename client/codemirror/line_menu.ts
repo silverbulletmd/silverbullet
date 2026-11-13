@@ -88,7 +88,7 @@ function menuIcon(icon: string | undefined): string | Node {
 
 /** The labels the "Set state" menu gives the built-in states */
 const BUILTIN_TASK_STATES: [state: string, label: string, icon: string][] = [
-  [" ", "To do", "square"],
+  [" ", "Not done", "square"],
   ["x", "Done", "check-square"],
 ];
 
@@ -284,7 +284,7 @@ function blankLineBlocks(
 
 /**
  * A blank line's blocks as menu rows: one submenu per slash menu group (a
- * group of one is its entry itself), labelled and ordered as the slash menu's
+ * group of one is its entry itself), labeled and ordered as the slash menu's
  * sections, with the group's first icon. Picking an entry runs it as picking
  * it in the slash menu does, with the cursor on the line.
  */

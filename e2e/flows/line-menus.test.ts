@@ -113,7 +113,7 @@ test.describe("context-aware line menus", () => {
     await openLineMenu(sbPage, "a task", 7);
     await expect(lineMenuItem(sbPage, "Indent")).toBeVisible();
     await lineMenuItem(sbPage, "Set state").hover();
-    await expect(lineMenuItem(sbPage, "To do", 1)).toHaveClass(
+    await expect(lineMenuItem(sbPage, "Not done", 1)).toHaveClass(
       /sb-dock-menu-current/,
     );
     await expect(lineMenuItem(sbPage, "Done", 1)).toBeVisible();

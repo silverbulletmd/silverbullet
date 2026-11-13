@@ -195,7 +195,7 @@ describe("menu order and groups", () => {
 
   test("a row carries its icon for the completion renderer", () => {
     const [option] = slashMenuOptions(
-      [{ ...entry("To-do", "Lists"), icon: "md-checklist" }],
+      [{ ...entry("Task", "Lists"), icon: "md-checklist" }],
       false,
     );
     expect(option.slashIcon).toBe("md-checklist");
@@ -305,7 +305,7 @@ describe("the Std slash menu", () => {
     for (const label of [
       "Bulleted list",
       "Numbered list",
-      "To-do",
+      "Task",
       "Image or file",
       "Embed page",
       "Link to page",
@@ -322,14 +322,14 @@ describe("the Std slash menu", () => {
 
   test("typing the old names still finds them first", async () => {
     expect((await labels("/h1|"))[0]).toBe("Heading 1");
-    expect((await labels("/task|"))[0]).toBe("To-do");
+    expect((await labels("/task|"))[0]).toBe("Task");
     expect((await labels("/today|"))[0]).toBe("Today");
     expect((await labels("/space-lua|"))[0]).toBe("Space Lua block");
   });
 
   test("display names and aliases find them too", async () => {
     expect((await labels("/heading|"))[0]).toBe("Heading 1");
-    expect(await labels("/todo|")).toContain("To-do");
+    expect(await labels("/todo|")).toContain("Task");
     expect(await labels("/date|")).toEqual(["Today", "Tomorrow", "Yesterday"]);
     expect(await labels("/list|")).toEqual(["Bulleted list", "Numbered list"]);
   });
@@ -343,7 +343,7 @@ describe("the Std slash menu", () => {
   test("no prose blocks in code or frontmatter", async () => {
     for (const doc of ["```\n/|\n```", "---\ntitle: /|\n---\n"]) {
       const all = await labels(doc);
-      for (const label of ["Heading 1", "To-do", "Today", "Bulleted list"]) {
+      for (const label of ["Heading 1", "Task", "Today", "Bulleted list"]) {
         expect(all).not.toContain(label);
       }
     }
@@ -355,8 +355,8 @@ describe("the Std slash menu", () => {
       expect(all).not.toContain(label);
     }
     // A task is
-    expect(all).toContain("To-do");
-    expect(await labels("- [ ] task /|")).not.toContain("To-do");
+    expect(all).toContain("Task");
+    expect(await labels("- [ ] task /|")).not.toContain("Task");
     // The line below a list item, with just the /, is no list item
     expect(await labels("- item\n/|")).toContain("Heading 1");
   });

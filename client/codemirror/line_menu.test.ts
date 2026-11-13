@@ -382,7 +382,7 @@ describe("line menu", () => {
     })[0];
     expect(label(setState)).toBe("Set state");
     const states = subEntries(setState);
-    expect(rows(states)).toEqual(["To do", "Done", "TODO", "DOING ✓"]);
+    expect(rows(states)).toEqual(["Not done", "Done", "TODO", "DOING ✓"]);
     pick(states[1]);
     // At the task box
     expect(invokeFunction).toHaveBeenCalledWith("index.setTaskStateAtPos", [
@@ -398,9 +398,9 @@ describe("line menu", () => {
     // A done task (either case) ticks Done; a state the index doesn't know yet
     // is still listed
     const done = lineMenuEntries(client(), at("x\n- [X] t"), 2)[0];
-    expect(rows(subEntries(done))).toEqual(["To do", "Done ✓"]);
+    expect(rows(subEntries(done))).toEqual(["Not done", "Done ✓"]);
     const fresh = lineMenuEntries(client(), at("x\n- [NEW] t"), 2)[0];
-    expect(rows(subEntries(fresh))).toEqual(["To do", "Done", "NEW ✓"]);
+    expect(rows(subEntries(fresh))).toEqual(["Not done", "Done", "NEW ✓"]);
     // Part of the markup bar's menus: gone with it
     expect(labels("x\n- [ ] t", 2, { markupBar: false })).toEqual([]);
   });
