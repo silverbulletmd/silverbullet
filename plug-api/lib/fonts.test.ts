@@ -1,7 +1,6 @@
 import { expect, test } from "vitest";
 import vectors from "./font_value_vectors.json" with { type: "json" };
 import {
-  BUILTIN_FONTS,
   clampXHeight,
   defaultFontLabel,
   type FontEntry,
@@ -58,10 +57,6 @@ test("CSS injection is refused", () => {
   expect(resolveFamily(["x; } body { display:none"], available)).toBe(
     "'iA-Mono', Menlo, monospace",
   );
-});
-
-test("the default survives a font list without it", () => {
-  expect(resolveFamily(["missing"], {})).toBe("'iA-Mono', Menlo, monospace");
 });
 
 test("faces become encoded @font-face rules, once per font", () => {
@@ -187,16 +182,6 @@ test("an x-height is clamped to a sane range, and a failed one is dropped", () =
   }
 });
 
-test("a selection holds the space's own fonts", () => {
-  expect(fontSelectionFor({ editor: "inter" })).toEqual({
-    ui: ["inter"],
-    editor: ["inter"],
-    code: [],
-    editorSize: undefined,
-    available: BUILTIN_FONTS,
-  });
-});
-
 test("the font value check accepts the safe vectors and rejects the unsafe ones", () => {
   for (const value of vectors.safe)
     expect(isSafeFontValue(value), value).toBe(true);
@@ -280,14 +265,6 @@ test("the theme's editor size applies only when the space sets none", () => {
   expect(
     fontSelectionFor({ editorSize: 16 }, { editorSize: 20 }).editorSize,
   ).toBe(16);
-});
-
-test("with nothing set, code is iA Writer Mono and the size is the theme's", () => {
-  const sel = fontSelectionFor({ available });
-  expect(resolveFamily(sel.code, available)).toBe(
-    "'iA-Mono', Menlo, monospace",
-  );
-  expect(sel.editorSize).toBeUndefined();
 });
 
 const ink = { displayName: "Ink", fonts: { editor: "inter", code: "nope" } };

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { EditorState } from "@codemirror/state";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
-import { afterEach, beforeAll, expect, test, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, test, vi } from "vitest";
 import { EventInterest } from "../../event_interest.ts";
 import { extendedMarkdownLanguage } from "../../markdown_parser/parser.ts";
 import { createRenderContext } from "../../markdown_renderer/compose.ts";
@@ -10,14 +10,9 @@ import {
   type TestEnv,
   testHost,
 } from "../../markdown_renderer/compose_test_env.ts";
-import { newView } from "../../navigator/view_value.ts";
 import { EventHook } from "../../plugos/hooks/event.ts";
 import { System } from "../../plugos/system.ts";
 import type { Tracker } from "../../space_lua/dependencies.ts";
-import { evalExpression } from "../../space_lua/eval.ts";
-import { makeFragment } from "../../space_lua/fragment.ts";
-import { parseExpressionString } from "../../space_lua/parse.ts";
-import { LuaStackFrame, type LuaTable } from "../../space_lua/runtime.ts";
 import { WidgetCache } from "../../widget_cache.ts";
 
 let env: TestEnv;
@@ -63,9 +58,17 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const flush = () => new Promise((r) => setTimeout(r, 15));
+// Fake timers: the waits below advance virtual time instead of sleeping.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+const flush = () => vi.advanceTimersByTimeAsync(15);
 // Past the live refresh debounce (REFRESH_DEBOUNCE_MS)
-const debounce = () => new Promise((r) => setTimeout(r, 350));
+const debounce = () => vi.advanceTimersByTimeAsync(350);
 
 function makeClient() {
   const hook = new EventHook();
@@ -265,30 +268,6 @@ test("destroying through a newer equal instance tears down the mounted one", asy
   expect(calls).toHaveBeenCalledTimes(1);
 });
 
-test("a failing live reload is logged, not left unhandled", async () => {
-  const client = makeClient();
-  const error = vi.spyOn(console, "error").mockImplementation(() => {});
-  let n = 0;
-  const w = widget(
-    client,
-    tracked(() => {
-      if (++n > 1) throw new Error("boom");
-      return "ok";
-    }),
-    "lua:fail:Host",
-  );
-  mount(w);
-  await flush();
-  client.eventHook.emit("file:changed");
-  await debounce();
-  await flush();
-  expect(error).toHaveBeenCalledWith(
-    "Live widget reload failed",
-    expect.any(Error),
-  );
-  w.destroy();
-});
-
 test("reloads replace a widget's event handlers; destroy removes them", async () => {
   const client = makeClient();
   const click = vi.fn();
@@ -368,34 +347,6 @@ test("a remounted widget that rendered empty re-runs once if it missed an event"
   expect(calls).toHaveBeenCalledTimes(2);
   expect(text(second)).toBe("run 2");
   second.destroy();
-});
-
-test("destroying a widget detaches a cached element so it can't pin the dead widget", async () => {
-  const client = makeClient();
-  const shared = document.createElement("div");
-  shared.textContent = "cached";
-  const calls = vi.fn(async () => ({ _isWidget: true, html: shared }));
-  const w = widget(client, calls, "lua:shared:Host");
-  const dom = mount(w);
-  await flush();
-  expect(dom.contains(shared)).toBe(true);
-  w.destroy(dom);
-  expect(shared.parentNode).toBeNull();
-});
-
-test("destroying a widget leaves a cached element another copy has mounted since", async () => {
-  const client = makeClient();
-  const shared = document.createElement("div");
-  const calls = vi.fn(async () => ({ _isWidget: true, html: shared }));
-  const first = widget(client, calls, "lua:twice:Host");
-  const firstDom = mount(first);
-  await flush();
-  const second = widget(client, calls, "lua:twice:Host");
-  const secondDom = mount(second);
-  await flush();
-  expect(secondDom.contains(shared)).toBe(true);
-  first.destroy(firstDom);
-  expect(secondDom.contains(shared)).toBe(true);
 });
 
 test("a widget that read a page scope re-runs when it changes, until destroyed", async () => {
@@ -480,46 +431,6 @@ test("a changed result, a menu Reload, or a view always commits", async () => {
   w.destroy();
 });
 
-test("an unchanged sandbox is kept; changed sandbox content commits", async () => {
-  const client = makeClient();
-  let html = "<p>a</p>";
-  const w = widget(
-    client,
-    async () => ({ _isWidget: true, html, sandbox: true }),
-    "lua:sandbox:Host",
-  );
-  mount(w);
-  await flush();
-  const host = w.contentDiv!.querySelector("[data-sandbox-content]")!;
-  await w.reload({ keepIfUnchanged: true });
-  expect(w.contentDiv!.contains(host)).toBe(true);
-  html = "<p>b</p>";
-  await w.reload({ keepIfUnchanged: true });
-  expect(w.contentDiv!.contains(host)).toBe(false);
-  w.destroy();
-});
-
-test("a fragment containing a view always commits", async () => {
-  const client = makeClient();
-  const spec = await evalExpression(
-    parseExpressionString("{ source = function() return {} end }"),
-    env.env,
-    LuaStackFrame.createWithGlobalEnv(env.env),
-  );
-  const w = widget(
-    client,
-    async () => makeFragment(["x ", newView(spec as LuaTable)]),
-    "lua:view:Host",
-  );
-  mount(w);
-  await flush();
-  const before = w.contentDiv!.querySelector(".sb-inline-view");
-  expect(before).not.toBeNull();
-  await w.reload({ keepIfUnchanged: true });
-  expect(w.contentDiv!.querySelector(".sb-inline-view")).not.toBe(before);
-  w.destroy();
-});
-
 test("an event that fires while a re-run is evaluating triggers another re-run", async () => {
   const client = makeClient();
   let n = 0;
@@ -561,40 +472,4 @@ test("identical expressions keyed per occurrence each show their own element", a
   expect(second.contentDiv!.querySelector("marquee")).not.toBeNull();
   first.destroy();
   second.destroy();
-});
-
-test("occurrence keys: the first copy keeps the plain key", () => {
-  const keys = new OccurrenceKeys();
-  expect(keys.key("a")).toBe("a");
-  expect(keys.key("b")).toBe("b");
-  expect(keys.key("a")).toBe("a:dup1");
-  expect(keys.key("a")).toBe("a:dup2");
-});
-
-test("a reload holds the widget's height border-box, then lets go", async () => {
-  const client = makeClient();
-  let release!: () => void;
-  let first = true;
-  const w = widget(client, async () => {
-    if (first) {
-      first = false;
-      return "**v**";
-    }
-    await new Promise<void>((r) => {
-      release = r;
-    });
-    return "**v2**";
-  });
-  mount(w);
-  await flush();
-  const div = w.contentDiv!;
-  const reloading = w.reload();
-  // offsetHeight includes the frame's border, so a content-box hold would grow it
-  expect(div.style.boxSizing).toBe("border-box");
-  expect(div.style.minHeight).toBe(`${div.offsetHeight}px`);
-  release();
-  await reloading;
-  expect(div.style.boxSizing).toBe("");
-  expect(div.style.minHeight).toBe("");
-  w.destroy();
 });

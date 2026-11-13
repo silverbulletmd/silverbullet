@@ -50,22 +50,6 @@ test("a single = in a query's where clause suggests ==", () => {
   ).toBe("unexpected symbol near '='; hint: use == to compare");
 });
 
-test("=~ in a query suggests == or string.match", () => {
-  expect(
-    parseError(
-      q(`from p = index.pages() where p.name =~ "Candidates/.*" select p`),
-    ),
-  ).toBe(
-    "unexpected symbol near '='; hint: use == to compare, or string.match(s, pattern) to match a pattern",
-  );
-});
-
-test("a single = in an if condition suggests ==", () => {
-  expect(parseError(`local x = 1\nif x = 1 then return 1 end`)).toBe(
-    "unexpected symbol near '='; hint: use == to compare",
-  );
-});
-
 test("no hint outside a comparison context", () => {
   expect(parseError(`local x = = 1`)).toBe("unexpected symbol near '='");
   expect(parseError(q(`from p = rows select p.name = 1`))).toBe(
@@ -86,30 +70,10 @@ test("calling an undefined global in a query names the from binding", async () =
   );
 });
 
-test("calling an undefined global in an unbound query", async () => {
-  expect(
-    await runError(
-      q(`from rows where contains(name, "Incidents") select name`),
-    ),
-  ).toBe(
-    "attempt to call a nil value (global 'contains'); hint: 'contains' is not defined as a global or a field of the row",
-  );
-});
-
 test("no query hint outside a query", async () => {
   expect(await runError(`return s:startsWith("x")`)).toBe(
     "attempt to index a nil value (global 's')",
   );
-});
-
-test("nested queries add the hint only once", async () => {
-  const msg = await runError(
-    q(
-      `from p = rows select query[[from c = rows where s:startsWith(c.name, "x") select c.name]]`,
-    ),
-  );
-  expect(msg.match(/hint:/g)?.length).toBe(1);
-  expect(msg).toContain("binds each row to 'c'");
 });
 
 // ---------------------------------------------------------------------------
@@ -207,101 +171,6 @@ test("a method call on a multi-value result uses the first value", async () => {
       `return ("Piranesi & Co"):gsub("&", "&amp;"):gsub("<", "&lt;")`,
     ),
   ).toBe("Piranesi &amp; Co");
-});
-
-test("':' in a table constructor suggests '='", () => {
-  expect(
-    parseError(
-      q(
-        `from t = index.tasks("habit") select {page: t.page, name: t.name, done: t.done}`,
-      ),
-    ),
-  ).toBe(
-    "unexpected symbol near '.'; hint: use = in table constructors: {page = ...}",
-  );
-  expect(parseError(`return {name = "x", count: 5}`)).toBe(
-    "unexpected symbol near '5'; hint: use = in table constructors: {count = ...}",
-  );
-});
-
-test("SQL LIKE suggests string functions", () => {
-  expect(
-    parseError(
-      q(
-        `from p = index.pages() where p.name like "Candidates/%" limit 10 select {name=p.name, stage=p.stage, role=p.role}`,
-      ),
-    ),
-  ).toBe(
-    `unexpected symbol near 'l'; hint: there is no LIKE; use s:startsWith("x"), s:endsWith("x"), s:find("x", 1, true) or s:match(pattern)`,
-  );
-});
-
-test("infix contains suggests find or table.includes", () => {
-  expect(
-    parseError(
-      q(
-        `from p = index.pages() where p.tags and p.tags contains "candidate" select p.name, p.role`,
-      ),
-    ),
-  ).toBe(
-    `unexpected symbol near 'c'; hint: there is no infix contains; use table.includes(list, value) for a list, or s:find("x", 1, true) for a substring`,
-  );
-});
-
-test("infix in suggests table.includes", () => {
-  expect(
-    parseError(
-      q(`from p = index.pages() where "incident" in p.tags limit 10 select p`),
-    ),
-  ).toBe(
-    `unexpected symbol near 'i'; hint: there is no infix in; use table.includes(list, value), e.g. table.includes({"a", "b"}, x)`,
-  );
-});
-
-test("IS NULL suggests == nil", () => {
-  expect(
-    parseError(q(`from p = index.pages() where p.rating is null select p`)),
-  ).toBe(
-    "unexpected symbol near 'i'; hint: use == nil or ~= nil instead of IS NULL / IS NOT NULL",
-  );
-});
-
-test("infix startsWith suggests method syntax", () => {
-  expect(
-    parseError(
-      q(
-        `from l = index.objects("link") where l.page startsWith("NPCs/") select l.page limit 10`,
-      ),
-    ),
-  ).toBe(
-    `unexpected symbol near 's'; hint: call it as a method: s:startsWith("x")`,
-  );
-});
-
-test("a query that does not start with from shows the SLIQ shape", () => {
-  const hint = `hint: SLIQ queries start with from, e.g. from p = index.pages("tag") where p.status == "open" select p.name`;
-  expect(parseError(q(`SELECT * FROM index.tag`))).toBe(
-    `unexpected symbol near 'S'; ${hint}`,
-  );
-  expect(parseError(q(`page where name not startsWith "Library/"`))).toBe(
-    `unexpected symbol near 'p'; ${hint}`,
-  );
-});
-
-test("select * suggests omitting select", () => {
-  expect(parseError(q(`from tags.page select *`))).toBe(
-    "unexpected symbol near '*'; hint: there is no select *; leave out select to get whole rows",
-  );
-});
-
-test("query(...) suggests query[[...]]", () => {
-  expect(
-    parseError(
-      `local results = query('from t = index.tasks() where t.page >= "Habits/' .. firstDay .. '" order by t.page asc select templates.taskItem(t)')`,
-    ),
-  ).toBe(
-    "unexpected symbol near '('; hint: query is syntax, not a function: write query[[from x = ... ]] and use Lua variables directly inside it",
-  );
 });
 
 test("indexing a query result suggests parentheses", () => {

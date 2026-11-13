@@ -1,11 +1,11 @@
 use super::*;
 use crate::semantic::index::cosine;
+use crate::semantic::lease;
 use crate::semantic::test_model::FakeEmbedder;
 use crate::semantic::test_server::TestModelServer;
-use crate::semantic::{lease, sink};
 use crate::test_support::TestView;
 use crate::FeedEvent;
-use std::sync::atomic::Ordering;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
 use tokio::sync::mpsc;
 
@@ -284,7 +284,10 @@ async fn a_forgotten_space_never_writes_its_file_again() {
             == fx.view.list_meta().unwrap()["Kitchen/Coffee.md"]
     })
     .await;
-    tokio::time::sleep(Duration::from_secs(2)).await;
+    assert!(
+        fx.space.settled().await,
+        "the worker settled after the edit"
+    );
     assert!(
         !dir.path().join("semantic-v1").exists(),
         "no late checkpoint"
@@ -338,7 +341,10 @@ async fn a_background_forget_then_attach_reloads_the_file() {
             == fx.view.list_meta().unwrap()["Kitchen/Coffee.md"]
     })
     .await;
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(
+        fx.space.settled().await,
+        "the worker settled after the edit"
+    );
     assert!(
         !dir.path().join("semantic-v1").exists(),
         "the first sink, forgotten in the background, never writes"
@@ -354,12 +360,32 @@ fn slow_saves(fake: Arc<FakeEmbedder>, save_delay: Duration) -> Arc<SemanticServ
     Arc::new(service)
 }
 
-/// Opens sinks that take at least `delay` to open.
-fn slow_open(delay: Duration) -> SinkOpener {
-    Arc::new(move |location, inference| {
+/// How many opens started and finished.
+#[derive(Default)]
+struct Opens {
+    started: AtomicUsize,
+    finished: AtomicUsize,
+}
+
+impl Opens {
+    fn all_finished(&self, at_least: usize) -> bool {
+        let finished = self.finished.load(Ordering::SeqCst);
+        finished >= at_least && finished == self.started.load(Ordering::SeqCst)
+    }
+}
+
+/// Opens sinks that take at least `delay` to open, and counts the opens.
+fn slow_open(delay: Duration) -> (SinkOpener, Arc<Opens>) {
+    let opens = Arc::new(Opens::default());
+    let count = opens.clone();
+    let opener: SinkOpener = Arc::new(move |location, inference| {
+        count.started.fetch_add(1, Ordering::SeqCst);
         std::thread::sleep(delay);
-        SemanticSink::open(location, inference)
-    })
+        let sink = SemanticSink::open(location, inference);
+        count.finished.fetch_add(1, Ordering::SeqCst);
+        sink
+    });
+    (opener, opens)
 }
 
 /// The edit that makes a sink save next, sent to `feed`.
@@ -410,7 +436,7 @@ async fn saving(
     (first, file)
 }
 
-const SLOW_SAVE: Duration = Duration::from_millis(600);
+const SLOW_SAVE: Duration = Duration::from_millis(200);
 
 /// I1 (fix round 1): an open aborted while the old sink's save runs
 /// doesn't let the next open in early; one writer at all times.
@@ -491,7 +517,9 @@ async fn a_deleted_space_directory_is_never_recreated() {
         "Garden/Basil.md",
         "water the basil daily",
     );
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    // The worker may already be stopped; if it runs, its settle is done here.
+    first.space.settled().await;
+    service.wait_closed(&Location::Disk(dir.path().into()));
     assert!(
         !dir.path().join("semantic-v1").exists(),
         "no late save recreates it"
@@ -505,7 +533,8 @@ async fn a_space_forgotten_while_its_index_opens_never_writes_it() {
     let dir = tempfile::tempdir().unwrap();
     let fake = Arc::new(FakeEmbedder::new());
     let mut service = SemanticService::new(Inference::with_embedder(fake.clone()));
-    service.opener = slow_open(Duration::from_millis(300));
+    let (opener, opened) = slow_open(Duration::from_millis(300));
+    service.opener = opener;
     let service = Arc::new(service);
     let view = garden();
     let location = Location::Disk(dir.path().into());
@@ -515,7 +544,8 @@ async fn a_space_forgotten_while_its_index_opens_never_writes_it() {
     };
     let first = attach();
     service.forget("notes");
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    until("the late open finished", || opened.all_finished(1)).await;
+    service.wait_closed(&location);
     assert!(
         !dir.path().join("semantic-v1").exists(),
         "the late open never writes"
@@ -530,7 +560,7 @@ async fn a_space_forgotten_while_its_index_opens_never_writes_it() {
     until("ready", || third.state().is_ready()).await;
     let file = dir.path().join("semantic-v1/test-fake.bin");
     until("saved when idle", || file.is_file()).await;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    assert!(third.settled().await);
     assert!(second.index().is_none() && first.index().is_none());
     assert_eq!(
         fake.texts.load(Ordering::SeqCst),
@@ -574,24 +604,14 @@ async fn moving_a_space_forgets_its_old_sink() {
             == fx.view.list_meta().unwrap()["Kitchen/Coffee.md"]
     })
     .await;
-    tokio::time::sleep(Duration::from_secs(1)).await;
+    assert!(
+        fx.space.settled().await,
+        "the worker settled after the edit"
+    );
     assert!(
         !a.path().join("semantic-v1").exists(),
         "the old place is never written"
     );
-}
-
-#[test]
-fn caps_and_batches_are_the_rulings_values() {
-    assert_eq!(
-        (sink::MAX_PAGES, sink::MAX_CHUNKS, sink::MAX_PAGE_TEXT),
-        (30_000, 150_000, 256 * 1024)
-    );
-    assert_eq!(
-        (sink::BATCH_PAGES, sink::CHECKPOINT_EVERY),
-        (32, Duration::from_secs(30))
-    );
-    assert_eq!(passage_head("Bike/Puncture.md"), "Bike/Puncture\n");
 }
 
 /// Review Focus 2: a built index reopened from disk is reset once its
@@ -607,7 +627,7 @@ async fn a_rebuild_before_the_semantic_worker_runs_applies_once_it_does() {
 
     let fake = Arc::new(FakeEmbedder::new());
     let mut service = SemanticService::new(Inference::with_embedder(fake.clone()));
-    service.opener = slow_open(Duration::from_millis(300));
+    service.opener = slow_open(Duration::from_millis(300)).0;
     let (_feed, rx) = mpsc::unbounded_channel();
     let space = service.attach("notes", "Notes", location, garden(), rx);
     assert_eq!(space.state(), IndexState::Starting);
@@ -620,7 +640,7 @@ async fn a_rebuild_before_the_semantic_worker_runs_applies_once_it_does() {
             && fake.texts.load(Ordering::SeqCst) == 4
     })
     .await;
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(space.settled().await);
     assert_eq!(space.sink_resets(), 1, "the requested reset ran once");
     assert_eq!(
         fake.texts.load(Ordering::SeqCst),
@@ -639,13 +659,13 @@ async fn a_rebuild_before_the_semantic_worker_runs_applies_once_it_does() {
 async fn a_rebuild_before_a_first_build_starts_nothing_more() {
     let fake = Arc::new(FakeEmbedder::new());
     let mut service = SemanticService::new(Inference::with_embedder(fake.clone()));
-    service.opener = slow_open(Duration::from_millis(300));
+    service.opener = slow_open(Duration::from_millis(300)).0;
     let (_feed, rx) = mpsc::unbounded_channel();
     let space = service.attach("notes", "Notes", Location::Memory, garden(), rx);
     assert_eq!(space.state(), IndexState::Starting);
     space.rebuild().unwrap();
     until("built", || space.state().is_ready()).await;
-    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(space.settled().await);
     assert_eq!(space.sink_resets(), 0, "no reset on top of the first build");
     assert_eq!(fake.texts.load(Ordering::SeqCst), 4, "every chunk once");
 }

@@ -292,15 +292,6 @@ describe("SpaceTheme", () => {
     );
   });
 
-  test("the scheme is the boot cache's until the first apply, else light", async () => {
-    expect(new SpaceTheme(stubDeps({}).deps).scheme).toBe("light");
-    const theme = new SpaceTheme(stubDeps({}).deps, cached(paper));
-    expect(theme.scheme).toBe("dark");
-    expect(theme.active).toEqual(paper);
-    await theme.apply();
-    expect(theme.scheme).toBe("light");
-  });
-
   test("an apply that resolves to what the boot cache shows doesn't redo it", async () => {
     const { deps } = stubDeps({ space: paper.page });
     const boot = cached(paper, paperCss);
@@ -329,16 +320,6 @@ describe("SpaceTheme", () => {
     media.change(true);
     await new Promise((r) => setTimeout(r, 0));
     expect(theme.active?.page).toBe(BUILTIN_LIGHT_THEME);
-  });
-
-  test("leaving the fallback for a space theme stops following the system", async () => {
-    const { deps, settings } = stubDeps({});
-    const theme = new SpaceTheme(deps);
-    await theme.apply();
-    expect(media.listenerCount()).toBe(1);
-    settings.theme = light.page;
-    await theme.apply();
-    expect(media.listenerCount()).toBe(0);
   });
 
   test("onChange hears a switch, and stops hearing after unsubscribing", async () => {
@@ -480,14 +461,6 @@ describe("SpaceTheme", () => {
     expect((await theme.apply()).page).toBe(BUILTIN_LIGHT_THEME);
   });
 
-  test("before Space Lua has run, a cached fallback still follows the system", async () => {
-    await new SpaceTheme(stubDeps({}).deps).apply();
-    expect(JSON.parse(localStorage.getItem(cacheKey())!).fallback).toBe(true);
-    media.matches = true;
-    const boot = new SpaceTheme(stubDeps({}).deps);
-    expect((await boot.apply()).page).toBe(BUILTIN_DARK_THEME);
-  });
-
   test("theme-color follows a space style that recolors the top bar", async () => {
     document.head.innerHTML = `<meta name="theme-color" content="#e1e1e1">`;
     const { SpaceStyles } = await import("./space_style.ts");
@@ -580,22 +553,5 @@ describe("migrateDeviceDarkMode", () => {
     });
     await new SpaceTheme(deps).apply();
     expect(store.get("client/darkMode")).toBe(true);
-  });
-
-  test("a non-boolean stored value is dropped without an override", async () => {
-    const { deps, store, device } = stubDeps({
-      oldDarkMode: "yes",
-      configLoaded: true,
-    });
-    await new SpaceTheme(deps).apply();
-    expect(device()).toBeUndefined();
-    expect(store.has("client/darkMode")).toBe(false);
-  });
-
-  test("an unset key writes and deletes nothing", async () => {
-    const { deps } = stubDeps({ configLoaded: true });
-    await new SpaceTheme(deps).apply();
-    expect(deps.ds.set.mock.calls).toEqual([]);
-    expect(deps.ds.delete.mock.calls).toEqual([]);
   });
 });

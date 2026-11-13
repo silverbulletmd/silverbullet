@@ -18,150 +18,11 @@ function index(...paths: string[]): BasenameIndex {
 }
 
 // ---------------------------------------------------------------------------
-// Bucket: MUST MATCH OBSIDIAN (derived from official Obsidian help docs)
+// Ranking: proximity first. Obsidian ranks the vault root ABOVE the linking
+// page's own folder; we invert that, since root-wins breaks location
+// independence. Do not "fix" these back to parity. Most resolution cases live
+// in resolve_path_fixture.json (shared with the Rust twin).
 // ---------------------------------------------------------------------------
-
-test("must match Obsidian: bare name resolves space-wide by basename", () => {
-  const idx = index("sub/folder/Notes.md", "Other.md");
-  expect(resolvePath("Notes.md", "Other.md", idx)).toEqual({
-    path: "sub/folder/Notes.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("must match Obsidian: basename lookup is case-insensitive", () => {
-  const idx = index("sub/Notes.md");
-  expect(resolvePath("notes.md", "Other.md", idx).path).toEqual("sub/Notes.md");
-  expect(resolvePath("NOTES.md", "Other.md", idx).path).toEqual("sub/Notes.md");
-});
-
-test("must match Obsidian: exact-case candidate beats case-insensitive one", () => {
-  const idx = index("a/Notes.md", "b/notes.md");
-  expect(resolvePath("notes.md", "z/Page.md", idx)).toEqual({
-    path: "b/notes.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("must match Obsidian: a path-qualified link is root-relative and exact", () => {
-  const idx = index("sub/Notes.md", "other/Notes.md");
-  expect(resolvePath("sub/Notes.md", "z/Page.md", idx)).toEqual({
-    path: "sub/Notes.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("must match Obsidian: a qualified path that does not exist stays literal", () => {
-  const idx = index("sub/Notes.md");
-  expect(resolvePath("other/Notes.md", "z/Page.md", idx)).toEqual({
-    path: "other/Notes.md",
-    exists: false,
-    ambiguous: false,
-  });
-});
-
-test("must match Obsidian: exact full-path match always wins over basename search", () => {
-  // `Notes.md` exists at the root *and* in a subfolder: the literal path wins,
-  // which also gives Obsidian's root-wins tie-break for free.
-  const idx = index("Notes.md", "sub/Notes.md");
-  expect(resolvePath("Notes.md", "sub/Page.md", idx).path).toEqual("Notes.md");
-});
-
-test("must match Obsidian: an unresolvable bare name stays literal at the root", () => {
-  const idx = index("sub/Other.md");
-  expect(resolvePath("Notes.md", "sub/Page.md", idx)).toEqual({
-    path: "Notes.md",
-    exists: false,
-    ambiguous: false,
-  });
-});
-
-test("must match Obsidian: documents resolve by basename too", () => {
-  const idx = index("assets/diagram.png", "Page.md");
-  expect(resolvePath("diagram.png", "Page.md", idx).path).toEqual(
-    "assets/diagram.png",
-  );
-});
-
-// ---------------------------------------------------------------------------
-// Bucket: DELIBERATELY DIFFERS FROM OBSIDIAN
-//
-// Obsidian ranks the vault root ABOVE the linking page's own folder. We invert
-// that: proximity first. Root-wins is what breaks location independence — open
-// the parent of `docs/` and a link inside `docs/api/` would otherwise resolve
-// to a sibling project's root-level file. Do not "fix" these back to parity.
-// ---------------------------------------------------------------------------
-
-test("deliberately differs: same folder beats another subfolder", () => {
-  const idx = index("docs/api/Config.md", "sibling/Config.md");
-  const result = resolvePath("Config.md", "docs/api/Auth.md", idx);
-  expect(result.path).toEqual("docs/api/Config.md");
-  expect(result.ambiguous).toBe(true);
-});
-
-test("deliberately differs: nearest common ancestor beats a distant folder", () => {
-  const idx = index("docs/shared/Config.md", "sibling/Config.md");
-  expect(resolvePath("Config.md", "docs/api/Auth.md", idx).path).toEqual(
-    "docs/shared/Config.md",
-  );
-});
-
-test("deliberately differs: the wide-root case resolves within its own subtree", () => {
-  const idx = index(
-    "docs/api/Config.md",
-    "sibling/Config.md",
-    "other/Config.md",
-  );
-  expect(resolvePath("Config.md", "docs/api/Auth.md", idx).path).toEqual(
-    "docs/api/Config.md",
-  );
-});
-
-test("a root-level file wins outright and is not flagged", () => {
-  const idx = index("Config.md", "docs/api/Config.md");
-  expect(resolvePath("Config.md", "docs/api/Auth.md", idx)).toEqual({
-    path: "Config.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("a qualified link is explicit and never ambiguous", () => {
-  const idx = index("docs/api/Config.md", "sibling/Config.md");
-  expect(resolvePath("docs/api/Config.md", "z/Page.md", idx)).toEqual({
-    path: "docs/api/Config.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Bucket: OBSIDIAN UNSPECIFIED — SilverBullet defines
-// ---------------------------------------------------------------------------
-
-test("silverbullet-defined: root wins once proximity ties, being shallowest", () => {
-  const idx = index("Config.md", "guides/Config.md");
-  expect(resolvePath("Config.md", "docs/api/Auth.md", idx).path).toEqual(
-    "Config.md",
-  );
-});
-
-test("silverbullet-defined: shallower path wins at equal proximity", () => {
-  const idx = index("a/Config.md", "b/c/Config.md");
-  expect(resolvePath("Config.md", "z/Page.md", idx).path).toEqual(
-    "a/Config.md",
-  );
-});
-
-test("silverbullet-defined: lexicographic order is the final tie-break", () => {
-  const idx = index("b/Config.md", "a/Config.md");
-  expect(resolvePath("Config.md", "z/Page.md", idx).path).toEqual(
-    "a/Config.md",
-  );
-});
 
 test("silverbullet-defined: same folder beats a descendant of the same folder", () => {
   const idx = index("docs/api/Config.md", "docs/api/deep/Config.md");
@@ -210,22 +71,6 @@ test("ambiguity reports every candidate, ranked", () => {
   expect(result.ambiguous).toBe(true);
   expect(result.path).toEqual("bla/Notes.md");
   expect(result.candidates).toEqual(["bla/Notes.md", "bla2/Notes.md"]);
-});
-
-test("case-exact filtering collapses ambiguity", () => {
-  const idx = index("a/Notes.md", "b/notes.md", "c/NOTES.md");
-  const result = resolvePath("Notes.md", "z/Page.md", idx);
-  expect(result.ambiguous).toBe(false);
-  expect(result.path).toEqual("a/Notes.md");
-});
-
-test("the empty path resolves to the current page", () => {
-  const idx = index("Page.md");
-  expect(resolvePath("", "Page.md", idx)).toEqual({
-    path: "",
-    exists: true,
-    ambiguous: false,
-  });
 });
 
 test("the index tracks files incrementally", () => {
@@ -359,17 +204,6 @@ test("lookupIndex reports an exact qualified path as existing", () => {
   expect(resolvePath("bla/Notes.md", "Home.md", idx).exists).toBe(true);
 });
 
-test("a case-only rival does not make an exact match ambiguous", () => {
-  // SilverBullet's own docs pair `Tag.md` with `Object/tag.md` and
-  // `API/tag.md` on purpose. `[[Tag]]` matches one of them exactly.
-  const idx = index("Tag.md", "Object/tag.md", "API/tag.md");
-  expect(resolvePath("Tag.md", "Home.md", idx)).toEqual({
-    path: "Tag.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
 test("ambiguity is only reported when a rewrite could resolve it", () => {
   // No root-level `Notes.md`, so the picker can write `bla/Notes` and clear it.
   const idx = index("bla/Notes.md", "bla2/Notes.md");
@@ -388,71 +222,6 @@ test("ambiguity is only reported when a rewrite could resolve it", () => {
 // mirrors Obsidian accepting partial paths as linkpaths; the tie-break order
 // is SilverBullet-defined (same proximity ranking as bare names).
 // ---------------------------------------------------------------------------
-
-test("a qualified link resolves by unique path suffix", () => {
-  const idx = index("docs/api/Auth.md", "docs/guides/Intro.md");
-  expect(resolvePath("api/Auth.md", "docs/Index.md", idx)).toEqual({
-    path: "docs/api/Auth.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("an exact path match beats a suffix match and is not ambiguous", () => {
-  const idx = index("api/Auth.md", "docs/api/Auth.md");
-  expect(resolvePath("api/Auth.md", "docs/Index.md", idx)).toEqual({
-    path: "api/Auth.md",
-    exists: true,
-    ambiguous: false,
-  });
-});
-
-test("several suffix matches are ambiguous and ranked by proximity", () => {
-  const idx = index("docs/api/Auth.md", "sibling/api/Auth.md");
-  const result = resolvePath("api/Auth.md", "docs/Index.md", idx);
-  expect(result.ambiguous).toBe(true);
-  expect(result.path).toEqual("docs/api/Auth.md");
-  expect(result.candidates).toEqual([
-    "docs/api/Auth.md",
-    "sibling/api/Auth.md",
-  ]);
-});
-
-test("suffix matching is case-insensitive with exact-case preference", () => {
-  const idx = index("docs/API/Auth.md", "sibling/api/Auth.md");
-  expect(resolvePath("api/Auth.md", "z/Page.md", idx)).toEqual({
-    path: "sibling/api/Auth.md",
-    exists: true,
-    ambiguous: false,
-  });
-  const single = index("docs/API/Auth.md");
-  expect(resolvePath("api/Auth.md", "z/Page.md", single).path).toEqual(
-    "docs/API/Auth.md",
-  );
-});
-
-test("a suffix only matches on a folder boundary", () => {
-  const idx = index("xapi/Auth.md");
-  expect(resolvePath("api/Auth.md", "z/Page.md", idx)).toEqual({
-    path: "api/Auth.md",
-    exists: false,
-    ambiguous: false,
-  });
-});
-
-test("a multi-segment suffix matches deep paths", () => {
-  const idx = index("repo/docs/api/Auth.md", "repo/other/Auth.md");
-  expect(resolvePath("docs/api/Auth.md", "Index.md", idx).path).toEqual(
-    "repo/docs/api/Auth.md",
-  );
-});
-
-test("documents resolve by path suffix too", () => {
-  const idx = index("docs/assets/logo.png", "Page.md");
-  expect(resolvePath("assets/logo.png", "docs/Page.md", idx).path).toEqual(
-    "docs/assets/logo.png",
-  );
-});
 
 test("lookupIndex resolves a qualified suffix link through the syscall shape", () => {
   const idx = viaSyscall(["docs/api/Auth.md"], ["api/Auth.md"]);

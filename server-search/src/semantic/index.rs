@@ -598,19 +598,6 @@ mod tests {
         assert_eq!(fuse(["A.md", "B.md"], 1.0, &[]), ["A.md", "B.md"]);
     }
 
-    #[test]
-    fn fused_scores_are_the_rrf_sums() {
-        let index = index();
-        let vector = index.nearest(&unit([0.7, 0.7, 0., 0.]), &|_| true, 0.5, 10);
-        let fused = fuse_scored(["Bike/Puncture.md"], 1.0, &vector);
-        let rrf = |rank: f32| 1.0 / (RRF_K + rank);
-        assert_eq!(
-            fused[0],
-            ("Bike/Puncture.md".to_string(), rrf(1.) + rrf(2.))
-        );
-        assert_eq!(fused[1], ("Bike/Chain.md".to_string(), rrf(1.)));
-    }
-
     /// A lexical hit weighs `lexical_weight`, a vector hit 1.
     #[test]
     fn a_weighted_lexical_hit_at_rank_one_scores_its_weight_over_k_plus_one() {

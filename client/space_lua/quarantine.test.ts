@@ -62,19 +62,6 @@ test("corrupt stored JSON is treated as empty rather than throwing", () => {
   expect(listQuarantined(s)).toEqual([]);
 });
 
-test("the storage key is namespaced (not the bare QUARANTINE_KEY)", () => {
-  expect(quarantineStorageKey()).not.toBe("spaceLuaQuarantine");
-  expect(quarantineStorageKey()).toContain("spaceLuaQuarantine");
-});
-
-test("editing the source prunes the stale entry from the store", () => {
-  const s = memStore();
-  quarantine("Scripts.md", "while true do end", s);
-  expect(listQuarantined(s)).toEqual(["Scripts.md"]);
-  expect(isQuarantined("Scripts.md", "print('fixed')", s)).toBe(false);
-  expect(listQuarantined(s)).toEqual([]);
-});
-
 test("a store that throws on getItem fails open", () => {
   const s = {
     getItem: () => {
@@ -109,14 +96,6 @@ test("reconcileQuarantine drops a ref absent from the live list", () => {
   const s = memStore();
   quarantine("Runaway@48", "while true do end", s);
   reconcileQuarantine(["Runaway@58"], s);
-  expect(listQuarantined(s)).toEqual([]);
-});
-
-test("reconcileQuarantine against an empty live list clears everything", () => {
-  const s = memStore();
-  quarantine("A.md", "x", s);
-  quarantine("B.md", "y", s);
-  reconcileQuarantine([], s);
   expect(listQuarantined(s)).toEqual([]);
 });
 

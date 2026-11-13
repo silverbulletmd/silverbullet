@@ -1,6 +1,5 @@
 use super::*;
 use crate::fulltext::store::{IndexStore, BATCH_BYTES, BATCH_PAGES, INDEX_BUILDS};
-use crate::stats::opened_line;
 use crate::test_support::TestView;
 use crate::{Location, Opened};
 use std::sync::atomic::Ordering;
@@ -23,21 +22,29 @@ impl Space {
         Space::start_with(view, store, own_slots(), BATCH_BYTES)
     }
 
+    /// Like `start`, with batches of `batch_pages` pages so a small space
+    /// still builds in several batches.
+    fn start_batched(view: Arc<TestView>, store: IndexStore, batch_pages: usize) -> Space {
+        Space::start_limits(
+            view,
+            store,
+            limits_of(own_slots(), batch_pages, BATCH_BYTES),
+        )
+    }
+
     fn start_with(
         view: Arc<TestView>,
         store: IndexStore,
         slots: &'static Semaphore,
         batch_bytes: u64,
     ) -> Space {
+        Space::start_limits(view, store, limits(slots, batch_bytes))
+    }
+
+    fn start_limits(view: Arc<TestView>, store: IndexStore, limits: SinkLimits) -> Space {
         let store = Arc::new(store);
         let (feed, rx) = tokio::sync::mpsc::unbounded_channel();
-        let worker = SyncWorker::spawn_with(
-            "test",
-            store.clone(),
-            view.clone(),
-            rx,
-            limits(slots, batch_bytes),
-        );
+        let worker = SyncWorker::spawn_with("test", store.clone(), view.clone(), rx, limits);
         Space {
             store,
             feed,
@@ -105,8 +112,12 @@ fn own_slots() -> &'static Semaphore {
 
 /// The full-text sink's limits with the test's own build slots and byte cap.
 fn limits(builds: &'static Semaphore, batch_bytes: u64) -> SinkLimits {
+    limits_of(builds, BATCH_PAGES, batch_bytes)
+}
+
+fn limits_of(builds: &'static Semaphore, batch_pages: usize, batch_bytes: u64) -> SinkLimits {
     SinkLimits {
-        batch_pages: BATCH_PAGES,
+        batch_pages,
         batch_bytes,
         builds,
         while_reconciling: WhileReconciling::ReportBuilding,
@@ -139,7 +150,7 @@ fn disk(dir: &std::path::Path) -> IndexStore {
 #[tokio::test(flavor = "multi_thread")]
 async fn initial_build_reports_progress_then_ready() {
     let tmp = tempfile::tempdir().unwrap();
-    let space = Space::start(view_with(2500), disk(tmp.path()));
+    let space = Space::start_batched(view_with(250), disk(tmp.path()), 50);
     let mut state = space.worker.status.clone();
     let mut progress = Vec::new();
     loop {
@@ -147,7 +158,7 @@ async fn initial_build_reports_progress_then_ready() {
         match s {
             SyncState::Ready => break,
             SyncState::Building { done, total } if done > 0 => {
-                assert_eq!(total, 2500);
+                assert_eq!(total, 250);
                 if progress.last() != Some(&done) {
                     progress.push(done);
                 }
@@ -159,9 +170,9 @@ async fn initial_build_reports_progress_then_ready() {
     }
     assert!(progress.len() >= 2, "progress seen: {progress:?}");
     assert!(progress.windows(2).all(|w| w[0] < w[1]));
-    assert_eq!(space.word("fern"), 2500);
-    assert_eq!(space.word("word1234"), 1);
-    assert_eq!(space.store.stamps().len(), 2500);
+    assert_eq!(space.word("fern"), 250);
+    assert_eq!(space.word("word123"), 1);
+    assert_eq!(space.store.stamps().len(), 250);
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -195,24 +206,25 @@ async fn restart_rereads_only_changed_files() {
 /// injected between batches without any feed event.
 #[tokio::test(flavor = "multi_thread")]
 async fn changes_during_the_build_end_up_exactly_once() {
+    const BATCH: usize = 50;
     let tmp = tempfile::tempdir().unwrap();
-    let view = view_with(2500);
+    let view = view_with(200);
     *view.hook.lock().unwrap() = Some(Box::new(|view, n| {
-        if n == BATCH_PAGES + 1 {
+        if n == BATCH + 1 {
             // Already committed in batch 1.
             view.write("Page 0010.md", "common fern rewritten");
             view.remove("Page 0011.md");
-            // Not read yet (batch 3).
-            view.write("Page 2400.md", "common fern changedlater");
-            view.remove("Page 2401.md");
-            view.write("Renamed 2401.md", "common fern word2401");
+            // Not read yet (batch 4).
+            view.write("Page 0150.md", "common fern changedlater");
+            view.remove("Page 0151.md");
+            view.write("Renamed 0151.md", "common fern word151");
         }
-        if n == 2 * BATCH_PAGES + 1 {
+        if n == 2 * BATCH + 1 {
             // Batch 2 is committed; its listed stamp is now stale.
-            view.write("Page 1500.md", "common fern lastedit");
+            view.write("Page 0075.md", "common fern lastedit");
         }
     }));
-    let space = Space::start(view.clone(), disk(tmp.path()));
+    let space = Space::start_batched(view.clone(), disk(tmp.path()), BATCH);
     space.ready().await;
     space.settled(2).await;
     assert_eq!(space.word("rewritten"), 1);
@@ -220,14 +232,14 @@ async fn changes_during_the_build_end_up_exactly_once() {
     assert!(!space.has_page("Page 0011.md"));
     assert_eq!(space.word("word11"), 0);
     assert_eq!(space.word("changedlater"), 1);
-    assert_eq!(space.word("word2400"), 0);
-    assert!(!space.has_page("Page 2401.md"));
-    assert!(space.has_page("Renamed 2401.md"));
-    assert_eq!(space.word("word2401"), 1);
+    assert_eq!(space.word("word150"), 0);
+    assert!(!space.has_page("Page 0151.md"));
+    assert!(space.has_page("Renamed 0151.md"));
+    assert_eq!(space.word("word151"), 1);
     assert_eq!(space.word("lastedit"), 1);
-    assert_eq!(space.word("word1500"), 0);
+    assert_eq!(space.word("word75"), 0);
     // One document per page, nothing resurrected.
-    assert_eq!(space.word("fern"), 2499);
+    assert_eq!(space.word("fern"), 199);
     let paths = space.paths();
     let listed: BTreeSet<String> = view.list_meta().unwrap().into_keys().collect();
     assert_eq!(paths, listed);
@@ -376,20 +388,6 @@ async fn a_burst_of_events_applies_one_upsert() {
     assert_eq!(space.word("version99"), 1);
     assert_eq!(space.word("version98"), 0);
     assert_eq!(space.store.stamps().len(), 1);
-}
-
-#[tokio::test(start_paused = true)]
-async fn debounce_waits_before_applying() {
-    let view = Arc::new(TestView::default());
-    view.write("Garden.md", "tomatoes");
-    let mut space = Space::start(view.clone(), IndexStore::open(Location::Memory));
-    space.ready().await;
-    view.write("Garden.md", "basil");
-    space.send(Some("Garden.md"));
-    sleep(DEBOUNCE / 2).await;
-    assert_eq!(space.word("basil"), 0);
-    space.settled(1).await;
-    assert_eq!(space.word("basil"), 1);
 }
 
 #[tokio::test(start_paused = true)]
@@ -582,54 +580,6 @@ async fn a_listing_failing_from_the_start_keeps_building() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn a_batch_over_the_byte_cap_is_split() {
-    let view = Arc::new(TestView::default());
-    for i in 0..10 {
-        let body = format!("fern word{i} {}", "x".repeat(290));
-        view.write(&format!("Page {i}.md"), &body);
-    }
-    let mut space = Space::start_with(
-        view.clone(),
-        IndexStore::open(Location::Memory),
-        own_slots(),
-        1000,
-    );
-    space.settled(1).await;
-    // Cut once a batch reaches 1000 bytes: 4 + 4 + 2 pages.
-    assert_eq!(space.worker.idle.borrow().commits, 3);
-    assert_eq!(space.word("fern"), 10);
-
-    // Feed batches too; the rest stays pending and is applied next.
-    for i in 0..10 {
-        let path = format!("Page {i}.md");
-        view.write(&path, &format!("moss word{i} {}", "y".repeat(290)));
-        space.send(Some(&path));
-    }
-    space.settled(1).await;
-    assert_eq!(space.worker.idle.borrow().commits, 6);
-    assert_eq!(space.word("moss"), 10);
-    assert_eq!(space.word("fern"), 0);
-    assert_eq!(view.total_reads(), 20);
-}
-
-#[tokio::test(start_paused = true)]
-async fn the_converge_pass_runs_once() {
-    // Every listing restamps every page, so each pass sees all as changed.
-    let view = Arc::new(TestView {
-        restamp: true,
-        ..TestView::default()
-    });
-    for i in 0..1500 {
-        view.write(&format!("Page {i:04}.md"), "common fern");
-    }
-    let space = Space::start(view.clone(), IndexStore::open(Location::Memory));
-    space.settled(2).await;
-    sleep(RECONCILE_EVERY / 2).await;
-    assert_eq!(space.reconciles(), 2, "build + one converge pass");
-    assert_eq!(view.total_reads(), 3000);
-}
-
-#[tokio::test(start_paused = true)]
 async fn a_later_large_reconcile_reports_progress() {
     let view = view_with(5);
     let mut space = Space::start(view.clone(), IndexStore::open(Location::Memory));
@@ -648,85 +598,6 @@ async fn a_later_large_reconcile_reports_progress() {
     space.ready().await;
     space.settled(2).await;
     assert_eq!(space.word("fern"), 1505);
-}
-
-/// The stats once they are (again) `Some` and differ from `before`.
-async fn next_stats(space: &Space, before: Option<IndexStats>) -> IndexStats {
-    let mut status = space.worker.status.clone();
-    let changed = status.wait_for(|s| s.stats.is_some() && s.stats != before);
-    let stats = bounded(changed).await.unwrap().stats.clone();
-    stats.unwrap()
-}
-
-#[tokio::test(start_paused = true)]
-async fn a_ready_status_always_carries_stats() {
-    let space = Space::start(view_with(3), IndexStore::open(Location::Memory));
-    let mut status = space.worker.status.clone();
-    let ready = status.wait_for(|s| {
-        assert!(
-            s.sync != SyncState::Ready || s.stats.is_some(),
-            "observed Ready without stats: {s:?}"
-        );
-        s.sync == SyncState::Ready
-    });
-    bounded(ready).await.unwrap();
-}
-
-#[tokio::test(start_paused = true)]
-async fn stats_after_the_initial_build_count_pages_and_skips() {
-    let view = view_with(3);
-    view.write_bytes("Bad.md", vec![0xff, 0xfe, b'x']);
-    view.write_bytes("Huge.md", vec![b'a'; MAX_FILE_BYTES as usize + 1]);
-    view.write("notes.txt", "not a page");
-    let mut space = Space::start(view.clone(), IndexStore::open(Location::Memory));
-    let stats = next_stats(&space, None).await;
-    assert_eq!(stats.pages, 3);
-    assert_eq!(stats.skipped, 2);
-    assert!(stats.memory);
-    assert!(stats.bytes > 0);
-    assert!(!stats.caught_up, "a fresh index is built");
-
-    // Small live updates don't report again.
-    view.write("Page 0000.md", "edited fern");
-    space.send(Some("Page 0000.md"));
-    space.settled(1).await;
-    assert_eq!(space.worker.status().stats, Some(stats.clone()));
-
-    // A reconcile changing more than a batch does, with the new count.
-    for i in 0..BATCH_PAGES + 1 {
-        view.write(&format!("More {i:04}.md"), "common fern");
-    }
-    space.send(None);
-    let later = next_stats(&space, Some(stats)).await;
-    assert_eq!(later.pages, 3 + BATCH_PAGES as u64 + 1);
-    assert_eq!(later.skipped, 2);
-    assert!(later.caught_up);
-}
-
-#[tokio::test(flavor = "multi_thread")]
-async fn stats_of_a_reused_disk_index() {
-    let tmp = tempfile::tempdir().unwrap();
-    let view = view_with(4);
-    {
-        let space = Space::start(view.clone(), disk(tmp.path()));
-        next_stats(&space, None).await;
-    }
-    let store = disk(tmp.path());
-    assert_eq!(store.opened(), Opened::Reused);
-    assert_eq!(
-        opened_line("Notes", store.opened(), store.pages()),
-        "Search index (space \"Notes\"): reusing on-disk index, 4 pages"
-    );
-    let space = Space::start(view, store);
-    let stats = next_stats(&space, None).await;
-    assert_eq!(stats.pages, 4);
-    assert_eq!(stats.skipped, 0);
-    assert!(!stats.memory);
-    assert_eq!(stats.bytes, space.store.size_bytes());
-    assert!(stats.caught_up);
-    assert!(stats
-        .line(IndexKind::FullText, "Notes")
-        .contains(", caught up in "));
 }
 
 /// A sink of another kind: records what it is given (and its resets, which

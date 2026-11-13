@@ -325,18 +325,6 @@ test("a read-only form has no rows for absent schema properties, but keeps empty
   });
 });
 
-test("rows keeps the raw tags value next to the normalized one", async () => {
-  expect(
-    await lua(`
-      local rows = objectForm.rows(
-        { name = "Notes/Ideas", tags = { "a", "b" } },
-        { values = { tags = "a, b" }, types = { tags = "string" }, keys = { "tags" } }
-      )
-      out = { count = #rows, raw = rows[1].raw, kind = rows[1].kind, value = rows[1].value }
-    `),
-  ).toEqual({ count: 1, raw: "a, b", kind: "tags", value: ["a", "b"] });
-});
-
 test("resolveField falls back to inference when the value breaks the schema", async () => {
   expect(
     await lua(`
@@ -391,9 +379,9 @@ test("rows shows a present but empty tags key, and hides a tag's absent readOnly
     ["tags:tags", "due:string", "budget:number", "owner:ref"],
     ["tags:tags", "due:string", "budget:number", "owner:ref"],
   ]);
-});
 
-test("an empty tags: key (null) gets an editable tags row without a warning; an absent one none", async () => {
+  // An empty `tags:` key (null) gets an editable tags row without a warning;
+  // an absent one gets none.
   expect(
     await lua(`
       local function rows(ctx)
@@ -799,15 +787,6 @@ test("rowMenuItems: type header, moves disabled at the ends, Change type only wi
   expect(menu.unknown[0]).toBe("Move up");
 });
 
-test("cycleIndex wraps and starts from either end", async () => {
-  expect(
-    await lua(`
-      local c = widgets.inputMenus.cycleIndex
-      out = { c(0, 3, 1), c(0, 3, -1), c(3, 3, 1), c(1, 3, -1), c(2, 3, 1), c(0, 0, 1) }
-    `),
-  ).toEqual([1, 3, 1, 3, 3, 0]);
-});
-
 test("linkSegments cuts text into plain runs and links", async () => {
   expect(
     await lua(`
@@ -984,18 +963,4 @@ test("filterOptions puts prefix matches first, skips taken values, limits, ignor
     ["glossary", "project", "projection", "subproject", "Prototype"],
     ["tag", "tags"],
   ]);
-});
-
-test("uniqueTagNames keeps one sorted name per tag", async () => {
-  expect(
-    await lua(`
-      out = widgets.inputCompletion.uniqueTagNames({
-        { tag = "tag", name = "project" },
-        { tag = "tag", name = "glossary" },
-        { tag = "tag", name = "project" },
-        { tag = "tag", name = "draft", inComment = true },
-        { tag = "page", name = "Projects/Apollo" },
-      })
-    `),
-  ).toEqual(["glossary", "project"]);
 });

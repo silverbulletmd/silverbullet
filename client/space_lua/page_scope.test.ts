@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { pageVarsSyscalls } from "../plugos/syscalls/page_vars.ts";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { EventInterest } from "../event_interest.ts";
@@ -230,15 +230,26 @@ test("assigning a space global shadows it inside the page only", async () => {
 });
 
 test("a runaway block is stopped and later definitions are marked", async () => {
-  const { scopes } = setup({
-    P: "```page-lua\nwhile true do end\n```\n${after = 1}",
+  // A clock that jumps a second per read exhausts the busy limit at once,
+  // instead of burning it in real time
+  let t = 0;
+  const clock = vi.spyOn(performance, "now").mockImplementation(() => {
+    t += 1000;
+    return t;
   });
-  const scope = (await scopes.get("P"))!;
-  expect(scope.blockErrors.get(0)).toMatch(/budget|too long|stopped/i);
-  expect(scope.assignments.get("after")).toEqual({
-    error: "stopped: budget exceeded",
-  });
-}, 20_000);
+  try {
+    const { scopes } = setup({
+      P: "```page-lua\nwhile true do end\n```\n${after = 1}",
+    });
+    const scope = (await scopes.get("P"))!;
+    expect(scope.blockErrors.get(0)).toMatch(/budget|too long|stopped/i);
+    expect(scope.assignments.get("after")).toEqual({
+      error: "stopped: budget exceeded",
+    });
+  } finally {
+    clock.mockRestore();
+  }
+});
 
 test("caches by fingerprint; prose edits do not rebuild", async () => {
   const { scopes, pages } = setup({ Budget: budget });

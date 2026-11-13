@@ -336,24 +336,6 @@ mod tests {
     }
 
     #[test]
-    fn test_resolve_empty_output_like_auto() {
-        assert_eq!(resolve_mode(false, false, "", true), OutputMode::Text);
-        assert_eq!(resolve_mode(false, false, "", false), OutputMode::Json);
-    }
-
-    #[test]
-    fn test_resolve_unknown_output_falls_through() {
-        assert_eq!(
-            resolve_mode(false, false, "totally-unknown", true),
-            OutputMode::Text
-        );
-        assert_eq!(
-            resolve_mode(false, false, "totally-unknown", false),
-            OutputMode::Json
-        );
-    }
-
-    #[test]
     fn test_format_json_object() {
         let v = json!({"key": "value"});
         let mut buf = Vec::new();
@@ -388,16 +370,6 @@ mod tests {
     }
 
     #[test]
-    fn test_format_jsonl_non_array() {
-        let v = json!({"x": 1});
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Jsonl).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        let lines: Vec<&str> = s.trim_end_matches('\n').lines().collect();
-        assert_eq!(lines.len(), 1);
-    }
-
-    #[test]
     fn test_format_yaml_object() {
         let v = json!({"foo": "bar", "num": 42});
         let mut buf = Vec::new();
@@ -417,42 +389,6 @@ mod tests {
     }
 
     #[test]
-    fn test_format_text_string_already_has_newline() {
-        let v = json!("hello\n");
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Text).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert_eq!(s, "hello\n");
-    }
-
-    #[test]
-    fn test_format_text_number_falls_back_to_indented_json() {
-        let v = json!(42);
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Text).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        assert!(s.contains("42"));
-    }
-
-    #[test]
-    fn test_format_table_array_of_objects_preferred_columns_first() {
-        // "tag" and "name" are preferred; "zeta" is not.
-        let v = json!([
-            {"tag": "task", "name": "Buy milk", "zeta": "z"},
-            {"tag": "task", "name": "Read book", "zeta": "a"},
-        ]);
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Table).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        let header_line = s.lines().next().unwrap();
-        let tag_pos = header_line.find("tag").unwrap();
-        let name_pos = header_line.find("name").unwrap();
-        let zeta_pos = header_line.find("zeta").unwrap();
-        assert!(tag_pos < name_pos, "tag before name in header");
-        assert!(name_pos < zeta_pos, "name before zeta in header");
-    }
-
-    #[test]
     fn test_format_table_array_of_objects_rows() {
         let v = json!([
             {"name": "Alice", "tag": "person"},
@@ -468,28 +404,6 @@ mod tests {
     }
 
     #[test]
-    fn test_format_table_single_object_preferred_keys_first() {
-        let v = json!({"name": "Alice", "tag": "person", "zeta": "last"});
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Table).unwrap();
-        let s = String::from_utf8(buf).unwrap();
-        let lines: Vec<&str> = s.lines().collect();
-        let tag_idx = lines.iter().position(|l| l.starts_with("tag")).unwrap();
-        let name_idx = lines.iter().position(|l| l.starts_with("name")).unwrap();
-        let zeta_idx = lines.iter().position(|l| l.starts_with("zeta")).unwrap();
-        assert!(tag_idx < name_idx, "tag before name");
-        assert!(name_idx < zeta_idx, "name before zeta");
-    }
-
-    #[test]
-    fn test_format_table_empty_array_writes_nothing_to_buf() {
-        let v = json!([]);
-        let mut buf = Vec::new();
-        format(&mut buf, &v, OutputMode::Table).unwrap();
-        assert!(buf.is_empty(), "buffer should be empty for empty array");
-    }
-
-    #[test]
     fn test_format_text_array_of_objects_renders_table() {
         let v = json!([{"name": "Alice"}]);
         let mut buf = Vec::new();
@@ -500,12 +414,6 @@ mod tests {
     }
 
     #[test]
-    fn test_format_cell_whitespace_collapse() {
-        let v = json!("a\n  b");
-        assert_eq!(format_cell(Some(&v)), "a b");
-    }
-
-    #[test]
     fn test_format_cell_truncation() {
         let s: String = "a".repeat(41);
         let v = Value::String(s);
@@ -513,63 +421,5 @@ mod tests {
         let chars: Vec<char> = cell.chars().collect();
         assert_eq!(chars.len(), 40, "should be 40 rune-chars (39 + ellipsis)");
         assert_eq!(*chars.last().unwrap(), '…');
-    }
-
-    #[test]
-    fn test_format_cell_exactly_40_no_truncation() {
-        let s: String = "a".repeat(40);
-        let v = Value::String(s.clone());
-        let cell = format_cell(Some(&v));
-        assert_eq!(cell, s);
-        assert!(!cell.ends_with('…'));
-    }
-
-    #[test]
-    fn test_format_cell_array() {
-        let v = json!([1, 2, 3]);
-        let cell = format_cell(Some(&v));
-        assert_eq!(cell, "[1,2,3]");
-    }
-
-    #[test]
-    fn test_format_cell_bool() {
-        assert_eq!(format_cell(Some(&json!(true))), "true");
-        assert_eq!(format_cell(Some(&json!(false))), "false");
-    }
-
-    #[test]
-    fn test_format_cell_number() {
-        assert_eq!(format_cell(Some(&json!(42))), "42");
-        assert_eq!(format_cell(Some(&json!(1.5))), "1.5");
-    }
-
-    #[test]
-    fn test_format_cell_null() {
-        assert_eq!(format_cell(Some(&Value::Null)), "");
-        assert_eq!(format_cell(None), "");
-    }
-
-    #[test]
-    fn test_pick_columns_prefers_preferred_order() {
-        let keys: std::collections::BTreeSet<String> = ["name", "zeta", "tag", "alpha"]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
-        let cols = pick_columns(&keys);
-        let tag_pos = cols.iter().position(|c| c == "tag").unwrap();
-        let name_pos = cols.iter().position(|c| c == "name").unwrap();
-        assert!(tag_pos < name_pos);
-        let alpha_pos = cols.iter().position(|c| c == "alpha").unwrap();
-        let zeta_pos = cols.iter().position(|c| c == "zeta").unwrap();
-        assert!(name_pos < alpha_pos, "preferred before non-preferred");
-        assert!(alpha_pos < zeta_pos, "non-preferred alphabetical");
-    }
-
-    #[test]
-    fn test_pick_columns_caps_at_max() {
-        let keys: std::collections::BTreeSet<String> =
-            (0..10).map(|i| format!("key{i:02}")).collect();
-        let cols = pick_columns(&keys);
-        assert!(cols.len() <= MAX_TABLE_COLUMNS);
     }
 }

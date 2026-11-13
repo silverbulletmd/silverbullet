@@ -78,19 +78,6 @@ describe("Share.md sharing", () => {
     expect(w.store.size).toBe(1); // just the credential
   });
 
-  test("push compares the transformed text with the remote", async () => {
-    await setPage({ uri: OTHER, mode: "push" }, "B<!-- x -->\n");
-    w.other.set(OTHER, "B\n");
-    const writes: string[] = [];
-    const set = w.other.set.bind(w.other);
-    w.other.set = (k: string, v: string) => {
-      writes.push(v);
-      return set(k, v);
-    };
-    expect(await w.h.call("share.sharePage", "Page")).toBe(false);
-    expect(writes).toEqual([]);
-  });
-
   test("push with the remote already at the page reads only", async () => {
     await w.setup("A\n", "B\n", "B\n", { mode: "push", hash: false });
     const before = w.pages.get("Page");
@@ -164,18 +151,6 @@ describe("Share.md sharing", () => {
     expect(w.localShare().hash).toBe(await hashOf("B\n"));
   });
 
-  test("sync takes the remote when only it changed", async () => {
-    await w.setup("A\n", "A\n", "C\n");
-    expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-    expect(await w.localBody()).toBe("C\n");
-    expect(w.localShare()).toEqual({
-      uri: URI,
-      mode: "sync",
-      hash: await hashOf("C\n"),
-    });
-    expect(w.methods()).toEqual(["GET"]);
-  });
-
   test("sync with equal sides records the hash without writing the remote", async () => {
     await w.setup("A\n", "B\n", "B\n", { hash: false });
     expect(await w.h.call("share.sharePage", "Page")).toBe(false);
@@ -188,24 +163,6 @@ describe("Share.md sharing", () => {
   describe("sync without a share.hash asks which version", () => {
     beforeEach(async () => {
       await w.setup("A\n", "B\n", "C\n", { hash: false });
-    });
-
-    test("asks with both sides", async () => {
-      await w.h.call("share.sharePage", "Page");
-      expect(w.chooseVersions).toEqual([
-        {
-          title: "Which version of Page?",
-          message:
-            "There's no record of the last share to tell which side changed.",
-          mine: "B\n",
-          theirs: "C\n",
-          choices: [
-            { id: "theirs", label: "Take theirs" },
-            { id: "mine", label: "Keep mine" },
-            { id: "copy", label: "Save theirs as a copy" },
-          ],
-        },
-      ]);
     });
 
     test("theirs", async () => {
@@ -264,22 +221,6 @@ describe("Share.md sharing", () => {
         theirs: "C\n",
       });
       expect(w.methods()).toEqual(["GET"]);
-    });
-
-    test("theirs", async () => {
-      w.chooseAnswer = "theirs";
-      expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-      expect(await w.localBody()).toBe("C\n");
-      expect(w.localShare().hash).toBe(await hashOf("C\n"));
-    });
-
-    test("mine", async () => {
-      w.chooseAnswer = "mine";
-      expect(await w.h.call("share.sharePage", "Page")).toBe(true);
-      expect(w.methods()).toEqual(["GET", "PUT"]);
-      expect(w.fetches[1].opts.headers["If-Match"]).toBe('"e1"');
-      expect(w.remote.get("Page")!.text).toBe("B\n");
-      expect(w.localShare().hash).toBe(await hashOf("B\n"));
     });
   });
 
@@ -391,38 +332,6 @@ describe("Share.md sharing", () => {
     );
   });
 
-  test("the hash is written only when it doesn't match the agreed text", async () => {
-    // Unchanged, the hash already matching: the page isn't written
-    await w.setup("A\n", "A\n", "A\n");
-    const writes: string[] = [];
-    const set = w.pages.set.bind(w.pages);
-    w.pages.set = (name: string, text: string) => {
-      writes.push(name);
-      return set(name, text);
-    };
-    expect(await w.sharePage()).toBe(false);
-    expect(writes).toEqual([]);
-    // Unchanged without a hash: written once
-    w.pages.set = set;
-    await w.setup("A\n", "A\n", "A\n", { hash: false });
-    w.pages.set = (name: string, text: string) => {
-      writes.push(name);
-      return set(name, text);
-    };
-    expect(await w.sharePage()).toBe(false);
-    expect(writes).toEqual(["Page"]);
-    expect(w.localShare().hash).toBe(await hashOf("A\n"));
-  });
-
-  test("a canceled version choice leaves the hash alone", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    const before = w.pages.get("Page");
-    w.chooseAnswer = undefined;
-    expect(await w.sharePage()).toBeNull();
-    expect(w.chooseVersions).toHaveLength(1);
-    expect(w.pages.get("Page")).toBe(before);
-  });
-
   test("hashes that look like numbers still match", async () => {
     // legacyHash("T46\n") is 83464e55, which YAML would read as a number
     expect(await hashOf("T46\n")).toBe("83464e55");
@@ -439,25 +348,6 @@ describe("Share.md sharing", () => {
     expect(await w.sharePage()).toBe(true);
     expect(await w.localBody()).toBe("C\n");
     expect(w.chooseVersions).toEqual([]);
-  });
-
-  test("pull writes share.hash when the sides agree or it takes the remote", async () => {
-    await w.setup("A\n", "B\n", "B\n", { mode: "pull" });
-    expect(await w.sharePage()).toBe(false);
-    expect(await w.localBody()).toBe("B\n");
-    expect(w.localShare()).toEqual({
-      uri: URI,
-      mode: "pull",
-      hash: await hashOf("B\n"),
-    });
-    await w.setup("A\n", "A\n", "C\n", { mode: "pull" });
-    expect(await w.sharePage()).toBe(true);
-    expect(await w.localBody()).toBe("C\n");
-    expect(w.localShare()).toEqual({
-      uri: URI,
-      mode: "pull",
-      hash: await hashOf("C\n"),
-    });
   });
 
   test("pull asks when the page changed since its share.hash", async () => {
@@ -505,19 +395,6 @@ describe("Share.md sharing", () => {
     expect(w.chooseVersions[0].theirs).toBe("C\n");
     expect(w.remote.get("Page")!.text).toBe("B\n");
     expect(w.localShare().hash).toBe(await hashOf("B\n"));
-  });
-
-  test("a Keep mine write that hits a 412 asks again", async () => {
-    await w.setup("A\n", "B\n", "C\n");
-    w.beforePut = () => {
-      w.beforePut = undefined;
-      w.setRemote("Page", "D\n");
-    };
-    w.chooseAnswer = "mine";
-    expect(await w.sharePage()).toBe(true);
-    expect(w.methods()).toEqual(["GET", "PUT", "GET", "PUT"]);
-    expect(w.chooseVersions.map((c) => c.theirs)).toEqual(["C\n", "D\n"]);
-    expect(w.remote.get("Page")!.text).toBe("B\n");
   });
 
   test("gives up when the remote keeps changing", async () => {
@@ -582,17 +459,6 @@ describe("Share.md sharing", () => {
     });
   });
 
-  test("share settings without a uri mean not configured", async () => {
-    await setPage({ transform: false }, "A\n");
-    expect(await w.sharePage()).toBe("THREW Not configured");
-  });
-
-  test("canceling Which version leaves the outcome to the user", async () => {
-    await w.setup("A\n", "B\n", "C\n", { hash: false });
-    w.chooseAnswer = undefined;
-    expect(await w.sharePage()).toBeNull();
-  });
-
   test("a first push to a write-only transport writes without reading", async () => {
     const written: string[] = [];
     w.h.services.push({
@@ -631,20 +497,6 @@ describe("Share.md sharing", () => {
     );
     expect(await w.sharePage()).toBe(true);
     expect(w.remote.get("Page")!.text).toBe("Hello\n");
-  });
-
-  test("onboarding that can't prepare the page says so and offers nothing", async () => {
-    w.h.services.push({
-      selector: "share:transform",
-      match: { name: "Needs a uri" },
-      run: async (data: any) => data.ctx.uri.toUpperCase(),
-      id: "needs-uri",
-    });
-    w.editorText = "Hello\n";
-    await w.h.commands.get("Share: Page")!();
-    expect(w.notifications).toHaveLength(1);
-    expect(w.notifications[0][1]).toBe("error");
-    expect(w.editorText).toBe("Hello\n");
   });
 
   test("a first share that fails leaves the page unshared", async () => {

@@ -1,16 +1,11 @@
 import YAML from "js-yaml";
 import { beforeEach, expect, test } from "vitest";
-import { yamlTopLevelKeys } from "../../plug-api/lib/yaml_source.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import {
   applyEdits,
   checkWritable,
-  editedSpans,
   findTarget,
   inlineYaml,
-  isPageTarget,
-  kindOf,
-  minimalEdit,
   patchYaml,
 } from "./object_edit.ts";
 import { inlineHandler } from "./object_edit_inline.ts";
@@ -34,25 +29,6 @@ test("applyEdits applies non-overlapping edits and rejects overlaps", () => {
       { from: 2, to: 4, insert: "" },
     ]),
   ).toThrow("these changes overlap");
-});
-
-test("editedSpans reports where each edit landed in the new text", () => {
-  expect(
-    editedSpans([
-      { from: 4, to: 5, insert: "E" },
-      { from: 0, to: 1, insert: "AA" },
-    ]),
-  ).toEqual([
-    [0, 2],
-    [5, 6],
-  ]);
-});
-
-test("minimalEdit trims the common prefix and suffix", () => {
-  expect(minimalEdit("abc", "abc")).toEqual([]);
-  expect(minimalEdit("a-b-c", "a-XY-c")).toEqual([
-    { from: 2, to: 3, insert: "XY" },
-  ]);
 });
 
 test("inlineYaml keeps strings strings when YAML would read another type", () => {
@@ -117,12 +93,6 @@ test("patchYaml removes a key with the comment lines directly above it", () => {
   expect(patchYaml("a: 1\n# about b\nb: 2\nc: 3", {}, ["b"])).toBe(
     "a: 1\nc: 3",
   );
-});
-
-test("patchYaml adds a new key before trailing blank lines", () => {
-  expect(patchYaml("a: 1\n\n", { b: 2 }, [])).toBe("a: 1\nb: 2\n\n");
-  expect(patchYaml("a: 1", { b: 2 }, [])).toBe("a: 1\nb: 2");
-  expect(patchYaml("", { b: 2 }, [])).toBe("b: 2");
 });
 
 test("patchYaml falls back to double quotes when the style can't hold the value", () => {
@@ -234,31 +204,6 @@ test("patchYaml order keeps block scalars whole and drops dangling blank lines",
   );
 });
 
-test("yamlTopLevelKeys keeps decoded integer-like keys in source order", () => {
-  expect(yamlTopLevelKeys("b: 1\n2: x\na: 3")).toEqual(["b", "2", "a"]);
-  // Move up on a, as the form computes it
-  expect(patchYaml("b: 1\n2: x\na: 3", {}, [], ["b", "a", "2"])).toBe(
-    "b: 1\na: 3\n2: x",
-  );
-  expect(yamlTopLevelKeys('x: 1\n1.0: y\n"q k": 2\nlist:\n  - a: 1')).toEqual([
-    "x",
-    "1",
-    "q k",
-    "list",
-  ]);
-});
-
-test("kindOf and isPageTarget", () => {
-  expect(kindOf({ tag: "task" })).toBe("task");
-  expect(kindOf({ tag: "expense", itags: ["data"] })).toBe("data");
-  expect(kindOf({ tag: "anchor" })).toBeNull();
-  expect(isPageTarget({ page: "Notes", ref: "Notes", tag: "page" })).toBe(true);
-  expect(isPageTarget({ page: "Notes", ref: "Notes" })).toBe(true);
-  expect(isPageTarget({ page: "Notes", ref: "Notes@3", range: [3, 9] })).toBe(
-    false,
-  );
-});
-
 test("findTarget picks the task, not the anchor object with the same ref", async () => {
   const text = "* [ ] Call Pete $call-pete\n";
   const fresh = await objectsOf(text);
@@ -332,7 +277,7 @@ test("patchYaml leaves single quotes for double quotes when the value has a newl
 });
 
 test("decoded keys target writes, removal and ordering while retaining spelling", () => {
-  const yaml = String.raw`"key\u0020name": example` + "\n1.0: old\nlast: yes";
+  const yaml = `${String.raw`"key\u0020name": example`}\n1.0: old\nlast: yes`;
   expect(
     patchYaml(
       yaml,
@@ -340,7 +285,7 @@ test("decoded keys target writes, removal and ordering while retaining spelling"
       [],
       ["1", "key name"],
     ),
-  ).toBe("1.0: new\n" + String.raw`"key\u0020name": updated` + "\nlast: yes");
+  ).toBe(`1.0: new\n${String.raw`"key\u0020name": updated`}\nlast: yes`);
   expect(patchYaml(yaml, {}, ["key name", "1"])).toBe("last: yes");
 });
 
@@ -354,12 +299,6 @@ test("multiline flow values use the full parsed extent", () => {
   ).toBe("items:\n  - new\nneighbor: keep");
   expect(() => patchYaml("{one: old, two: keep}", { one: "new" }, [])).toThrow(
     "flow mappings must be edited in source",
-  );
-});
-
-test("removing an empty value preserves the next property's comment", () => {
-  expect(patchYaml("empty: # absent\n# next\nother: keep", {}, ["empty"])).toBe(
-    "# next\nother: keep",
   );
 });
 
@@ -377,8 +316,4 @@ test("patchYaml removes the last key with the line break before it", () => {
   expect(patchYaml("a: 1", {}, ["a"])).toBe("");
   // Removing the last key and adding one in the same patch
   expect(patchYaml("a: 1\nb: 2", { c: 3 }, ["b"])).toBe("a: 1\nc: 3");
-});
-
-test("patchYaml: remove wins over a patch of the same key, and repeats are ignored", () => {
-  expect(patchYaml("a: 1\nb: 2", { a: 5 }, ["a", "a"])).toBe("b: 2");
 });

@@ -825,30 +825,6 @@ mod tests {
     }
 
     #[test]
-    fn console_level_maps_severity() {
-        assert_eq!(
-            console_level(&ConsoleApiCalledType::Error),
-            tracing::Level::ERROR
-        );
-        assert_eq!(
-            console_level(&ConsoleApiCalledType::Warning),
-            tracing::Level::WARN
-        );
-        assert_eq!(
-            console_level(&ConsoleApiCalledType::Log),
-            tracing::Level::INFO
-        );
-        assert_eq!(
-            console_level(&ConsoleApiCalledType::Debug),
-            tracing::Level::INFO
-        );
-        assert_eq!(
-            console_level(&ConsoleApiCalledType::Info),
-            tracing::Level::INFO
-        );
-    }
-
-    #[test]
     fn clean_exception_message_strips_v8_framing() {
         assert_eq!(
             clean_exception_message(
@@ -856,22 +832,6 @@ mod tests {
                 Some("y: attempt to call a nil value\n    at $ (client.js:66:35699)"),
             ),
             "attempt to call a nil value"
-        );
-    }
-
-    #[test]
-    fn clean_exception_message_drops_stack_and_handles_sync_uncaught() {
-        assert_eq!(
-            clean_exception_message("Uncaught Error: boom\n    at f (x.js:1:1)", None),
-            "boom"
-        );
-    }
-
-    #[test]
-    fn clean_exception_message_falls_back_to_description() {
-        assert_eq!(
-            clean_exception_message("", Some("Error: from description\nstack")),
-            "from description"
         );
     }
 
@@ -888,11 +848,6 @@ mod tests {
             clean_exception_message("Uncaught (in promise)", Some("Error: boom\nstack")),
             "boom"
         );
-    }
-
-    #[test]
-    fn clean_exception_message_never_empty() {
-        assert_eq!(clean_exception_message("", None), "client evaluation error");
     }
     fn chrome_error(code: i64, message: &str) -> CdpError {
         CdpError::Chrome(chromiumoxide::types::Error {

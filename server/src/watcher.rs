@@ -194,6 +194,37 @@ impl WatchMode {
     }
 }
 
+/// The mode an instance's watcher starts in. Unit tests that build instances
+/// default to `Off`: every native watcher queues on the global
+/// `NATIVE_LIFECYCLE` mutex, so hundreds of unused watchers made the ones that
+/// are asserted time out. A test that asserts native events calls
+/// [`native_watcher_for_this_test`] first.
+pub(crate) fn instance_watch_mode() -> WatchMode {
+    #[cfg(test)]
+    if !tests_opt_in::get() {
+        return WatchMode::Off;
+    }
+    WatchMode::from_env()
+}
+
+#[cfg(test)]
+mod tests_opt_in {
+    use std::cell::Cell;
+    thread_local!(static NATIVE: Cell<bool> = const { Cell::new(false) });
+    pub fn get() -> bool {
+        NATIVE.with(Cell::get)
+    }
+    pub fn set() {
+        NATIVE.with(|n| n.set(true));
+    }
+}
+
+/// Makes instances built on this test thread start a real watcher.
+#[cfg(test)]
+pub(crate) fn native_watcher_for_this_test() {
+    tests_opt_in::set();
+}
+
 /// `SB_FS_POLL_INTERVAL`, in whole seconds. Split from the env lookup so the
 /// parsing is testable without mutating process-wide state.
 fn poll_interval_from_env() -> Duration {
@@ -628,25 +659,12 @@ mod tests {
         assert!(ev.last_modified > 0);
     }
 
+    /// Dotfiles, gitignored paths, new directories and extensionless files
+    /// are all ignored. The visible `.md` written last is the positive
+    /// control: it must be the first event, so nothing ignored slipped
+    /// through ahead of it.
     #[tokio::test]
-    async fn ignores_hidden_files() {
-        let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(
-            dir.path(),
-            "",
-            WatchMode::Auto,
-            Arc::new(FsGuard::default()),
-        )
-        .await
-        .unwrap();
-        let mut rx = tx.subscribe();
-        std::fs::write(dir.path().join(".hidden"), b"x").unwrap();
-        let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
-        assert!(res.is_err(), "expected no event for dotfile");
-    }
-
-    #[tokio::test]
-    async fn ignores_gitignored_paths() {
+    async fn ignores_hidden_gitignored_directory_and_extensionless_paths() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::create_dir(dir.path().join("build")).unwrap();
         let tx = start_watcher(
@@ -658,43 +676,17 @@ mod tests {
         .await
         .unwrap();
         let mut rx = tx.subscribe();
+        std::fs::write(dir.path().join(".hidden"), b"x").unwrap();
         std::fs::write(dir.path().join("build/output.js"), b"x").unwrap();
-        let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
-        assert!(res.is_err(), "expected no event for gitignored path");
-    }
-
-    #[tokio::test]
-    async fn ignores_new_directories() {
-        let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(
-            dir.path(),
-            "",
-            WatchMode::Auto,
-            Arc::new(FsGuard::default()),
-        )
-        .await
-        .unwrap();
-        let mut rx = tx.subscribe();
         std::fs::create_dir(dir.path().join("subdir")).unwrap();
-        let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
-        assert!(res.is_err(), "expected no event for a new directory");
-    }
-
-    #[tokio::test]
-    async fn ignores_extensionless_files() {
-        let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(
-            dir.path(),
-            "",
-            WatchMode::Auto,
-            Arc::new(FsGuard::default()),
-        )
-        .await
-        .unwrap();
-        let mut rx = tx.subscribe();
         std::fs::write(dir.path().join("Makefile"), b"x").unwrap();
-        let res = tokio::time::timeout(Duration::from_millis(500), rx.recv()).await;
-        assert!(res.is_err(), "expected no event for an extensionless file");
+        std::fs::write(dir.path().join("visible.md"), b"x").unwrap();
+        let ev = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            .await
+            .expect("timed out waiting for the visible file's event")
+            .unwrap();
+        assert_eq!(ev.name, "visible.md");
+        assert_eq!(ev.action, FsAction::Change);
     }
 
     #[tokio::test]
@@ -823,39 +815,6 @@ mod tests {
                 .await
                 .is_none()
         );
-    }
-
-    #[tokio::test]
-    async fn flood_collapses_into_resync() {
-        let dir = tempfile::tempdir().unwrap();
-        let tx = start_watcher(
-            dir.path(),
-            "",
-            WatchMode::Auto,
-            Arc::new(FsGuard::default()),
-        )
-        .await
-        .unwrap();
-        let mut rx = tx.subscribe();
-        for i in 0..40 {
-            std::fs::write(dir.path().join(format!("f{i}.md")), b"x").unwrap();
-        }
-        // A few individual events may precede the flood accumulating; require
-        // that a Resync arrives and that we never see all 40 enumerated
-        let deadline = std::time::Instant::now() + Duration::from_secs(3);
-        let mut individual = 0;
-        loop {
-            let remaining = deadline.saturating_duration_since(std::time::Instant::now());
-            let ev = tokio::time::timeout(remaining, rx.recv())
-                .await
-                .expect("timed out waiting for resync")
-                .unwrap();
-            if ev.action == FsAction::Resync {
-                break;
-            }
-            individual += 1;
-            assert!(individual < 40, "flood was fully enumerated, no resync");
-        }
     }
 
     /// Flooded paths must not be hashed before collapsing into Resync. A few

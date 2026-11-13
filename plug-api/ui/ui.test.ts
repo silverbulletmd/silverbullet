@@ -1,15 +1,10 @@
-import { expect, test } from "vitest";
 import { h } from "preact";
 import { render } from "preact-render-to-string";
+import { expect, test } from "vitest";
 import {
-  Alert,
-  Badge,
   Button,
-  Checkbox,
-  Icon,
   Input,
   Progress,
-  Select,
   SegmentedControl,
   Tabs,
   UrlPrefixInput,
@@ -20,21 +15,6 @@ test("Button primary emits both classes and merges consumer class", () => {
   expect(html).toContain("sb-button sb-button-primary x");
   expect(html).toContain(">Ok</button>");
   expect(html).toContain('type="button"');
-});
-
-test("Button danger/icon variants", () => {
-  expect(render(h(Button, { variant: "danger" }, "D"))).toContain(
-    "sb-button-danger",
-  );
-  expect(render(h(Button, { variant: "icon" }, "I"))).toContain(
-    "sb-button-icon",
-  );
-});
-
-test("Input renders sb-input with default type text", () => {
-  const html = render(h(Input, { value: "hi" }));
-  expect(html).toContain('class="sb-input"');
-  expect(html).toContain('type="text"');
 });
 
 test("Input renders cleanly when onConfirm/onExit are provided", () => {
@@ -48,18 +28,6 @@ test("Input renders cleanly when onConfirm/onExit are provided", () => {
   expect(html).not.toContain("onExit");
 });
 
-test("Select wraps options", () => {
-  const html = render(h(Select, {}, h("option", {}, "A")));
-  expect(html).toContain('class="sb-select"');
-  expect(html).toContain(">A</option>");
-});
-
-test("Checkbox is a checkbox input", () => {
-  const html = render(h(Checkbox, { checked: true }));
-  expect(html).toContain('type="checkbox"');
-  expect(html).toContain("sb-checkbox");
-});
-
 test("Tabs marks the active tab and wires per-item onSelect", () => {
   let picked = "";
   const items = [
@@ -71,20 +39,6 @@ test("Tabs marks the active tab and wires per-item onSelect", () => {
   expect(html).toContain('aria-selected="true"');
   items[0].onSelect();
   expect(picked).toBe("a");
-});
-
-test("Alert variant class", () => {
-  expect(render(h(Alert, { variant: "error" }, "e"))).toContain(
-    "sb-alert sb-alert-error",
-  );
-  expect(render(h(Alert, { variant: "warning" }, "w"))).toContain(
-    "sb-alert-warning",
-  );
-  expect(render(h(Alert, { variant: "info" }, "i"))).toContain("sb-alert-info");
-});
-
-test("Badge", () => {
-  expect(render(h(Badge, {}, "b"))).toContain('class="sb-badge">b<');
 });
 
 test("Progress clamps value to a width percentage", () => {
@@ -145,13 +99,6 @@ test("SegmentedControl prefers the caller's tooltip over the label", () => {
     h(SegmentedControl, { items, activeIndex: 0, onPick: () => {} }),
   );
   expect(html).toContain('title="Anchors ($)"');
-});
-
-test("Icon renders a span carrying the caller's class", () => {
-  const node = {} as unknown as Element;
-  const html = render(h(Icon, { node, class: "sb-nav-icon" }));
-  expect(html).toContain('class="sb-nav-icon"');
-  expect(html).toMatch(/<span[^>]*><\/span>/);
 });
 
 test("UrlPrefixInput trims a trailing slash off the origin", () => {

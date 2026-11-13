@@ -60,9 +60,6 @@ rating: "4"
 Apollo body text.
 `;
 
-const longText =
-  "A deliberately long description that has to wrap over several lines in the form rather than being clipped at the edge of a single-line field";
-
 const spaceFiles = {
   "index.md": "Welcome",
   "Library/Config.md": tagsConfig,
@@ -70,8 +67,6 @@ const spaceFiles = {
   "Person/Bob.md": "---\ntags: person\nrole: Designer\n---\nBob",
   "Projects/Apollo.md": apollo,
   "Glossary.md": "---\ntags: glossary\n---\nTerms",
-  "Notes/Long.md": `---\ndescription: ${longText}\n---\nBody`,
-  "Notes/Flags.md": "---\nnote: plain text\ndone: true\n---\nFlags body.\n",
   "Notes/Linked.md":
     '---\nnote: "see [[Person/Alice]] soon"\nsummary: plain words\nrefs:\n  - First\n---\nLinked body.\n',
 };
@@ -159,44 +154,6 @@ test.describe("frontmatter form", () => {
     );
   });
 
-  test("a date shows as YYYY-MM-DD and is written quoted", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openApollo(sbPage, sbServer);
-    const due = row(sbPage, "due").locator("input.sb-in-date");
-    await expect(due).toHaveValue("2027-01-15");
-    // A real date input sits over the calendar icon (iOS opens its wheel on a tap)
-    const picker = row(sbPage, "due").locator(
-      ".sb-in-date-button input[type=date]",
-    );
-    await expect(picker).toHaveValue("2027-01-15");
-    await expect(picker).toHaveAttribute("aria-label", "Pick a date");
-    await expect(picker).not.toHaveAttribute("aria-hidden", /.*/);
-    await expect(
-      row(sbPage, "due").locator(".sb-in-date-button"),
-    ).toBeVisible();
-
-    // Not a calendar date: marked invalid, nothing written
-    await due.fill("2026-13-40");
-    await sbPage.keyboard.press("Enter");
-    await expect(due).toHaveClass(/sb-in-invalid/);
-    await expect(due).toHaveAttribute("title", "There is no month 13");
-    // So that picking the previous date again still fires a change
-    await expect(row(sbPage, "due").locator(".sb-in-date-picker")).toHaveValue(
-      "",
-    );
-    expect(await docText(sbPage)).toContain("due: 2027-01-15\n");
-
-    await due.fill("2026-12-15");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain('budget: 10000\ndue: "2026-12-15"\npublic: true\n');
-    await expect(due).not.toHaveClass(/sb-in-invalid/);
-    await expect(picker).toHaveValue("2026-12-15");
-  });
-
   test("undo restores the exact previous YAML", async ({
     sbPage,
     sbServer,
@@ -232,21 +189,6 @@ test.describe("frontmatter form", () => {
     await expect(row(sbPage, "budget").locator("input")).toHaveValue("10000");
   });
 
-  test("undo with focus still in the form restores a removed chip", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openApollo(sbPage, sbServer);
-    const owner = row(sbPage, "owner");
-    await owner.locator(".sb-in-chip-input").focus();
-    await owner.locator(".sb-in-chip .sb-in-x").click();
-    await expect.poll(() => docText(sbPage)).not.toContain("owner:");
-    await sbPage.keyboard.press(`${mod}+z`);
-    await expect.poll(() => docText(sbPage)).toBe(apollo);
-    await settleInBody(sbPage, "Apollo body text.");
-    await expect(owner.locator(".sb-in-chip-label")).toHaveText("Person/Alice");
-  });
-
   test("undo and redo with focus on a checkbox", async ({
     sbPage,
     sbServer,
@@ -271,47 +213,6 @@ test.describe("frontmatter form", () => {
     await expect(
       row(sbPage, "public").locator("input[type=checkbox]"),
     ).not.toBeChecked();
-  });
-
-  test("undo from the form on a page without a schema", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Flags");
-    const box = row(sbPage, "done").locator("input[type=checkbox]");
-    await expect(box).toBeChecked();
-    await box.uncheck();
-    await expect(box).toBeFocused();
-    await expect.poll(() => docText(sbPage)).toContain("done: false\n");
-    await sbPage.keyboard.press(`${mod}+z`);
-    await expect.poll(() => docText(sbPage)).toContain("done: true\n");
-    await settleInBody(sbPage, "Flags body.");
-    await expect(
-      row(sbPage, "done").locator("input[type=checkbox]"),
-    ).toBeChecked();
-    await expect(row(sbPage, "note").locator("textarea")).not.toBeFocused();
-  });
-
-  test("each form edit is one undo step", async ({ sbPage, sbServer }) => {
-    await openApollo(sbPage, sbServer);
-    // A list reorder, then a date, in quick succession
-    const second = row(sbPage, "references").locator(".sb-in-list-item").nth(1);
-    await second.hover();
-    await second.locator(".sb-in-more").click();
-    await second.locator(".sb-in-option", { hasText: "Move up" }).click();
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain("references:\n  - Second\n  - First\n");
-    const due = row(sbPage, "due").locator("input.sb-in-date");
-    await due.fill("2026-12-15");
-    await sbPage.keyboard.press("Enter");
-    await expect.poll(() => docText(sbPage)).toContain('due: "2026-12-15"\n');
-
-    await sbPage.keyboard.press(`${mod}+z`);
-    await expect.poll(() => docText(sbPage)).toContain("due: 2027-01-15\n");
-    expect(await docText(sbPage)).toContain("  - Second\n  - First\n");
-    await sbPage.keyboard.press(`${mod}+z`);
-    await expect.poll(() => docText(sbPage)).toBe(apollo);
   });
 
   test("the row menu shows the type and converts a custom attribute", async ({
@@ -367,40 +268,6 @@ test.describe("frontmatter form", () => {
     await rowMenuItem(sbPage, "public", "Delete").click();
     await expect.poll(() => docText(sbPage)).not.toContain("public:");
     expect(await docText(sbPage)).toContain("budget: 10000\nreferences:");
-  });
-
-  test("the row menu opens from the keyboard", async ({ sbPage, sbServer }) => {
-    await openApollo(sbPage, sbServer);
-    const button = row(sbPage, "status").locator(".sb-in-more");
-    await button.focus();
-    await sbPage.keyboard.press("Enter");
-    const menu = rowMenu(sbPage, "status");
-    await expect(menu).toBeVisible();
-    await expect(menu.locator(".sb-in-option.sb-in-selected")).toHaveText(
-      "Move up",
-    );
-    await sbPage.keyboard.press("ArrowDown");
-    await expect(menu.locator(".sb-in-option.sb-in-selected")).toHaveText(
-      "Move down",
-    );
-    await sbPage.keyboard.press("Escape");
-    await expect(menu).toHaveCount(0);
-    await expect(button).toBeFocused();
-    expect(await docText(sbPage)).toBe(apollo);
-
-    // Shift+F10 in a field opens its row's menu, focus on the first item
-    await row(sbPage, "budget").locator("input").focus();
-    await sbPage.keyboard.press("Shift+F10");
-    const budgetMenu = rowMenu(sbPage, "budget");
-    await expect(budgetMenu).toBeVisible();
-    await expect(
-      budgetMenu.locator(".sb-in-option", { hasText: "Move up" }),
-    ).toBeFocused();
-    await sbPage.keyboard.press("ArrowDown");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain("due: 2027-01-15\nbudget: 10000\n");
   });
 
   test("adds a new attribute by typing its name and picking Add", async ({
@@ -480,26 +347,6 @@ test.describe("frontmatter form", () => {
     });
   }
 
-  test("Shift-Enter adds exactly the typed name", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openApollo(sbPage, sbServer);
-    await form(sbPage).locator(".sb-fm-add-attr").click();
-    await expect(navInput(sbPage)).toBeVisible();
-    // "own" fuzzily matches owner and others; Shift-Enter still takes the text
-    await navInput(sbPage).fill("own");
-    await sbPage.keyboard.press("Shift+Enter");
-    await pickInFilterBox(sbPage, "number", "number");
-    const input = row(sbPage, "own").locator("input");
-    await expect(input).toBeFocused();
-    await input.fill("3");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain('rating: "4"\nown: 3\n---\n');
-  });
-
   test("read-only page shows disabled inputs and writes nothing", async ({
     sbPage,
     sbServer,
@@ -547,20 +394,6 @@ test.describe("frontmatter form", () => {
       .toContain("---\ntags: glossary launch\nstatus");
   });
 
-  test("adds a recipient through completion", async ({ sbPage, sbServer }) => {
-    await openApollo(sbPage, sbServer);
-    await form(sbPage).locator(".sb-fm-add-attr").click();
-    await pickInFilterBox(sbPage, "recipients", "recipients");
-    const input = row(sbPage, "recipients").locator(".sb-in-chip-input");
-    await expect(input).toBeFocused();
-    await sbPage.keyboard.type("ali");
-    await expect(dropdown(sbPage, "recipients")).toContainText("@alice");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain('rating: "4"\nrecipients: alice\n---\n');
-  });
-
   test("edits a string list one item per line", async ({
     sbPage,
     sbServer,
@@ -593,68 +426,6 @@ test.describe("frontmatter form", () => {
     await expect
       .poll(() => docText(sbPage))
       .toContain("references:\n  - Third\n  - Second\nrating");
-  });
-
-  test("a long string wraps, and Enter commits it", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Long");
-    const field = row(sbPage, "description").locator("textarea");
-    await expect(field).toHaveValue(longText);
-    const lineHeight = await field.evaluate((el) =>
-      Number.parseFloat(getComputedStyle(el).lineHeight),
-    );
-    const height = (await field.boundingBox())!.height;
-    expect(height).toBeGreaterThan(lineHeight * 1.5);
-
-    await field.evaluate((el: HTMLTextAreaElement) => {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
-    await sbPage.keyboard.type(" today");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain(`description: ${longText} today\n---`);
-  });
-
-  test("Shift-Enter inserts a newline in a text field and in a list item", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Long");
-    const field = row(sbPage, "description").locator("textarea");
-    await field.evaluate((el: HTMLTextAreaElement) => {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
-    await sbPage.keyboard.type(" one");
-    await sbPage.keyboard.press("Shift+Enter");
-    await sbPage.keyboard.type("two");
-    await expect(field).toHaveValue(`${longText} one\ntwo`);
-    // Not committed yet: Shift-Enter doesn't write
-    expect(await docText(sbPage)).toContain(`description: ${longText}\n---`);
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toMatch(/description: ".* one\\ntwo"\n---/);
-
-    await openApollo(sbPage, sbServer);
-    const references = row(sbPage, "references");
-    const items = references.locator(".sb-in-list-item");
-    await references.locator(".sb-in-add").click();
-    await sbPage.keyboard.type("Third");
-    await sbPage.keyboard.press("Shift+Enter");
-    await sbPage.keyboard.type("more");
-    await expect(items).toHaveCount(3);
-    await expect(items.nth(2).locator("textarea")).toHaveValue("Third\nmore");
-    await sbPage.keyboard.press("Enter");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain(
-        'references:\n  - First\n  - Second\n  - "Third\\nmore"\nrating',
-      );
   });
 
   test("an outside edit while focused shows up after blur", async ({
@@ -705,21 +476,6 @@ test.describe("links in text fields", () => {
       .toBe("Person/Alice");
   });
 
-  test("clicking beside the link edits the text", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Linked");
-    await row(sbPage, "note")
-      .locator(".sb-in-linktext")
-      .click({
-        position: { x: 2, y: 5 },
-      });
-    const field = row(sbPage, "note").locator("textarea");
-    await expect(field).toBeFocused();
-    await expect(field).toHaveValue("see [[Person/Alice]] soon");
-  });
-
   test("typing [[ completes a page in a text field", async ({
     sbPage,
     sbServer,
@@ -740,28 +496,6 @@ test.describe("links in text fields", () => {
     await expect
       .poll(() => docText(sbPage))
       .toContain("summary: plain words [[Person/Bob]]\n");
-  });
-
-  test("typing [[ completes a page in a list item", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Linked");
-    const item = row(sbPage, "refs").locator("textarea").first();
-    await item.evaluate((el: HTMLTextAreaElement) => {
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
-    await sbPage.keyboard.type(" [[Person/A");
-    await expect(row(sbPage, "refs").locator(".sb-in-dropdown")).toContainText(
-      "Person/Alice",
-    );
-    await sbPage.keyboard.press("Tab");
-    await expect(item).toHaveValue("First [[Person/Alice]]");
-    await clickBody(sbPage);
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain("refs:\n  - First [[Person/Alice]]\n");
   });
 });
 

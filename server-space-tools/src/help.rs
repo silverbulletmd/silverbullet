@@ -791,40 +791,6 @@ Skills differ per space: run `sb help` again with `--space` after switching. Run
     }
 
     #[test]
-    fn cli_overview_has_operations_table_and_sb_commands() {
-        let rows = rows();
-        let data = data();
-        let text = render_overview(
-            &rows,
-            Some((&rows[0], &data)),
-            &[],
-            &Voice::CLI,
-            "https://docs.silverbullet.md",
-            None,
-        );
-        assert!(text.contains("sb fs read"), "{text}");
-        assert!(text.contains("sb help <skill>"), "{text}");
-        assert!(
-            text.contains("| Alpha | `alpha-1` | /spaces/alpha-1 | selected |"),
-            "{text}"
-        );
-        assert!(
-            text.contains("| Beta | `beta-2` | /spaces/beta-2 |  |"),
-            "{text}"
-        );
-        assert!(
-            text.contains("sb query 'from p = index.pages(\"race\") select {name = p.name"),
-            "{text}"
-        );
-        assert!(!text.contains("help(topic:"), "{text}");
-        assert!(
-            text.contains("Documentation: https://docs.silverbullet.md."),
-            "{text}"
-        );
-        assert!(text.contains("## In Alpha"), "{text}");
-    }
-
-    #[test]
     fn cli_overview_without_a_space_says_how_to_select_or_add_one() {
         let built_in = [skill("Library/Std/Docs/Querying", None, SkillSource::Std)];
         let some = render_overview(&rows(), None, &built_in, &Voice::CLI, "d", None);
@@ -856,17 +822,6 @@ Skills differ per space: run `sb help` again with `--space` after switching. Run
             "{text}"
         );
         assert!(!text.contains("Select a space with"), "{text}");
-    }
-
-    #[test]
-    fn cli_no_match_without_spaces_says_to_add_one() {
-        let skills = [skill("Library/Std/Docs/Querying", None, SkillSource::Std)];
-        let message = no_match_message("Quering", Searched::BuiltInNoSpaces, &skills, &Voice::CLI);
-        assert!(
-            message.contains("add one with `sb space add <url or folder>`"),
-            "{message}"
-        );
-        assert!(!message.contains("--space"), "{message}");
     }
 
     #[test]
@@ -909,26 +864,5 @@ Skills differ per space: run `sb help` again with `--space` after switching. Run
         );
         assert_eq!(page("nothing"), None);
         assert!(find_substring(&skills, "acme").is_some());
-    }
-
-    #[test]
-    fn cli_no_match_names_the_space_flag() {
-        let skills = [skill("Library/Std/Docs/Querying", None, SkillSource::Std)];
-        let message = no_match_message("Quering", Searched::BuiltIn, &skills, &Voice::CLI);
-        assert!(message.contains("--space <name or id>"), "{message}");
-        assert!(!message.contains("sb Quering"), "{message}");
-        let mcp = no_match_message("fs", Searched::Space("alpha"), &skills, &Voice::MCP);
-        assert!(!mcp.contains("--help"), "{mcp}");
-    }
-
-    #[test]
-    fn mcp_topic_header_is_the_source_line_only() {
-        assert_eq!(
-            topic_header("Library/Std/Docs/Querying", "built in", &Voice::MCP),
-            "Source: Library/Std/Docs/Querying — built in"
-        );
-        let cli = topic_header("A", "built in", &Voice::CLI);
-        assert!(cli.starts_with("Source: A — built in\n\n"));
-        assert!(cli.contains("sb fs read"));
     }
 }

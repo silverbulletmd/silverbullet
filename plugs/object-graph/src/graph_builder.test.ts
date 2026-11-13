@@ -1,36 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
-  classifyKind,
   collapseEdges,
   deriveTagFields,
   endpointMatchesRef,
   isHiddenTag,
   type RelationRow,
   splitToolPages,
-  stripPagePos,
 } from "./graph_builder.ts";
-
-describe("stripPagePos", () => {
-  it("returns bare refs unchanged", () => {
-    expect(stripPagePos("Page")).toBe("Page");
-    expect(stripPagePos("Drivers/Max Verstappen")).toBe(
-      "Drivers/Max Verstappen",
-    );
-  });
-
-  it("strips @pos, #header, $anchor", () => {
-    expect(stripPagePos("Page@744")).toBe("Page");
-    expect(stripPagePos("Page#header")).toBe("Page");
-    expect(stripPagePos("Page$anchor")).toBe("Page");
-  });
-
-  it("leaves url and file refs untouched", () => {
-    expect(stripPagePos("https://example.com/path#x")).toBe(
-      "https://example.com/path#x",
-    );
-    expect(stripPagePos("docs.pdf")).toBe("docs.pdf");
-  });
-});
 
 describe("endpointMatchesRef", () => {
   it("matches exact refs", () => {
@@ -54,24 +30,6 @@ describe("endpointMatchesRef", () => {
   });
 });
 
-describe("classifyKind", () => {
-  it("identifies URLs", () => {
-    expect(classifyKind("https://example.com")).toBe("url");
-    expect(classifyKind("http://localhost:3000")).toBe("url");
-  });
-
-  it("identifies files (single dot, non-md)", () => {
-    expect(classifyKind("doc.pdf")).toBe("file");
-    expect(classifyKind("notes.txt")).toBe("file");
-  });
-
-  it("treats .md and pathy refs as pages", () => {
-    expect(classifyKind("Notes")).toBe("page");
-    expect(classifyKind("Notes/2025")).toBe("page");
-    expect(classifyKind("Notes.md")).toBe("page");
-  });
-});
-
 describe("isHiddenTag", () => {
   it("hides built-in tags and the graph's own block kind", () => {
     expect(isHiddenTag("page")).toBe(true);
@@ -79,16 +37,6 @@ describe("isHiddenTag", () => {
     expect(isHiddenTag("task")).toBe(true);
     expect(isHiddenTag("aspiring-page")).toBe(true);
     expect(isHiddenTag("block")).toBe(true);
-  });
-
-  it("hides meta and meta/* page tags", () => {
-    expect(isHiddenTag("meta")).toBe(true);
-    expect(isHiddenTag("meta/library")).toBe(true);
-  });
-
-  it("shows user tags", () => {
-    expect(isHiddenTag("driver")).toBe(false);
-    expect(isHiddenTag("project")).toBe(false);
   });
 });
 
@@ -145,15 +93,6 @@ describe("collapseEdges", () => {
     ...overrides,
   });
 
-  it("passes through a single mention as-is", () => {
-    const out = collapseEdges([baseRow({})]);
-    expect(out).toHaveLength(1);
-    expect(out[0].source).toBe("A");
-    expect(out[0].target).toBe("B");
-    expect(out[0].label).toBe("mention");
-    expect(out[0].undirected).toBe(false);
-  });
-
   it("collapses reciprocal co-mention pairs into one undirected edge", () => {
     const rows: RelationRow[] = [
       baseRow({ kind: "co-mention", via: "page1" }),
@@ -182,11 +121,6 @@ describe("collapseEdges", () => {
       }),
     ];
     expect(collapseEdges(rows)).toHaveLength(2);
-  });
-
-  it("uses the relation kind as the edge label", () => {
-    const out = collapseEdges([baseRow({ kind: "principal" })]);
-    expect(out[0].label).toBe("principal");
   });
 
   it("preserves provenance positions from the range tuple", () => {

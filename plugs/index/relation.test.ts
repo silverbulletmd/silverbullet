@@ -184,52 +184,32 @@ Body.`;
   expect(pick("editor")).toEqual([["E", "[[E]]"]]);
 });
 
-test("frontmatter list of wikilinks emits one relation per entry", async () => {
+test("frontmatter list of wikilinks emits one relation per item", async () => {
   const { space } = createMockSystem();
-  await space.writePage("First_editor", "");
-  await space.writePage("Second_editor", "");
-
-  const text = `---
-editors:
-- "[[First_editor]]"
-- "[[Second_editor]]"
----
-Body.`;
-  const tree = parseMarkdown(text);
-  const fm = extractFrontMatter(tree);
-  const objects = await indexRelations(pageMeta("Some_paper"), fm, tree, text);
-
-  const editors = objects.filter(
-    (o) => o.tag === "relation" && o.kind === "editors",
-  );
-  expect(editors.map((r) => r.to).sort()).toEqual([
-    "First_editor",
-    "Second_editor",
-  ]);
-  // Each entry gets its own splice-able range pointing at its own `[[`.
-  for (const r of editors) {
-    expect(text.substring(r.range![0], r.range![0] + 2)).toEqual("[[");
-  }
-  expect(new Set(editors.map((r) => r.ref)).size).toEqual(2);
-});
-
-test("frontmatter list of wikilinks works indented and in flow style", async () => {
-  const { space } = createMockSystem();
-  await space.writePage("A", "");
-  await space.writePage("B", "");
+  await space.writePage("Person/Bob", "");
+  await space.writePage("Person/Carol", "");
 
   for (const body of [
-    `editors:\n  - "[[A]]"\n  - "[[B]]"`,
-    `editors: ["[[A]]", "[[B]]"]`,
+    `members:\n- "[[Person/Bob]]"\n- "[[Person/Carol]]"`,
+    `members:\n  - "[[Person/Bob]]"\n  - "[[Person/Carol]]"`,
+    `members: ["[[Person/Bob]]", "[[Person/Carol]]"]`,
   ]) {
     const text = `---\n${body}\n---\nBody.`;
     const tree = parseMarkdown(text);
     const fm = extractFrontMatter(tree);
-    const objects = await indexRelations(pageMeta("P"), fm, tree, text);
-    const editors = objects.filter(
-      (o) => o.tag === "relation" && o.kind === "editors",
+    const objects = await indexRelations(pageMeta("Team"), fm, tree, text);
+    const members = objects.filter(
+      (o) => o.tag === "relation" && o.kind === "members",
     );
-    expect(editors.map((r) => r.to).sort(), `for: ${body}`).toEqual(["A", "B"]);
+    expect(members.map((r) => r.to).sort(), `for: ${body}`).toEqual([
+      "Person/Bob",
+      "Person/Carol",
+    ]);
+    // Each entry gets its own splice-able range pointing at its own link.
+    for (const r of members) {
+      expect(text.substring(r.range![0], r.range![1])).toEqual(`[[${r.to}]]`);
+    }
+    expect(new Set(members.map((r) => r.ref)).size).toEqual(2);
   }
 });
 
@@ -257,24 +237,6 @@ Body.`;
       .sort();
   expect(byKind("editors")).toEqual(["A", "B"]);
   expect(byKind("publisher")).toEqual(["C"]);
-});
-
-test("nested frontmatter key does not carry its indentation into the kind", async () => {
-  const { space } = createMockSystem();
-  await space.writePage("A", "");
-
-  const text = `---
-meta:
-  author: "[[A]]"
----
-Body.`;
-  const tree = parseMarkdown(text);
-  const fm = extractFrontMatter(tree);
-  const objects = await indexRelations(pageMeta("P"), fm, tree, text);
-
-  const r = objects.find((o) => o.tag === "relation" && o.to === "A");
-  expect(r).toBeDefined();
-  expect(r!.kind).toEqual("author");
 });
 
 test("inline attribute with wikilink value emits typed attribute relation", async () => {
@@ -880,7 +842,7 @@ test("an addressed mention beside a signature still emits at-mention", async () 
 
 test("each name in a co-signature gets its own authored relation", async () => {
   createMockSystem();
-  const text = "Why not? -- @zef @ada";
+  const text = "@robin Why not? -- @zef @ada";
   const tree = parseMarkdown(text);
   const fm = extractFrontMatter(tree);
   const objects = await indexRelations(pageMeta("Spec"), fm, tree, text);
@@ -889,6 +851,9 @@ test("each name in a co-signature gets its own authored relation", async () => {
   expect(authored.map((r) => r.to)).toEqual(["@zef", "@ada"]);
   // Distinct refs, or the object index would collapse them onto one record.
   expect(new Set(authored.map((r) => r.ref)).size).toBe(2);
+  // The signed block is attributed to both names.
+  const mention = objects.find((o) => o.kind === "at-mention")!;
+  expect(mention.by).toEqual(["@zef", "@ada"]);
 });
 
 async function relationsFor(text: string, name = "Spec") {
@@ -898,12 +863,6 @@ async function relationsFor(text: string, name = "Spec") {
   const objects = await indexRelations(pageMeta(name), fm, tree, text);
   return objects.filter((o) => o.tag === "relation");
 }
-
-test("an inline signature attributes the block it ends", async () => {
-  const relations = await relationsFor("@robin Why not? -- @zef");
-  const mention = relations.find((r) => r.kind === "at-mention")!;
-  expect(mention.by).toEqual(["@zef"]);
-});
 
 test("a line-ending signature does not attribute the next line", async () => {
   const relations = await relationsFor(
@@ -950,24 +909,12 @@ test("two signed paragraphs do not cross-attribute", async () => {
   expect(mentions).toEqual([["@zef"], ["@ada"]]);
 });
 
-test("an unsigned mention carries no by", async () => {
-  const relations = await relationsFor("@robin Why not?");
-  const mention = relations.find((r) => r.kind === "at-mention")!;
-  expect(mention.by).toBeUndefined();
-});
-
 test("the innermost signature wins and by is never unioned", async () => {
   const relations = await relationsFor(
     "* Outer thread\n  * @robin Why not? -- @ada\n\n  -- @zef\n",
   );
   const mention = relations.find((r) => r.kind === "at-mention")!;
   expect(mention.by).toEqual(["@ada"]);
-});
-
-test("a co-signature attributes both names", async () => {
-  const relations = await relationsFor("@robin Why not? -- @zef @ada");
-  const mention = relations.find((r) => r.kind === "at-mention")!;
-  expect(mention.by).toEqual(["@zef", "@ada"]);
 });
 
 test("authors: frontmatter emits a page-level authored relation", async () => {
@@ -1004,32 +951,6 @@ test("recipients: and authors: do not collide on ref", async () => {
     "---\nrecipients: zef\nauthors: zef\n---\n\nProse.\n",
   );
   expect(new Set(relations.map((r) => r.ref)).size).toBe(2);
-});
-
-test("frontmatter list of wikilinks emits one relation per item", async () => {
-  const { space } = createMockSystem();
-  await space.writePage("Person/Bob", "");
-  await space.writePage("Person/Carol", "");
-
-  for (const body of [
-    `members:\n- "[[Person/Bob]]"\n- "[[Person/Carol]]"`,
-    `members: ["[[Person/Bob]]", "[[Person/Carol]]"]`,
-  ]) {
-    const text = `---\n${body}\n---\n`;
-    const tree = parseMarkdown(text);
-    const fm = extractFrontMatter(tree);
-    const objects = await indexRelations(pageMeta("Team"), fm, tree, text);
-    const members = objects.filter(
-      (o) => o.tag === "relation" && o.kind === "members",
-    );
-    expect(members.map((r) => r.to).sort(), `for: ${body}`).toEqual([
-      "Person/Bob",
-      "Person/Carol",
-    ]);
-    for (const r of members) {
-      expect(text.substring(r.range![0], r.range![1])).toEqual(`[[${r.to}]]`);
-    }
-  }
 });
 
 test("frontmatter list of anchor links is handled like scalar anchors", async () => {

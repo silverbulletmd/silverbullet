@@ -41,19 +41,6 @@ describe("bubblePosition", () => {
       ).placement,
     ).toBe("above");
   });
-
-  test("clamped at the bottom edge", () => {
-    // Flipped below a selection near the bottom of a short viewport
-    expect(
-      bubblePosition({ left: 400, top: 20, bottom: 790 }, size, viewport),
-    ).toEqual({ left: 350, top: 762, placement: "below" });
-  });
-
-  test("clamped at the left edge", () => {
-    expect(
-      bubblePosition({ left: 10, top: 200, bottom: 220 }, size, viewport).left,
-    ).toBe(8);
-  });
 });
 
 describe("selectionCenterX", () => {

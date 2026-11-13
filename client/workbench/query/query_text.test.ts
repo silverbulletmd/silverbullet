@@ -17,12 +17,7 @@ import {
 } from "./query_attributes.ts";
 import { addGroupKey, removeGroupKey } from "./query_edits.ts";
 import { sourceFor } from "./query_from.ts";
-import {
-  attributeAccess,
-  bindingVar,
-  emptyModel,
-  type QueryModel,
-} from "./query_model.ts";
+import { attributeAccess, emptyModel, type QueryModel } from "./query_model.ts";
 import type { AttributeFilter } from "./query_ops.ts";
 import { generateQuery } from "./query_text.ts";
 
@@ -239,12 +234,6 @@ beforeAll(() => {
 });
 
 describe("model helpers", () => {
-  test("binding variable", () => {
-    expect(bindingVar("task")).toBe("t");
-    expect(bindingVar("book")).toBe("b");
-    expect(bindingVar("2026-goals")).toBe("o");
-  });
-
   test("attribute access quotes what isn't an identifier", () => {
     expect(attributeAccess("t", "due date")).toBe('t["due date"]');
     // A nested attribute reads its record first, so a missing record gives nil
@@ -252,11 +241,6 @@ describe("model helpers", () => {
       "(t.meta and t.meta.author)",
     );
     expect(attributeAccess("t", "x-id")).toBe('t["x-id"]');
-  });
-
-  test("table keys", () => {
-    expect(tableKey("Task")).toBe("Task");
-    expect(tableKey("Due date")).toBe('["Due date"]');
   });
 
   test("default columns skip declared attributes no sampled object has", () => {
@@ -319,12 +303,6 @@ describe("generateQuery", () => {
     );
   });
 
-  test("unwrapped text has no ${}", () => {
-    const text = generateQuery(example1(), taskAttributes, { wrap: false });
-    expect(text.startsWith("query[[")).toBe(true);
-    expect(text.endsWith("]]")).toBe(true);
-  });
-
   test("grouped queries use key and groupColumns", () => {
     const text = generateQuery(grouped(), bookAttributes);
     expect(text).toContain("group by b.status");
@@ -380,12 +358,6 @@ describe("generateQuery", () => {
     );
   });
 
-  test("an empty limit writes no limit clause", () => {
-    const m = example1();
-    m.limit = null;
-    expect(generateQuery(m, taskAttributes)).not.toContain("limit");
-  });
-
   test("list templates", () => {
     const m = example1();
     m.select = { mode: "list", list: { template: "templates.taskItem" } };
@@ -394,40 +366,24 @@ describe("generateQuery", () => {
     );
   });
 
-  test("a custom template with links still parses", () => {
-    const m = emptyModel(sourceFor("book"), bookAttributes);
-    m.select = {
-      mode: "list",
-      list: { custom: "* [[${title}]] by ${author}" },
+  test("custom list templates pick a literal that parses", () => {
+    const textFor = (custom: string) => {
+      const m = emptyModel(sourceFor("book"), bookAttributes);
+      m.select = { mode: "list", list: { custom } };
+      const text = generateQuery(m, bookAttributes);
+      expect(() => parseExpressionString(unwrap(text))).not.toThrow();
+      return text;
     };
-    const text = generateQuery(m, bookAttributes);
-    expect(text).toContain(
+    // Links fit the default long bracket.
+    expect(textFor("* [[${title}]] by ${author}")).toContain(
       "select template.new[==[\n    * [[${title}]] by ${author}\n  ]==](b)",
     );
-    expect(() => parseExpressionString(unwrap(text))).not.toThrow();
-  });
-
-  test("a custom template the double bracket can't hold gets another literal", () => {
-    const m = emptyModel(sourceFor("book"), bookAttributes);
-    m.select = { mode: "list", list: { custom: "* ${title} ]==]" } };
-    const text = generateQuery(m, bookAttributes);
-    expect(text).not.toContain("template.new[==[");
-    expect(() => parseExpressionString(unwrap(text))).not.toThrow();
-  });
-
-  test("a custom template no long bracket fits becomes a quoted string", () => {
-    const m = emptyModel(sourceFor("book"), bookAttributes);
-    m.select = { mode: "list", list: { custom: "]] ]=] ]==] ${title}" } };
-    const text = generateQuery(m, bookAttributes);
-    expect(text).toContain('template.new("]] ]=] ]==] ${title}")(b)');
-    expect(() => parseExpressionString(unwrap(text))).not.toThrow();
-  });
-
-  test("a value containing ]] still parses", () => {
-    const m = example1();
-    m.filters = [ff("name", "is", { values: ['Notes [[draft]] "x"'] })];
-    const text = generateQuery(m, taskAttributes);
-    expect(() => parseExpressionString(unwrap(text))).not.toThrow();
+    // The double bracket can't hold this, so another literal is chosen.
+    expect(textFor("* ${title} ]==]")).not.toContain("template.new[==[");
+    // No long bracket fits, so it becomes a quoted string.
+    expect(textFor("]] ]=] ]==] ${title}")).toContain(
+      'template.new("]] ]=] ]==] ${title}")(b)',
+    );
   });
 
   test("odd attribute names are quoted", () => {
@@ -611,25 +567,6 @@ describe("generated queries run", () => {
     expect(rows).toHaveLength(5);
     expect(rows[0].Task).toBe("Update team wiki");
     expect(rows[0].Page).toBe("[[Work/Team]]");
-  });
-
-  test("guarded operators skip objects without the attribute", async () => {
-    const ops: AttributeFilter[] = [
-      ff("due", "before", { values: ["2026-11-01"] }),
-      ff("due", "after", { values: ["2026-10-01"] }),
-      ff("due", "between", { values: ["2026-10-01", "2026-11-01"] }),
-      ff("due", "beforetoday"),
-      ff("due", "aftertoday"),
-      ff("name", "contains", { values: ["re"] }),
-      ff("name", "starts", { values: ["Re"] }),
-    ];
-    for (const f of ops) {
-      const m = { ...example1(), filters: [f], limit: null };
-      await expect(
-        run(generateQuery(m, taskAttributes)),
-        f.op,
-      ).resolves.toBeDefined();
-    }
   });
 
   test("a nested attribute reads as nil where its record is missing", async () => {

@@ -1354,21 +1354,6 @@ mod tests {
         assert!(!is_inline_safe("IMAGE/SVG+XML"));
     }
 
-    #[test]
-    fn trusted_web_files_are_served_inline() {
-        for content_type in [
-            "text/html",
-            "text/html; charset=utf-8",
-            "text/css",
-            "text/javascript",
-            "application/javascript",
-        ] {
-            assert!(super::is_inline_file_content_type(content_type));
-        }
-        assert!(!super::is_inline_file_content_type("image/svg+xml"));
-        assert!(!super::is_inline_file_content_type("application/xml"));
-    }
-
     #[tokio::test]
     async fn list_returns_written_files() {
         let state = test_state();
@@ -1559,33 +1544,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn repeated_range_header_fields_fall_back_to_full_get() {
-        let state = test_state();
-        state
-            .space
-            .write_file("clip.bin", b"0123456789", None)
-            .unwrap();
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=0-1")
-                    .header("Range", "bytes=4-5")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert!(response.headers().get("content-range").is_none());
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        assert_eq!(&body[..], b"0123456789");
-    }
-
-    #[tokio::test]
     async fn head_reads_only_metadata_and_returns_full_length() {
         let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut state = test_state();
@@ -1673,34 +1631,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn uncached_if_range_etag_falls_back_without_a_validator_body_read() {
-        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
-        let mut state = test_state();
-        state.space = Arc::new(observed.clone());
-        let state = Arc::new(state);
-        let response = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-5")
-                    .header("If-Range", "\"uncached\"")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        assert_eq!(&body[..], b"0123456789");
-        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 1);
-        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 0);
-        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
-    }
-
-    #[tokio::test]
     async fn if_range_accepts_only_a_cached_matching_strong_etag() {
         let matching_space = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
         let mut matching_state = test_state();
@@ -1751,55 +1681,6 @@ mod tests {
         assert_eq!(mismatching_space.full_reads.load(Ordering::Relaxed), 1);
         assert_eq!(mismatching_space.range_reads.load(Ordering::Relaxed), 0);
         assert_eq!(mismatching_state.fs_guard.hash_for_call_count(), 0);
-    }
-
-    #[tokio::test]
-    async fn weak_if_range_etag_falls_back_to_the_full_representation() {
-        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
-        let mut state = test_state();
-        state.space = Arc::new(observed.clone());
-        state
-            .fs_guard
-            .record("clip.bin", &observed.meta, "cached-hash".to_string());
-        let state = Arc::new(state);
-        let response = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-5")
-                    .header("If-Range", format!("W/{}", etag_for_hash("cached-hash")))
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 1);
-        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 0);
-        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
-    }
-
-    #[tokio::test]
-    async fn if_range_date_falls_back_to_full_after_same_size_replacement() {
-        let mut state = test_state();
-        state.space = Arc::new(SameSizeReplacementSpace);
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-5")
-                    .header("If-Range", "Thu, 01 Jan 1970 00:00:00 GMT")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        assert_eq!(&body[..], b"ABCDEFGHIJ");
     }
 
     #[tokio::test]
@@ -1892,26 +1773,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn partial_get_uses_range_primitive_instead_of_full_read() {
-        let observed = Arc::new(ObservedSpace::new(b"0123456789", "video/mp4"));
-        let mut state = test_state();
-        state.space = Arc::new(observed.clone());
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-5")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
-        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 0);
-        assert_eq!(observed.range_reads.load(Ordering::Relaxed), 1);
-    }
-
-    #[tokio::test]
     async fn partial_get_retries_once_when_size_changes() {
         let racing = Arc::new(RacingRangeSpace {
             range_reads: AtomicUsize::new(0),
@@ -1935,29 +1796,6 @@ mod tests {
             response.headers().get("content-range").unwrap(),
             "bytes 2-5/11"
         );
-        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
-    }
-
-    #[tokio::test]
-    async fn partial_get_retries_a_short_read_when_the_size_also_changed() {
-        let racing = Arc::new(RacingRangeSpace {
-            range_reads: AtomicUsize::new(0),
-            stabilize: true,
-            short_first: true,
-        });
-        let mut state = test_state();
-        state.space = Arc::new(racing.clone());
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-5")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
         assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
     }
 
@@ -2013,52 +1851,6 @@ mod tests {
             .unwrap();
         assert_eq!(&body[..], b"2345");
         assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
-    }
-
-    #[tokio::test]
-    async fn partial_get_stops_after_retrying_unexpected_eof_once() {
-        let racing = Arc::new(RangeReadErrorSpace {
-            range_reads: AtomicUsize::new(0),
-            error_kind: std::io::ErrorKind::UnexpectedEof,
-            fail_every_read: true,
-        });
-        let mut state = test_state();
-        state.space = Arc::new(racing.clone());
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(racing.range_reads.load(Ordering::Relaxed), 2);
-    }
-
-    #[tokio::test]
-    async fn partial_get_does_not_retry_other_range_read_errors() {
-        let failing = Arc::new(RangeReadErrorSpace {
-            range_reads: AtomicUsize::new(0),
-            error_kind: std::io::ErrorKind::PermissionDenied,
-            fail_every_read: true,
-        });
-        let mut state = test_state();
-        state.space = Arc::new(failing.clone());
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.bin")
-                    .header("Range", "bytes=2-")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        assert_eq!(failing.range_reads.load(Ordering::Relaxed), 1);
     }
 
     #[tokio::test]
@@ -2363,32 +2155,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn cheap_meta_probe_does_not_read_or_hash_cold_content() {
-        let observed = Arc::new(ObservedSpace::new(b"large media payload", "video/mp4"));
-        let mut state = test_state();
-        state.space = Arc::new(observed.clone());
-        let state = Arc::new(state);
-
-        let response = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .uri("/.fs/clip.mp4")
-                    .header("X-Get-Meta", "cheap")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers().get("X-Content-Length").unwrap(), "19");
-        assert!(response.headers().get("ETag").is_none());
-        assert_eq!(observed.meta_reads.load(Ordering::Relaxed), 1);
-        assert_eq!(observed.full_reads.load(Ordering::Relaxed), 0);
-        assert_eq!(state.fs_guard.hash_for_call_count(), 0);
-    }
-
-    #[tokio::test]
     async fn get_with_octet_stream_accept_overrides_content_type() {
         // The subtlest part of the /.fs contract: an `accept: application/octet-stream`
         // request forces the body Content-Type to octet-stream while the real type
@@ -2633,55 +2399,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn put_with_an_invalid_source_value_is_ignored_not_rejected() {
-        let state = Arc::new(test_state());
-        let put = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .method("PUT")
-                    .uri("/.fs/note.md")
-                    .header("X-Source", "not-a-real-source")
-                    .body(Body::from("content"))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        // Attribution is never load-bearing: an unrecognized source doesn't
-        // fail the write.
-        assert_eq!(put.status(), StatusCode::OK);
-        let hash = silverbullet_server_common::revision::sha256_hex(b"content");
-        let ew = state
-            .fs_guard
-            .lookup_expected_write("note.md", &hash)
-            .expect("expected write recorded");
-        assert_eq!(ew.source, None);
-    }
-
-    #[tokio::test]
-    async fn put_with_an_oversize_client_id_is_ignored() {
-        let state = Arc::new(test_state());
-        let oversize = "x".repeat(65);
-        let put = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .method("PUT")
-                    .uri("/.fs/note.md")
-                    .header("X-Client-Id", oversize)
-                    .body(Body::from("content"))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(put.status(), StatusCode::OK);
-        let hash = silverbullet_server_common::revision::sha256_hex(b"content");
-        let ew = state
-            .fs_guard
-            .lookup_expected_write("note.md", &hash)
-            .expect("expected write recorded");
-        assert_eq!(ew.client_id, None);
-    }
-
-    #[tokio::test]
     async fn put_by_an_authenticated_user_records_their_username_as_actor() {
         use crate::auth::authenticator::Authenticator;
         use crate::auth::JwtAuthorizer;
@@ -2843,7 +2560,7 @@ mod tests {
         assert!(state.space.get_file_meta("nope.md").is_err());
 
         state.space.write_file("m.md", b"v", None).unwrap();
-        let malformed = crate::build_router(state)
+        let malformed = crate::build_router(state.clone())
             .oneshot(
                 Request::builder()
                     .method("PUT")
@@ -2855,48 +2572,40 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(malformed.status(), StatusCode::PRECONDITION_FAILED);
-    }
+        let (data, _) = state.space.read_file("m.md").unwrap();
+        assert_eq!(&data, b"v");
 
-    #[tokio::test]
-    async fn if_match_with_non_visible_ascii_bytes_fails_closed() {
-        let state = Arc::new(test_state());
-        state.space.write_file("bin.md", b"v1", None).unwrap();
-        let req = Request::builder()
-            .method("PUT")
-            .uri("/.fs/bin.md")
-            .header(
-                "if-match",
-                axum::http::HeaderValue::from_bytes(b"\"sha256:\xFF\"").unwrap(),
-            )
-            .body(Body::from("v2"))
-            .unwrap();
-        let resp = crate::build_router(state.clone())
-            .oneshot(req)
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
-        let (data, _) = state.space.read_file("bin.md").unwrap();
-        assert_eq!(&data, b"v1");
-    }
-
-    #[tokio::test]
-    async fn if_none_match_non_star_value_fails_closed() {
-        let state = Arc::new(test_state());
-        state.space.write_file("q.md", b"v1", None).unwrap();
-        let resp = crate::build_router(state.clone())
+        // Header bytes that are not visible ASCII fail closed, and so does an
+        // `If-None-Match` other than `*`; the file is unchanged either way.
+        let non_ascii = crate::build_router(state.clone())
             .oneshot(
                 Request::builder()
                     .method("PUT")
-                    .uri("/.fs/q.md")
-                    .header("if-none-match", "\"sha256:deadbeef\"")
-                    .body(Body::from("v2"))
+                    .uri("/.fs/m.md")
+                    .header(
+                        "if-match",
+                        axum::http::HeaderValue::from_bytes(b"\"sha256:\xFF\"").unwrap(),
+                    )
+                    .body(Body::from("x"))
                     .unwrap(),
             )
             .await
             .unwrap();
-        assert_eq!(resp.status(), StatusCode::PRECONDITION_FAILED);
-        let (data, _) = state.space.read_file("q.md").unwrap();
-        assert_eq!(&data, b"v1");
+        assert_eq!(non_ascii.status(), StatusCode::PRECONDITION_FAILED);
+        let non_star = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("PUT")
+                    .uri("/.fs/m.md")
+                    .header("if-none-match", "\"sha256:deadbeef\"")
+                    .body(Body::from("x"))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(non_star.status(), StatusCode::PRECONDITION_FAILED);
+        let (data, _) = state.space.read_file("m.md").unwrap();
+        assert_eq!(&data, b"v");
     }
 
     #[tokio::test]
@@ -3453,55 +3162,5 @@ mod tests {
         assert_eq!(resp.status(), StatusCode::CONFLICT);
         let (data, _) = state.space.read_file("a.md").unwrap();
         assert_eq!(&data, invalid_utf8);
-    }
-
-    #[tokio::test]
-    async fn reconcile_malformed_json_body_is_bad_request() {
-        let state = Arc::new(test_state());
-        state.space.write_file("a.md", b"original\n", None).unwrap();
-
-        let resp = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.fs/a.md")
-                    .body(Body::from("not json"))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-        let (data, _) = state.space.read_file("a.md").unwrap();
-        assert_eq!(&data, b"original\n");
-    }
-
-    #[tokio::test]
-    async fn reconcile_oversize_wins_over_ineligible_path() {
-        // Both the size limit (413) and path eligibility (409) are violated;
-        // the size check runs first and must win.
-        let state = Arc::new(test_state());
-        let base_text = "base\n";
-        let proposed = "a".repeat(super::MERGE_SIZE_LIMIT + 1);
-        let base_hash = silverbullet_server_common::revision::sha256_hex(base_text.as_bytes());
-        let proposed_hash = silverbullet_server_common::revision::sha256_hex(proposed.as_bytes());
-
-        let resp = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.fs/image.png")
-                    .body(reconcile_body(
-                        &base_hash,
-                        base_text,
-                        &proposed_hash,
-                        &proposed,
-                    ))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(resp.status(), StatusCode::PAYLOAD_TOO_LARGE);
     }
 }

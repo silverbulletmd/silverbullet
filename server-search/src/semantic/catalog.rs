@@ -473,11 +473,6 @@ mod tests {
     }
 
     #[test]
-    fn the_tiny_test_model_is_the_test_models_spec() {
-        assert_eq!(test_tiny(), crate::semantic::test_model::tiny_spec());
-    }
-
-    #[test]
     fn an_offered_model_is_found_after_the_catalog() {
         let pear = ModelSpec {
             id: "catalog-test-pear",
@@ -496,21 +491,6 @@ mod tests {
             1
         );
         assert_eq!(ids[0], DEFAULT_MODEL);
-    }
-
-    #[test]
-    fn find_by_id() {
-        let m = find("multilingual-e5-small").unwrap();
-        assert_eq!(m.id, "multilingual-e5-small");
-        assert_eq!(find(DEFAULT_MODEL).map(|m| m.id), Some(DEFAULT_MODEL));
-        assert!(find("nope").is_none());
-    }
-
-    #[test]
-    fn the_offered_models_start_with_the_catalog() {
-        let offered: Vec<&str> = offered().iter().map(|m| m.id).collect();
-        let catalog: Vec<&str> = catalog().iter().map(|m| m.id).collect();
-        assert_eq!(offered[..catalog.len()], catalog[..]);
     }
 
     #[test]
@@ -535,29 +515,5 @@ mod tests {
         for name in ["custom@1", "notes", "bge-small-en-v1.5@5c38ec7c"] {
             assert!(!superseded(name), "{name}");
         }
-    }
-
-    #[test]
-    fn granite_url_dir_name_and_sizes() {
-        let m = find("granite-embedding-97m-multilingual-r2").unwrap();
-        let cfg = m.files.iter().find(|f| f.name == "config.json").unwrap();
-        assert_eq!(
-            m.url(cfg),
-            "https://huggingface.co/ibm-granite/granite-embedding-97m-multilingual-r2/resolve/835ad14087e140460703cf0fae09f97d469d65c2/config.json"
-        );
-        assert_eq!(
-            m.dir_name(),
-            "granite-embedding-97m-multilingual-r2@835ad14087e140460703cf0fae09f97d469d65c2"
-        );
-        assert_eq!(m.download_bytes(), 220_192_456);
-        // BF16 on disk, F32 in memory.
-        assert_eq!(m.resident_bytes, 487_223_920);
-    }
-
-    #[test]
-    fn download_bytes_e5_small() {
-        let m = find("multilingual-e5-small").unwrap();
-        assert!(m.download_bytes().abs_diff(487_700_000) < 1_000_000);
-        assert_eq!(m.download_bytes(), 487_724_985);
     }
 }

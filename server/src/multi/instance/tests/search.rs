@@ -217,6 +217,7 @@ async fn published_multi_user_spaces_search_for_anonymous_visitors() {
 
 #[tokio::test]
 async fn a_page_written_after_boot_is_found_within_two_seconds() {
+    crate::watcher::native_watcher_for_this_test();
     let (dir, state) = state_with_access(SpaceAccess::Write);
     let state = Arc::new(state);
     assert!(state.fs_events.is_some(), "the test needs the real watcher");
@@ -270,6 +271,7 @@ async fn multi_user_indexes_live_under_the_data_root_hidden_from_a_root_folder_s
         Default::default(),
         dir.path().to_str().unwrap(),
     );
+    crate::watcher::native_watcher_for_this_test();
     let state = Arc::new(try_build_state("root", &cfg, "", &deps).unwrap());
     crate::test_support::wait_for_native_watcher(&state.fs_guard).await;
     // What `/.events` clients, the listing cache and the index's forwarder see.

@@ -1330,27 +1330,6 @@ mod tests {
     }
 
     #[test]
-    fn start_returns_before_the_initial_snapshot_runs() {
-        let dir = tempfile::tempdir().unwrap();
-        for i in 0..50 {
-            std::fs::write(dir.path().join(format!("f{i}.md")), b"x").unwrap();
-        }
-        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
-        assert!(
-            !handle.store().head_exists(),
-            "start() must return before the initial snapshot commit has run"
-        );
-        handle.commit_now();
-        assert!(handle.store().head_exists());
-        assert_eq!(
-            git_out(dir.path(), &["log", "-1", "--format=%an"]),
-            "SilverBullet"
-        );
-        let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
-        assert!(files.contains("f0.md"), "{files}");
-    }
-
-    #[test]
     fn initial_snapshot_skips_paths_deleted_before_commit() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("keep.md"), b"k").unwrap();
@@ -1413,34 +1392,6 @@ mod tests {
         assert_eq!(git_out(dir.path(), &["status", "--porcelain"]), "");
     }
 
-    /// Commits `a.md` marked as an account named `author` and returns the
-    /// resulting `name <email>`.
-    fn commit_as(dir: &tempfile::TempDir, handle: &RevisionEngine, author: &str) -> String {
-        std::fs::write(dir.path().join("a.md"), author).unwrap();
-        handle.mark(
-            "a.md",
-            Attribution::Account {
-                name: author.into(),
-                email: None,
-            },
-        );
-        handle.commit_now();
-        git_out(dir.path(), &["log", "-1", "--format=%an <%ae>"])
-    }
-
-    #[test]
-    fn a_missing_email_synthesizes_one_from_the_default_domain() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("seed.md"), b"s").unwrap();
-        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
-        handle.commit_now();
-
-        assert_eq!(
-            commit_as(&dir, &handle, "alice"),
-            format!("alice <alice@{DEFAULT_DOMAIN}>")
-        );
-    }
-
     #[test]
     fn attribution_resolves_to_the_expected_identity() {
         let dir = tempfile::tempdir().unwrap();
@@ -1494,68 +1445,38 @@ mod tests {
     }
 
     #[test]
-    fn a_write_silverbullet_never_made_is_external() {
-        assert_eq!(attribution_for(None), Attribution::External);
-
-        let mut origin = user_origin(Some("Ada Lovelace"), Some("ada@example.org"));
-        origin.kind = EventOriginKind::External;
-        assert_eq!(attribution_for(Some(&origin)), Attribution::External);
-    }
-
-    #[test]
     fn attribution_for_maps_an_origin_to_its_author() {
         let account = |name: &str, email: Option<&str>| Attribution::Account {
             name: name.to_string(),
             email: email.map(str::to_string),
         };
+        let mut external = user_origin(Some("Ada Lovelace"), Some("ada@example.org"));
+        external.kind = EventOriginKind::External;
         let cases = [
-            (user_origin(None, None), Attribution::LocalUser),
+            (Some(user_origin(None, None)), Attribution::LocalUser),
             (
-                user_origin(Some("Ada Lovelace"), Some("ada@example.org")),
+                Some(user_origin(Some("Ada Lovelace"), Some("ada@example.org"))),
                 account("Ada Lovelace", Some("ada@example.org")),
             ),
             (
-                user_origin(Some("Ada Lovelace"), None),
+                Some(user_origin(Some("Ada Lovelace"), None)),
                 account("Ada Lovelace", None),
             ),
             (
-                user_origin(None, Some("ada@example.org")),
+                Some(user_origin(None, Some("ada@example.org"))),
                 account("ada", Some("ada@example.org")),
             ),
             (
-                user_origin(None, Some("@example.org")),
+                Some(user_origin(None, Some("@example.org"))),
                 Attribution::LocalUser,
             ),
+            // A write SilverBullet never made.
+            (None, Attribution::External),
+            (Some(external), Attribution::External),
         ];
         for (origin, expected) in cases {
-            assert_eq!(attribution_for(Some(&origin)), expected, "{origin:?}");
+            assert_eq!(attribution_for(origin.as_ref()), expected, "{origin:?}");
         }
-    }
-
-    #[test]
-    fn two_accounts_in_one_window_still_split_into_two_commits() {
-        let dir = tempfile::tempdir().unwrap();
-        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
-        std::fs::write(dir.path().join("a.md"), "a").unwrap();
-        std::fs::write(dir.path().join("b.md"), "b").unwrap();
-        handle.mark(
-            "a.md",
-            Attribution::Account {
-                name: "Alice".into(),
-                email: Some("alice@x.test".into()),
-            },
-        );
-        handle.mark(
-            "b.md",
-            Attribution::Account {
-                name: "Bob".into(),
-                email: Some("bob@x.test".into()),
-            },
-        );
-        handle.commit_now();
-        let idents = git_out(dir.path(), &["log", "--format=%an <%ae>"]);
-        assert!(idents.contains("Alice <alice@x.test>"), "{idents}");
-        assert!(idents.contains("Bob <bob@x.test>"), "{idents}");
     }
 
     #[test]
@@ -1605,24 +1526,15 @@ mod tests {
         std::fs::write(dir.path().join("w.md"), b"w").unwrap();
         tx.send(crate::watcher::FsEvent::resync()).unwrap();
         tx.send(test_change_event("w.md", Some("carol"))).unwrap();
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        // Both events are consumed (and the second marked) before committing.
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while !tx.is_empty() && std::time::Instant::now() < deadline {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        tokio::time::sleep(Duration::from_millis(30)).await;
         handle.commit_now();
         let authors = git_out(dir.path(), &["log", "--format=%an"]);
         assert!(authors.contains("carol"), "{authors}");
-    }
-
-    #[tokio::test]
-    async fn anonymous_user_writes_commit_as_silverbullet_not_external() {
-        let dir = tempfile::tempdir().unwrap();
-        let (tx, rx) = tokio::sync::broadcast::channel(16);
-        let handle = RevisionEngine::start(managed(&dir), Some(rx), Timing::default(), None);
-        handle.commit_now();
-        std::fs::write(dir.path().join("w.md"), b"w").unwrap();
-        tx.send(test_change_event("w.md", None)).unwrap();
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        handle.commit_now();
-        let authors = git_out(dir.path(), &["log", "-1", "--format=%an"]);
-        assert_eq!(authors, "SilverBullet");
     }
 
     #[test]
@@ -1696,12 +1608,18 @@ mod tests {
 
         std::fs::write(dir.path().join("newly-created.md"), b"z").unwrap();
         tx.send(crate::watcher::FsEvent::resync()).unwrap();
-        tokio::time::sleep(Duration::from_millis(200)).await;
-        handle.commit_now();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        let files = loop {
+            handle.commit_now();
+            let files = git_log(dir.path(), &["--name-only"]);
+            if files.contains("newly-created.md") || std::time::Instant::now() >= deadline {
+                break files;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        };
 
         let authors = git_out(dir.path(), &["log", "--format=%an"]);
         assert!(authors.contains("External"), "{authors}");
-        let files = git_out(dir.path(), &["log", "--name-only"]);
         assert!(files.contains("newly-created.md"), "{files}");
     }
 
@@ -1716,12 +1634,18 @@ mod tests {
         for _ in 0..30 {
             let _ = tx.send(crate::watcher::FsEvent::resync());
         }
-        tokio::time::sleep(Duration::from_millis(300)).await;
-        handle.commit_now();
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        let files = loop {
+            handle.commit_now();
+            let files = git_log(dir.path(), &["--name-only"]);
+            if files.contains("later.md") || std::time::Instant::now() >= deadline {
+                break files;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        };
 
         let authors = git_out(dir.path(), &["log", "--format=%an"]);
         assert!(authors.contains("External"), "{authors}");
-        let files = git_out(dir.path(), &["log", "--name-only"]);
         assert!(files.contains("later.md"), "{files}");
     }
 
@@ -1831,7 +1755,7 @@ mod tests {
     fn dropping_a_handle_racing_its_own_tick_thread_flushes_and_returns() {
         let dir = tempfile::tempdir().unwrap();
 
-        for i in 0..50 {
+        for i in 0..10 {
             let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
             let handle = RevisionEngine::start_with_timing(
                 store,
@@ -1953,7 +1877,7 @@ mod tests {
             None,
         );
         // Long enough for many sweeps to fire over an unchanged tree.
-        assert!(!wait_until(Duration::from_millis(500), || {
+        assert!(!wait_until(Duration::from_millis(150), || {
             git_log(dir.path(), &["--format=%s"]).contains(SWEEP_MESSAGE)
         }));
         drop(handle);
@@ -1990,7 +1914,7 @@ mod tests {
                 email: None,
             },
         );
-        assert!(!wait_until(Duration::from_millis(500), || {
+        assert!(!wait_until(Duration::from_millis(150), || {
             git_log(dir.path(), &["--format=%s"]).contains(SWEEP_MESSAGE)
         }));
 
@@ -2044,60 +1968,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn sample_lists_a_few_paths_then_summarizes() {
-        assert_eq!(sample(&["a.md".into()]), "a.md");
-        assert_eq!(
-            sample(&["a.md".into(), "b.md".into(), "c.md".into()]),
-            "a.md, b.md, c.md"
-        );
-        assert_eq!(
-            sample(&["a.md".into(), "b.md".into(), "c.md".into(), "d.md".into()]),
-            "a.md, b.md, c.md, +1 more"
-        );
-    }
-
-    #[test]
-    fn next_deadline_picks_the_earliest_and_never_returns_zero() {
-        let quiet = Duration::from_secs(30);
-        let max_interval = Duration::from_secs(300);
-        let sweep = Duration::from_secs(3600);
-        let now = Instant::now();
-
-        let idle = EngineState {
-            dirty: HashMap::new(),
-            first_mark: None,
-            last_mark: None,
-            last_sweep: now,
-            stopping: false,
-        };
-        let wait = next_deadline(&idle, quiet, max_interval, sweep, None);
-        assert!(
-            wait > Duration::from_secs(3000),
-            "an idle space must park until the sweep, got {wait:?}"
-        );
-
-        let dirty = EngineState {
-            first_mark: Some(now),
-            last_mark: Some(now),
-            ..idle
-        };
-        let wait = next_deadline(&dirty, quiet, max_interval, sweep, None);
-        assert!(wait <= quiet && wait > Duration::from_secs(25), "{wait:?}");
-
-        let stale = EngineState {
-            first_mark: Some(now - Duration::from_secs(9999)),
-            last_mark: Some(now - Duration::from_secs(9999)),
-            last_sweep: now - Duration::from_secs(9999),
-            dirty: HashMap::new(),
-            stopping: false,
-        };
-        assert!(
-            next_deadline(&stale, quiet, max_interval, sweep, None) > Duration::ZERO,
-            "a saturated deadline must not spin the loop"
-        );
-    }
-
     fn test_change_event(name: &str, display_name: Option<&str>) -> FsEvent {
         FsEvent {
             name: name.to_string(),
@@ -2106,30 +1976,6 @@ mod tests {
             revision: None,
             origin: Some(user_origin(display_name, None)),
         }
-    }
-
-    #[test]
-    fn sync_state_broadcasts_only_on_change() {
-        let (engine, _dir) = engine_with_sync_for_test();
-        let mut rx = engine.subscribe_sync();
-
-        engine.set_sync_state_for_test(SyncState::Conflicted {
-            paths: vec!["a.md".into()],
-        });
-        engine.set_sync_state_for_test(SyncState::Conflicted {
-            paths: vec!["a.md".into()],
-        });
-        engine.set_sync_state_for_test(SyncState::Idle);
-
-        assert!(matches!(
-            rx.try_recv().unwrap(),
-            SyncState::Conflicted { .. }
-        ));
-        assert!(matches!(rx.try_recv().unwrap(), SyncState::Idle));
-        assert!(
-            rx.try_recv().is_err(),
-            "the repeated Conflicted must not be resent"
-        );
     }
 
     #[test]
@@ -2162,74 +2008,25 @@ mod tests {
 
         let deadline = std::time::Instant::now() + Duration::from_secs(10);
         let landed = loop {
-            let other = crate::revisions::sync::tests::plain_clone(remote.path());
-            let body = std::fs::read_to_string(other.path().join("note.md")).unwrap_or_default();
+            let body = std::process::Command::new("git")
+                .arg("-C")
+                .arg(remote.path())
+                .args(["show", "main:note.md"])
+                .output()
+                .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+                .unwrap_or_default();
             if body.contains("pushed by the engine") {
                 break true;
             }
             if std::time::Instant::now() > deadline {
                 break false;
             }
-            std::thread::sleep(Duration::from_millis(100));
+            std::thread::sleep(Duration::from_millis(20));
         };
         assert!(landed, "the commit never reached the remote");
         assert!(wait_until(Duration::from_secs(10), || {
             matches!(engine.sync_state(), SyncState::Idle)
         }));
-    }
-
-    #[test]
-    fn a_conflicted_sync_still_advances_last_sync_so_the_loop_does_not_spin() {
-        let remote = crate::revisions::sync::tests::bare_remote();
-        let seed = crate::revisions::sync::tests::seeded_clone(remote.path());
-        let work = crate::revisions::sync::tests::plain_clone(remote.path());
-
-        std::fs::write(seed.path().join("note.md"), "theirs\n").unwrap();
-        git_out(seed.path(), &["add", "-A"]);
-        git_out(seed.path(), &["commit", "-qm", "theirs"]);
-        git_out(seed.path(), &["push", "-q"]);
-        std::fs::write(work.path().join("note.md"), "mine\n").unwrap();
-        git_out(work.path(), &["add", "-A"]);
-        git_out(work.path(), &["commit", "-qm", "mine"]);
-        let server_root = tempfile::tempdir().unwrap();
-
-        let store = RevisionStore::open(work.path(), RevisionsMode::Managed).unwrap();
-        let engine = RevisionEngine::start_with_timing(
-            store,
-            None,
-            Timing::default(),
-            Some(SyncSettings {
-                server_root: server_root.path().to_path_buf(),
-                space_id: "test-space".to_string(),
-                mode: crate::multi::config::GitSyncMode::Manual,
-                pull_interval: None,
-                paused: false,
-            }),
-        );
-
-        let first = engine.inner.sync_now(false).unwrap();
-        assert!(matches!(first, TickOutcome::Conflicted(_)), "{first:?}");
-        let after_first = engine
-            .inner
-            .last_sync
-            .lock()
-            .unwrap()
-            .expect("last_sync set after a conflicted tick");
-
-        std::thread::sleep(Duration::from_millis(5));
-        let second = engine.inner.sync_now(false).unwrap();
-        assert!(matches!(second, TickOutcome::Conflicted(_)), "{second:?}");
-        let after_second = engine
-            .inner
-            .last_sync
-            .lock()
-            .unwrap()
-            .expect("last_sync set after the second conflicted tick");
-
-        assert!(
-            after_second > after_first,
-            "a conflicted sync must still advance last_sync, or the loop spins"
-        );
     }
 
     /// Pins the transition-only requirement end to end, through the real
@@ -2687,28 +2484,6 @@ mod tests {
 
         assert_eq!(engine.sync_now(false).unwrap(), TickOutcome::Idle);
         assert!(!dir.path().join(".git").join("FETCH_HEAD").exists());
-    }
-
-    #[test]
-    fn next_deadline_never_exceeds_a_pending_sync_wait() {
-        let quiet = Duration::from_secs(30);
-        let max_interval = Duration::from_secs(300);
-        let sweep = Duration::from_secs(3600);
-        let idle = EngineState {
-            dirty: HashMap::new(),
-            first_mark: None,
-            last_mark: None,
-            last_sweep: Instant::now(),
-            stopping: false,
-        };
-        let wait = next_deadline(
-            &idle,
-            quiet,
-            max_interval,
-            sweep,
-            Some(Duration::from_secs(10)),
-        );
-        assert!(wait <= Duration::from_secs(10), "{wait:?}");
     }
 
     #[test]

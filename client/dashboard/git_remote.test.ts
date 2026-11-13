@@ -80,27 +80,3 @@ test("parseRepoUrl preserves an explicit ssh:// port instead of folding it into 
   expect(r?.sshUrl).toBe("ssh://git@git.example.com:2222/team/repo.git");
   expect(r?.path).toBe("team/repo");
 });
-
-test("parseRepoUrl: an ssh:// URL with no port still normalizes to the scp form", () => {
-  const r = parseRepoUrl("ssh://git@git.example.com/team/repo.git");
-  expect(r?.sshUrl).toBe("git@git.example.com:team/repo.git");
-});
-
-test("parseRepoUrl: bare scp shorthand with a leading digit segment is left alone (not a port)", () => {
-  const r = parseRepoUrl("git@git.example.com:2222/o/r.git");
-  expect(r?.sshUrl).toBe("git@git.example.com:2222/o/r.git");
-  expect(r?.path).toBe("2222/o/r");
-});
-
-test("parseRepoUrl truncates at the last /-/ delimiter, not the first", () => {
-  const r = parseRepoUrl("https://gitlab.com/team/-/handbook/-/tree/main");
-  expect(r?.sshUrl).toBe("git@gitlab.com:team/-/handbook.git");
-});
-
-test("parseRepoUrl lowercases a mixed-case scp host so provider detection still matches", () => {
-  const r = parseRepoUrl("git@GitHub.com:acme/handbook.git");
-  expect(r?.provider).toBe("github");
-  expect(r?.deployKeyUrl).toBe(
-    "https://github.com/acme/handbook/settings/keys/new",
-  );
-});

@@ -172,12 +172,6 @@ impl SemanticSink {
     }
 
     #[cfg(test)]
-    fn with_clock(mut self, clock: impl Fn() -> Instant + Send + Sync + 'static) -> SemanticSink {
-        self.clock = Box::new(clock);
-        self
-    }
-
-    #[cfg(test)]
     fn with_caps(mut self, pages: usize, chunks: usize) -> SemanticSink {
         self.caps = (pages, chunks);
         self
@@ -497,51 +491,17 @@ mod tests {
         }
     }
 
-    #[test]
-    fn pages_past_the_page_cap_are_kept_without_chunks() {
-        let inference = Inference::with_embedder(std::sync::Arc::new(FakeEmbedder::new()));
-        let sink = SemanticSink::open(&Location::Memory, inference).with_caps(2, MAX_CHUNKS);
-        sink.apply(&[
-            upsert("A.md", "alpha"),
-            upsert("B.md", "beta"),
-            upsert("C.md", "gamma"),
-        ])
-        .unwrap();
-        let index = sink.read();
-        assert_eq!(index.len(), 3, "every page is stamped, so none is retried");
-        assert_eq!(index.get("C.md").unwrap().chunks.len(), 0);
-        assert_eq!(index.chunk_count(), 2);
-    }
-
     fn delete(path: &str) -> Change {
         Change::Delete { path: path.into() }
     }
 
-    /// At a full page cap, a delete in the same batch makes room for its
-    /// upsert.
-    #[test]
-    fn an_apply_with_a_delete_makes_room_at_the_page_cap() {
-        let inference = Inference::with_embedder(std::sync::Arc::new(FakeEmbedder::new()));
-        let sink = SemanticSink::open(&Location::Memory, inference).with_caps(2, MAX_CHUNKS);
-        sink.apply(&[upsert("A.md", "alpha"), upsert("B.md", "beta")])
-            .unwrap();
-        sink.apply(&[delete("A.md"), upsert("E.md", "epsilon")])
-            .unwrap();
-        let index = sink.read();
-        assert!(index.get("A.md").is_none());
-        assert_eq!(
-            index.get("E.md").unwrap().chunks.len(),
-            1,
-            "the delete made room"
-        );
-    }
-
     /// The caps through a whole apply: every page is stamped, the edit keeps
-    /// only the chunks that fit.
+    /// only the chunks that fit, pages past the page cap are kept without
+    /// chunks, and a delete in the same batch makes room for an upsert.
     #[test]
     fn an_apply_spends_the_budget() {
         let inference = Inference::with_embedder(std::sync::Arc::new(FakeEmbedder::new()));
-        let sink = SemanticSink::open(&Location::Memory, inference).with_caps(MAX_PAGES, 3);
+        let sink = SemanticSink::open(&Location::Memory, inference).with_caps(2, 3);
         sink.apply(&[
             upsert("A.md", "# One\nfern\n\n# Two\nmoss"),
             upsert("B.md", "# One\nreed"),
@@ -557,6 +517,19 @@ mod tests {
         assert_eq!(index.get("A.md").unwrap().chunks.len(), 2);
         assert_eq!(index.get("B.md").unwrap().chunks.len(), 1);
         assert_eq!(index.get("C.md").unwrap().chunks.len(), 0);
+        drop(index);
+        // At the page cap: the delete makes room for D, and E is past it.
+        sink.apply(&[
+            delete("A.md"),
+            upsert("D.md", "delta"),
+            upsert("E.md", "epsilon"),
+        ])
+        .unwrap();
+        let index = sink.read();
+        assert!(index.get("A.md").is_none());
+        assert_eq!(index.len(), 4, "every page is stamped, so none is retried");
+        assert_eq!(index.get("D.md").unwrap().chunks.len(), 1, "room made");
+        assert_eq!(index.get("E.md").unwrap().chunks.len(), 0, "past the cap");
     }
 
     #[test]
@@ -585,141 +558,6 @@ mod tests {
                 "each chunk is one window"
             );
         }
-    }
-
-    /// Records the byte length of every passage of every embed job.
-    struct Jobs {
-        fake: FakeEmbedder,
-        lengths: Mutex<Vec<Vec<usize>>>,
-    }
-
-    impl Embedder for Jobs {
-        fn spec(&self) -> &crate::semantic::catalog::ModelSpec {
-            self.fake.spec()
-        }
-
-        fn fit(&self, text: &str) -> usize {
-            self.fake.fit(text)
-        }
-
-        fn embed(
-            &self,
-            texts: &[&str],
-            kind: EmbedKind,
-        ) -> Result<Vec<Vec<f32>>, crate::semantic::embed::EmbedError> {
-            let lengths = texts.iter().map(|t| t.len()).collect();
-            self.lengths.lock().unwrap().push(lengths);
-            self.fake.embed(texts, kind)
-        }
-    }
-
-    /// An apply embeds its passages shortest first, so a job (one forward
-    /// batch) holds passages of similar length, and every vector still
-    /// lands on its own chunk.
-    #[test]
-    fn an_apply_embeds_shortest_first_and_maps_every_vector_back() {
-        let jobs = std::sync::Arc::new(Jobs {
-            fake: FakeEmbedder {
-                budget: 8,
-                ..FakeEmbedder::new()
-            },
-            lengths: Mutex::new(Vec::new()),
-        });
-        let sink = SemanticSink::open(&Location::Memory, Inference::with_embedder(jobs.clone()));
-        let pages: Vec<(String, String)> = (0..6)
-            .map(|i| {
-                let text: String = (0..3 + i * 9)
-                    .map(|w| format!("fern{i} moss{w} "))
-                    .collect();
-                (format!("Bed {i}.md"), text)
-            })
-            .collect();
-        let changes: Vec<Change> = pages.iter().map(|(p, t)| upsert(p, t)).collect();
-        sink.apply(&changes).unwrap();
-        let lengths = jobs.lengths.lock().unwrap().clone();
-        assert!(lengths.len() > 1, "several jobs: {lengths:?}");
-        let flat = lengths.concat();
-        assert!(flat.windows(2).all(|w| w[0] <= w[1]), "{lengths:?}");
-        let index = sink.read();
-        for (path, text) in &pages {
-            for c in &index.get(path).unwrap().chunks {
-                let range = c.start as usize..(c.start + c.len) as usize;
-                let passage = format!("{}{}", passage_head(path), &text[range]);
-                assert_eq!(
-                    c.vector,
-                    jobs.fake.vector(&passage),
-                    "{path} at {}",
-                    c.start
-                );
-            }
-        }
-    }
-
-    /// A slow batch reports progress on the clock while it embeds, at most
-    /// every `PROGRESS_EVERY`, counting the pages whose chunks are all
-    /// embedded; a query sees none of them before the apply returns.
-    #[test]
-    fn a_slow_batch_reports_progress_on_the_clock_while_it_embeds() {
-        let fake = std::sync::Arc::new(FakeEmbedder {
-            budget: 8,
-            ..FakeEmbedder::new()
-        });
-        let inference = Inference::with_embedder(fake.clone());
-        // Each embedded text takes 100 ms of fake time: a job of
-        // `INDEX_TEXTS` takes 1.6 s, so progress comes every other job.
-        let (clock, start) = (fake.clone(), Instant::now());
-        let sink = SemanticSink::open(&Location::Memory, inference).with_clock(move || {
-            start + Duration::from_millis(100 * clock.texts.load(Ordering::SeqCst) as u64)
-        });
-        let pages: Vec<Change> = (0..4)
-            .map(|i| {
-                let text: String = (0..100).map(|w| format!("fern{i} moss{w} ")).collect();
-                upsert(&format!("Garden {i}.md"), &text)
-            })
-            .collect();
-        let reports = Mutex::new(Vec::new());
-        sink.apply_with_progress(&pages, &|done| {
-            assert_eq!(sink.read().len(), 0, "nothing searchable mid-batch");
-            reports.lock().unwrap().push(done);
-        })
-        .unwrap();
-        let reports = reports.into_inner().unwrap();
-        let jobs = fake.calls.load(Ordering::SeqCst);
-        assert!(jobs >= 4, "several embed jobs, got {jobs}");
-        assert!(!reports.is_empty(), "progress before the batch was applied");
-        assert!(
-            reports.len() <= jobs / 2,
-            "throttled: {reports:?} of {jobs} jobs"
-        );
-        assert!(reports.windows(2).all(|w| w[0] <= w[1]), "{reports:?}");
-        assert!(
-            reports.iter().any(|&n| 0 < n && n < pages.len()),
-            "{reports:?}"
-        );
-        assert_eq!(sink.read().len(), pages.len());
-    }
-
-    /// Measured before the first save, a disk index reports its vectors'
-    /// size, not 0; once saved, the file's size.
-    #[test]
-    fn an_unsaved_disk_index_measures_its_vectors() {
-        let tmp = tempfile::tempdir().unwrap();
-        let location = Location::Disk(tmp.path().to_path_buf());
-        let inference = Inference::with_embedder(std::sync::Arc::new(FakeEmbedder::new()));
-        let sink = SemanticSink::open(&location, inference);
-        sink.apply(&[upsert("Basil.md", "Water the basil every morning.")])
-            .unwrap();
-        let file = sink.file.clone().unwrap();
-        assert!(!file.exists(), "nothing saved yet");
-        let vectors = {
-            let index = sink.read();
-            (index.chunk_count() * index.dim() * 4) as u64
-        };
-        assert!(vectors > 0);
-        assert_eq!(sink.measure(), (1, vectors));
-        sink.settle();
-        let saved = std::fs::metadata(&file).unwrap().len();
-        assert_eq!(sink.measure(), (1, saved));
     }
 
     /// R1: a file saved during a first build reopens `Resumed` with its

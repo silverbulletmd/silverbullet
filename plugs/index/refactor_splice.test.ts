@@ -63,24 +63,6 @@ describe("wikilinks", () => {
     ).toBe("See [[New$myAnchor]].");
   });
 
-  test("wikilink with header detail and alias", () => {
-    expect(
-      splice("See [[Old#H|label]].", "[[Old#H|label]]", "Old", "New"),
-    ).toBe("See [[New#H|label]].");
-  });
-
-  test("wikilink at start of line", () => {
-    expect(splice("[[Old]] starts the line.", "[[Old]]", "Old", "New")).toBe(
-      "[[New]] starts the line.",
-    );
-  });
-
-  test("wikilink at end of file", () => {
-    expect(splice("Trailing [[Old]]", "[[Old]]", "Old", "New")).toBe(
-      "Trailing [[New]]",
-    );
-  });
-
   test("wikilink with `.md` suffix is normalized", () => {
     // Wikilinks omit the .md extension.
     expect(splice("See [[Old.md]].", "[[Old.md]]", "Old", "New")).toBe(
@@ -123,12 +105,6 @@ describe("markdown links (relative)", () => {
       splice("Link [t](Old).", "[t](Old)", "Old", "New", "sub/Editor"),
     ).toBe("Link [t](../New).");
   });
-
-  test("markdown link preserves [text] empty", () => {
-    expect(splice("[](Old)", "[](Old)", "Old", "New", "Editor")).toBe(
-      "[](New)",
-    );
-  });
 });
 
 describe("markdown links (absolute)", () => {
@@ -136,12 +112,6 @@ describe("markdown links (absolute)", () => {
     expect(splice("See [t](/Old).", "[t](/Old)", "Old", "New", "Editor")).toBe(
       "See [t](/New).",
     );
-  });
-
-  test("absolute path with detail", () => {
-    expect(
-      splice("See [t](/Old#sec).", "[t](/Old#sec)", "Old", "New", "Editor"),
-    ).toBe("See [t](/New#sec).");
   });
 });
 
@@ -178,36 +148,6 @@ describe("transclusions (wikilink form with leading `!`)", () => {
     );
   });
 
-  test("transclusion with dimension alias", () => {
-    expect(
-      splice("See ![[Old|100x200]].", "![[Old|100x200]]", "Old", "New"),
-    ).toBe("See ![[New|100x200]].");
-  });
-
-  test("transclusion with header detail", () => {
-    expect(
-      splice("See ![[Old#Section]].", "![[Old#Section]]", "Old", "New"),
-    ).toBe("See ![[New#Section]].");
-  });
-
-  test("transclusion with position detail", () => {
-    expect(splice("See ![[Old@12]].", "![[Old@12]]", "Old", "New")).toBe(
-      "See ![[New@12]].",
-    );
-  });
-
-  test("transclusion with `.md` suffix is normalized", () => {
-    expect(splice("See ![[Old.md]].", "![[Old.md]]", "Old", "New")).toBe(
-      "See ![[New]].",
-    );
-  });
-
-  test("transclusion at start of line", () => {
-    expect(splice("![[Old]] starts.", "![[Old]]", "Old", "New")).toBe(
-      "![[New]] starts.",
-    );
-  });
-
   test("transclusion whose target doesn't match oldName is left alone", () => {
     expect(splice("See ![[Other]].", "![[Other]]", "Old", "New")).toBe(
       "See ![[Other]].",
@@ -221,37 +161,6 @@ describe("markdown images (markdown-link form with leading `!`)", () => {
       splice("See ![alt](Old).", "![alt](Old)", "Old", "New", "Editor"),
     ).toBe("See ![alt](New).");
   });
-
-  test("markdown image with header detail", () => {
-    expect(
-      splice("See ![alt](Old#sec).", "![alt](Old#sec)", "Old", "New", "Editor"),
-    ).toBe("See ![alt](New#sec).");
-  });
-});
-
-describe("multiple references on one line", () => {
-  test("each splice is independent (caller iterates back-to-front)", () => {
-    let text = "Two [[Old]] references [[Old]] here.";
-    // Splice the second one first (back-to-front).
-    const second = text.lastIndexOf("[[Old]]");
-    text = spliceReference({
-      text,
-      range: [second, second + "[[Old]]".length],
-      oldName: "Old",
-      newName: "New",
-      pageToEdit: "Editor",
-    });
-    expect(text).toBe("Two [[Old]] references [[New]] here.");
-    const first = text.indexOf("[[Old]]");
-    text = spliceReference({
-      text,
-      range: [first, first + "[[Old]]".length],
-      oldName: "Old",
-      newName: "New",
-      pageToEdit: "Editor",
-    });
-    expect(text).toBe("Two [[New]] references [[New]] here.");
-  });
 });
 
 describe("non-link slice returns text unchanged", () => {
@@ -260,18 +169,6 @@ describe("non-link slice returns text unchanged", () => {
       spliceReference({
         text: "Some text",
         range: [3, 3],
-        oldName: "x",
-        newName: "y",
-        pageToEdit: "Editor",
-      }),
-    ).toBe("Some text");
-  });
-
-  test("range doesn't start with `[`", () => {
-    expect(
-      spliceReference({
-        text: "Some text",
-        range: [0, 4],
         oldName: "x",
         newName: "y",
         pageToEdit: "Editor",

@@ -163,141 +163,67 @@ fn fs_put_get_roundtrip_with_meta_headers() {
     );
     let body = get.text().unwrap();
     assert_eq!(body, "# Hello");
-}
 
-#[test]
-fn fs_get_meta_returns_empty_body_with_headers() {
-    let (_srv, _space, base) = start(&[]);
-    let http = client();
-    http.put(format!("{base}/.fs/test.md"))
-        .header("Content-Type", "text/markdown")
-        .body("# Hello")
-        .send()
-        .unwrap();
-
-    let resp = http
+    // A meta-only read has the headers and no body.
+    let meta = http
         .get(format!("{base}/.fs/test.md"))
         .header("X-Get-Meta", "true")
         .send()
         .unwrap();
-    assert!(resp.status().is_success());
-    assert!(resp.headers().get("x-last-modified").is_some());
-    assert!(resp.headers().get("x-content-length").is_some());
-    let body = resp.bytes().unwrap();
+    assert!(meta.status().is_success());
+    assert!(meta.headers().get("x-last-modified").is_some());
+    let body = meta.bytes().unwrap();
     assert!(body.is_empty(), "X-Get-Meta body should be empty: {body:?}");
-}
 
-#[test]
-fn fs_list_includes_written_file() {
-    let (_srv, _space, base) = start(&[]);
-    let http = client();
-    http.put(format!("{base}/.fs/test.md"))
-        .header("Content-Type", "text/markdown")
-        .body("# Hello")
-        .send()
-        .unwrap();
+    // Nested, URL-encoded and binary paths round-trip byte for byte.
+    let blob: Vec<u8> = (0..1024).map(|i| (i % 256) as u8).collect();
+    for (path, content_type, content) in [
+        ("sub/dir/page.md", "text/markdown", b"nested".to_vec()),
+        (
+            "file%20with%20spaces.md",
+            "text/markdown",
+            b"spaced".to_vec(),
+        ),
+        ("blob.bin", "application/octet-stream", blob),
+    ] {
+        let put = http
+            .put(format!("{base}/.fs/{path}"))
+            .header("Content-Type", content_type)
+            .body(content.clone())
+            .send()
+            .unwrap();
+        assert!(put.status().is_success(), "PUT {path}");
+        let get = http.get(format!("{base}/.fs/{path}")).send().unwrap();
+        assert!(get.status().is_success(), "GET {path}");
+        assert_eq!(get.bytes().unwrap().as_ref(), content.as_slice(), "{path}");
+    }
 
-    let resp = http.get(format!("{base}/.fs/")).send().unwrap();
-    assert!(resp.status().is_success(), "list status {}", resp.status());
-    let files: serde_json::Value = resp.json().unwrap();
-    assert!(
-        files
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|f| f["name"] == "test.md"),
-        "listing missing test.md: {files}"
-    );
+    // Both listings include the written file.
+    for sync_mode in [false, true] {
+        let mut list = http.get(format!("{base}/.fs/"));
+        if sync_mode {
+            list = list.header("X-Sync-Mode", "true");
+        }
+        let resp = list.send().unwrap();
+        assert!(resp.status().is_success(), "list status {}", resp.status());
+        let files: serde_json::Value = resp.json().unwrap();
+        assert!(
+            files
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|f| f["name"] == "test.md"),
+            "listing missing test.md: {files}"
+        );
+    }
 
-    let resp = http
-        .get(format!("{base}/.fs/"))
-        .header("X-Sync-Mode", "true")
-        .send()
-        .unwrap();
-    assert!(resp.status().is_success());
-    let files: serde_json::Value = resp.json().unwrap();
-    assert!(files
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|f| f["name"] == "test.md"));
-}
-
-#[test]
-fn fs_delete_then_get_is_404_and_missing_is_404() {
-    let (_srv, _space, base) = start(&[]);
-    let http = client();
-    http.put(format!("{base}/.fs/test.md"))
-        .header("Content-Type", "text/markdown")
-        .body("# Hello")
-        .send()
-        .unwrap();
-
+    // A deleted and a missing file are 404.
     let del = http.delete(format!("{base}/.fs/test.md")).send().unwrap();
     assert!(del.status().is_success(), "DELETE status {}", del.status());
-
-    let get = http.get(format!("{base}/.fs/test.md")).send().unwrap();
-    assert_eq!(get.status(), reqwest::StatusCode::NOT_FOUND);
-
-    let missing = http
-        .get(format!("{base}/.fs/nonexistent.md"))
-        .send()
-        .unwrap();
-    assert_eq!(missing.status(), reqwest::StatusCode::NOT_FOUND);
-}
-
-#[test]
-fn fs_nested_and_url_encoded_paths_roundtrip() {
-    let (_srv, _space, base) = start(&[]);
-    let http = client();
-
-    let put = http
-        .put(format!("{base}/.fs/sub/dir/page.md"))
-        .header("Content-Type", "text/markdown")
-        .body("nested")
-        .send()
-        .unwrap();
-    assert!(put.status().is_success());
-    let get = http
-        .get(format!("{base}/.fs/sub/dir/page.md"))
-        .send()
-        .unwrap();
-    assert!(get.status().is_success());
-    assert_eq!(get.text().unwrap(), "nested");
-
-    let put = http
-        .put(format!("{base}/.fs/file%20with%20spaces.md"))
-        .header("Content-Type", "text/markdown")
-        .body("spaced")
-        .send()
-        .unwrap();
-    assert!(put.status().is_success());
-    let get = http
-        .get(format!("{base}/.fs/file%20with%20spaces.md"))
-        .send()
-        .unwrap();
-    assert!(get.status().is_success());
-    assert_eq!(get.text().unwrap(), "spaced");
-}
-
-#[test]
-fn fs_binary_content_roundtrips_byte_for_byte() {
-    let (_srv, _space, base) = start(&[]);
-    let http = client();
-
-    let blob: Vec<u8> = (0..1024).map(|i| (i % 256) as u8).collect();
-    let put = http
-        .put(format!("{base}/.fs/blob.bin"))
-        .header("Content-Type", "application/octet-stream")
-        .body(blob.clone())
-        .send()
-        .unwrap();
-    assert!(put.status().is_success());
-
-    let get = http.get(format!("{base}/.fs/blob.bin")).send().unwrap();
-    assert!(get.status().is_success());
-    let got = get.bytes().unwrap();
-    assert_eq!(got.as_ref(), blob.as_slice(), "binary blob mismatch");
+    for path in ["test.md", "nonexistent.md"] {
+        let get = http.get(format!("{base}/.fs/{path}")).send().unwrap();
+        assert_eq!(get.status(), reqwest::StatusCode::NOT_FOUND, "{path}");
+    }
 }
 
 #[test]

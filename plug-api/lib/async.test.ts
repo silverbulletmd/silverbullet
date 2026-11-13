@@ -82,7 +82,7 @@ test("processWithConcurrency test - concurrency limit", async () => {
   );
 
   expect(results).toEqual([1, 2, 3, 4, 5, 6]);
-  expect(maxActive.value <= 3).toEqual(true);
+  expect(maxActive.value).toEqual(3);
 });
 
 test("processWithConcurrency test - empty array", async () => {
@@ -128,39 +128,6 @@ test("processWithConcurrency test - error handling", async () => {
         error.message.includes("Error processing item 3"),
     ).toBeTruthy();
   }
-});
-
-test("processWithConcurrency test - performance with concurrency", async () => {
-  const items = Array.from({ length: 6 }, (_, i) => i + 1);
-  const delay = 30;
-
-  // Test with concurrency of 1 (sequential)
-  const start1 = Date.now();
-  await processWithConcurrency(
-    items,
-    async (item) => {
-      await sleep(delay);
-      return item;
-    },
-    1,
-  );
-  const sequential = Date.now() - start1;
-
-  // Test with concurrency of 3 (parallel)
-  const start2 = Date.now();
-  await processWithConcurrency(
-    items,
-    async (item) => {
-      await sleep(delay);
-      return item;
-    },
-    3,
-  );
-  const parallel = Date.now() - start2;
-
-  // Parallel should be significantly faster than sequential
-  // Allow some margin for timing variations
-  expect(parallel < sequential * 0.8).toBeTruthy(); // `Parallel (${parallel}ms) should be faster than sequential (${sequential}ms)`
 });
 
 test("Batch test", async () => {

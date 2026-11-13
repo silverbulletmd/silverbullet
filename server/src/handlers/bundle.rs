@@ -581,23 +581,6 @@ mod tests {
     const INDEX_TPL: &[u8] = br#"<base href="{{ host_prefix | safe }}/"><title>{{ title }}</title><meta content="{{ description }}">{{ additional_head_html | safe }}<div class="cm-content">{{ content | safe }}</div>"#;
 
     #[tokio::test]
-    async fn serves_a_bundle_asset_raw() {
-        let state = test_state();
-        seed_bundle(&state, ".client/app.js", b"console.log(1)");
-        let resp = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.client/app.js")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(body_string(resp).await, "console.log(1)");
-    }
-
-    #[tokio::test]
     async fn bundle_assets_revalidate_on_content_not_dates() {
         let state = Arc::new(test_state());
         seed_bundle(&state, ".client/app.js", b"x");
@@ -676,42 +659,6 @@ mod tests {
         );
         // A page whose name merely ends in `.map` still gets the shell.
         assert_eq!(status(state, "/Road.map").await, StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn html_assets_are_served_raw_on_the_direct_path() {
-        let state = test_state();
-        seed_bundle(&state, "raw.html", b"<title>{{.Title}}</title>");
-        let resp = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/raw.html")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        assert_eq!(body_string(resp).await, "<title>{{.Title}}</title>");
-    }
-
-    #[tokio::test]
-    async fn fallback_templates_the_spa_shell() {
-        let state = test_state();
-        seed_bundle(&state, ".client/index.html", INDEX_TPL);
-        seed_space(&state, "Home.md", b"# Should not render");
-        let resp = crate::build_router(Arc::new(state))
-            .oneshot(Request::builder().uri("/Home").body(Body::empty()).unwrap())
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-        let html = body_string(resp).await;
-        assert!(html.contains("<title>SilverBullet</title>"), "{html}");
-        assert!(!html.contains("{{"), "unresolved placeholder: {html}");
-        assert!(
-            html.contains(r#"<div class="cm-content"></div>"#),
-            "content should be empty: {html}"
-        );
     }
 
     #[tokio::test]

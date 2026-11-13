@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Duration;
 
 use axum::body::Body;
@@ -41,6 +41,9 @@ pub const REDIRECT: &str = "http://localhost:53682/callback";
 /// Each fixture grant is its own app, so a second one does not replace the
 /// first.
 static FIXTURE_CLIENTS: AtomicU64 = AtomicU64::new(0);
+
+/// The fixture's `users.json` bytes and API tokens, built once per binary.
+static FIXTURE_USERS: OnceLock<(Vec<u8>, BTreeMap<String, String>)> = OnceLock::new();
 
 struct FakeRuntime;
 
@@ -258,22 +261,34 @@ impl Fixture {
 
     fn build(script: Option<Arc<Script>>, bundled: Vec<(String, Vec<u8>)>) -> Self {
         let dir = tempfile::tempdir().unwrap();
-        let users = UserStore::create_empty(dir.path()).unwrap();
-        let mut tokens = BTreeMap::new();
-        for name in ["keeper", "writer-one", "reader", "runtime-off"] {
-            users
-                .create_user(
-                    name,
-                    "fixture-password",
-                    name == "keeper",
-                    Profile::default(),
-                )
-                .unwrap();
-            tokens.insert(
-                name.into(),
-                users.create_token(name, "fixture-token").unwrap(),
-            );
-        }
+        // Hashing the passwords is the expensive part: do it once per test
+        // binary and copy the resulting `users.json` into each fixture.
+        let (users_json, tokens) = FIXTURE_USERS.get_or_init(|| {
+            let template = tempfile::tempdir().unwrap();
+            let users = UserStore::create_empty(template.path()).unwrap();
+            let mut tokens = BTreeMap::new();
+            for name in ["keeper", "writer-one", "reader", "runtime-off"] {
+                users
+                    .create_user(
+                        name,
+                        "fixture-password",
+                        name == "keeper",
+                        Profile::default(),
+                    )
+                    .unwrap();
+                tokens.insert(
+                    name.to_string(),
+                    users.create_token(name, "fixture-token").unwrap(),
+                );
+            }
+            (
+                std::fs::read(template.path().join("users.json")).unwrap(),
+                tokens,
+            )
+        });
+        std::fs::write(dir.path().join("users.json"), users_json).unwrap();
+        let users = UserStore::open(dir.path()).unwrap().unwrap();
+        let tokens = tokens.clone();
         let authenticator = Arc::new(
             Authenticator::from_secret_bytes(vec![19; 32], "fixture".into())
                 .with_browser_sessions(Arc::new(BrowserSessions::load(dir.path()).unwrap())),

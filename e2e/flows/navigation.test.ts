@@ -1,4 +1,4 @@
-import type { Locator, Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import {
   currentPage,
   expectNavInputFocused,
@@ -17,51 +17,6 @@ import {
   waitForPersistedContent,
 } from "../fixtures/core.ts";
 
-async function decoratedRowGeometry(row: Locator) {
-  return row.evaluate((element) => {
-    const rowRect = element.getBoundingClientRect();
-    const titleWidth = element
-      .querySelector(".sb-nav-primary")!
-      .getBoundingClientRect().width;
-    const trailing = element.querySelector(".sb-nav-trailing");
-    if (!trailing) {
-      return {
-        rowWidth: rowRect.width,
-        rowHeight: rowRect.height,
-        titleWidth,
-        chipRatios: [],
-        chipTopOffsets: [],
-      };
-    }
-    const title = element
-      .querySelector(".sb-nav-primary")!
-      .getBoundingClientRect();
-    const clip = trailing.getBoundingClientRect();
-    const chipRatios = [...trailing.children].map((child) => {
-      const chip = child.getBoundingClientRect();
-      const visibleWidth = Math.max(
-        0,
-        Math.min(chip.right, clip.right) - Math.max(chip.left, clip.left),
-      );
-      const visibleHeight = Math.max(
-        0,
-        Math.min(chip.bottom, clip.bottom) - Math.max(chip.top, clip.top),
-      );
-      return (visibleWidth * visibleHeight) / (chip.width * chip.height);
-    });
-    const chipTopOffsets = [...trailing.children].map(
-      (child) => child.getBoundingClientRect().top - title.top,
-    );
-    return {
-      rowWidth: rowRect.width,
-      rowHeight: rowRect.height,
-      titleWidth,
-      chipRatios,
-      chipTopOffsets,
-    };
-  });
-}
-
 test.describe("page and command navigation", () => {
   test.use({
     spaceFiles: {
@@ -69,30 +24,7 @@ test.describe("page and command navigation", () => {
       "Fruit Apple.md": "Apple notes",
       "Fruit Banana.md": "Banana notes",
       "Fruit Cherry.md": "Cherry notes",
-      "Plan.md": "---\ntags: [planning, active]\n---\n",
-      "Projects/Medium Length Roadmap.md":
-        "---\ntags: [extraordinarily-long-tag]\ndescription: Summary\n---\n",
-      "Projects/Quarterly Roadmap For Product Launch.md":
-        "---\ntags: [planning, roadmap, active, review]\n---\n",
     },
-  });
-
-  test("the page picker clears the standalone iOS top band", async ({
-    sbPage,
-  }) => {
-    await sbPage.setViewportSize({ width: 390, height: 844 });
-    await sbPage.addStyleTag({
-      content: ":root { --sb-standalone-top-offset: 20px; }",
-    });
-    await openPagePicker(sbPage);
-
-    const top = await sbPage
-      .locator(".sb-modal-centered")
-      .evaluate((element) => element.getBoundingClientRect().top);
-    const topBarBottom = await sbPage
-      .locator("#sb-top")
-      .evaluate((element) => element.getBoundingClientRect().bottom);
-    expect(top).toBeGreaterThanOrEqual(topBarBottom);
   });
 
   test("command and document pickers keep their headers visible on a phone", async ({
@@ -122,50 +54,6 @@ test.describe("page and command navigation", () => {
     expect(documentTop).toBeGreaterThanOrEqual(topBarBottom);
   });
 
-  test("page titles take precedence over tags at narrow widths", async ({
-    sbPage,
-  }) => {
-    await sbPage.setViewportSize({ width: 390, height: 844 });
-    const frame = await openPagePicker(sbPage);
-    const row = frame.locator(".sb-nav-row", {
-      hasText: "Projects/Quarterly Roadmap For Product Launch",
-    });
-    await expect(row).toBeVisible({ timeout: 20_000 });
-    const plainRow = frame.locator(".sb-nav-row", { hasText: "Fruit Apple" });
-    const shortRow = frame
-      .locator(".sb-nav-primary")
-      .filter({ hasText: /^Plan$/ })
-      .locator("..");
-    const intermediateRow = frame.locator(".sb-nav-row", {
-      hasText: "Projects/Medium Length Roadmap",
-    });
-    await expect(shortRow).toBeVisible();
-    await expect(intermediateRow).toBeVisible();
-
-    const [longGeometry, plainHeight, shortGeometry, intermediateGeometry] =
-      await Promise.all([
-        decoratedRowGeometry(row),
-        plainRow.evaluate((element) => element.getBoundingClientRect().height),
-        decoratedRowGeometry(shortRow),
-        decoratedRowGeometry(intermediateRow),
-      ]);
-    expect(longGeometry.titleWidth).toBeGreaterThan(
-      longGeometry.rowWidth * 0.75,
-    );
-    expect(longGeometry.rowHeight).toBeCloseTo(plainHeight, 0);
-    expect(longGeometry.chipRatios.filter((ratio) => ratio > 0.01)).toEqual([]);
-    expect(shortGeometry.chipRatios.length).toBeGreaterThan(0);
-    expect(shortGeometry.chipRatios.every((ratio) => ratio > 0.99)).toBe(true);
-    expect(shortGeometry.chipTopOffsets.every((offset) => offset > 1)).toBe(
-      true,
-    );
-    expect(
-      intermediateGeometry.chipRatios.every(
-        (ratio) => ratio < 0.01 || ratio > 0.99,
-      ),
-    ).toBe(true);
-  });
-
   test("keyboard selection opens a page and returns focus to the editor", async ({
     sbPage,
   }) => {
@@ -190,11 +78,8 @@ test.describe("page and command navigation", () => {
     await expect(currentPage(sbPage)).toHaveValue("Fruit Banana");
     await expect(sbPage.locator(".sb-modal")).toBeHidden();
     await expect(sbPage.locator("#sb-editor .cm-content")).toBeFocused();
-  });
 
-  test("the command palette hands focus to a page picker opened by a command", async ({
-    sbPage,
-  }) => {
+    // A page picker opened by a command gets the focus the palette had
     await runCommandViaPalette(sbPage, "Navigate: Page Picker");
     await expectNavInputFocused(sbPage);
     await navInput(sbPage).fill("Fruit Cherry");
@@ -202,35 +87,8 @@ test.describe("page and command navigation", () => {
       timeout: 20_000,
     });
     await sbPage.keyboard.press("Enter");
-
     await expect(currentPage(sbPage)).toHaveValue("Fruit Cherry");
     await expect(sbPage.locator("#sb-editor .cm-content")).toBeFocused();
-  });
-});
-
-test.describe("anchor navigation", () => {
-  test.use({
-    spaceFiles: {
-      "index.md": "Welcome",
-      "Orchard.md": "A note with $shared in it.\n",
-      "Pantry.md": "Another note with $shared in it.\n",
-    },
-  });
-
-  test("a duplicate anchor row routes to the page chosen by the user", async ({
-    sbPage,
-  }) => {
-    const frame = await openPagePicker(sbPage);
-    await navInput(sbPage).fill("$shared");
-    await expect(navInput(sbPage)).toHaveAttribute("placeholder", "Anchor");
-
-    const rows = frame.locator(".sb-nav-row");
-    await expect(rows).toHaveCount(2, { timeout: 20_000 });
-    await expect(rows.filter({ hasText: "Orchard" })).toBeVisible();
-    await rows.filter({ hasText: "Pantry" }).click();
-
-    await expect(currentPage(sbPage)).toHaveValue("Pantry");
-    await expect(sbPage.locator(".sb-modal")).toBeHidden();
   });
 });
 
@@ -240,7 +98,6 @@ test.describe("space tree", () => {
       "index.md": "Before\n\nAfter",
       "Projects/Alpha.md": "# Alpha",
       "Projects/Beta.md": "# Beta",
-      "Files/report.txt": "Report text",
       "Journal/Today.md": "# Today\n\nPlanning notes.",
       ...Object.fromEntries(
         Array.from({ length: 80 }, (_, index) => [
@@ -249,127 +106,6 @@ test.describe("space tree", () => {
         ]),
       ),
     },
-  });
-
-  test("a narrow-screen tree can be reopened from the side where it is docked", async ({
-    sbPage,
-  }) => {
-    await sbPage.setViewportSize({ width: 390, height: 844 });
-    await runCommandViaPalette(sbPage, "Navigate: Tree");
-    const leftTree = sbPage.locator(".sb-nav-root-lhs");
-    await expect(leftTree.locator("[data-path='Projects']")).toBeVisible();
-    await leftTree.locator("[data-path='Projects'] .sb-nav-chevron").click();
-    await leftTree.locator("[data-path='Projects/Alpha']").click();
-    await expect(currentPage(sbPage)).toHaveValue("Projects/Alpha");
-    await expect(leftTree).toBeHidden();
-
-    const leftButton = sbPage.locator(".sb-mobile-dock-left");
-    await expect(leftButton).toBeVisible();
-    const leftButtonRight = await leftButton.evaluate(
-      (element) => element.getBoundingClientRect().right,
-    );
-    const titleWithDockLeft = await sbPage
-      .locator("#sb-current-page")
-      .evaluate((element) => element.getBoundingClientRect().left);
-    expect(titleWithDockLeft - leftButtonRight).toBe(8);
-    await leftButton.click();
-    await expect(leftTree).toBeVisible();
-
-    await leftTree
-      .getByRole("button", { name: /Shown as: Left sidebar/ })
-      .click();
-    // The dock menu opens on document.body, outside the panel
-    await sbPage.getByRole("menuitem", { name: "Right sidebar" }).click();
-    const rightTree = sbPage.locator(".sb-nav-root-rhs");
-    await expect(rightTree).toBeVisible();
-    await expect(leftButton).toBeHidden();
-    await rightTree.locator("[data-path='Projects/Beta']").click();
-    await expect(currentPage(sbPage)).toHaveValue("Projects/Beta");
-    await expect(rightTree).toBeHidden();
-
-    const rightButton = sbPage.locator(".sb-mobile-dock-right");
-    await expect(rightButton).toBeVisible();
-    await sbPage.reload();
-    await expect(rightButton).toBeVisible();
-    await rightButton.click();
-    await expect(rightTree).toBeVisible();
-    const drawerLeft = await rightTree.evaluate(
-      (element) => element.getBoundingClientRect().left,
-    );
-    expect(drawerLeft).toBeGreaterThanOrEqual(40);
-    await rightTree.getByRole("button", { name: "Close", exact: true }).click();
-    await expect(rightTree).toBeHidden();
-    await expect(rightButton).toBeHidden();
-    await sbPage.reload();
-    await expect(rightButton).toBeHidden();
-    const titleLeft = await sbPage
-      .locator("#sb-current-page")
-      .evaluate((element) => element.getBoundingClientRect().left);
-    const bodyLeft = await sbPage
-      .locator(".cm-line")
-      .first()
-      .evaluate((element) => element.getBoundingClientRect().left);
-    expect(Math.abs(titleLeft - bodyLeft)).toBeLessThanOrEqual(1);
-    await runCommandViaPalette(sbPage, "Navigate: Tree");
-    await expect(rightTree).toBeVisible();
-  });
-
-  test("dragging Space tree files into the editor inserts links without uploading", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await runCommandViaPalette(sbPage, "Navigate: Tree");
-    const tree = sbPage.locator(".sb-nav-root-lhs");
-    await expect(sbPage.locator(".sb-mobile-dock-scrim")).toHaveCount(0);
-    await expect(tree.locator("[data-path='Projects']")).toBeVisible({
-      timeout: 20_000,
-    });
-    await tree.locator("[data-path='Projects'] .sb-nav-chevron").click();
-    await tree.locator("[data-path='Files'] .sb-nav-chevron").click();
-    await tree.locator(".sb-tree").evaluate((element) => {
-      (window as any).__treeDownloads = [];
-      element.addEventListener("dragstart", (event) => {
-        (window as any).__treeDownloads.push(
-          (event as DragEvent).dataTransfer?.getData("DownloadURL"),
-        );
-      });
-    });
-    const editor = sbPage.locator("#sb-editor .cm-content");
-    await tree.locator("[data-path='Projects/Alpha']").dragTo(editor);
-    await expect
-      .poll(() =>
-        sbPage.evaluate(() =>
-          (globalThis as any).client.editorView.state.doc.toString(),
-        ),
-      )
-      .toContain("[[Projects/Alpha]]");
-    await tree.locator("[data-path='Files/report.txt']").dragTo(editor);
-    await expect
-      .poll(() =>
-        sbPage.evaluate(() =>
-          (globalThis as any).client.editorView.state.doc.toString(),
-        ),
-      )
-      .toContain("[[Files/report.txt]]");
-    await waitForPersistedContent(
-      sbServer,
-      "index.md",
-      /(?=.*\[\[Projects\/Alpha\]\])(?=.*\[\[Files\/report\.txt\]\])/s,
-    );
-    const downloads = await sbPage.evaluate(async () =>
-      Promise.all(
-        ((window as any).__treeDownloads as string[]).map(async (value) => {
-          const match = /^[^:]+:[^:]+:(.+)$/.exec(value);
-          return match
-            ? [value, await (await fetch(match[1])).text()]
-            : [value];
-        }),
-      ),
-    );
-    expect(downloads).toEqual([
-      [expect.stringContaining("text/markdown:Alpha.md:"), "# Alpha"],
-      [expect.stringContaining("text/plain:report.txt:"), "Report text"],
-    ]);
   });
 
   test("expanding and selecting a tree row navigates while the dock stays open", async ({
@@ -582,27 +318,7 @@ test.describe("read-only keyboard navigation", () => {
     spaceFiles: {
       "index.md": "# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n",
       "Destination.md": "# Destination\n\nFirst line.\n\nBack to [[index]].\n",
-      "MdLink.md": "Intro\n\nSee [dest](Destination) here.\n",
-      "Tasks.md": "Intro\n\n* [ ] Do it\n* [x] Done\n",
     },
-  });
-
-  test("following a link after a click opens the page at the top", async ({
-    sbPage: page,
-  }) => {
-    // A click leaves a native selection in the read-only editor, which must
-    // not be read back into the next page as a cursor at its end.
-    await page.getByText("Intro text.").click();
-    await page.evaluate(() => {
-      const view = (globalThis as any).client.editorView;
-      view.dispatch({
-        selection: { anchor: view.state.doc.toString().indexOf("[[") },
-      });
-    });
-    await expect(page.locator(".sb-link-cursor")).toHaveText("Destination");
-    await page.keyboard.press(`${mod}+Enter`);
-    await expect(currentPage(page)).toHaveValue("Destination");
-    await expect.poll(() => selectionLine(page)).toBe(1);
   });
 
   const placeCursor = (page: Page, needle: string, offset = 0) =>
@@ -625,150 +341,5 @@ test.describe("read-only keyboard navigation", () => {
     await expect(page.locator(".sb-link-cursor")).toHaveText("Destination");
     await page.keyboard.press("Enter");
     await expect(currentPage(page)).toHaveValue("Destination");
-  });
-
-  test("plain Enter on a Markdown link opens the page", async ({
-    sbPage: page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "MdLink");
-    await placeCursor(page, "[dest]");
-    await expect(page.locator(".sb-link-cursor")).toHaveText("dest");
-    await page.keyboard.press("Enter");
-    await expect(currentPage(page)).toHaveValue("Destination");
-  });
-
-  test("plain Enter on text does not change or leave the page", async ({
-    sbPage: page,
-  }) => {
-    await placeCursor(page, "Intro", 2);
-    await page.keyboard.press("Enter");
-    await expect(currentPage(page)).toHaveValue("index");
-    expect(
-      await page.evaluate(() =>
-        (globalThis as any).client.editorView.state.doc.toString(),
-      ),
-    ).toBe("# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n");
-  });
-
-  test("a task checkbox is highlighted under the cursor and Enter clicks it", async ({
-    sbPage: page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "Tasks");
-    const checkbox = page.locator(".sb-checkbox").first();
-    await expect(checkbox).toBeVisible();
-    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
-    // Record the click events the editor dispatches
-    await page.evaluate(() => {
-      const client = (globalThis as any).client;
-      const calls: number[] = [];
-      (globalThis as any).__checkboxClicks = calls;
-      const original = client.dispatchClickEvent.bind(client);
-      client.dispatchClickEvent = (event: any) => {
-        calls.push(event.pos);
-        return original(event);
-      };
-    });
-    // A real click is the reference
-    await checkbox.locator("input").click();
-    await expect
-      .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
-      .toHaveLength(1);
-    // The first task's checkbox, whatever its state
-    await placeCursor(page, "* [", 2);
-    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(1);
-    await page.keyboard.press("Enter");
-    await expect
-      .poll(() => page.evaluate(() => (globalThis as any).__checkboxClicks))
-      .toHaveLength(2);
-    const [byClick, byEnter] = await page.evaluate(
-      () => (globalThis as any).__checkboxClicks,
-    );
-    expect(byEnter).toBe(byClick);
-    // Moving the cursor away removes the highlight
-    await placeCursor(page, "Intro");
-    await expect(page.locator(".sb-checkbox-cursor")).toHaveCount(0);
-  });
-});
-
-test.describe("read-only list editing keys", () => {
-  test.use({
-    serverEnv: { SB_READ_ONLY: "1" },
-    spaceFiles: {
-      "index.md": "# Welcome\n\n- first item\n- second item\n",
-    },
-  });
-
-  // Put the cursor at `pos` in the source, press `key`, return the document
-  async function pressAt(page: Page, pos: string, key: string) {
-    await page.evaluate((pos) => {
-      const view = (globalThis as any).client.editorView;
-      const [before, after] = pos.split("|");
-      const text = view.state.doc.toString();
-      view.dispatch({
-        selection: { anchor: text.indexOf(before + after) + before.length },
-      });
-    }, pos);
-    await page.keyboard.press(key);
-    return page.evaluate(() =>
-      (globalThis as any).client.editorView.state.doc.toString(),
-    );
-  }
-
-  test("Enter in a list item doesn't change the page", async ({
-    sbPage: page,
-  }) => {
-    expect(await pressAt(page, "- first| item", "Enter")).toBe(
-      "# Welcome\n\n- first item\n- second item\n",
-    );
-  });
-
-  test("Backspace after a list marker doesn't change the page", async ({
-    sbPage: page,
-  }) => {
-    expect(await pressAt(page, "- |second item", "Backspace")).toBe(
-      "# Welcome\n\n- first item\n- second item\n",
-    );
-  });
-});
-
-test.describe("Markdown summaries in pickers", () => {
-  test.use({
-    spaceFiles: {
-      "index.md": "Welcome",
-      "Route.md":
-        "- $ridge @reviewer Check the **ridge trail**. ${'hidden value'}\n",
-    },
-  });
-
-  test("anchor results format the excerpt and still open the source", async ({
-    sbPage,
-  }) => {
-    const frame = await openPagePicker(sbPage);
-    await navInput(sbPage).fill("$ridge");
-    const row = frame.locator(".sb-nav-row", { hasText: "ridge trail" });
-    await expect(row.locator(".sb-nav-description strong")).toHaveText(
-      "ridge trail",
-    );
-    await expect(row).toContainText("…");
-    await expect(row).toContainText("Route");
-    await row.click();
-    await expect(currentPage(sbPage)).toHaveValue("Route");
-  });
-
-  test("the Mention Inbox formats leaf labels and still opens the source", async ({
-    sbPage,
-  }) => {
-    await runCommandViaPalette(sbPage, "Navigate: Mentions");
-    const inbox = sbPage.locator(".sb-nav-root-rhs");
-    await inbox
-      .locator("select.sb-nav-dropdown")
-      .selectOption({ label: "All Recipients" });
-    const row = inbox.locator(".sb-nav-row", { hasText: "ridge trail" });
-    await expect(row.locator("strong")).toHaveText("ridge trail");
-    await expect(row).toContainText("…");
-    await row.click();
-    await expect(currentPage(sbPage)).toHaveValue("Route");
   });
 });

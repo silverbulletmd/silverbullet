@@ -43,10 +43,7 @@ test("case-only rename skips the delete when the new casing didn't land", () => 
   expect(shouldDeleteOldPath("OldName.md", "oldname.md", false)).toBe(false);
 });
 
-test("a genuine rename deletes the old path regardless of the flag (true)", () => {
+test("a genuine rename deletes the old path regardless of the flag", () => {
   expect(shouldDeleteOldPath("OldName.md", "NewName.md", true)).toBe(true);
-});
-
-test("a genuine rename deletes the old path regardless of the flag (false)", () => {
   expect(shouldDeleteOldPath("OldName.md", "NewName.md", false)).toBe(true);
 });

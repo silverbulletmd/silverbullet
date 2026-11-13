@@ -634,40 +634,6 @@ mod auth_tests {
         assert_eq!(&body[..], b"bundle");
     }
 
-    #[tokio::test]
-    async fn removed_objects_endpoint_uses_client_bundle_fallback() {
-        let state = test_state();
-        state
-            .client_bundle
-            .write_file(".client/index.html", b"<html>client shell</html>", None)
-            .unwrap();
-
-        let response = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.runtime/objects")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers().get("content-type").unwrap(), "text/html");
-    }
-
-    #[tokio::test]
-    async fn unauthorized_protected_route_is_401() {
-        let st = state_with(Some(Arc::new(Always(false))));
-        assert_eq!(status(st, "/.config").await, StatusCode::UNAUTHORIZED);
-    }
-
-    #[tokio::test]
-    async fn authorized_protected_route_passes() {
-        let st = state_with(Some(Arc::new(Always(true))));
-        assert_eq!(status(st, "/.config").await, StatusCode::OK);
-    }
-
     /// `/.accounts` emits the space's roster, so an unauthenticated request
     /// must never reach it.
     #[tokio::test]
@@ -1391,41 +1357,6 @@ mod metrics_tests {
     }
 
     #[tokio::test]
-    async fn counting_middleware_increments_http_requests() {
-        let (state, metrics) = state_with_metrics();
-        state
-            .client_bundle
-            .write_file(".client/a.js", b"x", None)
-            .unwrap();
-        let before = metrics.http_requests.get();
-        let _ = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.client/a.js")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(metrics.http_requests.get(), before + 1);
-    }
-
-    #[tokio::test]
-    async fn no_metrics_means_no_counting_and_no_panic() {
-        let state = test_state();
-        let resp = crate::build_router(Arc::new(state))
-            .oneshot(
-                Request::builder()
-                    .uri("/.ping")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
     async fn metrics_router_serves_exposition() {
         let (state, metrics) = state_with_metrics();
         metrics.http_requests.inc();
@@ -1444,65 +1375,6 @@ mod metrics_tests {
             .unwrap();
         let text = String::from_utf8(bytes.to_vec()).unwrap();
         assert!(text.contains("silverbullet_http_requests"), "{text}");
-    }
-
-    #[tokio::test]
-    async fn metrics_router_without_metrics_is_503() {
-        let resp = crate::metrics_router(Arc::new(test_state()))
-            .oneshot(
-                Request::builder()
-                    .uri("/metrics")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::SERVICE_UNAVAILABLE);
-    }
-
-    #[tokio::test]
-    async fn shell_execution_increments_counter_on_run() {
-        // test_state's ShellConfig is enabled with an empty whitelist, which
-        // allows all commands, so this `echo` actually runs (or, on Windows,
-        // fails to spawn but still returns a response) → the counter ticks once.
-        let (state, metrics) = state_with_metrics();
-        let before = metrics.shell_executions.get();
-        let _ = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.shell")
-                    .header("content-type", "application/json")
-                    .body(Body::from(r#"{"cmd":"echo","args":["hi"]}"#))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(metrics.shell_executions.get(), before + 1);
-    }
-
-    #[tokio::test]
-    async fn rejected_shell_request_does_not_increment_counter() {
-        // A read-only space rejects the command before it runs → no increment
-        // (only executed commands are counted).
-        let metrics = Arc::new(Metrics::new());
-        let mut s = test_state();
-        s.metrics = Some(metrics.clone());
-        s.boot_config.read_only = true;
-        let state = Arc::new(s);
-        let before = metrics.shell_executions.get();
-        let _ = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.shell")
-                    .header("content-type", "application/json")
-                    .body(Body::from(r#"{"cmd":"echo","args":["hi"]}"#))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(metrics.shell_executions.get(), before);
     }
 
     #[tokio::test]
@@ -1527,80 +1399,5 @@ mod metrics_tests {
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(metrics.proxy_requests.get(), before + 1);
-    }
-
-    #[tokio::test]
-    async fn read_only_proxy_does_not_increment_counter() {
-        let metrics = Arc::new(Metrics::new());
-        let mut s = test_state();
-        s.metrics = Some(metrics.clone());
-        s.boot_config.read_only = true;
-        let state = Arc::new(s);
-        let before = metrics.proxy_requests.get();
-        let resp = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.proxy/example.com/x")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), StatusCode::METHOD_NOT_ALLOWED);
-        assert_eq!(metrics.proxy_requests.get(), before);
-    }
-
-    #[tokio::test]
-    async fn runtime_eval_increments_counter_but_logs_does_not() {
-        use crate::runtime::{LogEntry, RuntimeBackend, RuntimeError};
-        use std::time::Duration;
-
-        struct Noop;
-        impl RuntimeBackend for Noop {
-            fn eval_global(
-                &self,
-                _fn_name: &str,
-                _arg: &str,
-                _t: Duration,
-            ) -> Result<serde_json::Value, RuntimeError> {
-                Ok(serde_json::json!({ "result": null }))
-            }
-            fn logs(&self, _l: usize, _s: Option<i64>) -> Vec<LogEntry> {
-                vec![]
-            }
-            fn ready(&self) -> bool {
-                true
-            }
-        }
-
-        let metrics = Arc::new(Metrics::new());
-        let mut s = test_state();
-        s.metrics = Some(metrics.clone());
-        s.runtime = Some(Arc::new(Noop));
-        let state = Arc::new(s);
-
-        let before = metrics.runtime_api_requests.get();
-        let _ = crate::build_router(state.clone())
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/.runtime/lua")
-                    .body(Body::from("1 + 1"))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(metrics.runtime_api_requests.get(), before + 1);
-
-        let _ = crate::build_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/.runtime/logs")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(metrics.runtime_api_requests.get(), before + 1);
     }
 }

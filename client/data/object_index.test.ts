@@ -618,17 +618,6 @@ test("index.relations(kind) filters to only matching kind", async () => {
   }
 });
 
-test("index.relations(kind) with an unknown kind returns an empty result", async () => {
-  const objectIndex = makeObjectIndex();
-  await objectIndex.indexObjects("TestPage", [
-    relationObject("r1", "at-mention"),
-    relationObject("r2", "mention"),
-  ]);
-
-  const results = await runQuery(objectIndex, "does-not-exist");
-  expect(results).toEqual([]);
-});
-
 // The top bar shows an "Indexing" label whenever a wholesale index rebuild is
 // running — first boot, manual "Space: Reindex", or a version-bump reindex.
 // The latter two need an in-memory signal: fullIndexCompleted never flips

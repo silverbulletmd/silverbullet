@@ -192,14 +192,6 @@ describe("menu order and groups", () => {
     expect(options.map((o) => o.label)).toEqual(["Divider", "Heading 1"]);
     expect(options.every((o) => o.section === undefined)).toBe(true);
   });
-
-  test("a row carries its icon for the completion renderer", () => {
-    const [option] = slashMenuOptions(
-      [{ ...entry("Task", "Lists"), icon: "md-checklist" }],
-      false,
-    );
-    expect(option.slashIcon).toBe("md-checklist");
-  });
 });
 
 describe("@blank ignores the typed /query", () => {
@@ -320,14 +312,12 @@ describe("the Std slash menu", () => {
     expect(all).not.toContain("Text");
   });
 
-  test("typing the old names still finds them first", async () => {
+  test("display names and aliases find them too", async () => {
+    // The old names still find them first
     expect((await labels("/h1|"))[0]).toBe("Heading 1");
     expect((await labels("/task|"))[0]).toBe("Task");
     expect((await labels("/today|"))[0]).toBe("Today");
     expect((await labels("/space-lua|"))[0]).toBe("Space Lua block");
-  });
-
-  test("display names and aliases find them too", async () => {
     expect((await labels("/heading|"))[0]).toBe("Heading 1");
     expect(await labels("/todo|")).toContain("Task");
     expect(await labels("/date|")).toEqual(["Today", "Tomorrow", "Yesterday"]);

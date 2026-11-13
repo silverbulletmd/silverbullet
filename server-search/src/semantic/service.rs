@@ -411,6 +411,25 @@ impl SemanticSpace {
         &self.inference
     }
 
+    /// Resolves once every feed event sent so far is applied and the sink
+    /// settled after it (a save made), or `false` when the worker is not
+    /// running or stops first. What tests wait on instead of a fixed sleep
+    /// before asserting that something never happens.
+    #[cfg(test)]
+    pub(crate) fn settled(&self) -> impl std::future::Future<Output = bool> + 'static {
+        let caught_up = self.running().map(|running| {
+            running
+                .worker
+                .caught_up(std::time::Instant::now() + std::time::Duration::from_secs(20))
+        });
+        async move {
+            match caught_up {
+                Some(caught_up) => caught_up.await,
+                None => false,
+            }
+        }
+    }
+
     pub fn stats(&self) -> Option<IndexStats> {
         self.running()
             .and_then(|running| running.worker.status().stats)

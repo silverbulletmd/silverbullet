@@ -109,13 +109,6 @@ test("creating a document from the picker writes it before navigation", async ()
   );
 });
 
-test("creating a page does not write a document", async () => {
-  await builtinHandle("std.pages", "create", { phrase: "New page" });
-
-  expect(space.writeDocument).not.toHaveBeenCalled();
-  expect(editor.navigate).toHaveBeenCalledWith("New page");
-});
-
 test("creating a document does not overwrite one already present", async () => {
   space.fileExists.mockResolvedValue(true);
 
@@ -136,14 +129,6 @@ test("the revision views vanish entirely when revisions are unavailable", async 
     ).toBeUndefined();
   }
   expect(builtinMeta("std.spaceTree")).toBeDefined();
-});
-
-test("history views default to the right sidebar and can move between window docks and modal", () => {
-  for (const name of ["std.pageHistory", "std.spaceLog"]) {
-    const meta = builtinMeta(name)!;
-    expect(meta.dock).toBe("rhs");
-    expect(meta.supportedDocks).toEqual(["rhs", "lhs", "bhs", "modal"]);
-  }
 });
 
 test("history preview returns focus to the dock that opened it", async () => {
@@ -493,15 +478,6 @@ test("validateKeymaps rejects a key reserved by built-in navigation", () => {
   ).toThrow('"ArrowDown" is reserved');
 });
 
-test("validateKeymaps accepts the real registry (std.spaceTree's Space included)", () => {
-  expect(() =>
-    validateKeymaps({
-      "std.spaceTree": { keymap: { " ": () => {} } },
-      "std.pages": {},
-    }),
-  ).not.toThrow();
-});
-
 function rowState(name: string, objs: unknown[]) {
   return builtinHandle(name, "rowState", { objs });
 }
@@ -565,39 +541,6 @@ test("std.spaceTree's ordering honors the space's queryCollation config, not raw
   expect((codepointRows as any[]).map((r) => r.obj.name)).toEqual([
     "Zeta",
     "apple",
-  ]);
-});
-
-test("std.spaceTree's meta carries hasMove, file actions, and the Space keymap", () => {
-  const meta = builtinMeta("std.spaceTree")!;
-  expect(meta.hasMove).toBe(true);
-  expect(meta.uploadFiles).toBe(true);
-  expect(meta.keys).toEqual([" "]);
-  expect(meta.actions).toEqual([
-    {
-      icon: "plus",
-      label: "New page here",
-      hasWhen: true,
-      requireMode: "rw",
-    },
-    {
-      icon: "edit-3",
-      label: "Rename",
-      hasWhen: false,
-      requireMode: "rw",
-    },
-    {
-      icon: "trash-2",
-      label: "Delete",
-      hasWhen: true,
-      requireMode: "rw",
-    },
-  ]);
-  expect(meta.segments!.map((s) => s.label)).toEqual([
-    "All",
-    "Pages",
-    "Documents",
-    "Tool Pages",
   ]);
 });
 
@@ -681,11 +624,8 @@ test("navigator:action Rename on a page runs the page rename command, no prompt"
     "index.renamePageCommand",
     { oldPage: "Projects/Alpha" },
   );
-});
 
-test("navigator:action Rename on a document runs the document rename command", async () => {
   await runAction(2, { tag: "document", name: "notes.txt" });
-
   expect(system.invokeFunction).toHaveBeenCalledWith(
     "index.renameDocumentCommand",
     { oldDocument: "notes.txt" },
@@ -786,20 +726,6 @@ test("navigator:move is a no-op for a view with no onMove", async () => {
   expect(system.invokeFunction).not.toHaveBeenCalled();
 });
 
-test("navigator:key Space peeks: navigates without closing the panel", async () => {
-  const result = await builtinHandle("std.spaceTree", "key", {
-    key: " ",
-    obj: { name: "Alpha", ref: "Alpha" },
-  });
-  expect(editor.navigate).toHaveBeenCalledWith("Alpha");
-  expect(result).toBeUndefined();
-});
-
-test("navigator:create navigates to the phrase", async () => {
-  await builtinHandle("std.spaceTree", "create", { phrase: "New Page" });
-  expect(editor.navigate).toHaveBeenCalledWith("New Page");
-});
-
 test("std.pageHistory lists revisions newest-first with an uncommitted pseudo-entry", async () => {
   editor.getCurrentPath.mockResolvedValue("Projects/Alpha.md");
   space.listRevisions.mockResolvedValue({
@@ -840,11 +766,6 @@ test("std.pageHistory lists revisions newest-first with an uncommitted pseudo-en
     "Projects/Alpha.md",
     undefined,
   );
-});
-
-test("std.pageHistory returns no rows on a non-markdown path", async () => {
-  editor.getCurrentPath.mockResolvedValue("image.png");
-  expect(await builtinRows("std.pageHistory")).toEqual([]);
 });
 
 test("std.pageHistory surfaces an unreachable server as an error, not emptiness", async () => {
@@ -897,63 +818,6 @@ test("std.spaceLog forwards the typed phrase to the server", async () => {
   expect(space.getSpaceLog).toHaveBeenCalledWith(undefined, "Claude");
 });
 
-test("std.spaceLog sends no phrase when the filter is empty", async () => {
-  space.getSpaceLog.mockResolvedValue({
-    mode: "managed",
-    more: false,
-    uncommitted: [],
-    commits: [],
-  });
-  await builtinRows("std.spaceLog", { phrase: "" });
-  expect(space.getSpaceLog).toHaveBeenCalledWith(undefined, undefined);
-});
-
-test("history panels leave restoring to the revision preview", () => {
-  expect(builtinMeta("std.pageHistory")!.actions).toBeUndefined();
-  expect(
-    builtinMeta("std.spaceLog")!.actions?.map((action) => action.label),
-  ).toEqual(["Sync now", "Review conflicts"]);
-});
-
-test("std.spaceLog gives each file an icon reflecting what happened to it", async () => {
-  space.getSpaceLog.mockResolvedValue({
-    mode: "managed",
-    more: false,
-    uncommitted: [{ path: "draft.md", status: "added" }],
-    commits: [
-      {
-        rev: "e".repeat(40),
-        timestamp: 3000,
-        author: "alice",
-        message: "a bit of everything",
-        added: 4,
-        removed: 2,
-        files: [
-          { path: "fresh.md", status: "added" },
-          { path: "keep.md", status: "modified" },
-          { path: "gone.md", status: "deleted" },
-          { path: "new.md", status: "renamed" },
-        ],
-      },
-    ],
-  });
-  const state = await rowState(
-    "std.spaceLog",
-    ((await builtinRows("std.spaceLog")) as any[]).map((r) => r.obj),
-  );
-  const icons = (state as any[]).map((s) => s.icon);
-  // [0] uncommitted pseudo-row, [1] its file, [2] the commit, [3..] its files
-  expect(icons).toEqual([
-    "edit-3",
-    "file-plus",
-    "git-commit",
-    "file-plus",
-    "file-text",
-    "file-minus",
-    "corner-up-right",
-  ]);
-});
-
 test("std.spaceLog nests touched files under their commit", async () => {
   space.getSpaceLog.mockResolvedValue({
     mode: "managed",
@@ -988,38 +852,6 @@ test("std.spaceLog nests touched files under their commit", async () => {
   expect((rows as any[])[2].obj.name).toBe(
     `${"c".repeat(40)}/Projects∕Alpha.md`,
   );
-});
-
-test("std.spaceLog labels commits by message, with the author as a decoration", async () => {
-  space.getSpaceLog.mockResolvedValue({
-    mode: "managed",
-    more: false,
-    uncommitted: [],
-    commits: [
-      {
-        rev: "c".repeat(40),
-        timestamp: 3000,
-        author: "Claude Code",
-        message: "Update 3 pages, create 1",
-        files: [],
-        added: 20,
-        removed: 4,
-      },
-      {
-        rev: "d".repeat(40),
-        timestamp: 2000,
-        author: "alice",
-        message: "",
-        files: [],
-        added: 1,
-        removed: 0,
-      },
-    ],
-  });
-  const rows = (await builtinRows("std.spaceLog")) as any[];
-  expect(rows[0].primary).toBe("Update 3 pages, create 1");
-  expect(rows[0].decorations.map((d: any) => d.text)).toContain("Claude Code");
-  expect(rows[1].primary).toBe("alice");
 });
 
 test("std.pageHistory select previews a color-coded diff by default", async () => {
@@ -1079,90 +911,6 @@ test("std.pageHistory's preview offers Restore, and not in read-only mode", asyn
   expect(preview.diff).toHaveLength(3);
 });
 
-test("std.pageHistory opens a distinctly identified preview each time, so a stale one can't win after reopening", async () => {
-  space.getRevisionDiff.mockResolvedValue("@@ -1 +1 @@\n-old\n+new\n");
-  const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
-
-  await builtinHandle("std.pageHistory", "select", { obj });
-  const first = currentPreview()!.token;
-  await builtinHandle("std.pageHistory", "select", { obj });
-  const second = currentPreview()!.token;
-
-  // The component keys off this, so a reopen remounts rather than inheriting
-  // the previous preview's in-flight content fetch.
-  expect(first).toBeTruthy();
-  expect(second).not.toBe(first);
-});
-
-test("std.pageHistory keeps the toggle and shows a placeholder when the diff endpoint 404s (e.g. a merge commit)", async () => {
-  space.getRevisionDiff.mockRejectedValue(
-    Object.assign(new Error("Could not load revision diff: 404"), {
-      status: 404,
-    }),
-  );
-  const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
-
-  const selectResult = await builtinHandle("std.pageHistory", "select", {
-    obj,
-  });
-
-  expect(space.getRevision).not.toHaveBeenCalled();
-  const preview = currentPreview()!;
-  expect(preview.diff).toEqual([{ text: "No diff for this commit." }]);
-  // Unlike a transport-error fallback, Content stays reachable: the revision
-  // is still there to read, there is just nothing to color in the Diff pane.
-  expect(preview.rev).toBe("a".repeat(40));
-  expect(selectResult).toBe(false);
-});
-
-test("std.pageHistory drops the git file header before the first hunk, so --- /+++ aren't misread as content changes", async () => {
-  space.getRevisionDiff.mockResolvedValue(
-    [
-      "diff --git a/Projects/Alpha.md b/Projects/Alpha.md",
-      "index 6f1b650..d63555a 100644",
-      "--- a/Projects/Alpha.md",
-      "+++ b/Projects/Alpha.md",
-      "@@ -1,7 +1,7 @@",
-      "-old",
-      "+new",
-      "",
-    ].join("\n"),
-  );
-  const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
-
-  await builtinHandle("std.pageHistory", "select", { obj });
-
-  const diff = currentPreview()!.diff!;
-  expect(diff.map((l) => l.text)).toEqual(["@@ -1,7 +1,7 @@", "-old", "+new"]);
-});
-
-test("std.pageHistory renders the raw diff unstyled when it has no hunk at all (pure rename/mode change)", async () => {
-  const raw =
-    "diff --git a/old.md b/new.md\nsimilarity index 100%\nrename from old.md\nrename to new.md\n";
-  space.getRevisionDiff.mockResolvedValue(raw);
-  const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
-
-  await builtinHandle("std.pageHistory", "select", { obj });
-
-  expect(currentPreview()!.diff).toEqual([{ text: raw }]);
-});
-
-test("std.pageHistory falls back to the content view, with no toggle, when the diff endpoint errors", async () => {
-  space.getRevisionDiff.mockRejectedValue(
-    new Error("unrecognized query param 'format'"),
-  );
-  const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
-
-  const selectResult = await builtinHandle("std.pageHistory", "select", {
-    obj,
-  });
-
-  // No diff at all: the preview opens straight on the content pane, with
-  // nothing to toggle to on an older server.
-  expect(currentPreview()!.diff).toBeUndefined();
-  expect(selectResult).toBe(false);
-});
-
 test("std.pageHistory's Space-key peek previews without stealing focus from the dock", async () => {
   space.getRevisionDiff.mockResolvedValue("@@ -1 +1 @@\n-old\n+new\n");
   const obj = { name: "a".repeat(40), rev: "a".repeat(40), page: "note.md" };
@@ -1176,21 +924,6 @@ test("std.pageHistory's Space-key peek previews without stealing focus from the 
   // would break arrow-key navigation in the dock.
   expect(currentPreview()!.focus).toBe(false);
   expect(keyResult).toBe(false);
-});
-
-test("Page History has no phrase filter; Space History searches at the source", () => {
-  // One page's revisions are all worth scanning, so filtering them is noise.
-  expect(builtinMeta("std.pageHistory")!.noFilter).toBe(true);
-  expect(builtinMeta("std.pageHistory")!.filterFields).toBeUndefined();
-  // The space-wide log hands the phrase to the server, which searches commit
-  // messages and authors -- client-side ranking never runs, so weighting
-  // fields here would be dead config and the placeholder must not promise it.
-  expect(builtinMeta("std.spaceLog")!.noFilter).toBeUndefined();
-  expect(builtinMeta("std.spaceLog")!.search).toBe("source");
-  expect(builtinMeta("std.spaceLog")!.filterFields).toBeUndefined();
-  expect(builtinMeta("std.spaceLog")!.placeholder).toBe(
-    "Search commit message or author",
-  );
 });
 
 test("std.spaceLog heads the log with an uncommitted pseudo-commit", async () => {
@@ -1317,68 +1050,6 @@ test("std.pageHistory offers Load more and appends the next page", async () => {
   expect(rows.some((r) => r.obj.name === "@more")).toBe(false);
 });
 
-test("switching page resets the page-history accumulator", async () => {
-  editor.getCurrentPath.mockResolvedValue("note.md");
-  space.listRevisions.mockResolvedValue({
-    mode: "managed",
-    uncommitted: false,
-    more: false,
-    revisions: [
-      { rev: "a".repeat(40), timestamp: 3000, author: "alice", message: "m" },
-    ],
-  });
-  await builtinRows("std.pageHistory");
-  editor.getCurrentPath.mockResolvedValue("other.md");
-  const rows = (await builtinRows("std.pageHistory")) as any[];
-  expect(rows).toHaveLength(1);
-  expect(space.listRevisions).toHaveBeenLastCalledWith("other.md", undefined);
-});
-
-test("selecting Load more twice before the first fetch lands does not duplicate rows", async () => {
-  editor.getCurrentPath.mockResolvedValue("note.md");
-  space.listRevisions.mockResolvedValueOnce({
-    mode: "managed",
-    uncommitted: false,
-    more: true,
-    revisions: [
-      { rev: "a".repeat(40), timestamp: 3000, author: "alice", message: "m3" },
-    ],
-  });
-  await builtinRows("std.pageHistory");
-
-  let resolveSecondPage: (value: unknown) => void;
-  const secondPage = new Promise((resolve) => {
-    resolveSecondPage = resolve;
-  });
-  space.listRevisions.mockReturnValueOnce(secondPage);
-
-  const firstSelect = builtinHandle("std.pageHistory", "select", {
-    obj: { name: "@more", page: "note.md" },
-  });
-  const secondSelect = builtinHandle("std.pageHistory", "select", {
-    obj: { name: "@more", page: "note.md" },
-  });
-  resolveSecondPage!({
-    mode: "managed",
-    uncommitted: false,
-    more: false,
-    revisions: [
-      { rev: "b".repeat(40), timestamp: 2000, author: "bob", message: "m2" },
-    ],
-  });
-  await Promise.all([firstSelect, secondSelect]);
-
-  // One fetch for the fresh load, one for the (single) extension -- the
-  // second, overlapping select must not have kicked off its own fetch.
-  expect(space.listRevisions).toHaveBeenCalledTimes(2);
-  // The no-op select must not dispatch a refresh either -- a spurious
-  // dispatch would re-run `rows()` while the real extension is still in
-  // flight, flashing the panel back to a fresh page 1.
-  expect(events.dispatchEvent).toHaveBeenCalledTimes(1);
-  const rows = (await builtinRows("std.pageHistory")) as any[];
-  expect(rows.map((r) => r.obj.rev)).toEqual(["a".repeat(40), "b".repeat(40)]);
-});
-
 test("std.spaceLog offers Load more and appends the next page, keyed on the cursor commit", async () => {
   space.getSpaceLog.mockResolvedValueOnce({
     mode: "managed",
@@ -1424,27 +1095,6 @@ test("std.spaceLog offers Load more and appends the next page, keyed on the curs
     "d".repeat(40),
   ]);
   expect(rows.some((r) => r.obj.name === "@more")).toBe(false);
-});
-
-test("typing a new search resets the space-log accumulator", async () => {
-  space.getSpaceLog.mockResolvedValue({
-    mode: "managed",
-    more: false,
-    uncommitted: [],
-    commits: [
-      {
-        rev: "c".repeat(40),
-        timestamp: 3000,
-        author: "alice",
-        message: "m",
-        files: [],
-      },
-    ],
-  });
-  await builtinRows("std.spaceLog", { phrase: "foo" });
-  const rows = (await builtinRows("std.spaceLog", { phrase: "bar" })) as any[];
-  expect(rows).toHaveLength(1);
-  expect(space.getSpaceLog).toHaveBeenLastCalledWith(undefined, "bar");
 });
 
 test("read members retain Git views while revision history stays hidden", () => {

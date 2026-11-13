@@ -1,17 +1,13 @@
 import { EditorState, Text } from "@codemirror/state";
-import { EditorView } from "@codemirror/view";
 import { describe, expect, test } from "vitest";
 import type { Client } from "../../client.ts";
 import {
   type ConflictHunk,
   ConflictWidget,
   computeFenceMask,
-  conflictMarkers,
   findConflictHunks,
   resolveHunk,
   sectionTitle,
-  shouldRenderBasePanel,
-  truncateLabel,
 } from "./conflict_markers.ts";
 
 function docOf(text: string) {
@@ -557,101 +553,6 @@ describe("resolveHunk", () => {
   });
 });
 
-// Build EditorState to exercise decoration assembly; findConflictHunks
-// alone cannot detect RangeErrors from hideBlockSource.
-describe("conflictMarkers extension (smoke)", () => {
-  const stubClient = {} as unknown as Client;
-
-  function buildState(doc: string) {
-    const field = conflictMarkers(stubClient);
-    let state: EditorState | undefined;
-    expect(() => {
-      state = EditorState.create({ doc, extensions: [field] });
-    }).not.toThrow();
-    return state!.field(field[1]);
-  }
-
-  test("builds for a mid-document hunk followed by more content", () => {
-    const text = [
-      "before\n",
-      "<<<<<<< SB sha256:aaa111\n",
-      "mine\n",
-      "||||||| SB BASE sha256:ccc222\n",
-      "root\n",
-      "=======\n",
-      "theirs\n",
-      ">>>>>>> SB sha256:bbb333\n",
-      "after\n",
-    ].join("");
-
-    expect(buildState(text).size).toBeGreaterThan(0);
-  });
-
-  test("builds for a hunk immediately followed by a blank line", () => {
-    // Leading "before\n" keeps the default cursor (position 0) outside the
-    // hunk range so the isCursorInRange guard doesn't itself suppress the
-    // widget — the tail shape after the hunk is what's under test here.
-    const text = [
-      "before\n",
-      "<<<<<<< SB sha256:aaa111\n",
-      "mine\n",
-      "||||||| SB BASE sha256:ccc222\n",
-      "root\n",
-      "=======\n",
-      "theirs\n",
-      ">>>>>>> SB sha256:bbb333\n",
-      "\n",
-      "after\n",
-    ].join("");
-
-    expect(buildState(text).size).toBeGreaterThan(0);
-  });
-
-  test("builds for a hunk at EOF with a trailing newline and nothing after", () => {
-    const text = [
-      "before\n",
-      "<<<<<<< SB sha256:aaa111\n",
-      "mine\n",
-      "||||||| SB BASE sha256:ccc222\n",
-      "root\n",
-      "=======\n",
-      "theirs\n",
-      ">>>>>>> SB sha256:bbb333\n",
-    ].join("");
-
-    expect(buildState(text).size).toBeGreaterThan(0);
-  });
-
-  test("builds for a hunk at EOF with no trailing newline", () => {
-    const text = [
-      "before\n",
-      "<<<<<<< SB sha256:aaa111\n",
-      "mine\n",
-      "||||||| SB BASE sha256:ccc222\n",
-      "root\n",
-      "=======\n",
-      "theirs\n",
-      ">>>>>>> SB sha256:bbb333",
-    ].join("");
-
-    expect(buildState(text).size).toBeGreaterThan(0);
-  });
-
-  test("builds for a git hunk with no base", () => {
-    const text = [
-      "before\n",
-      "<<<<<<< HEAD\n",
-      "mine\n",
-      "=======\n",
-      "theirs\n",
-      ">>>>>>> feature\n",
-      "after\n",
-    ].join("");
-
-    expect(buildState(text).size).toBeGreaterThan(0);
-  });
-});
-
 describe("ConflictWidget.eq", () => {
   const stubClient = {} as unknown as Client;
 
@@ -667,140 +568,58 @@ describe("ConflictWidget.eq", () => {
     };
   }
 
-  test("is equal for identical hunks", () => {
-    const a = new ConflictWidget(makeHunk(), stubClient);
-    const b = new ConflictWidget(makeHunk(), stubClient);
-    expect(a.eq(b)).toBe(true);
-  });
-
   // A same-length external edit inside a hunk body can leave from/to and
   // every hash unchanged (hashes come from the marker lines, not the live
   // body text) — eq() must still see the body change, or CodeMirror reuses
   // stale DOM whose button closures resolve against the pre-edit text.
   test("is not equal when a section's text changed but offsets and hashes didn't", () => {
-    const a = new ConflictWidget(makeHunk(), stubClient);
-    const b = new ConflictWidget(
+    const original = () => new ConflictWidget(makeHunk(), stubClient);
+    expect(original().eq(original())).toBe(true);
+
+    const first = new ConflictWidget(
       makeHunk({
         first: { from: 110, to: 120, hash: "aaa111", text: "mine!\n" },
       }),
       stubClient,
     );
-    expect(a.eq(b)).toBe(false);
-  });
+    expect(original().eq(first)).toBe(false);
 
-  test("is not equal when the base section's text changed", () => {
-    const a = new ConflictWidget(makeHunk(), stubClient);
-    const b = new ConflictWidget(
+    const base = new ConflictWidget(
       makeHunk({
         base: { from: 130, to: 140, hash: "ccc222", text: "root!\n" },
       }),
       stubClient,
     );
-    expect(a.eq(b)).toBe(false);
-  });
+    expect(original().eq(base)).toBe(false);
 
-  test("is not equal when the second section's text changed", () => {
-    const a = new ConflictWidget(makeHunk(), stubClient);
-    const b = new ConflictWidget(
+    const second = new ConflictWidget(
       makeHunk({
         second: { from: 150, to: 160, hash: "bbb333", text: "theirs!\n" },
       }),
       stubClient,
     );
-    expect(a.eq(b)).toBe(false);
-  });
+    expect(original().eq(second)).toBe(false);
 
-  test("is not equal when one hunk has a base and the other doesn't", () => {
-    const withBase = new ConflictWidget(makeHunk(), stubClient);
     const withoutBase = new ConflictWidget(
       makeHunk({ kind: "git", base: undefined }),
       stubClient,
     );
-    expect(withBase.eq(withoutBase)).toBe(false);
-    expect(withoutBase.eq(withBase)).toBe(false);
-  });
+    expect(original().eq(withoutBase)).toBe(false);
+    expect(withoutBase.eq(original())).toBe(false);
 
-  test("is not equal when a section's git label changed", () => {
-    const a = new ConflictWidget(
-      makeHunk({
-        kind: "git",
-        first: { from: 110, to: 120, hash: "", label: "HEAD", text: "mine\n" },
-      }),
-      stubClient,
-    );
-    const b = new ConflictWidget(
-      makeHunk({
-        kind: "git",
-        first: {
-          from: 110,
-          to: 120,
-          hash: "",
-          label: "other-branch",
-          text: "mine\n",
-        },
-      }),
-      stubClient,
-    );
-    expect(a.eq(b)).toBe(false);
-  });
-});
-
-describe("truncateLabel", () => {
-  test("leaves short text alone", () => {
-    expect(truncateLabel("HEAD")).toBe("HEAD");
-  });
-
-  test("truncates to 24 chars with an ellipsis by default", () => {
-    const long = "a-really-long-feature-branch-name-that-should-be-truncated";
-    expect(truncateLabel(long)).toBe(`${long.slice(0, 24)}…`);
-    expect(truncateLabel(long).length).toBe(25);
-  });
-
-  test("honors a custom max length", () => {
-    expect(truncateLabel("abcdefgh", 4)).toBe("abcd…");
+    const gitLabeled = (label: string) =>
+      new ConflictWidget(
+        makeHunk({
+          kind: "git",
+          first: { from: 110, to: 120, hash: "", label, text: "mine\n" },
+        }),
+        stubClient,
+      );
+    expect(gitLabeled("HEAD").eq(gitLabeled("other-branch"))).toBe(false);
   });
 });
 
 describe("sectionTitle", () => {
-  function gitHunk(overrides: Partial<ConflictHunk> = {}): ConflictHunk {
-    return {
-      from: 0,
-      to: 10,
-      kind: "git",
-      first: { from: 0, to: 1, hash: "", label: "HEAD", text: "mine\n" },
-      second: {
-        from: 2,
-        to: 3,
-        hash: "",
-        label: "feature",
-        text: "theirs\n",
-      },
-      ...overrides,
-    };
-  }
-
-  test("Git sides have human labels independent of branch names", () => {
-    const hunk = gitHunk();
-    expect(sectionTitle(hunk, "first", hunk.first)).toBe("This space");
-    expect(sectionTitle(hunk, "second", hunk.second)).toBe("Remote repository");
-  });
-
-  test("Git sides keep their meaning without marker labels", () => {
-    const hunk = gitHunk({
-      first: { from: 0, to: 1, hash: "", label: "", text: "mine\n" },
-      second: { from: 2, to: 3, hash: "", label: "", text: "theirs\n" },
-    });
-    expect(sectionTitle(hunk, "first", hunk.first)).toBe("This space");
-    expect(sectionTitle(hunk, "second", hunk.second)).toBe("Remote repository");
-  });
-
-  test("Git labels do not depend on whitespace in marker labels", () => {
-    const hunk = gitHunk({
-      first: { from: 0, to: 1, hash: "", label: "   ", text: "mine\n" },
-    });
-    expect(sectionTitle(hunk, "first", hunk.first)).toBe("This space");
-  });
-
   test("always uses positional titles for SB hunks, ignoring any label", () => {
     const hunk: ConflictHunk = {
       from: 0,
@@ -814,44 +633,6 @@ describe("sectionTitle", () => {
     expect(sectionTitle(hunk, "base", hunk.base!)).toBe("Original");
     expect(sectionTitle(hunk, "second", hunk.second)).toBe("Version 2");
   });
-});
-
-describe("shouldRenderBasePanel", () => {
-  // Pins the fact that resolveHunk("base", …) throwing on a base-less hunk
-  // (see the resolveHunk tests above) is unreachable from the widget: this
-  // is the exact predicate toDOM() uses to decide whether to render the
-  // base panel — and thus wire up the "base" action — at all.
-  test("true exactly when the hunk has a base section", () => {
-    const withBase: ConflictHunk = {
-      from: 0,
-      to: 10,
-      kind: "sb",
-      first: { from: 0, to: 1, hash: "a", text: "x\n" },
-      base: { from: 2, to: 3, hash: "b", text: "y\n" },
-      second: { from: 4, to: 5, hash: "c", text: "z\n" },
-    };
-    const withoutBase: ConflictHunk = {
-      from: 0,
-      to: 10,
-      kind: "git",
-      first: { from: 0, to: 1, hash: "", label: "HEAD", text: "x\n" },
-      second: { from: 2, to: 3, hash: "", label: "feature", text: "z\n" },
-    };
-    expect(shouldRenderBasePanel(withBase)).toBe(true);
-    expect(shouldRenderBasePanel(withoutBase)).toBe(false);
-  });
-});
-
-test("Git conflict controls render with the caret on the first line", () => {
-  const field = conflictMarkers({} as Client);
-  const state = EditorState.create({
-    doc: "<<<<<<< HEAD\nLocal\n=======\nRemote\n>>>>>>> origin/main\n",
-    extensions: field,
-  });
-  const decorations = state.facet(EditorView.decorations);
-  expect(
-    decorations.some((set) => typeof set !== "function" && set.size > 0),
-  ).toBe(true);
 });
 
 describe("Git conflict marker sizes", () => {

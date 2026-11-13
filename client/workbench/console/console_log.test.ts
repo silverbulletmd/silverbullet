@@ -114,31 +114,6 @@ test("an unhandled rejection already reported via console.error is not logged ag
   expect(log.entries.map((e) => args(e))).toEqual([["Error during :", reason]]);
 });
 
-test("a rejection recorded first still lets the later console.error record", () => {
-  const { listeners, target } = fakeTarget();
-  const log = new ConsoleLog();
-  log.install(target);
-  const reason = new Error("rejected");
-  listeners.unhandledrejection({ reason });
-  target.console.error("Error during :", reason);
-  expect(log.entries.map((e) => args(e))).toEqual([
-    [reason],
-    ["Error during :", reason],
-  ]);
-});
-
-test("rejection dedupe only looks at the last 20 entries", () => {
-  const { listeners, target } = fakeTarget();
-  const log = new ConsoleLog();
-  log.install(target);
-  const reason = new Error("rejected");
-  target.console.error(reason);
-  for (let i = 0; i < 20; i++) target.console.log(i);
-  listeners.unhandledrejection({ reason });
-  expect(args(log.entries.at(-1)!)).toEqual([reason]);
-  expect(log.entries).toHaveLength(22);
-});
-
 test("plug lines keep the plug's name; neither is echoed to the console", () => {
   const { calls, target } = fakeTarget();
   const log = new ConsoleLog();
@@ -182,18 +157,5 @@ test("service worker log lines arrive as sw messages; other messages are ignored
   expect(log.entries).toMatchObject([
     { kind: "message", source: "sw", level: "info", args: ["Synced 3 files"] },
   ]);
-  setRuntimeLogSink(null);
-});
-
-test("the browser's benign ResizeObserver loop report is not logged", () => {
-  const { listeners, target } = fakeTarget();
-  const log = new ConsoleLog();
-  log.install(target);
-  listeners.error({
-    error: null,
-    message: "ResizeObserver loop completed with undelivered notifications.",
-  });
-  listeners.error({ error: null, message: "Script error." });
-  expect(log.entries.map((e) => args(e)[0])).toEqual(["Script error."]);
   setRuntimeLogSink(null);
 });

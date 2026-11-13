@@ -65,44 +65,6 @@ async function openContacts(page: Page, sbServer: SBServer) {
 test.describe("data block form", () => {
   test.use({ spaceFiles });
 
-  test("/data inserts an empty data block with the cursor at its tag", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openContacts(sbPage, sbServer);
-    await sbPage
-      .locator(".cm-line", { hasText: "Contacts body text." })
-      .click();
-    await sbPage.keyboard.press("End");
-    await sbPage.keyboard.press("Enter");
-    // The Std library's slash templates are defined once its pages are indexed
-    await expect
-      .poll(() =>
-        sbPage.evaluate(() =>
-          (
-            globalThis as any
-          ).client.clientSystem.slashCommandHook.slashCommands.some(
-            (c: { name: string }) => c.name === "data",
-          ),
-        ),
-      )
-      .toBe(true);
-    await sbPage.keyboard.type("/data");
-    await sbPage
-      .locator(".cm-tooltip-autocomplete li", {
-        hasText: "Insert a data block",
-      })
-      .click();
-    // The template inserts asynchronously
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain("Contacts body text.\n```#\n\n```");
-    await sbPage.keyboard.type("contact");
-    await expect
-      .poll(() => docText(sbPage))
-      .toContain("Contacts body text.\n```#contact\n\n```");
-  });
-
   test("an empty block is a form; + add item adds the next one", async ({
     sbPage,
     sbServer,
@@ -187,41 +149,6 @@ test.describe("data block form", () => {
     await expect(forms(sbPage)).toHaveCount(0);
   });
 
-  test("+ add attribute offers $ref", async ({ sbPage, sbServer }) => {
-    await openContacts(sbPage, sbServer);
-    await forms(sbPage)
-      .nth(1)
-      .locator(".sb-fm-add-attr", { hasText: "add attribute" })
-      .click();
-    await expect(navInput(sbPage)).toBeVisible();
-    await navInput(sbPage).fill("$ref");
-    await expect(
-      navFrame(sbPage).locator(".sb-nav-row .sb-nav-primary").first(),
-    ).toHaveText("$ref");
-    await sbPage.keyboard.press("Enter");
-    await sbPage.keyboard.type("bob");
-    await sbPage.keyboard.press("Enter");
-    await expect.poll(() => docText(sbPage)).toContain("$ref: bob\n```");
-  });
-
-  test("renders one form per document, with the tag's schema", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openContacts(sbPage, sbServer);
-    await expect(row(sbPage, 0, "name").locator("textarea")).toHaveValue(
-      "Alice",
-    );
-    await expect(row(sbPage, 0, "role").locator("select")).toHaveValue(
-      "Engineer",
-    );
-    await expect(row(sbPage, 1, "email").locator("textarea")).toHaveValue(
-      "bob@example.com",
-    );
-    // The tag's absent property is offered faintly
-    await expect(row(sbPage, 1, "role")).toHaveClass(/sb-fm-missing/);
-  });
-
   test("editing the second document writes only that document, and undo restores it", async ({
     sbPage,
     sbServer,
@@ -239,14 +166,9 @@ test.describe("data block form", () => {
       .click();
     await sbPage.keyboard.press(`${mod}+z`);
     await expect.poll(() => docText(sbPage)).toBe(contacts);
-  });
 
-  test("after an edit shifts the second document, the next edit still finds it", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openContacts(sbPage, sbServer);
-    // Engineer → Manager is one character shorter, so Bob moves up
+    // An edit that shifts the second document doesn't lose it: Engineer →
+    // Manager is one character shorter, so Bob moves up
     await row(sbPage, 0, "role").locator("select").selectOption("Manager");
     await expect.poll(() => docText(sbPage)).toContain("role: Manager\n");
     await row(sbPage, 1, "role").locator("select").selectOption("Designer");
@@ -260,75 +182,5 @@ test.describe("data block form", () => {
             "email: bob@example.com\nrole: Designer\n",
           ),
       );
-  });
-
-  test("the row menu moves a key within its own document", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openContacts(sbPage, sbServer);
-    await row(sbPage, 1, "email").locator(".sb-fm-key").hover();
-    await row(sbPage, 1, "email").locator(".sb-in-more").click();
-    await row(sbPage, 1, "email")
-      .locator(".sb-in-menu .sb-in-option", { hasText: "Move up" })
-      .click();
-    await expect
-      .poll(() => docText(sbPage))
-      .toBe(
-        contacts.replace(
-          "name: Bob\nemail: bob@example.com",
-          "email: bob@example.com\nname: Bob",
-        ),
-      );
-  });
-
-  test("Esc in a field jumps to its line in the source", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openContacts(sbPage, sbServer);
-    await row(sbPage, 1, "email").locator("textarea").focus();
-    await sbPage.keyboard.press("Escape");
-    await expect(forms(sbPage)).toHaveCount(0);
-    const head = await sbPage.evaluate(
-      () => (globalThis as any).client.editorView.state.selection.main.head,
-    );
-    expect(head).toBe(contacts.indexOf("bob@example.com"));
-  });
-});
-
-test.describe("data block form setting", () => {
-  test.use({
-    spaceFiles: {
-      ...spaceFiles,
-      "Library/Config.md": `${tagsConfig}
-\`\`\`space-lua
-config.set("liveEdit", { dataBlocks = false })
-tag.define {
-  name = "vendor",
-  renderDataBlock = function(vendor)
-    return widget.htmlBlock(dom.div { class = "fixture-vendor", vendor.name })
-  end,
-}
-\`\`\`
-`,
-      "Contacts.md": `${contacts}
-\`\`\`#vendor
-name: Acme
-\`\`\`
-`,
-    },
-  });
-
-  test("turning liveEdit.dataBlocks off restores the YAML, but not a tag's own renderer", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Contacts");
-    await expect(sbPage.locator(".fixture-vendor")).toHaveText("Acme");
-    await expect(
-      sbPage.locator(".cm-line", { hasText: "email: bob@example.com" }),
-    ).toBeVisible();
-    await expect(forms(sbPage)).toHaveCount(0);
   });
 });

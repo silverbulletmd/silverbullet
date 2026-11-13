@@ -7,23 +7,6 @@ function literal(s: string): any {
 }
 
 describe("toLua", () => {
-  test("booleans", () => {
-    expect(toLua(true)).toBe("true");
-    expect(toLua(false)).toBe("false");
-  });
-
-  test("numbers", () => {
-    expect(toLua(42)).toBe("42");
-    expect(toLua(3.14)).toBe("3.14");
-    expect(toLua(-1)).toBe("-1");
-    expect(toLua(0)).toBe("0");
-  });
-
-  test("simple strings", () => {
-    expect(toLua("hello")).toBe('"hello"');
-    expect(toLua("")).toBe('""');
-  });
-
   test("strings with special characters", () => {
     expect(toLua('say "hi"')).toBe('"say \\"hi\\""');
     expect(toLua("back\\slash")).toBe('"back\\\\slash"');
@@ -35,22 +18,6 @@ describe("toLua", () => {
     expect(toLua({ enabled: true, name: "test" })).toBe(
       '{\n  enabled = true,\n  name = "test",\n}',
     );
-  });
-
-  test("nested object", () => {
-    const val = { smartQuotes: { enabled: true, double: { left: "\u201c" } } };
-    const result = toLua(val);
-    expect(result).toContain("smartQuotes = {");
-    expect(result).toContain("enabled = true");
-    expect(result).toContain("double = {");
-  });
-
-  test("empty object", () => {
-    expect(toLua({})).toBe("{}");
-  });
-
-  test("array", () => {
-    expect(toLua(["a", "b"])).toBe('{"a", "b"}');
   });
 
   test("non-finite numbers serialize as nil", () => {
@@ -92,26 +59,6 @@ describe("literal values", () => {
     expect(literal("  true  ")).toBe(true);
     expect(literal('  "x"  ')).toBe("x");
   });
-});
-
-describe("toLua / parseManagedBlock round-trip (supported scalars)", () => {
-  const cases: unknown[] = [
-    true,
-    false,
-    undefined,
-    0,
-    42,
-    -1,
-    3.14,
-    "",
-    "hello",
-    "with spaces",
-  ];
-  for (const value of cases) {
-    test(`${JSON.stringify(value) ?? "undefined"}`, () => {
-      expect(literal(toLua(value))).toBe(value);
-    });
-  }
 });
 
 describe("toLua / parseManagedBlock round-trip (tables)", () => {

@@ -6,48 +6,27 @@ afterEach(() => {
   delete (globalThis as any).location;
 });
 
-test('spaceUrl normalizes a bare-root prefix of "" to "/"', () => {
-  expect(spaceUrl({ prefix: "" })).toBe("/");
+// A bare "/" prefix must stay "/" (appending another slash would produce an
+// invalid protocol-relative "//" URL); a host binding never gains the listener
+// port, only one it spells out itself.
+test.each([
+  [{ prefix: "" }, "/"],
+  [{ prefix: "/" }, "/"],
+  [{ prefix: "/foo" }, "/foo/"],
+  [{ prefix: "/foo/" }, "/foo/"],
+  [{ host: "team.test", prefix: "/work" }, "//team.test/work/"],
+  [{ host: "team.test:4100", prefix: "/work" }, "//team.test:4100/work/"],
+])("spaceUrl %j is %s", (binding, expected) => {
+  expect(spaceUrl(binding)).toBe(expected);
 });
 
-test('spaceUrl normalizes a literal "/" prefix to "/", not "//"', () => {
-  // The server accepts a bare "/" prefix. Appending another slash would
-  // produce an invalid protocol-relative URL.
-  expect(spaceUrl({ prefix: "/" })).toBe("/");
-});
-
-test("spaceUrl appends a trailing slash to a normal prefix", () => {
-  expect(spaceUrl({ prefix: "/foo" })).toBe("/foo/");
-});
-
-test("spaceUrl doesn't double up a prefix that already ends in a slash", () => {
-  expect(spaceUrl({ prefix: "/foo/" })).toBe("/foo/");
-});
-
-test("spaceUrl for a bare host binding retains its prefix without the listener port", () => {
-  expect(spaceUrl({ host: "team.test", prefix: "/work" })).toBe(
-    "//team.test/work/",
-  );
-});
-
-test("spaceUrl preserves a port explicitly included in the host binding", () => {
-  expect(spaceUrl({ host: "team.test:4100", prefix: "/work" })).toBe(
-    "//team.test:4100/work/",
-  );
-});
-
-test('bindingLabel shows a bare-root prefix as "/"', () => {
-  expect(bindingLabel({ prefix: "" })).toBe("/");
-  expect(bindingLabel({ prefix: "/" })).toBe("/");
-});
-
-test("bindingLabel shows only a port explicitly included in the host binding", () => {
-  expect(bindingLabel({ host: "team.test", prefix: "/work" })).toBe(
-    "team.test/work",
-  );
-  expect(bindingLabel({ host: "team.test:4100", prefix: "/work" })).toBe(
-    "team.test:4100/work",
-  );
+test.each([
+  [{ prefix: "" }, "/"],
+  [{ prefix: "/" }, "/"],
+  [{ host: "team.test", prefix: "/work" }, "team.test/work"],
+  [{ host: "team.test:4100", prefix: "/work" }, "team.test:4100/work"],
+])("bindingLabel %j is %s", (binding, expected) => {
+  expect(bindingLabel(binding)).toBe(expected);
 });
 
 test("space entry carries central encryption to the destination hostname while preserving ordinary links", async () => {

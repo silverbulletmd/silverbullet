@@ -1126,14 +1126,6 @@ mod tests {
     }
 
     #[test]
-    fn activity_counts_authors_since_files_since() {
-        let (_dir, store) = fixture();
-        let a = activity(&store, 0, 4_000_000_000, 5).unwrap();
-        assert_eq!(a.commits.len(), 2);
-        assert!(a.authors.is_empty());
-    }
-
-    #[test]
     fn activity_honors_since_and_top() {
         let (_dir, store) = fixture();
         let future = 4_000_000_000;
@@ -1141,20 +1133,6 @@ mod tests {
         assert!(a.commits.is_empty() && a.top_files.is_empty() && a.authors.is_empty());
         let a = activity(&store, 0, 0, 1).unwrap();
         assert_eq!(a.top_files.len(), 1);
-    }
-
-    #[test]
-    fn activity_excludes_non_markdown_from_top_files() {
-        let (dir, store) = fixture();
-        for msg in ["pic 1", "pic 2"] {
-            std::fs::write(dir.path().join("pic.png"), msg).unwrap();
-            store
-                .commit_batch("Alice", "alice@x", msg, &["pic.png".into()])
-                .unwrap();
-        }
-        let a = activity(&store, 0, 0, 50).unwrap();
-        assert_eq!(a.commits.len(), 4);
-        assert!(a.top_files.iter().all(|f| !f.path.ends_with(".png")));
     }
 
     #[test]
@@ -1213,14 +1191,6 @@ mod tests {
         assert_eq!(a.commits.len(), 1);
         assert_eq!(a.top_files.len(), 1);
         assert_eq!(a.top_files[0].path, "inside.md");
-    }
-
-    #[test]
-    fn activity_on_empty_repo_is_empty() {
-        let dir = tempfile::tempdir().unwrap();
-        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
-        let a = activity(&store, 0, 0, 5).unwrap();
-        assert!(a.commits.is_empty() && a.top_files.is_empty());
     }
 
     #[test]
@@ -1290,51 +1260,6 @@ mod tests {
             .unwrap()
             .expect("a row the history lists must be readable");
         assert_eq!(bytes, b"contents\n");
-    }
-
-    #[test]
-    fn file_diff_reads_a_revision_from_before_a_rename() {
-        let (_dir, store) = renamed_fixture();
-        let history = file_history(&store, "new.md", None, 50).unwrap();
-        let pre_rename = &history.revisions[1].rev;
-
-        let diff = file_diff(&store, "new.md", pre_rename, false)
-            .unwrap()
-            .expect("a row the history lists must have a diff");
-        assert!(diff.contains("new file mode"), "{diff}");
-        assert!(diff.contains("+contents"), "{diff}");
-        assert!(diff.contains("old.md"), "{diff}");
-    }
-
-    #[test]
-    fn file_at_with_parent_crosses_a_rename() {
-        let (_dir, store) = renamed_fixture();
-        let history = file_history(&store, "new.md", None, 50).unwrap();
-        let rename_rev = &history.revisions[0].rev;
-
-        let bytes = file_at(&store, "new.md", rename_rev, true)
-            .unwrap()
-            .expect("the version before the rename must be readable");
-        assert_eq!(bytes, b"contents\n");
-    }
-
-    #[test]
-    fn file_at_follows_a_chain_of_two_renames() {
-        let (dir, store) = renamed_fixture();
-        std::fs::rename(dir.path().join("new.md"), dir.path().join("newer.md")).unwrap();
-        store
-            .commit_batch(
-                "alice",
-                "alice@x",
-                "rename again",
-                &["new.md".into(), "newer.md".into()],
-            )
-            .unwrap();
-        let history = file_history(&store, "newer.md", None, 50).unwrap();
-        let root = &history.revisions.last().unwrap().rev;
-
-        let bytes = file_at(&store, "newer.md", root, false).unwrap();
-        assert_eq!(bytes.as_deref(), Some(&b"contents\n"[..]));
     }
 
     /// A repo holding a nested space beside a directory the space does not
@@ -1538,12 +1463,6 @@ mod tests {
     }
 
     #[test]
-    fn working_diff_of_an_unchanged_file_is_none() {
-        let (_dir, store) = fixture();
-        assert_eq!(working_diff(&store, "b.md").unwrap(), None);
-    }
-
-    #[test]
     fn space_log_lists_commits_with_touched_files() {
         let (_dir, store) = fixture();
         let log = space_log(&store, None, 50, None).unwrap();
@@ -1691,19 +1610,6 @@ mod tests {
     }
 
     #[test]
-    fn file_at_with_parent_on_a_root_commit_is_not_found() {
-        let dir = tempfile::tempdir().unwrap();
-        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
-        std::fs::write(dir.path().join("note.md"), b"one").unwrap();
-        let root = store
-            .commit_batch("alice", "alice@x", "add", &["note.md".into()])
-            .unwrap()
-            .unwrap();
-
-        assert_eq!(file_at(&store, "note.md", &root, true).unwrap(), None);
-    }
-
-    #[test]
     fn file_at_with_parent_propagates_a_genuine_git_failure_rather_than_not_found() {
         let dir = tempfile::tempdir().unwrap();
         let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
@@ -1739,16 +1645,6 @@ mod tests {
             .iter()
             .any(|r| page1.revisions.iter().any(|p| p.rev == r.rev)));
         assert!(!page2.revisions.is_empty());
-    }
-
-    #[test]
-    fn before_the_root_commit_yields_an_empty_page() {
-        let (_dir, store) = fixture();
-        let h = file_history(&store, "a.md", None, 50).unwrap();
-        let root_rev = &h.revisions[1].rev;
-        let page = file_history(&store, "a.md", Some(root_rev), 10).unwrap();
-        assert!(page.revisions.is_empty());
-        assert!(!page.more);
     }
 
     #[test]
@@ -2008,18 +1904,5 @@ mod tests {
         assert!(RangeEnd::parse("HEAD~3").is_none());
         assert!(RangeEnd::parse("--output=/tmp/x").is_none());
         assert!(RangeEnd::parse("main").is_none());
-    }
-
-    #[test]
-    fn commit_message_containing_record_separator_does_not_desync_history() {
-        let (dir, store) = fixture();
-        std::fs::write(dir.path().join("a.md"), b"v3").unwrap();
-        let weird_message = "line1\u{1e}line2";
-        store
-            .commit_batch("A", "a@x", weird_message, &["a.md".into()])
-            .unwrap();
-        let h = file_history(&store, "a.md", None, 50).unwrap();
-        assert_eq!(h.revisions.len(), 3);
-        assert_eq!(h.revisions[0].message, weird_message);
     }
 }

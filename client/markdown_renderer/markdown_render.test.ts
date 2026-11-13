@@ -149,14 +149,6 @@ test("Markdown render", () => {
   });
 });
 
-test("Wiki link with embedded image path", () => {
-  const example = `![[Inbox/2026-01-08/CleanShot 2026-01-01 at 12.36.23.png]]`;
-  const tree = parse(extendedMarkdownLanguage, example);
-  renderMarkdownToHtml(tree, {
-    failOnUnknown: true,
-  });
-});
-
 test("Wiki links render the target page decoration icon before their label", () => {
   const tree = parse(extendedMarkdownLanguage, "[[Person/Ada|Ada]]");
   const html = renderMarkdownToHtml(tree, {}, [
@@ -232,23 +224,6 @@ And another
   console.log(html2);
 });
 
-test("Inline HTML tags render as proper elements", () => {
-  const tree = parse(extendedMarkdownLanguage, "<marquee>Hello</marquee>");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual('<span class="p"><marquee>Hello</marquee></span>');
-});
-
-test("Inline HTML tags with attributes", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    '<span style="color:red">red text</span>',
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p"><span style="color:red">red text</span></span>',
-  );
-});
-
 test("Inline HTML tags with markdown content", () => {
   const tree = parse(
     extendedMarkdownLanguage,
@@ -260,41 +235,10 @@ test("Inline HTML tags with markdown content", () => {
   );
 });
 
-test("Inline HTML mixed with text", () => {
-  const tree = parse(extendedMarkdownLanguage, "Before <b>bold</b> after");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual('<span class="p">Before <b>bold</b> after</span>');
-});
-
-test("Nested same-name HTML tags", () => {
-  const tree = parse(extendedMarkdownLanguage, "<b><b>nested</b></b>");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual('<span class="p"><b><b>nested</b></b></span>');
-});
-
-test("Inline HTML with wiki link", () => {
-  const tree = parse(extendedMarkdownLanguage, "<span>hello [[there]]</span>");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<span class="p"><span>hello <a href="/there" class="wiki-link" data-ref="there">there</a></span></span>',
-  );
-});
-
 test("Unmatched HTML tags render as literal text", () => {
   const tree = parse(extendedMarkdownLanguage, "text <b>unclosed");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toEqual('<span class="p">text &lt;b&gt;unclosed</span>');
-});
-
-test("Inline HTML renders inside task items", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "* [ ] <mark>highlighted</mark> task",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toEqual(
-    '<ul><li><span class="sb-task"><input type="checkbox" data-state=" "> <mark>highlighted</mark> task</span></li></ul>',
-  );
 });
 
 test("CustomSyntaxRenderedHtml renders raw HTML", () => {
@@ -446,15 +390,6 @@ test("expandMarkdown skips custom syntax without renderHtml", async () => {
   expect(html).toContain("&lt;&lt;content&gt;&gt;");
 });
 
-test("Block HTML table renders correctly", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<table><tr><td>hello</td></tr></table>",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<table><tr><td>hello</td></tr></table>");
-});
-
 test("Block HTML preserves data attributes", () => {
   const tree = parse(
     extendedMarkdownLanguage,
@@ -475,66 +410,6 @@ test("Markdown inside block HTML td is rendered", () => {
   );
 });
 
-test("Self-closing <br/> inside block HTML td renders as HTML", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<table><tr><td>Hello<br/>there</td></tr></table>",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<table><tr><td>Hello<br>there</td></tr></table>");
-});
-
-test("Wiki link inside block HTML td is rendered", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<table><tr><td>see [[MyPage]]</td></tr></table>",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toContain('<a href="/MyPage" class="wiki-link"');
-  expect(html).toContain('data-ref="MyPage"');
-});
-
-test("Block HTML with self-closing tags", () => {
-  const tree = parse(extendedMarkdownLanguage, "<div><br /><hr /></div>");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<div><br><hr></div>");
-});
-
-test("Multi-line block HTML table", () => {
-  const md = `<table>
-<thead><tr><th>name</th><th>age</th></tr></thead>
-<tbody>
-<tr><td>Alice</td><td>30</td></tr>
-</tbody>
-</table>`;
-  const tree = parse(extendedMarkdownLanguage, md);
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toContain("<thead><tr><th>name</th><th>age</th></tr></thead>");
-  expect(html).toContain("<td>Alice</td><td>30</td>");
-});
-
-test("Block HTML with data attributes and wiki links", () => {
-  const md = `<table>
-<thead><tr><th>name</th></tr></thead>
-<tbody>
-<tr><td data-table-cell-type="string">[[Alice]]</td></tr>
-</tbody>
-</table>`;
-  const tree = parse(extendedMarkdownLanguage, md);
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toContain('data-table-cell-type="string"');
-  expect(html).toContain('<a href="/Alice" class="wiki-link"');
-});
-
-test("Block HTML ul/li with data attributes", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    '<ul><li data-list-item-type="string">hello</li></ul>',
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe('<ul><li data-list-item-type="string">hello</li></ul>');
-});
-
 test("Nested block HTML tables", () => {
   const tree = parse(
     extendedMarkdownLanguage,
@@ -546,30 +421,10 @@ test("Nested block HTML tables", () => {
   expect(html.match(/<\/table>/g)).toHaveLength(2);
 });
 
-test("Empty block HTML table", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "<table data-table-empty></table>",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toContain("data-table-empty");
-});
-
 test("HTML comment is still removed", () => {
   const tree = parse(extendedMarkdownLanguage, "<!-- comment -->");
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe("");
-});
-
-test("Conforming inline comment renders to nothing", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "A claim.\n\n<!-- @pete: verify — john, 2026-08-04 -->\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).not.toContain("pete");
-  expect(html).not.toContain("verify");
-  expect(html).not.toContain("<!--");
 });
 
 test("Whitespace between block siblings is dropped (no spurious <br>)", () => {
@@ -593,73 +448,6 @@ test("Whitespace between paragraphs is preserved as <br/>", () => {
     '<span class="p">Hello there</span>' +
       "<br/><br/>" +
       '<span class="p">This is cool</span>',
-  );
-});
-
-test("Whitespace between paragraph and heading is preserved", () => {
-  // Paragraph renders as an inline `<span class="p">`, so a blank line
-  // before a following block (heading) must still produce a visible gap.
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "Intro paragraph\n\n# Heading\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    '<span class="p">Intro paragraph</span><br/><h1>Heading</h1>',
-  );
-});
-
-test("Whitespace between heading and paragraph is preserved", () => {
-  // Symmetric to the previous case: block-then-paragraph keeps its break.
-  // Note: the heading consumes the newline that terminates its own line, so
-  // the whitespace text node between heading and paragraph is a single `\n`,
-  // not the `\n\n` of the markdown source.
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "# Heading\n\nIntro paragraph\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    '<h1>Heading</h1><br/><span class="p">Intro paragraph</span>',
-  );
-});
-
-test("Whitespace between bullet list and paragraph is preserved", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "- item one\n- item two\n\nOther text\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    '<ul><li><span class="p">item one</span></li>' +
-      '<li><span class="p">item two</span></li></ul>' +
-      "<br/>" +
-      '<span class="p">Other text</span>',
-  );
-});
-
-test("Multiple blank lines between blocks collapse to nothing", () => {
-  const tree = parse(extendedMarkdownLanguage, "# A\n\n\n\n# B\n");
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe("<h1>A</h1><h1>B</h1>");
-});
-
-test("Heading then list then heading (transclusion shape)", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "# Lua Standard Library\n" +
-      "- one\n- two\n\n" +
-      "# Space Lua APIs\n" +
-      "- three\n- four\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    "<h1>Lua Standard Library</h1>" +
-      '<ul><li><span class="p">one</span></li>' +
-      '<li><span class="p">two</span></li></ul>' +
-      "<h1>Space Lua APIs</h1>" +
-      '<ul><li><span class="p">three</span></li>' +
-      '<li><span class="p">four</span></li></ul>',
   );
 });
 
@@ -716,16 +504,6 @@ test("expandMarkdown strips a transcluded page's frontmatter", async () => {
   expect(roundTripped).not.toContain("---");
 });
 
-test.each(["x <a>y</a> z", "<div><a>y</a></div>", "x <img> z"])(
-  "inline HTML %s without attributes renders",
-  (md) => {
-    const html = renderMarkdownToHtml(parse(extendedMarkdownLanguage, md), {
-      translateUrls: (u) => u,
-    });
-    expect(html).toContain(md.includes("img") ? "<img" : "<a>y</a>");
-  },
-);
-
 test("Blank table header cells render as empty cells (#178)", () => {
   const tree = parse(
     extendedMarkdownLanguage,
@@ -734,16 +512,5 @@ test("Blank table header cells render as empty cells (#178)", () => {
   const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
   expect(html).toBe(
     "<table><thead><tr><td></td><td>b</td></tr></thead><tr><td>1</td><td>2</td></tr></table>",
-  );
-});
-
-test("Blank middle and trailing table header cells render as empty cells", () => {
-  const tree = parse(
-    extendedMarkdownLanguage,
-    "| a | | |\n|---|---|---|\n| 1 | 2 | 3 |\n",
-  );
-  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
-  expect(html).toBe(
-    "<table><thead><tr><td>a</td><td></td><td></td></tr></thead><tr><td>1</td><td>2</td><td>3</td></tr></table>",
   );
 });

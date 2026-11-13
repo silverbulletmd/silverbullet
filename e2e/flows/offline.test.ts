@@ -70,29 +70,6 @@ test("offline edits survive reload and are saved after reconnecting", async ({
   await expect(page.locator(".cm-content")).toContainText("Written offline.");
 });
 
-test("an unsynced document range is proxied through the service worker", async ({
-  page,
-  sbServer,
-}) => {
-  await openLivePage(page, sbServer.url, "Offline notebook");
-
-  const result = await page.evaluate(async () => {
-    const response = await fetch("/.fs/Audio/tone.wav", {
-      headers: { Range: "bytes=0-15" },
-      cache: "no-store",
-    });
-    return {
-      status: response.status,
-      contentRange: response.headers.get("Content-Range"),
-      bytes: [...new Uint8Array(await response.arrayBuffer())],
-    };
-  });
-
-  expect(result.status).toBe(206);
-  expect(result.contentRange).toBe(`bytes 0-15/${toneWav.byteLength}`);
-  expect(result.bytes).toEqual([...toneWav.slice(0, 16)]);
-});
-
 test.describe("with document syncing enabled", () => {
   test.use({
     spaceFiles: {

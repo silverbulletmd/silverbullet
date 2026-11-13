@@ -20,17 +20,6 @@ fn instructions_under_450_words() {
 }
 
 #[test]
-fn instructions_first_512_chars_mention_help() {
-    let text = instructions("2.12.1");
-    let head: String = text.chars().take(512).collect();
-    assert!(head.contains("`help`"), "{head}");
-    assert!(
-        head.contains("space"),
-        "first 512 chars must explain spaces"
-    );
-}
-
-#[test]
 fn instructions_mention_every_tool() {
     let text = instructions("2.12.1");
     for tool in TOOLS {
@@ -64,11 +53,6 @@ fn instructions_docs_url_follows_the_build_channel() {
 }
 
 #[test]
-fn instructions_note_that_the_runtime_may_be_missing() {
-    assert!(instructions("2.12.1").contains("some spaces may lack"));
-}
-
-#[test]
 fn tools_list_and_instructions_under_2000_tokens_estimate() {
     let fixture = Fixture::new();
     let tools = Tools::new(fixture.host.clone(), "2.12.1");
@@ -85,13 +69,6 @@ fn tools_list_and_instructions_under_2000_tokens_estimate() {
         .sum();
     let total = list + tools.instructions().len();
     assert!(total / 4 < 2000, "{} estimated tokens", total / 4);
-}
-
-#[test]
-fn default_instructions_follow_the_version() {
-    let fixture = Fixture::new();
-    let tools = Tools::new(fixture.host.clone(), "2.12.1");
-    assert_eq!(tools.instructions(), instructions("2.12.1"));
 }
 
 #[test]

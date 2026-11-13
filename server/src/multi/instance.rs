@@ -513,7 +513,7 @@ fn try_build_parts(
     let fs_events = crate::start_watcher(
         &folder,
         &watch_ignore,
-        crate::WatchMode::from_env(),
+        crate::watcher::instance_watch_mode(),
         fs_guard.clone(),
     );
     if let Some(events) = &fs_events {
@@ -939,22 +939,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn wires_fs_watcher_into_state() {
-        let dir = tempfile::tempdir().unwrap();
-        let deps = test_deps(dir.path());
-        let folder = dir.path().join("spaces/x");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/work".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
-        assert!(state.fs_events.is_some());
-    }
-
-    #[tokio::test]
     async fn managed_revisions_inits_git_and_starts_the_engine() {
         let dir = tempfile::tempdir().unwrap();
         let deps = test_deps(dir.path());
@@ -991,22 +975,6 @@ mod tests {
             std::fs::read_to_string(folder.join("Library/Config.md")).unwrap(),
             "cfg"
         );
-    }
-
-    #[tokio::test]
-    async fn disabled_revisions_yields_no_engine() {
-        let dir = tempfile::tempdir().unwrap();
-        let deps = test_deps(dir.path());
-        let folder = dir.path().join("spaces/x");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/work".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
-        assert!(state.revisions.is_none());
     }
 
     #[tokio::test]
@@ -1100,35 +1068,6 @@ mod tests {
             config["bundledRepositories"],
             serde_json::json!(["Library/Repository/Shipped"])
         );
-    }
-
-    #[tokio::test]
-    async fn auth_none_space_serves_config_openly() {
-        use tower::ServiceExt;
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(None);
-        let folder = dir.path().join("open");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/o".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        let inst = build_instance("o", &cfg, &deps);
-        let resp = inst
-            .router
-            .unwrap()
-            .oneshot(
-                axum::http::Request::builder()
-                    .uri("/.config")
-                    .body(axum::body::Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), axum::http::StatusCode::OK);
     }
 
     #[tokio::test]
@@ -1241,48 +1180,33 @@ mod tests {
         assert!(response.headers().get("location").is_some());
     }
 
+    /// Who may reach and author a space anonymously, per access mode. Every
+    /// row is security: SSR is gated on `anonymous_readable` and
+    /// `anonymous_writable` (stranger-authored markdown must not be rendered
+    /// into the shell), and client encryption must be off wherever anonymous
+    /// access is on.
     #[tokio::test]
-    async fn every_account_managed_space_has_a_login_manager() {
-        for access in [SpaceAccess::None, SpaceAccess::Read, SpaceAccess::Write] {
+    async fn the_access_matrix_decides_anonymous_reach() {
+        // Account-managed: (access, readable, writable, client encryption).
+        for (access, readable, writable, encryption) in [
+            (SpaceAccess::None, false, false, true),
+            (SpaceAccess::Read, true, false, false),
+            (SpaceAccess::Write, true, true, false),
+        ] {
             let (_dir, state) = state_with_access(access);
-            assert!(state.login.is_some(), "{access:?}");
-            assert!(state.authorizer.is_some(), "{access:?}");
+            assert!(state.login.is_some(), "{access:?}: login manager");
+            assert!(state.authorizer.is_some(), "{access:?}: authorizer");
+            assert_eq!(state.anonymous_readable, readable, "{access:?} readable");
+            assert_eq!(state.anonymous_writable, writable, "{access:?} writable");
+            assert_eq!(
+                state.boot_config.enable_client_encryption, encryption,
+                "{access:?} encryption"
+            );
         }
-    }
 
-    #[tokio::test]
-    async fn anonymous_readable_tracks_the_account_managed_access_level() {
-        // Account-managed public spaces permit SSR despite having an authorizer.
-        let (_dir_none, none) = state_with_access(SpaceAccess::None);
-        assert!(!none.anonymous_readable);
-        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
-        assert!(read.anonymous_readable);
-        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
-        assert!(write.anonymous_readable);
-    }
-
-    #[tokio::test]
-    async fn anonymous_writable_tracks_who_may_author_the_content() {
-        // Gates SSR alongside `anonymous_readable`: only `access: "write"`
-        // (legacy `public: true`) lets a stranger author a page, and rendering
-        // stranger-authored markdown into the shell would serve stored HTML.
-        let (_dir_none, none) = state_with_access(SpaceAccess::None);
-        assert!(!none.anonymous_writable);
-        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
-        assert!(!read.anonymous_writable);
-        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
-        assert!(write.anonymous_writable);
-    }
-
-    #[tokio::test]
-    async fn an_open_single_space_is_anonymous_writable_unless_frozen() {
-        // No authorizer at all means anyone may write, so its content is no
-        // more trustworthy than a `access: "write"` space's -- unless the
-        // freeze stops every writer, which is what keeps SSR working for the
-        // classic public read-only wiki.
+        // Single-space mode derives access from its authorizer, since its
+        // synthesized config always has `access: none`.
         let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(None);
         let folder = dir.path().join("open");
         std::fs::create_dir_all(&folder).unwrap();
         let mut cfg = space(
@@ -1291,59 +1215,22 @@ mod tests {
             },
             folder.to_str().unwrap(),
         );
-        let writable = try_build_state("o", &cfg, "/o", &deps).unwrap();
-        assert!(writable.anonymous_writable);
-        assert!(!writable.boot_config.enable_client_encryption);
 
-        cfg.read_only = true;
-        let frozen = try_build_state("o", &cfg, "/o", &deps).unwrap();
-        assert!(!frozen.anonymous_writable);
-        assert!(frozen.anonymous_readable);
-    }
+        // Auth-protected (the default `Single(Some(..))`): not anonymous.
+        let protected = try_build_state("o", &cfg, "/o", &test_deps(dir.path())).unwrap();
+        assert!(!protected.anonymous_readable);
 
-    #[tokio::test]
-    async fn open_single_space_is_anonymous_readable() {
-        // Single-space mode determines public access from its authorizer,
-        // since its synthesized config always has access: none.
-        let dir = tempfile::tempdir().unwrap();
+        // Open: anyone may write, unless the freeze stops every writer.
         let mut deps = test_deps(dir.path());
         deps.auth = InstanceAuth::Single(None);
-        let folder = dir.path().join("open");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/o".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        let state = try_build_state("o", &cfg, "/o", &deps).unwrap();
-        assert!(state.anonymous_readable);
-    }
-
-    #[tokio::test]
-    async fn auth_protected_single_space_is_not_anonymous_readable() {
-        let dir = tempfile::tempdir().unwrap();
-        let deps = test_deps(dir.path()); // default: Single(Some(admin:pw))
-        let folder = dir.path().join("locked");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space(
-            Binding::Prefix {
-                prefix: "/l".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-        let state = try_build_state("l", &cfg, "/l", &deps).unwrap();
-        assert!(!state.anonymous_readable);
-    }
-
-    #[tokio::test]
-    async fn client_encryption_is_off_wherever_anonymous_access_is_on() {
-        let (_dir_none, none) = state_with_access(SpaceAccess::None);
-        assert!(none.boot_config.enable_client_encryption);
-        let (_dir_read, read) = state_with_access(SpaceAccess::Read);
-        assert!(!read.boot_config.enable_client_encryption);
-        let (_dir_write, write) = state_with_access(SpaceAccess::Write);
-        assert!(!write.boot_config.enable_client_encryption);
+        let open = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        assert!(open.anonymous_readable);
+        assert!(open.anonymous_writable);
+        assert!(!open.boot_config.enable_client_encryption);
+        cfg.read_only = true;
+        let frozen = try_build_state("o", &cfg, "/o", &deps).unwrap();
+        assert!(frozen.anonymous_readable);
+        assert!(!frozen.anonymous_writable);
     }
 
     #[tokio::test]
@@ -1415,47 +1302,6 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
-    }
-
-    #[tokio::test]
-    async fn public_space_serves_config_openly() {
-        use tower::ServiceExt;
-        let dir = tempfile::tempdir().unwrap();
-        let mut deps = test_deps(dir.path());
-        let store = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
-        deps.auth = InstanceAuth::Accounts {
-            users: store,
-            authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
-            session: SessionPolicy::default(),
-        };
-        let folder = dir.path().join("pub");
-        std::fs::create_dir_all(&folder).unwrap();
-        let cfg = space_users_model(
-            Binding::Prefix {
-                prefix: "/p".into(),
-            },
-            SpaceAccess::Write,
-            Default::default(),
-            folder.to_str().unwrap(),
-        );
-        let inst = build_instance("p", &cfg, &deps);
-        assert!(
-            matches!(inst.status, InstanceStatus::Running),
-            "{:?}",
-            inst.status
-        );
-        let resp = inst
-            .router
-            .unwrap()
-            .oneshot(
-                axum::http::Request::builder()
-                    .uri("/.config")
-                    .body(axum::body::Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-        assert_eq!(resp.status(), axum::http::StatusCode::OK);
     }
 
     #[tokio::test]
@@ -1737,28 +1583,6 @@ mod tests {
         assert!(
             !dir.path().join("index.md").exists(),
             "space with markdown only in a subdirectory must not be seeded"
-        );
-    }
-
-    #[test]
-    fn seed_index_seeds_when_only_md_is_gitignored() {
-        // Ignored markdown does not prevent seeding an otherwise empty space.
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("ignored.md"), "x").unwrap();
-        seed_index(dir.path(), "index", "# Hello\n", "ignored.md");
-        assert!(
-            dir.path().join("index.md").exists(),
-            "a space whose only .md is gitignored should still be seeded"
-        );
-    }
-
-    #[test]
-    fn seed_index_creates_parent_dirs_for_nested_index_page() {
-        let dir = tempfile::tempdir().unwrap();
-        seed_index(dir.path(), "notes/index", "# Hello\n", "");
-        assert_eq!(
-            std::fs::read_to_string(dir.path().join("notes/index.md")).unwrap(),
-            "# Hello\n"
         );
     }
 

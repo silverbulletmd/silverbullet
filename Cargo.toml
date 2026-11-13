@@ -66,3 +66,9 @@ candle-nn = { git = "https://github.com/huggingface/candle", rev = "c68b24997319
 # `unstable_wasm` is the feature that enables fancy-regex (pure Rust) instead of onig (C).
 tokenizers = { version = "0.23", default-features = false, features = ["unstable_wasm"] }
 rayon = "1"
+
+# Debug test builds run tantivy, argon2 and friends; unoptimized they dominate
+# the Server test runtime. CI caches `target/` (Swatinem/rust-cache), so the
+# one-time dependency rebuild is paid once.
+[profile.dev.package."*"]
+opt-level = 2

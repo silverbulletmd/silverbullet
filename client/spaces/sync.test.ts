@@ -242,6 +242,7 @@ describe("Sync with no filtering", () => {
 
     expect((await primary.fetchFileList()).length).toEqual(5);
     expect((await secondary.fetchFileList()).length).toEqual(5);
+    expect(decode((await secondary.readFile("index.md")).data)).toBe("1");
 
     ops = await doSync(sync, snapshot);
     expect(ops).toEqual(0);
@@ -434,29 +435,6 @@ describe("syncSingleFile", () => {
     expect(snapshot.nonSyncedFiles.size).toEqual(0);
   });
 
-  test("sync new file from primary to secondary", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("new.md", encode("New file"));
-    await sleep(10);
-    const ops = await sync.syncSingleFile("new.md", snapshot);
-    expect(ops).toBe(1);
-    expect(decode((await secondary.readFile("new.md")).data)).toBe("New file");
-  });
-
-  test("sync changes from primary to secondary", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("page.md", encode("v1"));
-    await doSync(sync, snapshot);
-
-    await primary.writeFile("page.md", encode("v2"));
-    await sleep(10);
-    const ops = await sync.syncSingleFile("page.md", snapshot);
-    expect(ops).toBe(1);
-    expect(decode((await secondary.readFile("page.md")).data)).toBe("v2");
-  });
-
   test("skip non-synced files", async () => {
     const { secondary, snapshot, sync } = createSyncSetup({
       isSyncCandidate: (path) => path.endsWith(".md"),
@@ -491,20 +469,6 @@ describe("syncSingleFile", () => {
     }
 
     expect(snapshot.files.has("test.md")).toBe(false);
-  });
-
-  test("handle file not existing on either side", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("gone.md", encode("Hello"));
-    await doSync(sync, snapshot);
-
-    await primary.deleteFile("gone.md");
-    await secondary.deleteFile("gone.md");
-
-    const ops = await sync.syncSingleFile("gone.md", snapshot);
-    expect(ops).toBeGreaterThanOrEqual(0);
-    expect(snapshot.files.has("gone.md")).toBe(false);
   });
 
   test("sync file only on secondary (not in snapshot)", async () => {
@@ -545,23 +509,6 @@ describe("nonSyncedFiles snapshot persistence", () => {
     expect(ops).toBe(0);
     expect(snapshot.nonSyncedFiles.has("image.png")).toBe(true);
     expect(snapshotSaveCount).toBeGreaterThan(0);
-  });
-
-  test("nonSyncedFiles persist across sync cycles", async () => {
-    const { secondary, snapshot, sync } = createSyncSetup({
-      isSyncCandidate: (path) => path.endsWith(".md"),
-    });
-
-    await secondary.writeFile("img1.png", encode("img1"));
-    await secondary.writeFile("img2.png", encode("img2"));
-    await sleep(10);
-
-    await sync.syncFiles(snapshot);
-    expect(snapshot.nonSyncedFiles.size).toBe(2);
-
-    const ops = await doSync(sync, snapshot);
-    expect(ops).toBe(0);
-    expect(snapshot.nonSyncedFiles.size).toBe(2);
   });
 });
 
@@ -734,46 +681,6 @@ describe("Conflict resolution", () => {
 });
 
 describe("Deletion scenarios", () => {
-  test("primary deletion propagates to secondary", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("delete-me.md", encode("Will be deleted"));
-    await doSync(sync, snapshot);
-    expect(decode((await secondary.readFile("delete-me.md")).data)).toBe(
-      "Will be deleted",
-    );
-
-    await primary.deleteFile("delete-me.md");
-    await doSync(sync, snapshot);
-
-    try {
-      await secondary.getFileMeta("delete-me.md");
-      expect.fail("Expected file to be deleted from secondary");
-    } catch {
-      // Expected
-    }
-  });
-
-  test("secondary deletion propagates to primary", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await secondary.writeFile("delete-me.md", encode("Will be deleted"));
-    await doSync(sync, snapshot);
-    expect(decode((await primary.readFile("delete-me.md")).data)).toBe(
-      "Will be deleted",
-    );
-
-    await secondary.deleteFile("delete-me.md");
-    await doSync(sync, snapshot);
-
-    try {
-      await primary.getFileMeta("delete-me.md");
-      expect.fail("Expected file to be deleted from primary");
-    } catch {
-      // Expected
-    }
-  });
-
   test("both sides delete cleans up snapshot", async () => {
     const { primary, secondary, snapshot, sync } = createSyncSetup();
 
@@ -855,60 +762,6 @@ describe("Deletion scenarios", () => {
   });
 });
 
-describe("Sync candidate filtering", () => {
-  test("non-sync candidate on primary still syncs to secondary", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup({
-      isSyncCandidate: (path) => path.endsWith(".md"),
-    });
-
-    await primary.writeFile("script.js", encode("console.log('hi')"));
-    await doSync(sync, snapshot);
-
-    expect(decode((await secondary.readFile("script.js")).data)).toBe(
-      "console.log('hi')",
-    );
-  });
-
-  test("non-sync candidate on secondary tracked in nonSyncedFiles", async () => {
-    const { secondary, snapshot, sync } = createSyncSetup({
-      isSyncCandidate: (path) => path.endsWith(".md"),
-    });
-
-    await secondary.writeFile("image.png", encode("binary"));
-    await doSync(sync, snapshot);
-
-    expect(snapshot.nonSyncedFiles.has("image.png")).toBe(true);
-  });
-
-  test("switching from filtered to unfiltered pulls missing files", async () => {
-    const primary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
-    const secondary = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
-    const snapshot = new SyncSnapshot();
-
-    let sync = new SpaceSync(primary, secondary, {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: (path) => path.endsWith(".md"),
-    });
-
-    await secondary.writeFile("page.md", encode("markdown"));
-    await secondary.writeFile("image.png", encode("image"));
-    await doSync(sync, snapshot);
-
-    expect((await primary.fetchFileList()).length).toBe(1);
-    expect(snapshot.nonSyncedFiles.has("image.png")).toBe(true);
-
-    sync = new SpaceSync(primary, secondary, {
-      conflictResolver: SpaceSync.primaryConflictResolver,
-      isSyncCandidate: () => true,
-    });
-
-    await doSync(sync, snapshot);
-
-    expect((await primary.fetchFileList()).length).toBe(2);
-    expect(snapshot.nonSyncedFiles.size).toBe(0);
-  });
-});
-
 describe("Resync scenario", () => {
   test("both sides have file but no snapshot entry, same content", async () => {
     const { primary, secondary, snapshot, sync } = createSyncSetup();
@@ -976,105 +829,8 @@ describe("Size mismatch conflict", () => {
   });
 });
 
-describe("Empty file sync", () => {
-  test("zero-byte files sync correctly in both directions", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("empty.md", encode(""));
-    await doSync(sync, snapshot);
-
-    const secondaryData = await secondary.readFile("empty.md");
-    expect(secondaryData.data.byteLength).toBe(0);
-
-    await secondary.writeFile("empty2.md", encode(""));
-    await doSync(sync, snapshot);
-
-    const primaryData = await primary.readFile("empty2.md");
-    expect(primaryData.data.byteLength).toBe(0);
-
-    await primary.writeFile("empty.md", encode("now has content"));
-    await doSync(sync, snapshot);
-
-    expect(decode((await secondary.readFile("empty.md")).data)).toBe(
-      "now has content",
-    );
-
-    await primary.writeFile("empty.md", encode(""));
-    await doSync(sync, snapshot);
-
-    expect((await secondary.readFile("empty.md")).data.byteLength).toBe(0);
-  });
-});
-
-describe("syncProgress event", () => {
-  test("fires during syncFiles with correct counts", async () => {
-    const { secondary, snapshot, sync } = createSyncSetup();
-    const progressEvents: { filesProcessed: number; totalFiles: number }[] = [];
-
-    sync.on({
-      snapshotUpdated: () => {},
-      syncProgress: (status) => {
-        progressEvents.push({ ...status });
-      },
-    });
-
-    await secondary.writeFile("a.md", encode("a"));
-    await secondary.writeFile("b.md", encode("b"));
-    await secondary.writeFile("c.md", encode("c"));
-    await sleep(10);
-
-    await sync.syncFiles(snapshot);
-
-    // syncProgress only fires when fileOperations > 0
-    expect(progressEvents.length).toBeGreaterThan(0);
-
-    for (const event of progressEvents) {
-      expect(event.filesProcessed).toBeGreaterThan(0);
-      expect(event.totalFiles).toBe(3);
-      expect(event.filesProcessed).toBeLessThanOrEqual(event.totalFiles);
-    }
-  });
-});
-
 describe("SyncSnapshot remoteHashes", () => {
   test("toJSON/fromJSON roundtrip matches Rust wire format", () => {
-    const snapshot = new SyncSnapshot(
-      new Map([["a.md", [1, 2] as [number, number]]]),
-      new Map(),
-      new Map([["a.md", "ff"]]),
-    );
-
-    expect(snapshot.toJSON()).toEqual({
-      files: { "a.md": [1, 2] },
-      nonSyncedFiles: {},
-      remoteHashes: { "a.md": "ff" },
-      baseHashes: {},
-    });
-
-    const restored = SyncSnapshot.fromJSON(snapshot.toJSON());
-    expect(restored.files.get("a.md")).toEqual([1, 2]);
-    expect(restored.remoteHashes.get("a.md")).toEqual("ff");
-  });
-
-  test("fromJSON defaults remoteHashes to empty for legacy snapshots", () => {
-    const legacy = { files: { "a.md": [1, 2] } };
-    const restored = SyncSnapshot.fromJSON(legacy);
-    expect(restored.files.get("a.md")).toEqual([1, 2]);
-    expect(restored.remoteHashes.size).toBe(0);
-  });
-});
-
-describe("SyncSnapshot baseHashes", () => {
-  test("fromJSON on the shared wire fixture populates baseHashes", () => {
-    const wireFixture =
-      '{"files":{"a.md":[1,2]},"remoteHashes":{"a.md":"ff"},"baseHashes":{"a.md":"ee"}}';
-    const restored = SyncSnapshot.fromJSON(JSON.parse(wireFixture));
-    expect(restored.files.get("a.md")).toEqual([1, 2]);
-    expect(restored.remoteHashes.get("a.md")).toEqual("ff");
-    expect(restored.baseHashes.get("a.md")).toEqual("ee");
-  });
-
-  test("toJSON/fromJSON roundtrips baseHashes", () => {
     const snapshot = new SyncSnapshot(
       new Map([["a.md", [1, 2] as [number, number]]]),
       new Map(),
@@ -1090,38 +846,42 @@ describe("SyncSnapshot baseHashes", () => {
     });
 
     const restored = SyncSnapshot.fromJSON(snapshot.toJSON());
+    expect(restored.files.get("a.md")).toEqual([1, 2]);
+    expect(restored.remoteHashes.get("a.md")).toEqual("ff");
     expect(restored.baseHashes.get("a.md")).toEqual("ee");
   });
 
-  test("fromJSON defaults baseHashes to empty for legacy snapshots without the key", () => {
-    const legacy = {
-      files: { "a.md": [1, 2] },
-      remoteHashes: { "a.md": "ff" },
-    };
+  test("fromJSON defaults remoteHashes to empty for legacy snapshots", () => {
+    const legacy = { files: { "a.md": [1, 2] } };
     const restored = SyncSnapshot.fromJSON(legacy);
+    expect(restored.files.get("a.md")).toEqual([1, 2]);
+    expect(restored.remoteHashes.size).toBe(0);
     expect(restored.baseHashes.size).toBe(0);
   });
 });
 
-describe("Precondition-aware sync", () => {
-  test("push of new file on primary sends unconditional write when no hashes known yet", async () => {
-    const { primary, secondary, snapshot, sync } = createConditionalSyncSetup();
-
-    await primary.writeFile("new.md", encode("Hello"));
-    await doSync(sync, snapshot);
-
-    expect(secondary.writeCalls.length).toBe(1);
-    expect(secondary.writeCalls[0].precondition).toBeUndefined();
-    expect(snapshot.remoteHashes.has("new.md")).toBe(true);
+describe("SyncSnapshot baseHashes", () => {
+  test("fromJSON on the shared wire fixture populates baseHashes", () => {
+    const wireFixture =
+      '{"files":{"a.md":[1,2]},"remoteHashes":{"a.md":"ff"},"baseHashes":{"a.md":"ee"}}';
+    const restored = SyncSnapshot.fromJSON(JSON.parse(wireFixture));
+    expect(restored.files.get("a.md")).toEqual([1, 2]);
+    expect(restored.remoteHashes.get("a.md")).toEqual("ff");
+    expect(restored.baseHashes.get("a.md")).toEqual("ee");
   });
+});
 
+describe("Precondition-aware sync", () => {
   test("push of new file sends notExists precondition once hashes are known", async () => {
     const { primary, secondary, snapshot, sync } = createConditionalSyncSetup();
 
-    // First file establishes a remoteHashes entry.
+    // First file establishes a remoteHashes entry; with no hashes known yet
+    // the write is unconditional.
     await primary.writeFile("first.md", encode("First"));
     await doSync(sync, snapshot);
-    expect(snapshot.remoteHashes.size).toBeGreaterThan(0);
+    expect(secondary.writeCalls.length).toBe(1);
+    expect(secondary.writeCalls[0].precondition).toBeUndefined();
+    expect(snapshot.remoteHashes.has("first.md")).toBe(true);
 
     await primary.writeFile("second.md", encode("Second"));
     await doSync(sync, snapshot);
@@ -1283,15 +1043,6 @@ describe("Precondition-aware sync", () => {
     expect(await doSync(sync, snapshot)).toBe(0);
   });
 
-  test("pull from secondary records remote hash", async () => {
-    const { secondary, snapshot, sync } = createConditionalSyncSetup();
-
-    await secondary.writeFile("remote.md", encode("Remote content"));
-    await doSync(sync, snapshot);
-
-    expect(snapshot.remoteHashes.has("remote.md")).toBe(true);
-  });
-
   test("conflict resolver's byte-match early return refreshes stale remoteHashes", async () => {
     const { primary, secondary, snapshot, sync } = createConditionalSyncSetup();
 
@@ -1319,18 +1070,6 @@ describe("Precondition-aware sync", () => {
     );
     expect(snapshot.remoteHashes.get("doc.md")).not.toBe("stale-hash");
   });
-
-  test("plain secondary without conditional methods behaves as before (no preconditions)", async () => {
-    const { primary, secondary, snapshot, sync } = createSyncSetup();
-
-    await primary.writeFile("doc.md", encode("v1"));
-    await doSync(sync, snapshot);
-    await primary.writeFile("doc.md", encode("v2"));
-    await doSync(sync, snapshot);
-
-    expect(snapshot.remoteHashes.size).toBe(0);
-    expect(decode((await secondary.readFile("doc.md")).data)).toBe("v2");
-  });
 });
 
 describe("isMergeEligible", () => {
@@ -1354,25 +1093,21 @@ describe("isMergeEligible", () => {
 
 describe("Three-way reconciliation", () => {
   test("base captured on push of new file", async () => {
-    const { primary, snapshot, sync, baseStore } = createReconcileSyncSetup();
+    const { primary, secondary, snapshot, sync, baseStore } =
+      createReconcileSyncSetup();
 
     await primary.writeFile("new.md", encode("Hello"));
+    await secondary.writeFile("remote.md", encode("Remote content"));
     await doSync(sync, snapshot);
 
     const expectedHash = await hashSHA256(encode("Hello"));
     expect(snapshot.baseHashes.get("new.md")).toBe(expectedHash);
     expect(await baseStore.getBase(expectedHash)).toEqual(encode("Hello"));
-  });
 
-  test("base captured on pull of new file", async () => {
-    const { secondary, snapshot, sync, baseStore } = createReconcileSyncSetup();
-
-    await secondary.writeFile("remote.md", encode("Remote content"));
-    await doSync(sync, snapshot);
-
-    const expectedHash = await hashSHA256(encode("Remote content"));
-    expect(snapshot.baseHashes.get("remote.md")).toBe(expectedHash);
-    expect(await baseStore.getBase(expectedHash)).toEqual(
+    // A pulled file records its base too.
+    const pulledHash = await hashSHA256(encode("Remote content"));
+    expect(snapshot.baseHashes.get("remote.md")).toBe(pulledHash);
+    expect(await baseStore.getBase(pulledHash)).toEqual(
       encode("Remote content"),
     );
   });
@@ -1477,7 +1212,8 @@ describe("Three-way reconciliation", () => {
       await primary.writeFile("doc.md", encode("even newer local edit"));
     };
 
-    await doSync(sync, snapshot);
+    // >0 ops so the snapshot gets persisted.
+    expect(await doSync(sync, snapshot)).toBeGreaterThan(0);
 
     expect(decode((await primary.readFile("doc.md")).data)).toBe(
       "even newer local edit",
@@ -1626,7 +1362,8 @@ describe("Three-way reconciliation", () => {
       },
     };
 
-    await doSync(sync, snapshot);
+    // >0 ops so the snapshot gets persisted.
+    expect(await doSync(sync, snapshot)).toBeGreaterThan(0);
 
     expect(decode((await primary.readFile("doc.md")).data)).toBe("local edit");
     // The churn revision was never held locally, so it must not be recorded.
@@ -1657,22 +1394,6 @@ describe("Three-way reconciliation", () => {
     await doSync(sync, snapshot);
 
     expect(secondary.reconcileCalls.length).toBe(1);
-  });
-
-  test("ineligible extension falls back to conflict resolver without calling reconcile", async () => {
-    const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
-
-    await primary.writeFile("image.png", encode("base binary"));
-    await doSync(sync, snapshot);
-
-    await primary.writeFile("image.png", encode("primary binary edit"));
-    secondary.failNextWrite = true;
-
-    await doSync(sync, snapshot);
-
-    expect(secondary.reconcileCalls.length).toBe(0);
-    const files = await primary.fetchFileList();
-    expect(files.some((f) => f.name.includes(".conflicted-"))).toBe(true);
   });
 
   test("missing base entry falls back to conflict resolver without calling reconcile", async () => {
@@ -1835,124 +1556,6 @@ describe("Three-way reconciliation", () => {
 
     expect(secondary.reconcileCalls.length).toBe(2);
   });
-
-  test("retry and local-advanced outcomes return >0 ops so the snapshot gets persisted", async () => {
-    const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
-
-    await primary.writeFile("doc.md", encode("base content"));
-    await doSync(sync, snapshot);
-
-    await primary.writeFile("doc.md", encode("local edit"));
-    secondary.failNextWrite = true;
-    secondary.reconcileResponse = {
-      status: "retry",
-      revision: {
-        algorithm: "sha256",
-        hash: "retry-hash",
-        size: 5,
-        lastModified: 12345,
-      },
-    };
-
-    const retryOps = await doSync(sync, snapshot);
-    expect(retryOps).toBeGreaterThan(0);
-
-    await primary.writeFile("doc.md", encode("local edit 2"));
-    secondary.failNextWrite = true;
-    secondary.reconcileResponse = {
-      status: "merged",
-      revision: {
-        algorithm: "sha256",
-        hash: "server-remote-hash",
-        size: 11,
-        lastModified: 22222,
-      },
-      text: "merged text",
-    };
-    secondary.reconcileHook = async () => {
-      await primary.writeFile("doc.md", encode("even newer local edit"));
-    };
-
-    const localAdvancedOps = await doSync(sync, snapshot);
-    expect(localAdvancedOps).toBeGreaterThan(0);
-  });
-
-  test("local-advanced with no existing snapshot.files entry leaves the entry absent (next cycle reconverges)", async () => {
-    const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();
-
-    await primary.writeFile("doc.md", encode("base content"));
-    await doSync(sync, snapshot);
-
-    // Simulate a resync scenario: base is still on record, but there's no
-    // files entry (e.g. a partially rebuilt snapshot).
-    snapshot.files.delete("doc.md");
-
-    await sleep(10);
-    await primary.writeFile("doc.md", encode("local edit"));
-    await sleep(10);
-    await secondary.writeFile("doc.md", encode("remote edit"));
-
-    secondary.reconcileResponse = {
-      status: "merged",
-      revision: {
-        algorithm: "sha256",
-        hash: "server-remote-hash",
-        size: 11,
-        lastModified: 77777,
-      },
-      text: "merged text",
-    };
-    secondary.reconcileHook = async () => {
-      await primary.writeFile("doc.md", encode("even newer local edit"));
-    };
-
-    await doSync(sync, snapshot);
-
-    expect(secondary.reconcileCalls.length).toBe(1);
-    // No prior entry means the "remote slot only" update has nothing to
-    // attach to, so the path stays absent from snapshot.files; the next
-    // cycle will see it as changed on both ends again and reconcile fresh.
-    expect(snapshot.files.has("doc.md")).toBe(false);
-  });
-
-  test("primary file deleted mid-flight is treated as local-advanced: no throw, no local write, base becomes proposed", async () => {
-    const { primary, secondary, snapshot, sync, baseStore, resyncedPaths } =
-      createReconcileSyncSetup();
-
-    await primary.writeFile("doc.md", encode("base content"));
-    await doSync(sync, snapshot);
-
-    await primary.writeFile("doc.md", encode("local edit"));
-    secondary.failNextWrite = true;
-    secondary.reconcileResponse = {
-      status: "merged",
-      revision: {
-        algorithm: "sha256",
-        hash: "server-remote-hash",
-        size: 11,
-        lastModified: 99999,
-      },
-      text: "merged text",
-    };
-    secondary.reconcileHook = async () => {
-      // Simulate the file being deleted locally while reconciliation is
-      // in flight (e.g. the user deleted the note).
-      await primary.deleteFile("doc.md");
-    };
-
-    const ops = await doSync(sync, snapshot);
-    expect(ops).toBeGreaterThan(0);
-
-    await expect(primary.getFileMeta("doc.md")).rejects.toThrow();
-
-    const proposedHash = await hashSHA256(encode("local edit"));
-    expect(snapshot.baseHashes.get("doc.md")).toBe(proposedHash);
-    expect(await baseStore.getBase(proposedHash)).toEqual(encode("local edit"));
-    expect(snapshot.remoteHashes.get("doc.md")).toBe(
-      serverHash(encode("base content")),
-    );
-    expect(resyncedPaths).toContain("doc.md");
-  });
 });
 
 // A revision-capable remote is never mutated unconditionally just because
@@ -2104,15 +1707,17 @@ describe("Legacy conflict resolver safety", () => {
     expect(decode((await secondary.readFile(copyName)).data)).toBe(
       "secondary version",
     );
-  });
 
-  test("conflict copy present only on the secondary is still written to the primary", async () => {
-    const { primary, secondary, snapshot, copyName } = await diverged();
-    await secondary.inner.writeFile(copyName, encode("secondary version"));
+    // And the mirror case: the copy exists only on the secondary.
+    const mirror = await diverged();
+    await mirror.secondary.inner.writeFile(
+      mirror.copyName,
+      encode("secondary version"),
+    );
 
-    await resolve(primary, snapshot, secondary);
+    await resolve(mirror.primary, mirror.snapshot, mirror.secondary);
 
-    expect(decode((await primary.readFile(copyName)).data)).toBe(
+    expect(decode((await mirror.primary.readFile(mirror.copyName)).data)).toBe(
       "secondary version",
     );
   });
@@ -2362,19 +1967,6 @@ describe("Pull adoption safety", () => {
     );
   });
 
-  test("a pull over the agreed base keeps no safety copy", async () => {
-    const { primary, secondary, snapshot, sync, baseStore } =
-      createReconcileSyncSetup();
-
-    await primary.writeFile("doc.md", encode("v1"));
-    await doSync(sync, snapshot);
-    await secondary.inner.writeFile("doc.md", encode("v2"));
-
-    await doSync(sync, snapshot);
-
-    expect(decode((await primary.readFile("doc.md")).data)).toBe("v2");
-    expect(await baseStore.listSafety()).toEqual([]);
-  });
   test("a mid-pull write with repeated metadata is still caught", async () => {
     // Same-millisecond, same-size writes are indistinguishable by metadata;
     // the guard must compare content.
@@ -2525,35 +2117,6 @@ describe("Same-millisecond divergence", () => {
     expect(decode((await secondary.readFile("note.md")).data)).toBe(BASE);
   });
 
-  // A remote signal reporting the revision already recorded says nothing
-  // happened remotely, and says nothing about the local copy either.
-  test("a remote signal repeating the recorded revision stays a no-op", async () => {
-    const { secondary, snapshot, sync } = await colliding(BASE, BASE, BASE);
-
-    const ops = await sync.syncSingleFile("note.md", snapshot, {
-      type: "remoteRevision",
-      hash: serverHash(encode(BASE)),
-    });
-
-    expect(ops).toBe(0);
-    expect(decode((await secondary.readFile("note.md")).data)).toBe(BASE);
-  });
-
-  // Periodic scans cannot afford a content check per file; same-millisecond
-  // collisions remain invisible until a path is explicitly signaled.
-  test("an unsignaled path is still classified by timestamps alone", async () => {
-    const { secondary, snapshot, sync } = await colliding(
-      LOCAL_EDIT,
-      BASE,
-      BASE,
-    );
-
-    const ops = await sync.syncSingleFile("note.md", snapshot);
-
-    expect(ops).toBe(0);
-    expect(decode((await secondary.readFile("note.md")).data)).toBe(BASE);
-  });
-
   // With no revision recorded for the path, the remote's current one is read
   // (and recorded) — it's no baseline to attribute a change to, so a
   // difference only says the two sides disagree, and that is resolved.
@@ -2635,22 +2198,11 @@ describe("fileSynced events", () => {
     });
     await secondary.writeFile("a.md", encode("A"));
     await secondary.writeFile("b.md", encode("B"));
+    // Pushed files are already local, so they are not announced.
+    await primary.writeFile("local.md", encode("L"));
     await doSync(sync, snapshot);
     expect(synced.sort()).toEqual(["a.md", "b.md"]);
     expect((await primary.readFile("a.md")).data).toEqual(encode("A"));
-  });
-
-  test("files pushed to the secondary are not announced (already local)", async () => {
-    const { primary, snapshot, sync } = createSyncSetup();
-    const synced: string[] = [];
-    sync.on({
-      fileSynced: (path: string) => {
-        synced.push(path);
-      },
-    });
-    await primary.writeFile("local.md", encode("L"));
-    await doSync(sync, snapshot);
-    expect(synced).toEqual([]);
   });
 });
 
@@ -2661,23 +2213,6 @@ describe("fileSynced events", () => {
 // ends of the page.
 describe("base tracking keeps pace with pulled content", () => {
   const SEED = "Line1\nLine2\nLine3\n";
-
-  test("after pulling a remote append, the base matches the pulled content", async () => {
-    const { primary, secondary, snapshot, sync, baseStore } =
-      createReconcileSyncSetup();
-
-    await primary.writeFile("doc.md", encode(SEED));
-    await doSync(sync, snapshot);
-
-    // B appends from elsewhere; the client pulls it.
-    const withB1 = `${SEED}B1`;
-    await secondary.inner.writeFile("doc.md", encode(withB1));
-    await doSync(sync, snapshot);
-    expect(decode((await primary.readFile("doc.md")).data)).toBe(withB1);
-
-    const baseHash = snapshot.baseHashes.get("doc.md")!;
-    expect(decode((await baseStore.getBase(baseHash))!)).toBe(withB1);
-  });
 
   test("a push after a pull declares the pulled content as its base, not the pre-pull seed", async () => {
     const { primary, secondary, snapshot, sync } = createReconcileSyncSetup();

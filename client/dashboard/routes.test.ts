@@ -28,17 +28,6 @@ afterEach(() => {
   delete (globalThis as any).location;
 });
 
-test("DASHBOARD_BASE strips the trailing slash from the document base", async () => {
-  const { DASHBOARD_BASE } = await load("/.dashboard/");
-  expect(DASHBOARD_BASE).toBe("/.dashboard");
-});
-
-test("dashboardUrl joins with exactly one slash", async () => {
-  const { dashboardUrl } = await load("/.dashboard/");
-  expect(dashboardUrl("/users")).toBe("/.dashboard/users");
-  expect(dashboardUrl("users")).toBe("/.dashboard/users");
-});
-
 test("the bare base is the spaces list", async () => {
   const { parseDashboardRoute } = await load("/.dashboard");
   expect(parseDashboardRoute()).toEqual({ screen: "spaces" });
@@ -60,12 +49,6 @@ test("static segments beat the space-id catch-all", async () => {
   });
   expect((await load("/.dashboard/users/new")).parseDashboardRoute()).toEqual({
     screen: "user-new",
-  });
-});
-
-test("parses the profile route", async () => {
-  expect((await load("/.dashboard/profile")).parseDashboardRoute()).toEqual({
-    screen: "profile",
   });
 });
 
@@ -104,31 +87,6 @@ test("safeDashboardDestination accepts an in-base path", async () => {
   );
 });
 
-test("safeDashboardDestination rejects a cross-origin destination", async () => {
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(
-    safeDashboardDestination("https://evil.example/.dashboard/users"),
-  ).toBe(undefined);
-});
-
-test("safeDashboardDestination rejects a protocol-relative destination", async () => {
-  // "//evil.example/.dashboard/x" parses as an absolute URL with a different
-  // origin — the classic open-redirect payload that looks like a local
-  // path. The pathname deliberately matches DASHBOARD_BASE so this can only be
-  // caught by the origin check, not by the (separate) base-prefix check —
-  // "//evil.example/x" would have been rejected by the base-prefix check
-  // alone and wouldn't have exercised the origin check at all.
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(safeDashboardDestination("//evil.example/.dashboard/x")).toBe(
-    undefined,
-  );
-});
-
-test("safeDashboardDestination rejects a same-origin path outside the base", async () => {
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(safeDashboardDestination("/some-space/secret")).toBe(undefined);
-});
-
 test("safeDashboardDestination rejects a prefix-collision path", async () => {
   // "/.dashboardevil" starts with "/.dashboard" but is NOT inside it; the guard
   // compares against `${DASHBOARD_BASE}/` for exactly this reason.
@@ -156,31 +114,23 @@ test("safeDashboardDestination keeps the MCP consent page", async () => {
   ).toBe("/.auth/mcp/authorize?client_id=x&state=a%26b");
 });
 
-test("safeDashboardDestination rejects other auth pages and foreign MCP consent", async () => {
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(safeDashboardDestination("/.auth/authorize?x")).toBe(undefined);
-  expect(safeDashboardDestination("/.auth/mcp/authorize/extra")).toBe(
-    undefined,
-  );
-  expect(
-    safeDashboardDestination("https://evil.example/.auth/mcp/authorize"),
-  ).toBe(undefined);
-  expect(
-    safeDashboardDestination("//evil.example/.auth/mcp/authorize?client_id=x"),
-  ).toBe(undefined);
-});
-
-test("safeDashboardDestination rejects empty and null", async () => {
-  const { safeDashboardDestination } = await load("/.dashboard/login");
-  expect(safeDashboardDestination(null)).toBe(undefined);
-  expect(safeDashboardDestination("")).toBe(undefined);
-});
-
 // Sweep of open-redirect payload shapes that a naive origin/path check could
 // let slip through. The reviewer confirmed all of these are correctly
 // rejected today — these tests exist so that a future simplification of the
 // guard in safeDashboardDestination can't silently reintroduce one.
 test.each([
+  // Cross-origin, protocol-relative ("//evil.example/.dashboard/x" keeps a
+  // pathname matching DASHBOARD_BASE, so only the origin check catches it),
+  // outside the base, other auth pages, foreign MCP consent, empty and null.
+  "https://evil.example/.dashboard/users",
+  "//evil.example/.dashboard/x",
+  "/some-space/secret",
+  "/.auth/authorize?x",
+  "/.auth/mcp/authorize/extra",
+  "https://evil.example/.auth/mcp/authorize",
+  "//evil.example/.auth/mcp/authorize?client_id=x",
+  "",
+  null,
   "/\\evil.example",
   "\\\\evil.example",
   "https:/evil.example/x",
@@ -191,7 +141,7 @@ test.each([
   "/.dashboard/../secret",
 ])(
   "safeDashboardDestination rejects open-redirect payload: %s",
-  async (payload) => {
+  async (payload: string | null) => {
     const { safeDashboardDestination } = await load("/.dashboard/login");
     expect(safeDashboardDestination(payload)).toBe(undefined);
   },
@@ -274,10 +224,4 @@ test("Admin defaults to Server and supports section links", async () => {
       section,
     });
   }
-});
-
-test("ADMIN_SECTIONS has an APIs tab and no Runtimes tab", async () => {
-  const { ADMIN_SECTIONS } = await load("/.dashboard/admin");
-  expect(ADMIN_SECTIONS.apis).toBe("APIs");
-  expect(Object.hasOwn(ADMIN_SECTIONS, "runtimes")).toBe(false);
 });

@@ -35,6 +35,16 @@ impl Gate {
         }
     }
 
+    /// A gate whose queries wait `wait` for a slot, so a test of the busy
+    /// answer doesn't spend a second.
+    #[cfg(test)]
+    pub(crate) fn with_queue_wait(wait: std::time::Duration) -> Gate {
+        Gate {
+            supersede: Supersede::new(),
+            queries: Arc::new(Pool::new(limits::MAX_QUERIES, wait)),
+        }
+    }
+
     /// Supersedes the tab's previous query when asked to, and hands out the
     /// right to wait for a query slot. Infallible today; stays a `Result` so
     /// M2's bounded semantic query queue can reject with `Busy` here.

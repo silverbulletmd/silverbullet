@@ -4,32 +4,6 @@ import { join } from "node:path";
 
 test.use({ spaceFiles: { "index.md": "Share target space" } });
 
-test("a shared text opens an editable capture draft", async ({
-  page,
-  sbServer,
-}) => {
-  await openLivePage(page, sbServer.url, "Share target space");
-  await page.evaluate(() => {
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.enctype = "multipart/form-data";
-    form.action = "/.client/share-target";
-    const text = document.createElement("input");
-    text.name = "text";
-    text.value = "Shared from another app";
-    form.append(text);
-    document.body.append(form);
-    form.submit();
-  });
-  await expect(
-    page.getByRole("dialog", { name: "Capture share" }),
-  ).toBeVisible();
-  await expect(page.getByLabel("Text")).toHaveValue("Shared from another app");
-  await expect(
-    page.getByRole("button", { name: /Save as Quick Note/ }),
-  ).toBeVisible();
-});
-
 test("saving a shared file creates an Inbox note with a working file link", async ({
   page,
   sbServer,
@@ -60,6 +34,9 @@ test("saving a shared file creates an Inbox note with a working file link", asyn
   await expect(
     page.getByRole("dialog", { name: "Capture share" }),
   ).toBeVisible();
+  // The shared text opens as an editable draft
+  await expect(page.getByLabel("Text")).toHaveValue("Shared file note");
+  await expect(page.getByLabel("Text")).toBeEditable();
   await page.getByRole("button", { name: /Save as Quick Note/ }).click();
   const inbox = join(sbServer.spaceDir, "Inbox");
   await expect

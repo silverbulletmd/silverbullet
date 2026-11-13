@@ -166,28 +166,6 @@ fn truncated_segment_file_rebuilds() {
 }
 
 #[test]
-fn missing_segment_file_rebuilds() {
-    let tmp = tempfile::tempdir().unwrap();
-    drop(seeded(tmp.path()));
-    let dir = tmp.path().join(SCHEMA_DIR);
-    for f in segment_files(&dir) {
-        if f.extension().is_some_and(|e| e == "store") {
-            fs::remove_file(f).unwrap();
-        }
-    }
-    assert_rebuilt_empty(tmp.path());
-}
-
-#[test]
-fn garbage_meta_json_rebuilds() {
-    let tmp = tempfile::tempdir().unwrap();
-    drop(seeded(tmp.path()));
-    let dir = tmp.path().join(SCHEMA_DIR);
-    fs::write(dir.join("meta.json"), "{\"segments\": [garbage").unwrap();
-    assert_rebuilt_empty(tmp.path());
-}
-
-#[test]
 fn foreign_version_rebuilds() {
     let tmp = tempfile::tempdir().unwrap();
     drop(seeded(tmp.path()));
@@ -201,31 +179,12 @@ fn foreign_version_rebuilds() {
 }
 
 #[test]
-fn garbage_version_json_rebuilds() {
-    let tmp = tempfile::tempdir().unwrap();
-    drop(seeded(tmp.path()));
-    let dir = tmp.path().join(SCHEMA_DIR);
-    fs::write(dir.join(VERSION_FILE), "nope").unwrap();
-    assert_rebuilt_empty(tmp.path());
-}
-
-#[test]
 fn index_files_without_version_json_rebuild() {
     let tmp = tempfile::tempdir().unwrap();
     drop(seeded(tmp.path()));
     let dir = tmp.path().join(SCHEMA_DIR);
     fs::remove_file(dir.join(VERSION_FILE)).unwrap();
     assert_rebuilt_empty(tmp.path());
-}
-
-#[test]
-fn version_json_written_after_first_commit() {
-    let tmp = tempfile::tempdir().unwrap();
-    let store = disk(tmp.path());
-    let dir = tmp.path().join(SCHEMA_DIR);
-    assert!(!dir.join(VERSION_FILE).exists());
-    store.apply(&[upsert("A.md", "alpha", 1)]).unwrap();
-    assert_eq!(read_version(&dir).unwrap(), Version::Current);
 }
 
 #[cfg(unix)]

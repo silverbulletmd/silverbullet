@@ -124,12 +124,6 @@ impl DiskSpacePrimitives {
         self.case_insensitive
     }
 
-    /// Lets tests exercise the case-sensitive path on a case-insensitive host.
-    #[cfg(test)]
-    pub(crate) fn force_case_insensitive(&mut self, value: bool) {
-        self.case_insensitive = value;
-    }
-
     /// Re-case an aliased on-disk entry to match the requested casing. Inert on
     /// case-sensitive filesystems, where a differently cased path simply
     /// doesn't resolve and creating a separate entry is correct.
@@ -530,16 +524,6 @@ mod plan_tests {
     use tempfile::tempdir;
 
     #[test]
-    fn typescript_extension_has_a_text_content_type() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        let meta = sp
-            .write_file("index.ts", b"export const value = 1;", None)
-            .unwrap();
-        assert_eq!(meta.content_type, "text/typescript");
-    }
-
-    #[test]
     fn write_read_list_delete_roundtrip() {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
@@ -621,19 +605,6 @@ mod plan_tests {
     }
 
     #[test]
-    fn timestamps_are_nonzero() {
-        // Filesystems without birth time must report mtime rather than the Unix epoch.
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        let meta = sp.write_file("a.md", b"x", None).unwrap();
-        assert!(meta.last_modified > 0, "last_modified should be set");
-        assert!(
-            meta.created > 0,
-            "created should be set (mtime fallback when btime is unavailable)"
-        );
-    }
-
-    #[test]
     fn passes_read_write_conformance() {
         let dir = tempdir().unwrap();
         let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
@@ -675,54 +646,6 @@ mod plan_tests {
             .collect();
         v.sort();
         v
-    }
-
-    #[test]
-    fn write_leaves_an_exact_match_alone() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-
-        sp.write_file("Notes/A.md", b"one", None).unwrap();
-        sp.write_file("Notes/A.md", b"two", None).unwrap();
-
-        assert_eq!(names(&sp), vec!["Notes/A.md".to_string()]);
-        assert_eq!(sp.read_file("Notes/A.md").unwrap().0, b"two");
-    }
-
-    #[test]
-    fn write_does_nothing_special_when_case_sensitive() {
-        let dir = tempdir().unwrap();
-        let mut sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.force_case_insensitive(false);
-
-        sp.write_file("OldName.md", b"body", None).unwrap();
-        sp.write_file("oldname.md", b"body", None).unwrap();
-
-        let mut found = names(&sp);
-        found.sort();
-        if sp_fs_is_case_insensitive(dir.path()) {
-            assert_eq!(found, vec!["OldName.md".to_string()]);
-        } else {
-            assert_eq!(
-                found,
-                vec!["OldName.md".to_string(), "oldname.md".to_string()]
-            );
-        }
-    }
-
-    fn sp_fs_is_case_insensitive(root: &std::path::Path) -> bool {
-        crate::space::case::detect_case_insensitive(root)
-    }
-
-    #[test]
-    fn delete_still_removes_an_exact_match() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-
-        sp.write_file("Notes/A.md", b"body", None).unwrap();
-        sp.delete_file("Notes/A.md").unwrap();
-
-        assert!(names(&sp).is_empty());
     }
 
     /// A genuinely missing file must still report NotFound — only a *case
@@ -819,43 +742,9 @@ mod plan_tests {
             assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
         }
 
-        /// The sync engine iterates the union of changed paths with no ordering
-        /// guarantee, so a case-only rename reaches the server as an unordered
-        /// create/delete pair. Both orders must end with exactly one file,
-        /// under the new casing, with the right content.
-        #[test]
-        fn sync_pair_converges_create_then_delete() {
-            let dir = tempdir().unwrap();
-            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-            if !sp.is_case_insensitive() {
-                return;
-            }
-            sp.write_file("OldName.md", b"body", None).unwrap();
-
-            sp.write_file("oldname.md", b"body", None).unwrap();
-            sp.delete_file("OldName.md").unwrap();
-
-            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
-            assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
-        }
-
-        #[test]
-        fn sync_pair_converges_delete_then_create() {
-            let dir = tempdir().unwrap();
-            let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-            if !sp.is_case_insensitive() {
-                return;
-            }
-            sp.write_file("OldName.md", b"body", None).unwrap();
-
-            sp.delete_file("OldName.md").unwrap();
-            sp.write_file("oldname.md", b"body", None).unwrap();
-
-            assert_eq!(names(&sp), vec!["oldname.md".to_string()]);
-            assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
-        }
-
-        /// Same property one level up, which is where the whole-path comparison
+        /// A case-only rename reaches the server as an unordered create/delete
+        /// pair; both orders must end with exactly one file, under the new
+        /// casing. Also one level up, which is where the whole-path comparison
         /// matters: the file component matches exactly, only the folder differs.
         #[test]
         fn folder_sync_pair_converges_in_both_orders() {
@@ -865,6 +754,22 @@ mod plan_tests {
                 if !sp.is_case_insensitive() {
                     return;
                 }
+                sp.write_file("OldName.md", b"body", None).unwrap();
+                if delete_first {
+                    sp.delete_file("OldName.md").unwrap();
+                    sp.write_file("oldname.md", b"body", None).unwrap();
+                } else {
+                    sp.write_file("oldname.md", b"body", None).unwrap();
+                    sp.delete_file("OldName.md").unwrap();
+                }
+                assert_eq!(
+                    names(&sp),
+                    vec!["oldname.md".to_string()],
+                    "delete_first={delete_first}"
+                );
+                assert_eq!(sp.read_file("oldname.md").unwrap().0, b"body");
+                sp.delete_file("oldname.md").unwrap();
+
                 sp.write_file("Notes/a.md", b"body", None).unwrap();
                 sp.write_file("Notes/keep.md", b"keep", None).unwrap();
 

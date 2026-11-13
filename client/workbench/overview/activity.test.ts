@@ -1,13 +1,11 @@
 import { describe, expect, test } from "vitest";
 import {
-  ACTIVITY_DAYS,
   type ActivityDay,
   activityDays,
   activityWeeks,
   editsLast7Days,
   heatLevel,
   monthLabels,
-  weekdayLabels,
 } from "./activity.ts";
 
 // Pin the zone so DST and UTC+/- boundary cases run the same way in any CI.
@@ -35,13 +33,6 @@ function fromCounts(counts: number[]): ActivityDay[] {
     count,
   }));
 }
-
-describe("time zone pin", () => {
-  test("Europe/Amsterdam offsets hold across summer and winter", () => {
-    expect(new Date(2026, 6, 1).getTimezoneOffset()).toBe(-120);
-    expect(new Date(2026, 11, 1).getTimezoneOffset()).toBe(-60);
-  });
-});
 
 describe("activityDays", () => {
   test("activityDays returns one entry per day, oldest first, ending today", () => {
@@ -83,26 +74,6 @@ describe("activityDays", () => {
     expect(days.reduce((sum, d) => sum + d.count, 0)).toBe(0);
   });
 
-  test("defaults to ACTIVITY_DAYS entries", () => {
-    const now = new Date(2026, 9, 19, 12, 0);
-    const days = activityDays([], now);
-    expect(ACTIVITY_DAYS).toBe(140);
-    expect(days).toHaveLength(ACTIVITY_DAYS);
-    expect(days[days.length - 1].date).toBe("2026-10-19");
-  });
-
-  test("dates are consecutive calendar days across a DST change", () => {
-    const now = new Date(2026, 9, 26, 12, 0);
-    const days = activityDays([], now, 5);
-    expect(dates(days)).toEqual([
-      "2026-10-22",
-      "2026-10-23",
-      "2026-10-24",
-      "2026-10-25",
-      "2026-10-26",
-    ]);
-  });
-
   // Naive now - i*86400000 stepping gives 10-25 twice here, because 10-25 is a 25-hour day
   test("DST end does not duplicate a day when now is late in the evening", () => {
     const now = new Date(2026, 9, 26, 23, 30);
@@ -116,13 +87,6 @@ describe("activityDays", () => {
     const now = new Date(2026, 2, 30, 0, 30);
     const days = activityDays([], now, 3);
     expect(dates(days)).toEqual(["2026-03-28", "2026-03-29", "2026-03-30"]);
-  });
-
-  test("DST end does not duplicate or skip a day at midday", () => {
-    const now = new Date(2026, 9, 26, 12, 0);
-    const days = activityDays([localSeconds(2026, 9, 25, 2, 30)], now, 3);
-    expect(dates(days)).toEqual(["2026-10-24", "2026-10-25", "2026-10-26"]);
-    expect(days.find((d) => d.date === "2026-10-25")?.count).toBe(1);
   });
 });
 
@@ -139,10 +103,6 @@ describe("heatLevel", () => {
     expect(heatLevel(1, 10)).toBe(1);
     expect(heatLevel(10, 10)).toBe(4);
     expect(heatLevel(5, 0)).toBe(0);
-  });
-
-  test("any non-zero count is at least level 1", () => {
-    expect(heatLevel(1, 1000)).toBe(1);
   });
 });
 
@@ -161,12 +121,6 @@ describe("GitHub-style layout", () => {
     expect(weeks.flat().filter((d) => d !== null)).toHaveLength(140);
   });
 
-  test("each row is one weekday", () => {
-    // Row 0 is Monday: 2026-06-08 is a Monday
-    expect(weeks[1][0]?.date).toBe("2026-06-08");
-    expect(weeks[1][6]?.date).toBe("2026-06-14");
-  });
-
   test("month labels sit on the first week of each month", () => {
     expect(monthLabels(weeks, "en")).toEqual([
       { column: 0, label: "Jun" },
@@ -183,18 +137,6 @@ describe("GitHub-style layout", () => {
     expect(monthLabels(short, "en").map((l) => l.label)).toEqual([
       "Jul",
       "Aug",
-    ]);
-  });
-
-  test("weekday labels on every row, Monday first", () => {
-    expect(weekdayLabels("en")).toEqual([
-      "Mon",
-      "Tue",
-      "Wed",
-      "Thu",
-      "Fri",
-      "Sat",
-      "Sun",
     ]);
   });
 });

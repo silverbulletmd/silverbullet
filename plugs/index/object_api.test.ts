@@ -84,15 +84,6 @@ test("update reorders page and data block keys", async () => {
   );
 });
 
-test("reordering a data document leaves no blank line before the fence", async () => {
-  await write("D", "```#c\nname: Ada\n\nage: 36\n```\n");
-  const [ada] = (await objectsOf(await read("D"), "D")).filter(
-    (o) => o.tag === "c",
-  );
-  await updateObject(ada as any, {}, { order: ["age", "name"] });
-  expect(await read("D")).toBe("```#c\nage: 36\nname: Ada\n```\n");
-});
-
 test("order is refused for objects that aren't YAML", async () => {
   await write("Notes", "* [ ] A #x\n");
   const [a] = await tasksOf("Notes");

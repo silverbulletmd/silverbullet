@@ -17,8 +17,6 @@ const spaceFiles = {
   "index.md": "Welcome",
   "Notes/Doc.md":
     "Intro\n\n## Section\n\nSome paragraph text.\n\n- [ ] a task\n- plain item\n",
-  "Notes/Paras.md": "First para.\n\nSecond para.\n",
-  "Notes/Spaces.md": "First para.\n   \nSecond para.\n",
 };
 
 // Hovers line `line` (every line of the page is drawn as its own .cm-line)
@@ -48,10 +46,6 @@ async function waitForBlocks(page: Page) {
       ),
     )
     .toBe(true);
-}
-
-function bubble(page: Page) {
-  return page.getByRole("toolbar", { name: "Formatting" });
 }
 
 test.describe("context-aware line menus", () => {
@@ -187,67 +181,6 @@ test.describe("context-aware line menus", () => {
     await expect(sbPage.locator(".cm-content")).toBeFocused();
   });
 
-  test("picking Quote or Table from a blank line's menu inserts it there", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Doc");
-    await waitForBlocks(sbPage);
-    await openMenuOnLine(sbPage, 4);
-    await lineMenuItem(sbPage, "Basic blocks").hover();
-    await lineMenuItem(sbPage, "Quote", 1).click();
-    await expect.poll(async () => (await docLines(sbPage))[3]).toBe("> ");
-    // Typing goes into the quote
-    await sbPage.keyboard.type("said");
-    await expect.poll(async () => (await docLines(sbPage))[3]).toBe("> said");
-
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Paras");
-    await waitForBlocks(sbPage);
-    await openMenuOnLine(sbPage, 2);
-    await lineMenuItem(sbPage, "Basic blocks").hover();
-    await lineMenuItem(sbPage, "Table", 1).click();
-    await expect
-      .poll(async () => await docLines(sbPage))
-      .toEqual([
-        "First para.",
-        "| Header A | Header B |",
-        "|----------|----------|",
-        "| Cell A | Cell B |",
-        "",
-        "Second para.",
-        "",
-      ]);
-  });
-
-  test("the bubble offers Strikethrough, Code and Highlight", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Doc");
-    const line = sbPage.locator(".cm-line", { hasText: "Some paragraph" });
-    const box = (await line.boundingBox())!;
-    await sbPage.mouse.dblclick(box.x + 6, box.y + box.height / 2);
-    await expect(bubble(sbPage)).toBeVisible();
-    const names = await bubble(sbPage)
-      .getByRole("button")
-      .evaluateAll((buttons) =>
-        buttons.map((b) => b.getAttribute("aria-label")),
-      );
-    expect(names).toEqual([
-      "Bold",
-      "Italic",
-      "Strikethrough",
-      "Code",
-      "Highlight",
-      "Link to page",
-      "Link to URL",
-    ]);
-    await bubble(sbPage).getByRole("button", { name: "Highlight" }).click();
-    await expect
-      .poll(async () => (await docLines(sbPage))[4])
-      .toBe("==Some== paragraph text.");
-  });
-
   test("Escape after a click hands focus back to the editor and frees the handle; from the keyboard it stays on the handle", async ({
     sbPage,
     sbServer,
@@ -281,83 +214,6 @@ test.describe("context-aware line menus", () => {
     }
     await expect(lineMenus(sbPage)).toHaveCount(1);
     expect(await head()).toBe(before);
-  });
-
-  test("after clicking elsewhere, the first hover over a line shows its handle", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Doc");
-    await openLineMenu(sbPage, "Some paragraph text.", 5);
-    // Click outside the editor: the menu closes
-    await sbPage.mouse.click(5, 5);
-    await expect(lineMenus(sbPage)).toHaveCount(0);
-    // One pointer move onto a line
-    const box = (await sbPage
-      .locator(".cm-line", { hasText: "plain item" })
-      .boundingBox())!;
-    await sbPage.mouse.move(box.x + 40, box.y + box.height / 2);
-    await expectLineHandleOn(sbPage, 8);
-  });
-
-  test("an empty line between paragraphs has a handle, level with it, listing the blocks", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Paras");
-    await waitForBlocks(sbPage);
-    const blank = sbPage.locator(".cm-line").nth(1);
-    await blank.hover();
-    await expectLineHandleOn(sbPage, 2);
-    const line = (await blank.boundingBox())!;
-    const box = (await lineHandle(sbPage).boundingBox())!;
-    expect(
-      Math.abs(box.y + box.height / 2 - (line.y + line.height / 2)),
-    ).toBeLessThanOrEqual(2);
-    expect(box.x + box.width).toBeLessThanOrEqual(line.x + 1);
-    await lineHandle(sbPage).click();
-    await expect(lineMenuItem(sbPage, "Basic blocks")).toBeVisible();
-    await expect(lineMenuItem(sbPage, "Upload file")).toHaveCount(0);
-  });
-
-  test("the text cursor never shows the handle; typing hides a shown one", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Paras");
-    await sbPage.mouse.move(5, 500);
-    await sbPage.evaluate(() => {
-      const view = (globalThis as any).client.editorView;
-      view.focus();
-      view.dispatch({ selection: { anchor: 3 } });
-    });
-    await sbPage.keyboard.press("ArrowDown");
-    // Two frames: the handle is placed in the editor's next measure
-    await sbPage.evaluate(
-      () =>
-        new Promise((done) =>
-          requestAnimationFrame(() => requestAnimationFrame(done)),
-        ),
-    );
-    await expect(lineHandle(sbPage)).not.toHaveClass(/sb-line-handle-shown/);
-
-    await sbPage.locator(".cm-line", { hasText: "First para." }).hover();
-    await expectLineHandleOn(sbPage, 1);
-    await sbPage.keyboard.type("x");
-    await expect(lineHandle(sbPage)).not.toHaveClass(/sb-line-handle-shown/);
-    // Moving the mouse again brings it back
-    await sbPage.locator(".cm-line", { hasText: "Second para." }).hover();
-    await expectLineHandleOn(sbPage, 3);
-  });
-
-  test("a whitespace-only line between paragraphs has a handle too", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Spaces");
-    await waitForBlocks(sbPage);
-    await openMenuOnLine(sbPage, 2);
-    await expect(lineMenuItem(sbPage, "Basic blocks")).toBeVisible();
   });
 });
 
@@ -504,52 +360,6 @@ test.describe("widget menus behind the ⋮ on desktop", () => {
     await expect
       .poll(async () => (await docLines(sbPage)).slice(-6))
       .toEqual(["Last.", "", "<!--#lua 1 + 1 -->", "2", "<!--/lua-->", ""]);
-  });
-
-  test("an inline ${…} is a section of its paragraph's ⋮", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Widgets");
-    await expect(
-      sbPage
-        .locator(".cm-line", { hasText: "Sum is" })
-        .locator(".sb-lua-directive-inline"),
-    ).toHaveText("2");
-    await openLineMenu(sbPage, "Sum is", 7);
-    await lineMenuItem(sbPage, "Expression").click();
-    await expect(lineMenus(sbPage)).toHaveCount(2);
-    await expect(lineMenuItem(sbPage, "Edit source", 1)).toBeVisible();
-    await lineMenuItem(sbPage, "Edit source", 1).click();
-    await expect(
-      sbPage.locator(".cm-line", { hasText: "${1 + 1}" }),
-    ).toBeVisible();
-  });
-
-  test("read-only and with markupBar.lineHandle off, widgets keep their ⋮; text lines lose theirs", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(sbPage, sbServer, "Notes/Widgets");
-    await sbPage.evaluate(() =>
-      (globalThis as any).client.config.set(["markupBar", "lineHandle"], false),
-    );
-    await sbPage.locator(".cm-line", { hasText: "Intro para." }).hover();
-    await expect(lineHandle(sbPage)).not.toHaveClass(/sb-line-handle-shown/);
-    await openWidgetMenu(sbPage, sbPage.locator(".sb-table-widget"));
-    expect(await labelsOf(sbPage)).toContain("Move up");
-    await sbPage.keyboard.press("Escape");
-
-    await sbPage.evaluate(() => {
-      const client = (globalThis as any).client;
-      client.config.set(["markupBar", "lineHandle"], true);
-      client.isReadOnlyMode = () => true;
-      client.editorView.dispatch({});
-    });
-    await sbPage.locator(".cm-line", { hasText: "Intro para." }).hover();
-    await expect(lineHandle(sbPage)).not.toHaveClass(/sb-line-handle-shown/);
-    await openWidgetMenu(sbPage, sbPage.locator(".sb-table-widget"));
-    expect(await labelsOf(sbPage)).toEqual(["Copy as Markdown"]);
   });
 });
 

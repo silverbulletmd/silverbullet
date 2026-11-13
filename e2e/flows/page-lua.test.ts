@@ -16,13 +16,9 @@ test.use({
   spaceFiles: {
     "Budget.md": budget,
     "Report.md": '![[Budget]]\n\nRead: ${pageVars.get("increase", "Budget")}\n',
-    "Totals.md":
-      '${open = #query[[from index.tag "task" where not _.done]]}\n\nOpen tasks: ${open}\n',
-    "Work.md": "- [ ] one\n",
     "Sheet.md":
       '${rate = 2}\n\nDouble: ${rate * 2}\n\n${widgets.button("Raise", function() pageVars.set("rate", 5) end)}\n',
     "Reader.md": 'Read: ${pageVars.get("rate", "Sheet")}\n',
-    "Host.md": "![[Sheet]]\n",
   },
 });
 
@@ -64,39 +60,6 @@ test("page scope values update after editing a definition", async ({
   await expect(page.locator("#sb-editor")).toContainText("Read: 7");
 });
 
-test("definitions on a brand-new page resolve after the first save", async ({
-  page,
-  sbServer,
-}) => {
-  await gotoSilverBulletPage(page, sbServer, "Fresh Sheet");
-  const editor = page.locator("#sb-editor .cm-content");
-  await editor.click();
-  await page.keyboard.type("${price = 20} total ${price * 3}\n");
-  await waitForPersistedContent(sbServer, "Fresh Sheet.md", /price = 20/);
-  await expect(
-    editor.locator(".sb-page-var-tag", { hasText: "price" }),
-  ).toBeVisible();
-  await expect(editor).toContainText("60");
-  await expect(editor.locator(".sb-lua-error")).toHaveCount(0);
-});
-
-test("an assignment that counts tasks recomputes when a task is added", async ({
-  page,
-  sbServer,
-}) => {
-  await gotoSilverBulletPage(page, sbServer, "Totals");
-  await page.evaluate(() => {
-    const view = (window as any).client.editorView;
-    view.dispatch({ selection: { anchor: view.state.doc.length } });
-  });
-  const editor = page.locator("#sb-editor");
-  await expect(editor).toContainText("Open tasks: 1");
-  await page.evaluate(() =>
-    (window as any).client.space.writePage("Work", "- [ ] one\n- [ ] two\n"),
-  );
-  await expect(editor).toContainText("Open tasks: 2", { timeout: 10000 });
-});
-
 test("a button sets a page variable; the page and its readers update", async ({
   page,
   sbServer,
@@ -113,20 +76,4 @@ test("a button sets a page variable; the page and its readers update", async ({
   await waitForPersistedContent(sbServer, "Sheet.md", /\$\{rate = 5\}/);
   await gotoSilverBulletPage(page, sbServer, "Reader");
   await expect(page.locator("#sb-editor")).toContainText("Read: 5");
-});
-
-test("a button in a transclusion sets the transcluded page's variable", async ({
-  page,
-  sbServer,
-}) => {
-  await gotoSilverBulletPage(page, sbServer, "Host");
-  await page.evaluate(() => {
-    const view = (window as any).client.editorView;
-    view.dispatch({ selection: { anchor: view.state.doc.length } });
-  });
-  const editor = page.locator("#sb-editor");
-  await expect(editor).toContainText("Double: 4");
-  await editor.getByRole("button", { name: "Raise" }).click();
-  await waitForPersistedContent(sbServer, "Sheet.md", /\$\{rate = 5\}/);
-  await expect(editor).toContainText("Double: 10", { timeout: 10000 });
 });

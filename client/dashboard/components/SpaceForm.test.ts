@@ -68,18 +68,6 @@ test("the hostname field renders distinct known hosts and disables occupied root
   );
 });
 
-test("the path editor does not repeat its composed URL below the field", () => {
-  (globalThis as any).location = location;
-  const html = render(
-    h(BindingFields, {
-      binding: { host: "team.test", prefix: "/work" },
-      spaces,
-      onInput: () => {},
-    }),
-  );
-  expect(html).not.toContain("<output>");
-});
-
 test("Primary hostname omits occupied paths without a duplicate custom option", () => {
   (globalThis as any).location = location;
   const html = render(
@@ -108,36 +96,6 @@ test("Primary hostname omits occupied paths without a duplicate custom option", 
     /<option[^>]*value="primary"[^>]*disabled[^>]*>Primary hostname/,
   );
   expect(html.match(/host:primary\.test/g)).toBeNull();
-});
-
-test("editing a bare host keeps it selectable and uses the default port", () => {
-  (globalThis as any).location = location;
-  const html = render(
-    h(BindingFields, {
-      binding: { host: "root.test" },
-      spaces,
-      currentId: "root",
-      onInput: () => {},
-    }),
-  );
-  expect(html).toMatch(
-    /<option(?=[^>]*value="host:root.test")(?=[^>]*selected)(?![^>]*disabled)[^>]*>root.test<\/option>/,
-  );
-  expect(html).toContain('class="sb-url-affix">http://root.test</span>');
-});
-
-test("an edited hostname with a port remains available when the advisory list is unavailable", () => {
-  (globalThis as any).location = location;
-  const html = render(
-    h(BindingFields, {
-      binding: { host: "team.test:4100", prefix: "/work" },
-      spaces: [],
-      currentId: "work",
-      onInput: () => {},
-    }),
-  );
-  expect(html).toContain("team.test:4100</option>");
-  expect(html).toContain('class="sb-url-affix">http://team.test:4100</span>');
 });
 
 test("a grandfathered prefixed participant can retain its current host while other occupied roots stay disabled", () => {

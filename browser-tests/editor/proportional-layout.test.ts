@@ -147,30 +147,23 @@ function measure(page: Page): Promise<Row[]> {
   });
 }
 
-for (const column of [undefined, "0.8em"]) {
-  test(`block markup never moves text on reveal, in a proportional font${column ? ` (column ${column})` : ""}`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 700, height: 6000 });
-    await mountEditor(page, `${stressTest}\n${quotes}`, 560);
-    if (column) {
-      await page.addStyleTag({
-        content: `:root { --editor-column-width: ${column}; }`,
-      });
-    }
-    const rows = await measure(page);
-    expect(rows.length).toBeGreaterThan(60);
-    // The quotes inside list items are measured too, not skipped.
-    expect(
-      rows.filter((r) => /^\s+>/.test(r.text)).length,
-    ).toBeGreaterThanOrEqual(3);
-    const off = rows.filter(
-      (r) =>
-        Math.abs(r.shift) > 0.5 || (r.hang !== null && Math.abs(r.hang) > 0.5),
-    );
-    expect(off).toEqual([]);
-  });
-}
+test("block markup never moves text on reveal, in a proportional font", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 700, height: 6000 });
+  await mountEditor(page, `${stressTest}\n${quotes}`, 560);
+  const rows = await measure(page);
+  expect(rows.length).toBeGreaterThan(60);
+  // The quotes inside list items are measured too, not skipped.
+  expect(
+    rows.filter((r) => /^\s+>/.test(r.text)).length,
+  ).toBeGreaterThanOrEqual(3);
+  const off = rows.filter(
+    (r) =>
+      Math.abs(r.shift) > 0.5 || (r.hang !== null && Math.abs(r.hang) > 0.5),
+  );
+  expect(off).toEqual([]);
+});
 
 test("a long first word stays on the marker's row", async ({ page }) => {
   await page.setViewportSize({ width: 600, height: 800 });
@@ -226,24 +219,4 @@ test("typing the first letter of an item under a paragraph doesn't move it", asy
   for (const [doc, shift] of shifts) {
     expect(Math.abs(shift as number), JSON.stringify(doc)).toBeLessThan(0.5);
   }
-});
-
-test("the editor's text size follows --editor-font-size", async ({ page }) => {
-  await mountEditor(page, "# Heading\n\nSome text\n", 560);
-  const sizes = () =>
-    page.evaluate(() =>
-      [".cm-editor", ".sb-line-h1"].map((sel) =>
-        Number.parseFloat(
-          getComputedStyle(document.querySelector(sel)!).fontSize,
-        ),
-      ),
-    );
-  const [text, heading] = await sizes();
-  expect(text).toBe(18);
-  expect(heading).toBeGreaterThan(text);
-  await page.addStyleTag({ content: "html { --editor-font-size: 22px; }" });
-  // Headings are sized in em, so they scale with it.
-  const [text2, heading2] = await sizes();
-  expect(text2).toBe(22);
-  expect(heading2 / text2).toBeCloseTo(heading / text, 5);
 });

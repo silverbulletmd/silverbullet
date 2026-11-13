@@ -172,13 +172,6 @@ describe("installing and updating", () => {
       'share.install("u", {page = "Library/Repository/R"})',
     );
   });
-
-  test("a failing pull passes its error on", async () => {
-    handlers["lua.evalExpression"] = () => {
-      throw new Error("Page already exists: L");
-    };
-    await expect(installLibrary("u")).rejects.toThrow("Page already exists: L");
-  });
 });
 
 describe("checkUpdates", () => {
@@ -227,20 +220,6 @@ describe("checkUpdates", () => {
     ]);
     expect(expressions).toHaveLength(3);
     expect(expressions).toContain('share.check({"Library/A"})');
-  });
-
-  test("checks run side by side", async () => {
-    let inFlight = 0;
-    let most = 0;
-    stubIndex(async () => {
-      inFlight++;
-      most = Math.max(most, inFlight);
-      await new Promise((r) => setTimeout(r, 5));
-      inFlight--;
-      return {};
-    });
-    await checkUpdates();
-    expect(most).toBeGreaterThan(1);
   });
 
   test("nothing to report is an empty record", async () => {

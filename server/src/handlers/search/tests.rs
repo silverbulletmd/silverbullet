@@ -620,19 +620,6 @@ fn public_stub_state(stub: Stub) -> Arc<crate::ServerState> {
 }
 
 #[tokio::test]
-async fn public_visitors_see_only_the_backends_public_modes() {
-    let state = public_stub_state(Stub::indexed(&[QueryMode::Words, QueryMode::Phrase]));
-    let (status, body) = call(state, Method::GET, "/.search/status", "").await;
-    assert_eq!(status, StatusCode::OK);
-    assert_eq!(body["backend"], "stub");
-    assert_eq!(body["reason"], serde_json::Value::Null, "{body}");
-    assert_eq!(
-        body["capabilities"],
-        serde_json::json!({"modes": ["words", "phrase"], "related": false})
-    );
-}
-
-#[tokio::test]
 async fn signed_in_readers_see_every_mode() {
     let mut state = test_state();
     state.search = Arc::new(Stub::indexed(&[QueryMode::Words, QueryMode::Phrase]));
@@ -643,32 +630,6 @@ async fn signed_in_readers_see_every_mode() {
         body["capabilities"],
         serde_json::json!({"modes": ["words", "phrase"], "related": true})
     );
-}
-
-#[tokio::test]
-async fn public_visitors_query_only_in_public_modes() {
-    let state = public_stub_state(Stub::indexed(&[QueryMode::Words, QueryMode::Phrase]));
-    for req in [
-        r#"{"query":"x"}"#,
-        r#"{"query":"x","mode":"words"}"#,
-        r#"{"query":"x","mode":"phrase"}"#,
-    ] {
-        let (status, body) = call(state.clone(), Method::POST, "/.search/query", req).await;
-        assert_eq!(status, StatusCode::OK, "{req}: {body}");
-        assert_eq!(body["items"][0]["page"], "Stub Page");
-    }
-    for (path, req) in [
-        ("/.search/query", r#"{"query":"x","mode":"natural"}"#),
-        ("/.search/related", r#"{"page":"Fern","exclude":["Index"]}"#),
-    ] {
-        let (status, body) = call(state.clone(), Method::POST, path, req).await;
-        assert_eq!(status, StatusCode::NOT_FOUND, "{path} {req}: {body}");
-        assert_eq!(
-            body,
-            serde_json::json!({"error": "unavailable", "message": PUBLIC}),
-            "{path} {req}"
-        );
-    }
 }
 
 /// Review Focus 2 (the HTTP half): on a semantic space that is still

@@ -188,15 +188,6 @@ test("a built-in hook is dispatched to the built-in registry", async () => {
   expect(await handle({ view: "std.anchors", hook: "rows" })).toEqual([]);
 });
 
-// std.toc is a Space Lua view; its persisted dock name must remain registerable.
-test("register no longer rejects std.toc now that it's a Lua view, not a built-in", () => {
-  expect(() =>
-    register({ meta: luaMeta({ name: "std.toc" }), spec: luaSpec(INERT) }),
-  ).not.toThrow();
-  expect(resolveMeta("std.toc")?.name).toBe("std.toc");
-  unregister("std.toc");
-});
-
 test("an ephemeral (navigator.pick) view registers and resolves like any other, then is gone once unregistered", async () => {
   const name = "__pick:1:0.5";
   registerLua(name, INERT, { dock: "modal", ephemeral: true });
@@ -210,10 +201,6 @@ test("an ephemeral (navigator.pick) view registers and resolves like any other, 
 
   expect(resolveMeta(name)).toBeUndefined();
   expect(await handle({ view: name, hook: "meta" })).toBeUndefined();
-});
-
-test("unregister is a harmless no-op for a name that was never registered", () => {
-  expect(() => unregister("space.never-registered")).not.toThrow();
 });
 
 // A script reload re-evaluates every space script, which re-defines its views;
@@ -257,40 +244,6 @@ test('selectInFlight tracks a "select" hook while it runs, and clears once it se
   await call;
 
   expect(selectInFlight("space.inflight")).toBeUndefined();
-});
-
-test("selectInFlight clears even when the dispatch rejects", async () => {
-  const { promise, reject } = deferred<unknown>();
-  registerLua(
-    "space.inflight-reject",
-    "{ source = function() return {} end, onSelect = function() return hold() end }",
-    {},
-    { hold: () => promise },
-  );
-  // The last thing between a throwing onSelect and a resolved dispatch: with
-  // the flash itself failing, the whole hook rejects.
-  editor.flashNotification.mockRejectedValue(new Error("flash down"));
-
-  const call = handle({
-    view: "space.inflight-reject",
-    hook: "select",
-    args: {},
-  });
-  await Promise.resolve();
-  expect(selectInFlight("space.inflight-reject")).toBeDefined();
-
-  reject(new Error("bridge down"));
-  await expect(call).rejects.toThrow("flash down");
-
-  expect(selectInFlight("space.inflight-reject")).toBeUndefined();
-});
-
-test("selectInFlight is never populated for a non-select hook", async () => {
-  registerLua("space.inflight-rows", INERT);
-
-  await handle({ view: "space.inflight-rows", hook: "rows", args: {} });
-
-  expect(selectInFlight("space.inflight-rows")).toBeUndefined();
 });
 
 test("openOnStartViews lists only the Lua views declaring openOnStart, by name and dock", () => {

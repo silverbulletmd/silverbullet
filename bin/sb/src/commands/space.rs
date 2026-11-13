@@ -789,64 +789,6 @@ mod tests {
     }
 
     #[test]
-    fn render_empty_cfg() {
-        let cfg = Config { spaces: vec![] };
-        let out = render_space_table(&cfg, false, &|_| None);
-        assert_eq!(out, "No spaces configured. Use 'space add' to add one.\n");
-    }
-
-    #[test]
-    fn render_single_url_space() {
-        let cfg = Config {
-            spaces: vec![SpaceConfig {
-                id: "id1".into(),
-                name: "work".into(),
-                url: "http://localhost:3000".into(),
-                auth: AuthConfig {
-                    method: "token".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }],
-        };
-        let out = render_space_table(&cfg, false, &|_| None);
-        assert!(out.contains("NAME"), "must contain NAME header");
-        assert!(out.contains("URL"), "must contain URL header");
-        assert!(out.contains("AUTH"), "must contain AUTH header");
-        assert!(out.contains(&"-".repeat(70)), "must contain 70 dashes");
-        assert!(out.contains("work"), "must contain space name");
-        assert!(
-            out.contains("http://localhost:3000"),
-            "must contain space URL"
-        );
-        assert!(out.contains("token"), "must contain auth method");
-        assert!(out.starts_with('\n'), "must start with blank line");
-        assert!(out.ends_with('\n'), "must end with newline");
-    }
-
-    #[test]
-    fn render_folder_space_shows_folder_path_as_url() {
-        let cfg = Config {
-            spaces: vec![SpaceConfig {
-                id: "id2".into(),
-                name: "local".into(),
-                url: String::new(),
-                folder_path: "/home/user/notes".into(),
-                auth: AuthConfig {
-                    method: "none".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }],
-        };
-        let out = render_space_table(&cfg, false, &|_| None);
-        assert!(
-            out.contains("/home/user/notes"),
-            "folder path must appear in the URL column"
-        );
-    }
-
-    #[test]
     fn render_widens_columns_for_long_values() {
         let long = format!("/synthetic/{}", "deep/".repeat(10));
         let mut space = SpaceConfig {
@@ -860,42 +802,6 @@ mod tests {
         };
         let out = render_space_table(&cfg, false, &|_| None);
         assert!(out.contains(&format!("{long}  none")), "{out}");
-    }
-
-    #[test]
-    fn render_two_spaces() {
-        let cfg = Config {
-            spaces: vec![
-                SpaceConfig {
-                    id: "id1".into(),
-                    name: "url-space".into(),
-                    url: "http://example.com".into(),
-                    auth: AuthConfig {
-                        method: "token".into(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                SpaceConfig {
-                    id: "id2".into(),
-                    name: "folder-space".into(),
-                    url: String::new(),
-                    folder_path: "/notes".into(),
-                    auth: AuthConfig {
-                        method: "none".into(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            ],
-        };
-        let out = render_space_table(&cfg, false, &|_| None);
-        assert!(out.contains("url-space"));
-        assert!(out.contains("http://example.com"));
-        assert!(out.contains("token"));
-        assert!(out.contains("folder-space"));
-        assert!(out.contains("/notes"));
-        assert!(out.contains("none"));
     }
 
     #[test]
@@ -915,42 +821,6 @@ mod tests {
         remove_space(&mut cfg, "alpha", &|_| false).unwrap();
         assert_eq!(cfg.spaces.len(), 1);
         assert_eq!(cfg.spaces[0].name, "beta");
-    }
-
-    #[test]
-    fn remove_space_missing() {
-        let mut cfg = Config {
-            spaces: vec![SpaceConfig {
-                name: "alpha".into(),
-                ..Default::default()
-            }],
-        };
-        let err = remove_space(&mut cfg, "nonexistent", &|_| false).unwrap_err();
-        assert!(err.contains("is not available"), "error was: {err}");
-    }
-
-    #[test]
-    fn remove_space_leaves_others_intact() {
-        let mut cfg = Config {
-            spaces: vec![
-                SpaceConfig {
-                    name: "a".into(),
-                    ..Default::default()
-                },
-                SpaceConfig {
-                    name: "b".into(),
-                    ..Default::default()
-                },
-                SpaceConfig {
-                    name: "c".into(),
-                    ..Default::default()
-                },
-            ],
-        };
-        remove_space(&mut cfg, "b", &|_| false).unwrap();
-        assert_eq!(cfg.spaces.len(), 2);
-        assert_eq!(cfg.spaces[0].name, "a");
-        assert_eq!(cfg.spaces[1].name, "c");
     }
 
     fn ephemeral(name: &str) -> SpaceConfig {

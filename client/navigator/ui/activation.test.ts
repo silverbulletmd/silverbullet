@@ -141,88 +141,70 @@ test("a carried dropdown value applies to that activation only, unpersisted", as
   expect(setDropdownValue).toHaveBeenLastCalledWith("People/Pete");
 });
 
-test("without a remembered value, the open after a carried one is back on All", async () => {
-  const { activate, setDropdownValue } = makeHarness(undefined);
-
-  await activate({
-    view: "inbox",
-    token: 1,
-    dropdown: "recipient:sales",
-    focus: false,
-  });
-  await settled();
-  expect(setDropdownValue).toHaveBeenLastCalledWith("recipient:sales");
-
-  setDropdownValue.mockClear();
-  await activate({ view: "inbox", token: 2 });
-  await settled();
-  expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
-});
-
-test("dropdown.default applies when nothing is remembered", async () => {
-  const { activate, setDropdownValue } = makeHarness(
+// `pickDropdown` persists the built-in All as null, distinct from the undefined
+// of a view whose dropdown was never touched.
+test.each([
+  [
+    "nothing remembered: the default applies",
     undefined,
     "recipient:sales",
-  );
-
-  await activate({ view: "inbox", token: 1 });
-  await settled();
-  expect(setDropdownValue).toHaveBeenLastCalledWith("recipient:sales");
-});
-
-test("a remembered value wins over dropdown.default", async () => {
-  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    "recipient:sales",
+  ],
+  [
+    "a remembered value wins",
     "People/Pete",
     "recipient:sales",
-  );
-
-  await activate({ view: "inbox", token: 1 });
-  await settled();
-  expect(setDropdownValue).toHaveBeenLastCalledWith("People/Pete");
-});
-
-test("a dropdown.default that is not among the options is ignored", async () => {
-  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    "People/Pete",
+  ],
+  [
+    "a remembered All outranks it",
+    null,
+    "recipient:sales",
+    undefined,
+    undefined,
+  ],
+  [
+    "a default not among the options is ignored",
     undefined,
     "recipient:ghost",
-  );
-
-  await activate({ view: "inbox", token: 1 });
-  await settled();
-  expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:ghost");
-  expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
-});
-
-test("the open after a carried value falls back to dropdown.default", async () => {
-  const { activate, setDropdownValue } = makeHarness(
+    undefined,
+    undefined,
+  ],
+  [
+    "the open after a carried value falls back to it",
     undefined,
     "recipient:sales",
-  );
+    "People/Pete",
+    "recipient:sales",
+  ],
+])(
+  "dropdown.default applies when nothing is remembered: %s",
+  async (_what, remembered, dropdownDefault, carried, expected) => {
+    const { activate, setDropdownValue } = makeHarness(
+      remembered,
+      dropdownDefault,
+    );
 
-  await activate({
-    view: "inbox",
-    token: 1,
-    dropdown: "People/Pete",
-    focus: false,
-  });
-  await settled();
-
-  setDropdownValue.mockClear();
-  await activate({ view: "inbox", token: 2 });
-  await settled();
-  expect(setDropdownValue).toHaveBeenLastCalledWith("recipient:sales");
-});
-
-test("a remembered 'All' outranks dropdown.default", async () => {
-  // `pickDropdown` persists the built-in All as null, distinct from the
-  // undefined of a view whose dropdown was never touched.
-  const { activate, setDropdownValue } = makeHarness(null, "recipient:sales");
-
-  await activate({ view: "inbox", token: 1 });
-  await settled();
-  expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:sales");
-  expect(setDropdownValue).toHaveBeenLastCalledWith(undefined);
-});
+    if (carried !== undefined) {
+      await activate({
+        view: "inbox",
+        token: 1,
+        dropdown: carried,
+        focus: false,
+      });
+      await settled();
+      setDropdownValue.mockClear();
+    }
+    await activate({ view: "inbox", token: carried === undefined ? 1 : 2 });
+    await settled();
+    expect(setDropdownValue).toHaveBeenLastCalledWith(expected);
+    if (dropdownDefault === "recipient:ghost") {
+      expect(setDropdownValue).not.toHaveBeenCalledWith("recipient:ghost");
+    }
+  },
+);
 
 test("restoring a follow-editor dock reveals the current page without taking focus", async () => {
   const { activate, applyReveal, focusInput, set } = makeHarness(

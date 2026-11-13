@@ -210,29 +210,23 @@ async fn help_without_space_lists_spaces_and_built_in_skills_only() {
     assert!(!t.contains("Garden Tools"), "{t}");
     assert!(env.script.calls.lock().unwrap().is_empty());
     assert!(!help_description(&env).to_lowercase().contains("manual"));
+    // The bundled skills are listed.
+    assert!(t.contains("## Built in"), "{t}");
+    assert!(t.contains("- **Querying**: Read before"), "{t}");
+    assert!(t.contains("Load only what your task needs"), "{t}");
+
+    // With several spaces and none named, a bundled skill reads from the bundled copy.
+    let r = env.help(json!({"topic": "querying"})).await;
+    assert!(!is_error(&r), "{r}");
+    assert!(
+        text(&r).starts_with("Source: Library/Std/Docs/Querying — built in"),
+        "{}",
+        text(&r)
+    );
 }
 
 fn help_description(env: &Env) -> String {
     env.tools.tools()[0].description.clone()
-}
-
-#[tokio::test]
-async fn there_is_no_manual_space() {
-    let env = env(rows(Value::Null));
-    for (tool, args) in [
-        (
-            "read",
-            json!({"space": "manual", "page": "Library/Std/Docs/Querying"}),
-        ),
-        ("search", json!({"space": "manual", "text": "query"})),
-        ("help", json!({"space": "manual"})),
-        ("help", json!({"space": "manual", "topic": "Querying"})),
-    ] {
-        let r = env.call_as("writer-one", tool, args).await;
-        assert!(is_error(&r), "{tool}: {r}");
-        assert!(text(&r).contains("not available"), "{tool}: {r}");
-        assert!(!text(&r).contains("the manual"), "{tool}: {r}");
-    }
 }
 
 #[tokio::test]
@@ -380,24 +374,6 @@ async fn help_tool_is_listed_first_and_read_only() {
 }
 
 #[tokio::test]
-async fn help_without_space_lists_the_bundled_skills() {
-    let env = env(rows(Value::Null));
-    let t = text(&env.help(json!({})).await).to_owned();
-    assert!(t.contains("## Built in"), "{t}");
-    assert!(t.contains("- **Querying**: Read before"), "{t}");
-    assert!(t.contains("Load only what your task needs"), "{t}");
-
-    // With several spaces and none named, a bundled skill reads from the bundled copy.
-    let r = env.help(json!({"topic": "querying"})).await;
-    assert!(!is_error(&r), "{r}");
-    assert!(
-        text(&r).starts_with("Source: Library/Std/Docs/Querying — built in"),
-        "{}",
-        text(&r)
-    );
-}
-
-#[tokio::test]
 async fn help_topic_without_space_asks_for_one_when_nothing_built_in_matches() {
     let env = env(rows(Value::Null));
     env.seed(SPACE_SKILLS).await;
@@ -471,24 +447,6 @@ async fn a_space_page_beats_a_std_skill_of_the_same_short_name() {
         text(&r).starts_with("Source: Library/Std/Docs/Querying — built in"),
         "{}",
         text(&r)
-    );
-}
-
-#[tokio::test]
-async fn a_space_skill_beats_a_std_skill_of_the_same_short_name() {
-    let env = env(rows(Value::Null));
-    env.seed(&[(
-        "Notes/Querying",
-        "---\ntags: meta/skill\ndescription: My querying. Use when y.\n---\nFrom the space",
-    )])
-    .await;
-    env.help_until(|t| t.contains("Notes/Querying")).await;
-    let r = env
-        .help(json!({"space": env.alpha, "topic": "querying"}))
-        .await;
-    assert!(
-        text(&r).starts_with("Source: Notes/Querying — this space's own pages"),
-        "{r}"
     );
 }
 

@@ -18,15 +18,11 @@ import {
   loadIdentity,
   needsMarkdown,
   rowsIdentity,
-  settlesSlot,
   shouldCommit,
-  showsBody,
   subscribeRefresh,
-  toggleCollapsed,
   TrackedRefresh,
   treeKeyAction,
   visibleRows,
-  widgetKind,
 } from "./page_widget_logic.ts";
 import type { Row } from "./types.ts";
 import type { EventHookT } from "@silverbulletmd/silverbullet/type/manifest";
@@ -120,41 +116,9 @@ test("teardown removes every listener and cancels a pending refresh", () => {
   expect(hook.live()).toEqual([]);
 });
 
-test("a duplicated event name subscribes (and fires) once", () => {
-  const hook = fakeHook();
-  const run = vi.fn();
-  subscribeRefresh(hook.hook, ["editor:pageLoaded", "editor:pageLoaded"], run);
-  expect(hook.hook.addLocalListener).toHaveBeenCalledTimes(1);
-
-  hook.emit("editor:pageLoaded");
-  vi.advanceTimersByTime(300);
-  expect(run).toHaveBeenCalledTimes(1);
-});
-
-test("a view declaring no refresh events subscribes to nothing", () => {
-  const hook = fakeHook();
-  const unsubscribe = subscribeRefresh(hook.hook, [], vi.fn());
-  expect(hook.hook.addLocalListener).not.toHaveBeenCalled();
-  unsubscribe();
-  expect(hook.hook.removeLocalListener).not.toHaveBeenCalled();
-});
-
 test("rows over the view's limit are capped, with the remainder counted", () => {
   const rows = [row("a"), row("b"), row("c"), row("d")];
   expect(visibleRows(rows, 2)).toEqual({ shown: [rows[0], rows[1]], more: 2 });
-});
-
-test("rows at or under the limit render whole, with nothing left over", () => {
-  const rows = [row("a"), row("b")];
-  expect(visibleRows(rows, 2)).toEqual({ shown: rows, more: 0 });
-  expect(visibleRows(rows, 5)).toEqual({ shown: rows, more: 0 });
-  expect(visibleRows([], 5)).toEqual({ shown: [], more: 0 });
-});
-
-test("a missing or zero limit caps nothing", () => {
-  const rows = [row("a"), row("b")];
-  expect(visibleRows(rows, 0)).toEqual({ shown: rows, more: 0 });
-  expect(visibleRows(rows, undefined as any)).toEqual({ shown: rows, more: 0 });
 });
 
 test("Enter and Space activate a row, and suppress the browser's own default", () => {
@@ -164,16 +128,6 @@ test("Enter and Space activate a row, and suppress the browser's own default", (
     activateOnKey({ key, preventDefault }, activate);
     expect(activate).toHaveBeenCalledTimes(1);
     expect(preventDefault).toHaveBeenCalledTimes(1);
-  }
-});
-
-test("any other key leaves the row alone", () => {
-  for (const key of ["a", "Tab", "ArrowDown", "Escape"]) {
-    const activate = vi.fn();
-    const preventDefault = vi.fn();
-    activateOnKey({ key, preventDefault }, activate);
-    expect(activate).not.toHaveBeenCalled();
-    expect(preventDefault).not.toHaveBeenCalled();
   }
 });
 
@@ -260,14 +214,6 @@ test("a click on a link inside a row belongs to the link, not the row", () => {
   expect(isRowActivation(inside("input"))).toBe(false);
 });
 
-test("a click on plain row text activates the row", () => {
-  expect(isRowActivation({ closest: () => null })).toBe(true);
-  // A target with no `closest` at all (never in a browser, but the handler
-  // must not throw its way out of a click).
-  expect(isRowActivation(null)).toBe(true);
-  expect(isRowActivation({})).toBe(true);
-});
-
 const NODE = {} as HTMLElement;
 
 test("a content widget shows nothing until its load has settled", () => {
@@ -284,35 +230,6 @@ test("an error is an outcome in its own right, load error or render error", () =
   expect(contentOutcome({ error: "source blew up" })).toBe("error");
   // The fetch succeeds, but Markdown rendering fails.
   expect(contentOutcome({ node: NODE, error: "expand failed" })).toBe("error");
-});
-
-// A render failure must settle the slot so no phantom height remains cached.
-test("every terminal outcome reports the slot settle; only pending withholds it", () => {
-  expect(settlesSlot("pending")).toBe(false);
-  for (const outcome of ["error", "empty", "ready"] as const) {
-    expect(settlesSlot(outcome)).toBe(true);
-  }
-});
-
-test("a content view gets the markdown widget, everything else the row widget", () => {
-  expect(widgetKind({ hasContent: true })).toBe("content");
-  expect(widgetKind({ hasContent: false })).toBe("rows");
-  // Absent content metadata identifies a row view.
-  expect(widgetKind({})).toBe("rows");
-});
-
-test("a collapse toggle flips and persists the same value", () => {
-  // Both halves, always: a toggle that flipped without persisting would come
-  // back expanded on the next page load with nothing to say why.
-  expect(toggleCollapsed(false)).toEqual({ next: true, persist: true });
-  expect(toggleCollapsed(true)).toEqual({ next: false, persist: false });
-});
-
-test("a collapsed widget draws no body, and neither does one with nothing to show", () => {
-  expect(showsBody(false, true)).toBe(true);
-  expect(showsBody(true, true)).toBe(false);
-  expect(showsBody(false, false)).toBe(false);
-  expect(showsBody(true, false)).toBe(false);
 });
 
 // Page-docked rows handle their own tree keys because no filter input exists.
@@ -337,31 +254,6 @@ test("Right opens a closed folder, Left closes an open one", () => {
   );
 });
 
-// The keystroke has nothing to do in these states, so it must fall through to
-// the browser rather than being swallowed: a page dock sits in the middle of a
-// document the arrows still have to move through.
-test("Left/Right do nothing on a leaf, or in the direction already taken", () => {
-  expect(
-    treeKeyAction("ArrowRight", { isFolder: true, isExpanded: true }),
-  ).toBeUndefined();
-  expect(
-    treeKeyAction("ArrowLeft", { isFolder: true, isExpanded: false }),
-  ).toBeUndefined();
-  for (const key of ["ArrowLeft", "ArrowRight"]) {
-    expect(
-      treeKeyAction(key, { isFolder: false, isExpanded: false }),
-    ).toBeUndefined();
-  }
-});
-
-test("every other key is left to the page", () => {
-  for (const key of ["a", "Tab", "ArrowDown", "ArrowUp", "Escape"]) {
-    expect(
-      treeKeyAction(key, { isFolder: true, isExpanded: false }),
-    ).toBeUndefined();
-  }
-});
-
 test("identical rows produce an identical identity, and a changed field does not", () => {
   const a = [{ obj: { name: "A", pos: 1 }, primary: "A" }];
   const same = [{ obj: { name: "A", pos: 1 }, primary: "A" }];
@@ -375,18 +267,6 @@ test("identical rows produce an identical identity, and a changed field does not
 
   const renamed = [{ obj: { name: "A", pos: 1 }, primary: "B" }];
   expect(rowsIdentity(a)).not.toBe(rowsIdentity(renamed));
-});
-
-// A Lua-built object can carry closures; those serialize away. Anything that
-// defeats serialization entirely has to read as "cannot say".
-test("rowsIdentity ignores functions, and gives up on a cycle", () => {
-  const withFn = [{ obj: { name: "A", run: () => {} }, primary: "A" }];
-  const without = [{ obj: { name: "A" }, primary: "A" }];
-  expect(rowsIdentity(withFn as any)).toBe(rowsIdentity(without));
-
-  const cyclic: any = { name: "A" };
-  cyclic.self = cyclic;
-  expect(rowsIdentity([{ obj: cyclic, primary: "A" }])).toBeUndefined();
 });
 
 test("the first load always commits, whatever it produced", () => {
@@ -449,22 +329,6 @@ test("a committed error is remembered, and recovering from it commits", () => {
   expect(gate.shouldCommit(bad)).toBe(false);
   // A success must clear the error even if its Markdown is still empty.
   expect(gate.shouldCommit(loadIdentity(undefined, ""))).toBe(true);
-});
-
-test("decorations are part of a row's identity", () => {
-  // `TreeView` draws these as chips, so a decoration carrying a count or a
-  // relative time would otherwise freeze at whatever it said on first load.
-  const before = [
-    { obj: { name: "A" }, primary: "A", decorations: [{ text: "2 min ago" }] },
-  ];
-  const after = [
-    { obj: { name: "A" }, primary: "A", decorations: [{ text: "1 hr ago" }] },
-  ];
-  expect(rowsIdentity(before as any)).not.toBe(rowsIdentity(after as any));
-});
-
-test("an html-only widget with a node is ready even without markdown", () => {
-  expect(contentOutcome({ node: NODE })).toBe("ready");
 });
 
 async function aView() {

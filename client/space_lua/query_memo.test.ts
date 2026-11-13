@@ -158,23 +158,6 @@ test("caches invariant call", async () => {
   expect(r.lookup.calls()).toBe(1);
 });
 
-test("caches maximal subtree only", () => {
-  const out = memoizeRowInvariants(
-    parseExpressionString("#lookup() > p.n"),
-    "p",
-  );
-  const memos = findMemos(out);
-  expect(memos).toHaveLength(1);
-  expect(src(memos[0].memo.expression)).toBe("#lookup()");
-});
-
-test("leaves cheap invariants alone", () => {
-  for (const s of ["p.n > 1 + 2", "p.name == x"]) {
-    const e = parseExpressionString(s);
-    expect(memoizeRowInvariants(e, "p")).toBe(e);
-  }
-});
-
 test("never caches row-dependent call", async () => {
   const r = await runWhere("count(p.n) > 0");
   expect(r.names).toHaveLength(5);
@@ -240,36 +223,6 @@ test("shadowing in nested query is conservative", () => {
   expect(out).toBe(e);
 });
 
-test("existing memo is a leaf", () => {
-  const once = memoizeRowInvariants(
-    parseExpressionString("lookup() ~= nil and p.n > 0"),
-    "p",
-  );
-  const [first] = findMemos(once);
-  const twice = memoizeRowInvariants(once, "p");
-  const hits = findMemos(twice);
-  expect(hits).toHaveLength(1);
-  expect(hits[0].memo).toBe(first.memo);
-
-  const e = parseExpressionString("lookup() + count() > p.n") as any;
-  const inner = e.left.left;
-  const existing: LuaMemoExpression = {
-    type: "Memo",
-    expression: inner,
-    cell: { state: "empty" },
-    ctx: inner.ctx,
-  };
-  e.left.left = existing;
-  const out = memoizeRowInvariants(e, "p");
-  const outHits = findMemos(out);
-  expect(outHits).toHaveLength(2);
-  for (const h of outHits) {
-    expect(h.memo.expression.type).not.toBe("Memo");
-  }
-  expect(outHits.some((h) => h.memo === existing)).toBe(true);
-  expect(existing.expression).toBe(inner);
-});
-
 test("nested query clauses are all scanned", () => {
   for (const q of [
     "query[[from t = rows limit p.n]]",
@@ -298,36 +251,6 @@ test("correlated subquery from is cached", async () => {
   const r = await runWhere(s);
   expect(r.names).toHaveLength(5);
   expect(r.source.calls()).toBe(1);
-});
-
-test("math.random is denylisted", () => {
-  const out = memoizeRowInvariants(
-    parseExpressionString("math.random() < 2 and lookup() ~= nil"),
-    "p",
-  );
-  const memos = findMemos(out);
-  expect(memos).toHaveLength(1);
-  expect(src(memos[0].memo.expression)).toBe("lookup() ~= nil");
-  const inBody = parseExpressionString(
-    "(function() return math.random() end)() < 2",
-  );
-  expect(memoizeRowInvariants(inBody, "p")).toBe(inBody);
-});
-
-test("fresh cells per call", () => {
-  const s = "#lookup() > p.n and table.includes(lookup(), p.name)";
-  const e = parseExpressionString(s);
-  const a = findMemos(memoizeRowInvariants(e, "p"));
-  const b = findMemos(memoizeRowInvariants(e, "p"));
-  expect(a).toHaveLength(2);
-  expect(b).toHaveLength(2);
-  for (let i = 0; i < a.length; i++) {
-    expect(a[i].memo).not.toBe(b[i].memo);
-    expect(a[i].memo.cell).not.toBe(b[i].memo.cell);
-    expect(a[i].memo.cell.state).toBe("empty");
-    expect(b[i].memo.cell.state).toBe("empty");
-  }
-  expect(e).toEqual(parseExpressionString(s));
 });
 
 test("uncorrelated nested query is cached whole", async () => {

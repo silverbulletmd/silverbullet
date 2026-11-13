@@ -135,24 +135,3 @@ test("heading: a cursor on a later line of a selection moves with its text", () 
   expect(result?.insert).toBe("## a\n## b");
   expect(result?.cursor).toBe(result!.insert.length);
 });
-
-test("an empty first line gives a forward range at position 0", () => {
-  expect(headingLines("\nfoo", 0, 0, 0, 2)).toEqual({
-    from: 0,
-    to: 0,
-    insert: "## ",
-    cursor: 3,
-  });
-  expect(taskifyLines("\nfoo", 0, 0, 0)).toEqual({
-    from: 0,
-    to: 0,
-    insert: "* [ ] ",
-    cursor: 6,
-  });
-  expect(listifyLines("\nfoo", 0, 0)).toEqual({
-    from: 0,
-    to: 0,
-    insert: "* ",
-    cursor: 2,
-  });
-});

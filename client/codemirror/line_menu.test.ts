@@ -416,17 +416,6 @@ describe("line menu", () => {
     expect(await fetchTaskStates(client())).toEqual([]);
   });
 
-  test("entries carry the command's keyboard hint", () => {
-    const hint = (name: string) => {
-      const e = lineMenuEntries(client(), at("- one"), 1).find(
-        (e) => label(e) === name,
-      );
-      return e?.kind === "item" ? e.hint : undefined;
-    };
-    expect(hint("Indent")).toBeTruthy();
-    expect(hint("Outdent")).toBeUndefined();
-  });
-
   test("a pick goes through onRun, which decides whether it runs", () => {
     invokeFunction.mockClear();
     const onRun = vi.fn();

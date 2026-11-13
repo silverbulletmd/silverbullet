@@ -7,7 +7,6 @@ import {
   migrateDarkMode,
   resolveTheme,
   type ThemeInfo,
-  themeCacheKey,
   themeCss,
   themeInfoFromFrontmatter,
 } from "./themes.ts";
@@ -202,12 +201,6 @@ describe("migrateDarkMode", () => {
     expect(migrateDarkMode(true, paperDark)).toBeUndefined();
     expect(migrateDarkMode(false, paperLight)).toBeUndefined();
     expect(migrateDarkMode(true, paperLight)).toBe(BUILTIN_DARK_THEME);
-  });
-});
-
-describe("themeCacheKey", () => {
-  it("is scoped to the base URI", () => {
-    expect(themeCacheKey("http://x/")).toBe("silverbullet.http://x/.theme");
   });
 });
 

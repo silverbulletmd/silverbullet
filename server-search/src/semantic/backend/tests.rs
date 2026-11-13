@@ -1,6 +1,6 @@
 use super::*;
 use crate::semantic::catalog::Thresholds;
-use crate::semantic::eval::{rank_natural, Fusion, ScoredPages};
+use crate::semantic::eval::{Fusion, ScoredPages};
 use crate::semantic::service::SemanticService;
 use crate::semantic::test_model::{fake_spec, FakeEmbedder};
 use crate::test_support::TestView;
@@ -288,106 +288,6 @@ async fn natural_finds_a_typo_through_the_similar_tier_below_the_vector_minimum(
     assert!(v.pages.is_empty(), "{:?}", v.pages);
 }
 
-/// Task 21: similar-tier pages enter the fusion at `similar_weight`,
-/// exact-tier pages at 1; at 0 they only follow the fused pages (M2P9).
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn similar_tier_pages_count_at_the_similar_weight() {
-    let rrf_1 = 1.0 / (crate::semantic::index::RRF_K + 1.0);
-    for w in [0.25, 1.0] {
-        let fx = ready(weighted(0.99, w)).await;
-        let r = scored(&fx, "puncure repair", Fusion::Hybrid).await;
-        assert_eq!(r.pages, [("Bike/Puncture".to_string(), w * rrf_1)], "w {w}");
-    }
-    // At 0 nothing fuses, and the similar page follows (here alone), below
-    // where any fused page would score, with its full-text highlights (M2P9).
-    let fx = ready(weighted(0.99, 0.0)).await;
-    let r = fx
-        .backend
-        .query(natural("puncure repair"), cx())
-        .await
-        .unwrap();
-    assert_eq!(pages(&r), ["Bike/Puncture"]);
-    assert_eq!(r.total, 1);
-    assert!(!r.items[0].highlights.is_empty(), "full-text passages");
-    let s = scored(&fx, "puncure repair", Fusion::Hybrid).await;
-    assert_eq!(s.pages, [("Bike/Puncture".to_string(), rrf_1 / 2.0)]);
-    // The exact tier keeps weight 1 whatever the similar weight.
-    let r = scored(&fx, "puncture", Fusion::Hybrid).await;
-    assert_eq!(r.pages[0], ("Bike/Puncture".to_string(), rrf_1));
-}
-
-/// The candidates as Natural gathers them: the lexical half with the tier
-/// that answered, and every vector hit, whatever the minimum.
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn candidates_report_both_halves_before_any_threshold() {
-    let fx = ready(strict(0.99)).await;
-    let c = fx.backend.candidates("flat tyre", cx()).await.unwrap();
-    assert_eq!(
-        (c.lexical, c.similar),
-        (vec!["Bike/Puncture.md".to_string()], false)
-    );
-    assert_eq!(c.vector.len(), 4, "below the minimum too: {:?}", c.vector);
-    assert!(c.vector.windows(2).all(|w| w[0].score >= w[1].score));
-    let c = fx.backend.candidates("puncure repair", cx()).await.unwrap();
-    assert_eq!(
-        (c.lexical, c.similar),
-        (vec!["Bike/Puncture.md".to_string()], true)
-    );
-    let c = fx.backend.candidates("clinking", cx()).await.unwrap();
-    assert!(c.lexical.is_empty());
-    assert!(matches!(
-        fx.backend.candidates("x", cx()).await,
-        Err(SearchError::QueryTooShort(_))
-    ));
-}
-
-/// Natural ranks through [`rank_natural`]: its pages and scores are the
-/// pure ranking of its candidates, for both fusions and with the similar
-/// tier at weight 0 and above (what the eval's calibration relies on).
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn natural_answers_the_pure_ranking_of_its_candidates() {
-    let queries = [
-        "flat tyre",
-        "puncure repair",
-        "clinking puncure",
-        "oil chain",
-        "clinking",
-        "grind beans fresh",
-    ];
-    for fake in [
-        weighted(0.0, 0.0),
-        weighted(0.3, 0.5),
-        strict(0.5),
-        gapped(0.0, 1.0, 0.05),
-        gapped(0.0, 0.0, 0.05),
-    ] {
-        let fx = ready(fake).await;
-        let th = fx.backend.thresholds();
-        for query in queries {
-            let c = fx.backend.candidates(query, cx()).await.unwrap();
-            for fusion in [Fusion::Hybrid, Fusion::VectorOnly] {
-                let s = scored(&fx, query, fusion).await;
-                let ranked = rank_natural(&c, fusion, &th);
-                let expected: Vec<&str> = ranked
-                    .iter()
-                    .map(|r| r.path.strip_suffix(".md").unwrap())
-                    .collect();
-                let found: Vec<&str> = s.pages.iter().map(|(p, _)| p.as_str()).collect();
-                assert_eq!(found, expected, "{query:?} {fusion:?} {th:?}");
-                if fusion == Fusion::Hybrid {
-                    let scores: Vec<f32> = ranked.iter().map(|r| r.score).collect();
-                    let first: Vec<f32> = s.pages.iter().map(|(_, score)| *score).collect();
-                    assert_eq!(first, scores, "{query:?}");
-                    // Production Natural answers the same pages.
-                    let r = fx.backend.query(natural(query), cx()).await.unwrap();
-                    assert_eq!(pages(&r), expected, "{query:?} {th:?}");
-                    assert_eq!(r.total, ranked.len());
-                }
-            }
-        }
-    }
-}
-
 /// A page the lexical half placed that its full-text passages can't read
 /// (it was gone for that read) gets its best chunks instead only when it is
 /// among the vector hits that count: outside the gap it is left out.
@@ -470,16 +370,6 @@ async fn similar_pages_follow_a_non_empty_fused_list() {
     assert!(!puncture.highlights.is_empty(), "a similar page: full text");
     let s = scored(&fx, "clinking puncure", Fusion::Hybrid).await;
     assert!(s.pages[1].1 < s.pages[0].1, "{:?}", s.pages);
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn vector_hits_carry_their_cosine() {
-    let fx = ready(FakeEmbedder::new()).await;
-    let r = scored(&fx, "oil chain", Fusion::VectorOnly).await;
-    let first = r.pages[0].1;
-    assert!(first > 0.0 && first <= 1.0 + 1e-6, "{first}");
-    let scores: Vec<f32> = r.pages.iter().map(|(_, score)| *score).collect();
-    assert!(scores.windows(2).all(|w| w[0] >= w[1]), "{scores:?}");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

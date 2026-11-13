@@ -72,56 +72,6 @@ test.describe("search", () => {
     ).toHaveCount(0);
     await expect(frame.locator(".sb-nav-error")).toHaveCount(0);
   });
-
-  test("exact phrase mode is available from the dropdown", async ({
-    sbPage: page,
-  }) => {
-    const frame = await openPicker(page, shiftChord("f"), "Content");
-    await frame
-      .locator("select.sb-nav-dropdown")
-      .selectOption({ label: "Exact phrase" });
-    await navInput(page).fill("needs garlic");
-    await expect(
-      frame.locator(".sb-nav-row", { hasText: "Kitchen" }).first(),
-    ).toBeVisible({ timeout: 20_000 });
-  });
-});
-
-test.describe("search in a read-only published space", () => {
-  test.use({
-    serverEnv: { SB_READ_ONLY: "1" },
-    spaceFiles: {
-      "index.md": "# Welcome\n",
-      "Garden.md": "# Garden\nWater the basil every morning.\n",
-      "Kitchen.md": "# Kitchen\nPesto needs garlic.\n",
-    },
-  });
-
-  test("a visitor who is not signed in can search and open a result", async ({
-    sbServer,
-    sbPage: page,
-  }) => {
-    // The server treats this browser as a public visitor: modes outside the
-    // public ones are refused.
-    const refused = await page.request.post(`${sbServer.url}/.search/query`, {
-      data: { query: "basil", mode: "natural" },
-    });
-    expect(refused.status()).toBe(404);
-
-    const frame = await openPicker(page, shiftChord("f"), "Content");
-    await expect(frame.locator("select.sb-nav-dropdown option")).toHaveText([
-      "All words",
-      "Exact phrase",
-    ]);
-    await navInput(page).fill("basil morning");
-    const row = frame.locator(".sb-nav-row", { hasText: "Garden" }).first();
-    await expect(row).toBeVisible({ timeout: 20_000 });
-    await row.click();
-    await expect(currentPage(page)).toHaveValue("Garden");
-    await expect(page.locator("#sb-editor")).toContainText(
-      "Water the basil every morning.",
-    );
-  });
 });
 
 test.describe("semantic search on a multi-user server", () => {

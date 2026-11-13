@@ -25,11 +25,16 @@ async fn runtime_server_toggle_persists_and_preserves_other_settings() {
         &router,
         "PUT",
         "/api/server-config",
-        r#"{"serverName":"Notebook"}"#,
+        // What the dashboard's Server settings form sends
+        r#"{"primaryUrl":"https://manager.example.test","serverName":"Notebook"}"#,
         &cookie,
     )
     .await;
+    assert_eq!(response.status(), StatusCode::OK);
     assert_eq!(body_json(response).await["runtimeApi"], false);
+    let stored =
+        crate::multi::server_config::ServerConfig::load(&dir.path().join("server.json")).unwrap();
+    assert!(!stored.runtime_api);
     let response = authed(
         &router,
         "PUT",

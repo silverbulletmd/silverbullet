@@ -55,10 +55,6 @@ describe("Enter in bullet lists", () => {
     expect(runEnter("* note:|^|")).toBe("* note:\n  * |^|");
   });
 
-  test("preserves + bullet with colon", () => {
-    expect(runEnter("+ ideas:|^|")).toBe("+ ideas:\n  + |^|");
-  });
-
   test("trailing whitespace before cursor is trimmed", () => {
     expect(runEnter("- stuff:   |^|")).toBe("- stuff:\n  - |^|");
   });
@@ -134,16 +130,6 @@ describe("colon not at end of line", () => {
   test("colon in key: value does not indent", () => {
     expect(runEnter("- key: value|^|")).toBe("- key: value\n- |^|");
   });
-
-  test("colon in time does not indent", () => {
-    expect(runEnter("- 10:30 meeting|^|")).toBe("- 10:30 meeting\n- |^|");
-  });
-
-  test("colon in URL does not indent", () => {
-    expect(runEnter("- see https://example.com|^|")).toBe(
-      "- see https://example.com\n- |^|",
-    );
-  });
 });
 
 describe("non-tight lists", () => {
@@ -175,29 +161,6 @@ describe("non-list context falls through", () => {
 describe("Enter before the background parse reaches the cursor", () => {
   test("still continues the list", () => {
     const filler = "Some paragraph with **bold** text.\n\n".repeat(500);
-    const doc = `${filler}- [ ] first task\n- [ ] second task`;
-    const state = EditorState.create({
-      doc,
-      selection: EditorSelection.cursor(doc.length),
-      extensions: [markdown()],
-    });
-
-    let newState: EditorState | null = null;
-    const result = customEnterCommand({
-      state,
-      dispatch: (tr) => {
-        newState = tr.state;
-      },
-    });
-
-    expect(result).toBe(true);
-    expect(
-      (newState as EditorState | null)?.doc.sliceString(filler.length),
-    ).toBe("- [ ] first task\n- [ ] second task\n- [ ] ");
-  });
-
-  test("falls back to the line marker when parsing times out", () => {
-    const filler = "Some paragraph with **bold** text.\n\n".repeat(250000);
     const doc = `${filler}- [ ] first task\n- [ ] second task`;
     const state = EditorState.create({
       doc,

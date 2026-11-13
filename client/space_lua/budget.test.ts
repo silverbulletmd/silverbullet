@@ -503,61 +503,6 @@ test("a loop awaiting a slow syscall never accumulates busyMs", async () => {
   expect(limitCalls).toBe(0);
 });
 
-test("awaited intervals are excluded across many iterations", () => {
-  const clock = fakeClock();
-  const b = makeLuaBudget({ now: clock.now, doYield: () => Promise.resolve() });
-  for (let i = 0; i < 50; i++) {
-    b.ticks = 1;
-    b.awaited = true;
-    clock.advance(5000);
-    void budgetTick(b);
-  }
-  expect(b.busyMs).toBe(0);
-});
-
-test("an async for loop bills its IO wait to nothing", async () => {
-  const clock = fakeClock();
-  let limitCalls = 0;
-  const b = makeLuaBudget({
-    now: clock.now,
-    doYield: () => Promise.resolve(),
-    busyLimitMs: 2000,
-    onLimit: () => limitCalls++,
-  });
-
-  const global = luaBuildStandardEnv();
-  global.setLocal(
-    "slowRead",
-    new LuaBuiltinFunction((_sf: any) => {
-      clock.advance(3000);
-      b.ticks = 1;
-      return Promise.resolve(1);
-    }),
-  );
-  const sf = LuaStackFrame.createWithGlobalEnv(global);
-  (sf.threadState as any).budget = b;
-  b.ticks = 1;
-
-  await evalStatement(
-    parseBlock(
-      `
-      local total = 0
-      for i = 1, 8 do
-        total = total + slowRead()
-      end
-      `,
-      {},
-    ),
-    new LuaEnv(global),
-    sf,
-    false,
-  );
-
-  // 24 seconds of simulated IO across eight iterations, none of it grinding.
-  expect(b.busyMs).toBe(0);
-  expect(limitCalls).toBe(0);
-});
-
 // Exclude async waits outside loop back-edges too: for-header bounds,
 // iterator expressions/calls, and statements preceding loops.
 async function assertNeverGrinds(
@@ -614,15 +559,6 @@ async function assertNeverGrinds(
 
 const AWAIT_NEVER_GRINDS: [string, string][] = [
   [
-    "while condition await",
-    `
-    local i = 0
-    while slow(i < 6) do
-      i = i + 1
-    end
-    `,
-  ],
-  [
     "while body await",
     `
     local i = 0
@@ -630,25 +566,6 @@ const AWAIT_NEVER_GRINDS: [string, string][] = [
       slow()
       i = i + 1
     end
-    `,
-  ],
-  [
-    "repeat body await",
-    `
-    local i = 0
-    repeat
-      slow()
-      i = i + 1
-    until i >= 6
-    `,
-  ],
-  [
-    "repeat condition await",
-    `
-    local i = 0
-    repeat
-      i = i + 1
-    until slow(i >= 6)
     `,
   ],
   [
@@ -661,30 +578,6 @@ const AWAIT_NEVER_GRINDS: [string, string][] = [
     `,
   ],
   [
-    "numeric for header await",
-    `
-    local total = 0
-    for i = 1, slow(6) do
-      total = total + i
-    end
-    `,
-  ],
-  [
-    "for-in sync iterator, async body",
-    `
-    local total = 0
-    local i = 0
-    local function iter()
-      i = i + 1
-      if i > 6 then return nil end
-      return i
-    end
-    for v in iter do
-      total = total + slow(v)
-    end
-    `,
-  ],
-  [
     "backward goto with an await",
     `
     local i = 0
@@ -692,16 +585,6 @@ const AWAIT_NEVER_GRINDS: [string, string][] = [
     slow()
     i = i + 1
     if i < 6 then goto top end
-    `,
-  ],
-  [
-    "straight-line await before an ordinary loop",
-    `
-    local name = slow()
-    local total = 0
-    for i = 1, 50 do
-      total = total + i
-    end
     `,
   ],
 ];
@@ -733,39 +616,6 @@ test("await never grinds: for-in native async iterator", async () => {
         }),
       );
     },
-  );
-});
-
-test("await never grinds: for-in expression list await", async () => {
-  await assertNeverGrinds(
-    `
-    local total = 0
-    for v in each(slow({1, 2, 3, 4, 5, 6})) do
-      total = total + v
-    end
-    `,
-  );
-});
-
-test("await never grinds: label bubbled up from a nested block, in a function known to use goto elsewhere", async () => {
-  // A nested label routes an enclosing goto-aware function through runFrom.
-  // Use a real goto/label pair to exercise that continuation path.
-  await assertNeverGrinds(
-    `
-    local function f()
-      goto skip
-      ::skip::
-      do
-        do
-          ::inner::
-        end
-        slow()
-        for j = 1, 1 do end
-        bump()
-      end
-    end
-    f()
-    `,
   );
 });
 

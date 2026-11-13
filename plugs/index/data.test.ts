@@ -1,12 +1,12 @@
-import { describe, expect, test } from "vitest";
-import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import { createMockSystem } from "../../plug-api/system_mock.ts";
 import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
-import { extractFrontMatter } from "./frontmatter.ts";
+import { describe, expect, test } from "vitest";
+import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
+import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexData } from "./data.ts";
+import { extractFrontMatter } from "./frontmatter.ts";
 
 const testPage = `
 Some test
@@ -87,15 +87,6 @@ describe("$ref anchor in fenced data blocks", () => {
     expect(person.ref).toBe("pete");
     expect(person.name).toBe("Pete");
     expect("$ref" in person).toBe(false);
-  });
-
-  test("regression: block without $ref retains Page@docStart ref", async () => {
-    createMockSystem();
-    const md = `\`\`\`#person\nname: Alice\n\`\`\``;
-    const results = await indexDataForTest(md, "Page");
-    const person = results.find((o) => o.tag === "person")!;
-    expect(person).toBeTruthy();
-    expect(person.ref).toMatch(/^Page@\d+$/);
   });
 
   test("invalid $ref (digit-leading) is ignored; ref falls back to Page@docStart", async () => {

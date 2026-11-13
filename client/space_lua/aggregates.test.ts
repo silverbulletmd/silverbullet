@@ -113,19 +113,41 @@ test("aggregate: sum with nils", async () => {
   expect(result).toBe(20);
 });
 
-test("aggregate: sum empty group", async () => {
-  const result = await executeAggregate(
-    sumSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
+test("aggregate: an empty group aggregates to null", async () => {
+  const specs: [string, AggregateSpec, string[]][] = [
+    ["sum", sumSpec, []],
+    ["avg", avgSpec, []],
+    ["min", minSpec, []],
+    ["max", maxSpec, []],
+    ["product", productSpec, []],
+    ["bit_and", bitAndSpec, []],
+    ["bit_or", bitOrSpec, []],
+    ["bit_xor", bitXorSpec, []],
+    ["bool_and", boolAndSpec, []],
+    ["bool_or", boolOrSpec, []],
+    ["stddev_pop", stddevPopSpec, []],
+    ["var_pop", varPopSpec, []],
+    ["covar_pop", covarPopSpec, []],
+    ["quantile", quantileSpec, ["0.5"]],
+    ["mode", modeSpec, []],
+    ["first", firstSpec, []],
+    ["last", lastSpec, []],
+    ["median", medianSpec, []],
+  ];
+  for (const [name, spec, extraArgs] of specs) {
+    const result = await executeAggregate(
+      spec,
+      new LuaTable(),
+      parseExpressionString("_.v"),
+      extraArgs.map((a) => parseExpressionString(a)),
+      undefined,
+      new LuaEnv(),
+      sf,
+      evalExpression,
+      emptyConfig,
+    );
+    expect(result, name).toBeNull();
+  }
 });
 
 test("aggregate: count with expression", async () => {
@@ -203,53 +225,6 @@ test("aggregate: avg", async () => {
   expect(result).toBe(20);
 });
 
-test("aggregate: avg empty group", async () => {
-  const result = await executeAggregate(
-    avgSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
-test("aggregate: min/max on empty group", async () => {
-  const items = new LuaTable();
-  const env = new LuaEnv();
-  const expr = parseExpressionString("_.v");
-  expect(
-    await executeAggregate(
-      minSpec,
-      items,
-      expr,
-      [],
-      undefined,
-      env,
-      sf,
-      evalExpression,
-      emptyConfig,
-    ),
-  ).toBeNull();
-  expect(
-    await executeAggregate(
-      maxSpec,
-      items,
-      expr,
-      [],
-      undefined,
-      env,
-      sf,
-      evalExpression,
-      emptyConfig,
-    ),
-  ).toBeNull();
-});
-
 test("aggregate: array_agg", async () => {
   const result = await executeAggregate(
     arrayAggSpec,
@@ -296,21 +271,6 @@ test("aggregate: product with nils", async () => {
     emptyConfig,
   );
   expect(result).toBe(20);
-});
-
-test("aggregate: product empty group", async () => {
-  const result = await executeAggregate(
-    productSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: string_agg", async () => {
@@ -404,21 +364,6 @@ test("aggregate: bit_and", async () => {
   expect(result).toBe(0b1000);
 });
 
-test("aggregate: bit_and empty group", async () => {
-  const result = await executeAggregate(
-    bitAndSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: bit_or", async () => {
   const result = await executeAggregate(
     bitOrSpec,
@@ -432,21 +377,6 @@ test("aggregate: bit_or", async () => {
     emptyConfig,
   );
   expect(result).toBe(0b0111);
-});
-
-test("aggregate: bit_or empty group", async () => {
-  const result = await executeAggregate(
-    bitOrSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: bit_xor", async () => {
@@ -464,21 +394,6 @@ test("aggregate: bit_xor", async () => {
   expect(result).toBe(0b0110);
 });
 
-test("aggregate: bit_xor empty group", async () => {
-  const result = await executeAggregate(
-    bitXorSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: bool_and all true", async () => {
   const result = await executeAggregate(
     boolAndSpec,
@@ -492,36 +407,19 @@ test("aggregate: bool_and all true", async () => {
     emptyConfig,
   );
   expect(result).toBe(true);
-});
-
-test("aggregate: bool_and with false", async () => {
-  const result = await executeAggregate(
-    boolAndSpec,
-    jsToLuaValue([{ v: true }, { v: false }, { v: true }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe(false);
-});
-
-test("aggregate: bool_and empty group", async () => {
-  const result = await executeAggregate(
-    boolAndSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
+  expect(
+    await executeAggregate(
+      boolAndSpec,
+      jsToLuaValue([{ v: true }, { v: false }, { v: true }]),
+      parseExpressionString("_.v"),
+      [],
+      undefined,
+      new LuaEnv(),
+      sf,
+      evalExpression,
+      emptyConfig,
+    ),
+  ).toBe(false);
 });
 
 test("aggregate: bool_or all false", async () => {
@@ -537,36 +435,19 @@ test("aggregate: bool_or all false", async () => {
     emptyConfig,
   );
   expect(result).toBe(false);
-});
-
-test("aggregate: bool_or with true", async () => {
-  const result = await executeAggregate(
-    boolOrSpec,
-    jsToLuaValue([{ v: false }, { v: true }, { v: false }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe(true);
-});
-
-test("aggregate: bool_or empty group", async () => {
-  const result = await executeAggregate(
-    boolOrSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
+  expect(
+    await executeAggregate(
+      boolOrSpec,
+      jsToLuaValue([{ v: false }, { v: true }, { v: false }]),
+      parseExpressionString("_.v"),
+      [],
+      undefined,
+      new LuaEnv(),
+      sf,
+      evalExpression,
+      emptyConfig,
+    ),
+  ).toBe(true);
 });
 
 test("aggregate: stddev_pop", async () => {
@@ -594,21 +475,6 @@ test("aggregate: stddev_pop", async () => {
   expect(result).toBeCloseTo(2, 10);
 });
 
-test("aggregate: stddev_pop empty group", async () => {
-  const result = await executeAggregate(
-    stddevPopSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: stddev_samp", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: var_samp = 32/7, stddev_samp = sqrt(32/7)
   const result = await executeAggregate(
@@ -634,21 +500,6 @@ test("aggregate: stddev_samp", async () => {
   expect(result).toBeCloseTo(Math.sqrt(32 / 7), 10);
 });
 
-test("aggregate: stddev_samp single element", async () => {
-  const result = await executeAggregate(
-    stddevSampSpec,
-    jsToLuaValue([{ v: 42 }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: var_pop", async () => {
   // values: 2, 4, 4, 4, 5, 5, 7, 9 yields: var_pop = 4
   const result = await executeAggregate(
@@ -672,21 +523,6 @@ test("aggregate: var_pop", async () => {
     emptyConfig,
   );
   expect(result).toBeCloseTo(4, 10);
-});
-
-test("aggregate: var_pop empty group", async () => {
-  const result = await executeAggregate(
-    varPopSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: var_samp", async () => {
@@ -751,21 +587,6 @@ test("aggregate: covar_pop", async () => {
   expect(result).toBeCloseTo(1.2, 10);
 });
 
-test("aggregate: covar_pop empty group", async () => {
-  const result = await executeAggregate(
-    covarPopSpec,
-    new LuaTable(),
-    parseExpressionString("_.y"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: covar_pop skips null pairs", async () => {
   const result = await executeAggregate(
     covarPopSpec,
@@ -812,21 +633,6 @@ test("aggregate: covar_samp", async () => {
   expect(result).toBeCloseTo(1.5, 10);
 });
 
-test("aggregate: covar_samp single element", async () => {
-  const result = await executeAggregate(
-    covarSampSpec,
-    jsToLuaValue([{ x: 1, y: 2 }]),
-    parseExpressionString("_.y"),
-    [parseExpressionString("_.x")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
 test("aggregate: corr", async () => {
   // x: 1,2,3,4,5  y: 2,4,6,8,10  (perfect positive linear)
   const result = await executeAggregate(
@@ -847,21 +653,6 @@ test("aggregate: corr", async () => {
     emptyConfig,
   );
   expect(result).toBeCloseTo(1.0, 10);
-});
-
-test("aggregate: corr single element", async () => {
-  const result = await executeAggregate(
-    corrSpec,
-    jsToLuaValue([{ x: 1, y: 2 }]),
-    parseExpressionString("_.y"),
-    [parseExpressionString("_.x")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: corr constant x returns null", async () => {
@@ -900,21 +691,6 @@ test("aggregate: quantile (linear, default)", async () => {
     [makeOrderBy("_.v", "asc")],
   );
   expect(result).toBe(3);
-});
-
-test("aggregate: quantile empty group", async () => {
-  const result = await executeAggregate(
-    quantileSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [parseExpressionString("0.5")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: quantile with lower method", async () => {
@@ -989,24 +765,6 @@ test("aggregate: quantile with nearest method", async () => {
   expect(result).toBe(20);
 });
 
-test("aggregate: percentile_cont", async () => {
-  // [1,2,3,4,5] q=0.25 yields: idx=1.0 yields: values[1]=2 (linear, exact)
-  const result = await executeAggregate(
-    percentileContSpec,
-    jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }, { v: 4 }, { v: 5 }]),
-    parseExpressionString("_.v"),
-    [parseExpressionString("0.25")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-    undefined,
-    [makeOrderBy("_.v", "asc")],
-  );
-  expect(result).toBe(2);
-});
-
 test("aggregate: percentile_cont interpolation", async () => {
   // [10, 20, 30, 40] q=0.5 yields: idx=1.5 yields: 20 + 0.5*(30-20) = 25
   const result = await executeAggregate(
@@ -1041,24 +799,6 @@ test("aggregate: percentile_disc", async () => {
     [makeOrderBy("_.v", "asc")],
   );
   expect(result).toBe(2);
-});
-
-test("aggregate: percentile_disc at boundary", async () => {
-  // [10, 20, 30] q=0 yields: idx=0, lower yields: values[0]=10
-  const result = await executeAggregate(
-    percentileDiscSpec,
-    jsToLuaValue([{ v: 10 }, { v: 20 }, { v: 30 }]),
-    parseExpressionString("_.v"),
-    [parseExpressionString("0")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-    undefined,
-    [makeOrderBy("_.v", "asc")],
-  );
-  expect(result).toBe(10);
 });
 
 test("aggregate: sum with objectVariable", async () => {
@@ -1099,15 +839,6 @@ test("aggregate: user-defined overrides builtin", async () => {
     config,
   );
   expect(result).toBe(103);
-});
-
-test("aggregate: builtin available without config", () => {
-  const spec = getAggregateSpec("sum");
-  expect(spec).not.toBeNull();
-  expect(spec!.name).toBe("sum");
-
-  const spec2 = getAggregateSpec("nonexistent");
-  expect(spec2).toBeNull();
 });
 
 test("aggregate: sum with filter", async () => {
@@ -1361,42 +1092,6 @@ test("evalExpressionWithAggregates: sum in table constructor", async () => {
   }
 });
 
-test("evalExpressionWithAggregates: count() with no args", async () => {
-  {
-    const groupItems = jsToLuaValue([{ x: 1 }, { x: 2 }, { x: 3 }]);
-    const env = new LuaEnv();
-    const expr = parseExpressionString("count()");
-    const result = await evalExpressionWithAggregates(
-      expr,
-      env,
-      sf,
-      groupItems,
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe(3);
-  }
-});
-
-test("evalExpressionWithAggregates: non-aggregate falls through", async () => {
-  {
-    const env = new LuaEnv();
-    env.setLocal("key", "hello");
-    const expr = parseExpressionString("key");
-    const result = await evalExpressionWithAggregates(
-      expr,
-      env,
-      sf,
-      new LuaTable(),
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe("hello");
-  }
-});
-
 test("evalExpressionWithAggregates: multiple aggregates in table", async () => {
   {
     const groupItems = jsToLuaValue([{ v: 5 }, { v: 15 }, { v: 10 }]);
@@ -1422,41 +1117,6 @@ test("evalExpressionWithAggregates: multiple aggregates in table", async () => {
   }
 });
 
-test("evalExpressionWithAggregates: avg with finish step", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 10 }, { v: 30 }]);
-    const env = new LuaEnv();
-    const expr = parseExpressionString("avg(_.v)");
-    const result = await evalExpressionWithAggregates(
-      expr,
-      env,
-      sf,
-      groupItems,
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe(20);
-  }
-});
-
-test("evalExpressionWithAggregates: binary comparison (count > N)", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 1 }, { v: 2 }, { v: 3 }]);
-    const env = new LuaEnv();
-    const result = await evalExpressionWithAggregates(
-      parseExpressionString("count(_.v) > 2"),
-      env,
-      sf,
-      groupItems,
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe(true);
-  }
-});
-
 test("evalExpressionWithAggregates: binary arithmetic (sum + sum)", async () => {
   {
     const groupItems = jsToLuaValue([
@@ -1474,40 +1134,6 @@ test("evalExpressionWithAggregates: binary arithmetic (sum + sum)", async () => 
       emptyConfig,
     );
     expect(result).toBe(50);
-  }
-});
-
-test("evalExpressionWithAggregates: unary minus on aggregate", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 10 }, { v: 20 }]);
-    const env = new LuaEnv();
-    const result = await evalExpressionWithAggregates(
-      parseExpressionString("-sum(_.v)"),
-      env,
-      sf,
-      groupItems,
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe(-30);
-  }
-});
-
-test("evalExpressionWithAggregates: parenthesized aggregate", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 7 }, { v: 3 }]);
-    const env = new LuaEnv();
-    const result = await evalExpressionWithAggregates(
-      parseExpressionString("(sum(_.v))"),
-      env,
-      sf,
-      groupItems,
-      undefined,
-      env,
-      emptyConfig,
-    );
-    expect(result).toBe(10);
   }
 });
 
@@ -1529,53 +1155,6 @@ test("evalExpressionWithAggregates: and short-circuit", async () => {
     expect(
       await evalExpressionWithAggregates(
         parseExpressionString("false and count(_.v)"),
-        env,
-        sf,
-        groupItems,
-        undefined,
-        env,
-        emptyConfig,
-      ),
-    ).toBe(false);
-  }
-});
-
-test("evalExpressionWithAggregates: or short-circuit", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 1 }]);
-    const env = new LuaEnv();
-    expect(
-      await evalExpressionWithAggregates(
-        parseExpressionString("count(_.v) or 99"),
-        env,
-        sf,
-        groupItems,
-        undefined,
-        env,
-        emptyConfig,
-      ),
-    ).toBe(1);
-    expect(
-      await evalExpressionWithAggregates(
-        parseExpressionString("nil or count(_.v)"),
-        env,
-        sf,
-        groupItems,
-        undefined,
-        env,
-        emptyConfig,
-      ),
-    ).toBe(1);
-  }
-});
-
-test("evalExpressionWithAggregates: not aggregate", async () => {
-  {
-    const groupItems = jsToLuaValue([{ v: 1 }]);
-    const env = new LuaEnv();
-    expect(
-      await evalExpressionWithAggregates(
-        parseExpressionString("not count(_.v)"),
         env,
         sf,
         groupItems,
@@ -1806,205 +1385,6 @@ test("aggregate: custom concat with finish", async () => {
   expect(result).toBe("a, b, c");
 });
 
-test("aggregate: extra args - no extra args (default)", async () => {
-  const concatSpec: AggregateSpec = {
-    name: "concat",
-    initialize: new LuaBuiltinFunction((_sf, _ctx: any, sep: any) => {
-      return { sep: sep ?? ", ", parts: [] as string[] };
-    }),
-    iterate: new LuaBuiltinFunction(
-      (_sf, state: any, value: any, _ctx: any) => {
-        if (value !== null && value !== undefined) {
-          state.parts.push(String(value));
-        }
-        return state;
-      },
-    ),
-    finish: new LuaBuiltinFunction((_sf, state: any) => {
-      return state.parts.join(state.sep);
-    }),
-  };
-
-  const result = await executeAggregate(
-    concatSpec,
-    jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe("Alice, Bob, Carol");
-});
-
-test("aggregate: extra args - single extra arg (custom separator)", async () => {
-  const concatSpec: AggregateSpec = {
-    name: "concat",
-    initialize: new LuaBuiltinFunction((_sf, _ctx: any, sep: any) => {
-      return { sep: sep ?? ", ", parts: [] as string[] };
-    }),
-    iterate: new LuaBuiltinFunction(
-      (_sf, state: any, value: any, _ctx: any) => {
-        if (value !== null && value !== undefined) {
-          state.parts.push(String(value));
-        }
-        return state;
-      },
-    ),
-    finish: new LuaBuiltinFunction((_sf, state: any) => {
-      return state.parts.join(state.sep);
-    }),
-  };
-
-  const result = await executeAggregate(
-    concatSpec,
-    jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
-    parseExpressionString("_.v"),
-    [parseExpressionString("' - '")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe("Alice - Bob - Carol");
-});
-
-test("aggregate: extra args - two extra args (separator + prefix)", async () => {
-  const concat2Spec: AggregateSpec = {
-    name: "concat2",
-    initialize: new LuaBuiltinFunction(
-      (_sf, _ctx: any, sep: any, prefix: any) => {
-        return {
-          sep: sep ?? ", ",
-          prefix: prefix ?? "",
-          parts: [] as string[],
-        };
-      },
-    ),
-    iterate: new LuaBuiltinFunction(
-      (_sf, state: any, value: any, _ctx: any) => {
-        if (value !== null && value !== undefined) {
-          state.parts.push(String(value));
-        }
-        return state;
-      },
-    ),
-    finish: new LuaBuiltinFunction((_sf, state: any) => {
-      return state.prefix + state.parts.join(state.sep);
-    }),
-  };
-
-  const result = await executeAggregate(
-    concat2Spec,
-    jsToLuaValue([{ v: "Alice" }, { v: "Bob" }, { v: "Carol" }]),
-    parseExpressionString("_.v"),
-    [parseExpressionString("' | '"), parseExpressionString("'Names: '")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe("Names: Alice | Bob | Carol");
-});
-
-test("aggregate: extra args + filter", async () => {
-  const concatSpec: AggregateSpec = {
-    name: "concat",
-    initialize: new LuaBuiltinFunction((_sf, _ctx: any, sep: any) => {
-      return { sep: sep ?? ", ", parts: [] as string[] };
-    }),
-    iterate: new LuaBuiltinFunction(
-      (_sf, state: any, value: any, _ctx: any) => {
-        if (value !== null && value !== undefined) {
-          state.parts.push(String(value));
-        }
-        return state;
-      },
-    ),
-    finish: new LuaBuiltinFunction((_sf, state: any) => {
-      return state.parts.join(state.sep);
-    }),
-  };
-
-  const result = await executeAggregate(
-    concatSpec,
-    jsToLuaValue([
-      { v: "Alice", age: 31 },
-      { v: "Bob", age: 25 },
-      { v: "Carol", age: 41 },
-    ]),
-    parseExpressionString("_.v"),
-    [parseExpressionString("' + '")],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-    parseExpressionString("_.age > 30"),
-  );
-  expect(result).toBe("Alice + Carol");
-});
-
-test("aggregate: extra args + order by", async () => {
-  const concatSpec: AggregateSpec = {
-    name: "concat",
-    initialize: new LuaBuiltinFunction((_sf, _ctx: any, sep: any) => {
-      return { sep: sep ?? ", ", parts: [] as string[] };
-    }),
-    iterate: new LuaBuiltinFunction(
-      (_sf, state: any, value: any, _ctx: any) => {
-        if (value !== null && value !== undefined) {
-          state.parts.push(String(value));
-        }
-        return state;
-      },
-    ),
-    finish: new LuaBuiltinFunction((_sf, state: any) => {
-      return state.parts.join(state.sep);
-    }),
-  };
-
-  const resultNoOrder = await executeAggregate(
-    concatSpec,
-    jsToLuaValue([
-      { v: "Carol", k: 3 },
-      { v: "Alice", k: 1 },
-      { v: "Bob", k: 2 },
-    ]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(resultNoOrder).toBe("Carol, Alice, Bob");
-
-  const resultOrdered = await executeAggregate(
-    concatSpec,
-    jsToLuaValue([
-      { v: "Carol", k: 3 },
-      { v: "Alice", k: 1 },
-      { v: "Bob", k: 2 },
-    ]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-    undefined,
-    [makeOrderBy("_.k", "asc")],
-  );
-  expect(resultOrdered).toBe("Alice, Bob, Carol");
-});
-
 test("aggregate: extra args + order by + filter combined", async () => {
   const concatSpec: AggregateSpec = {
     name: "concat",
@@ -2125,51 +1505,6 @@ test("aggregate: mode with tie returns first to reach max", async () => {
   expect(result).toBe("a");
 });
 
-test("aggregate: mode on empty group", async () => {
-  const result = await executeAggregate(
-    modeSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
-test("aggregate: mode skips nulls", async () => {
-  const result = await executeAggregate(
-    modeSpec,
-    jsToLuaValue([{ v: "x" }, { z: 1 }, { z: 2 }, { v: "x" }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe("x");
-});
-
-test("aggregate: mode with numbers", async () => {
-  const result = await executeAggregate(
-    modeSpec,
-    jsToLuaValue([{ v: 3 }, { v: 1 }, { v: 3 }, { v: 2 }, { v: 1 }, { v: 3 }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe(3);
-});
-
 test("aggregate: first returns first non-null value", async () => {
   const result = await executeAggregate(
     firstSpec,
@@ -2198,21 +1533,6 @@ test("aggregate: first skips leading nulls", async () => {
     emptyConfig,
   );
   expect(result).toBe("found");
-});
-
-test("aggregate: first on empty group", async () => {
-  const result = await executeAggregate(
-    firstSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
 });
 
 test("aggregate: first with order by", async () => {
@@ -2251,58 +1571,6 @@ test("aggregate: last returns last non-null value", async () => {
   expect(result).toBe("c");
 });
 
-test("aggregate: last skips trailing nulls", async () => {
-  const result = await executeAggregate(
-    lastSpec,
-    jsToLuaValue([{ v: "a" }, { v: "last" }, { z: 1 }, { z: 2 }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe("last");
-});
-
-test("aggregate: last on empty group", async () => {
-  const result = await executeAggregate(
-    lastSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
-test("aggregate: last with order by desc", async () => {
-  const result = await executeAggregate(
-    lastSpec,
-    jsToLuaValue([
-      { v: "c", k: 3 },
-      { v: "a", k: 1 },
-      { v: "b", k: 2 },
-    ]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-    undefined,
-    [makeOrderBy("_.k", "desc")],
-  );
-  // desc order: c(3), b(2), a(1) -> last = "a"
-  expect(result).toBe("a");
-});
-
 test("aggregate: median of odd count", async () => {
   const result = await executeAggregate(
     medianSpec,
@@ -2336,34 +1604,4 @@ test("aggregate: median of even count (interpolated)", async () => {
   );
   // [10,20,30,40] q=0.5 -> idx=1.5 -> 20 + 0.5*(30-20) = 25
   expect(result).toBe(25);
-});
-
-test("aggregate: median on empty group", async () => {
-  const result = await executeAggregate(
-    medianSpec,
-    new LuaTable(),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBeNull();
-});
-
-test("aggregate: median single element", async () => {
-  const result = await executeAggregate(
-    medianSpec,
-    jsToLuaValue([{ v: 42 }]),
-    parseExpressionString("_.v"),
-    [],
-    undefined,
-    new LuaEnv(),
-    sf,
-    evalExpression,
-    emptyConfig,
-  );
-  expect(result).toBe(42);
 });

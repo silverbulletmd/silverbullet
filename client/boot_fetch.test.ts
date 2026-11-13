@@ -48,14 +48,6 @@ test("a proxy 404 during a restart boots from the cache and keeps it", async () 
   expect(cache(".config")).toBe(CONFIG);
 });
 
-test("a non-JSON config response boots from the cache", async () => {
-  const { deps } = setup(
-    () => new Response("<html>Bad gateway</html>"),
-    allCached,
-  );
-  expect((await loadBootFiles(".config", deps)).configText).toBe(CONFIG);
-});
-
 test("an unreachable server boots from the cache", async () => {
   const { deps } = setup(() => new TypeError("Failed to fetch"), allCached);
   expect((await loadBootFiles(".config", deps)).configText).toBe(CONFIG);

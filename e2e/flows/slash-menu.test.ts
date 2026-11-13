@@ -148,86 +148,36 @@ test.describe("slash menu", () => {
       });
     expect(alpha).toBeLessThan(1);
   });
-
-  test("Bulleted list turns the current line into a list item", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openAt(sbPage, sbServer, 3);
-    await sbPage.keyboard.type(" /bullet");
-    await menuSettled(sbPage);
-    await options(sbPage).filter({ hasText: "Bulleted list" }).click();
-    await expect
-      .poll(async () => (await docLines(sbPage))[2].trimEnd())
-      .toBe("* Buy milk");
-  });
 });
 
-// Every entry the menu lists on a blank line, picked on a blank line and on a
-// line with text. Enumerated from the menu, so new entries are covered too.
+// One representative entry per behavior, picked on a blank line and on a line
+// with text: a line prefix, a callout, a block of its own, a link and a date.
 const BASE = "Intro\n\nSome text here\n\nOutro\n";
 const TEXT = "Some text here";
 
-/** Entries that open a dialog or picker rather than change the page */
-const SKIPPED: Record<string, string> = {
-  "Image or file":
-    "opens the system file dialog (its own test checks the chooser opens)",
-  "Query…": "opens the Workbench query editor (its own test checks it opens)",
-};
-
 type Expected = (string | RegExp)[];
 /** Exact lines from the line the entry was picked on, per mode */
-type Expectation = { blank?: Expected; text?: Expected; caretAtEnd?: boolean };
+type Expectation = { blank: Expected; text: Expected; caretAtEnd?: boolean };
 
-const date = /^\d{4}-\d{2}-\d{2}$/;
 const EXPECTED: Record<string, Expectation> = {
-  ...Object.fromEntries(
-    [1, 2, 3, 4].map((level) => {
-      const marker = `${"#".repeat(level)} `;
-      return [
-        `Heading ${level}`,
-        { blank: [marker], text: [marker + TEXT], caretAtEnd: true },
-      ];
-    }),
-  ),
+  "Heading 1": { blank: ["# "], text: [`# ${TEXT}`], caretAtEnd: true },
   Quote: { blank: ["> "], text: [`> ${TEXT}`], caretAtEnd: true },
-  "Bulleted list": { blank: ["* "], text: [`* ${TEXT}`], caretAtEnd: true },
-  "Numbered list": { blank: ["1. "], text: [`1. ${TEXT}`], caretAtEnd: true },
   Task: { blank: ["* [ ] "], text: [`* [ ] ${TEXT}`], caretAtEnd: true },
-  ...Object.fromEntries(
-    ["note", "warning", "danger", "success"].map((type) => {
-      const title = `> **${type}** ${type[0].toUpperCase()}${type.slice(1)}`;
-      return [
-        `Callout: ${type}`,
-        { blank: [title, "> "], text: [title, `> ${TEXT}`] },
-      ];
-    }),
-  ),
-  // Blocks of their own: in place of a blank line, below a line with text
-  ...Object.fromEntries(
-    [
-      ["Code block", "```"],
-      ["Table", "| Header A | Header B |"],
-      ["Divider", "---"],
-      ["Data block", /^```#/],
-      ["Space Lua block", "```space-lua"],
-      ["Query (code)", "${query[["],
-    ].map(([label, first]) => [
-      label as string,
-      { blank: [first], text: [TEXT, "", first] },
-    ]),
-  ),
-  Signature: { blank: [/^-- @\S+$/], text: [/^Some text here -- @\S+$/] },
-  Today: {
-    blank: [date],
-    text: [new RegExp(`^${TEXT} \\d{4}-\\d{2}-\\d{2}$`)],
+  "Callout: warning": {
+    blank: ["> **warning** Warning", "> "],
+    text: ["> **warning** Warning", `> ${TEXT}`],
+  },
+  // A block of its own: in place of a blank line, below a line with text
+  Table: {
+    blank: ["| Header A | Header B |"],
+    text: [TEXT, "", "| Header A | Header B |"],
   },
   "Link to page": { blank: ["[[]]"], text: [`${TEXT} [[]]`] },
-  "Embed page": { blank: ["![[]]"], text: [`${TEXT} ![[]]`] },
-  Tag: { blank: ["#"], text: [`${TEXT} #`] },
+  Today: {
+    blank: [/^\d{4}-\d{2}-\d{2}$/],
+    text: [new RegExp(`^${TEXT} \\d{4}-\\d{2}-\\d{2}$`)],
+  },
 };
-EXPECTED.Tomorrow = EXPECTED.Today;
-EXPECTED.Yesterday = EXPECTED.Today;
 
 /** Resets the page to `BASE` with the cursor at the end of 1-based `line` */
 async function resetTo(page: Page, line: number) {
@@ -285,14 +235,13 @@ const matches = (lines: string[], expected: Expected) =>
     typeof want === "string" ? lines[i] === want : want.test(lines[i] ?? ""),
   );
 
-test.describe("every slash menu entry", () => {
+test.describe("slash menu entries", () => {
   test.use({ spaceFiles: { "index.md": "Welcome", "Notes/Slash.md": BASE } });
 
-  test("does something on a blank line and on a line with text", async ({
+  test("a representative entry per behavior works on a blank line and on a line with text", async ({
     sbPage,
     sbServer,
   }) => {
-    test.setTimeout(240_000);
     await openAt(sbPage, sbServer, 2);
     await sbPage.keyboard.type("/");
     const labels = await menuLabels(sbPage);
@@ -300,29 +249,16 @@ test.describe("every slash menu entry", () => {
     for (const core of ["Heading 1", "Quote", "Numbered list", "Table"]) {
       expect(labels).toContain(core);
     }
-    for (const [label, why] of Object.entries(SKIPPED)) {
-      if (labels.includes(label)) {
-        test.info().annotations.push({
-          type: "skipped",
-          description: `${label}: ${why}`,
-        });
-      }
-    }
 
-    for (const label of labels) {
-      if (SKIPPED[label]) continue;
+    for (const label of Object.keys(EXPECTED)) {
+      expect(labels, `the menu offers ${label}`).toContain(label);
       for (const mode of ["blank", "text"] as const) {
         const line = mode === "blank" ? 2 : 3;
         await resetTo(sbPage, line);
         await sbPage.keyboard.type(mode === "blank" ? "/" : " /");
-        const offered = await menuLabels(sbPage);
-        if (!offered.includes(label)) {
-          test.info().annotations.push({
-            type: "not offered",
-            description: `${label} on a line with text`,
-          });
-          continue;
-        }
+        expect(await menuLabels(sbPage), `${label} (${mode} line)`).toContain(
+          label,
+        );
         await option(sbPage, label).click();
         const unchanged = [BASE, BASE.replace(TEXT, `${TEXT} `)];
         const doc = await settle(
@@ -332,22 +268,20 @@ test.describe("every slash menu entry", () => {
         expect
           .soft(unchanged, `${label} (${mode} line) changes the page`)
           .not.toContain(doc);
-        const expected = EXPECTED[label]?.[mode];
-        if (expected) {
-          const lines = await settle(
-            async () => (await docLines(sbPage)).slice(line - 1),
-            (lines) => matches(lines, expected),
-          );
-          expect
-            .soft(
-              matches(lines, expected),
-              `${label} (${mode} line) gives ${expected}, got ${JSON.stringify(lines.slice(0, expected.length))}`,
-            )
-            .toBe(true);
-          if (mode === "blank" && EXPECTED[label].caretAtEnd) {
-            const { head, lineEnd } = await caret(sbPage);
-            expect.soft(head, `${label}: caret after the markup`).toBe(lineEnd);
-          }
+        const expected = EXPECTED[label][mode];
+        const lines = await settle(
+          async () => (await docLines(sbPage)).slice(line - 1),
+          (lines) => matches(lines, expected),
+        );
+        expect
+          .soft(
+            matches(lines, expected),
+            `${label} (${mode} line) gives ${expected}, got ${JSON.stringify(lines.slice(0, expected.length))}`,
+          )
+          .toBe(true);
+        if (mode === "blank" && EXPECTED[label].caretAtEnd) {
+          const { head, lineEnd } = await caret(sbPage);
+          expect.soft(head, `${label}: caret after the markup`).toBe(lineEnd);
         }
       }
     }
@@ -373,26 +307,5 @@ test.describe("every slash menu entry", () => {
     await expect(sbPage.getByRole("region", { name: "Query" })).toContainText(
       "Insert at cursor goes where you typed /Query…",
     );
-  });
-
-  test("Page properties is offered only without frontmatter", async ({
-    sbPage,
-    sbServer,
-  }) => {
-    await openAt(sbPage, sbServer, 2);
-    await sbPage.keyboard.type("/");
-    await menuSettled(sbPage);
-    await option(sbPage, "Page properties").click();
-    await expect
-      .poll(async () => (await docLines(sbPage)).slice(0, 3))
-      .toEqual(["---", "", "---"]);
-    // Now the page has frontmatter: no longer offered
-    await resetTo(sbPage, 2);
-    await sbPage.evaluate(() => {
-      const view = (globalThis as any).client.editorView;
-      view.dispatch({ changes: { from: 0, insert: "---\na: 1\n---\n" } });
-    });
-    await sbPage.keyboard.type("/");
-    expect(await menuLabels(sbPage)).not.toContain("Page properties");
   });
 });

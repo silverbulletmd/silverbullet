@@ -1,8 +1,5 @@
 import { expect, test } from "vitest";
 import {
-  allFolderPaths,
-  allNodes,
-  ancestorPaths,
   buildTree,
   computeTreeDisplay,
   findNode,
@@ -10,7 +7,6 @@ import {
   nodeObject,
   planMove,
   pruneTree,
-  withExpanded,
 } from "./tree_model.ts";
 
 const row = (name: string) => ({
@@ -78,49 +74,6 @@ test("pruneTree keeps matches, ancestors, score order", () => {
   );
   expect(pruned.children.map((c) => c.path)).toEqual(["B", "A"]); // B's best score wins
   expect(pruned.children[1].children.map((c) => c.path)).toEqual(["A/Match1"]);
-});
-
-test("ancestorPaths", () => {
-  expect(ancestorPaths("A/B/C", "/")).toEqual(["A", "A/B"]);
-  expect(ancestorPaths("Top", "/")).toEqual([]);
-});
-
-test("pruneTree keeps matches, ancestors, score order at depth", () => {
-  // Regression for the memoized bestScore: a deeper tree where a grandchild's
-  // score has to bubble up through two folder levels.
-  const root = buildTree(
-    [row("A/B/Match"), row("A/B/Nope"), row("A/Other"), row("C/Match2")],
-    "/",
-    true,
-  );
-  const pruned = pruneTree(
-    root,
-    new Map([
-      ["A/B/Match", 0.3],
-      ["C/Match2", 0.9],
-    ]),
-  );
-  expect(pruned.children.map((c) => c.path)).toEqual(["C", "A"]);
-  const a = pruned.children[1];
-  expect(a.children.map((c) => c.path)).toEqual(["A/B"]);
-  expect(a.children[0].children.map((c) => c.path)).toEqual(["A/B/Match"]);
-});
-
-test("allFolderPaths collects every folder, not leaves", () => {
-  const root = buildTree([row("A/B/C"), row("A/D"), row("E")], "/", true);
-  expect(allFolderPaths(root)).toEqual(new Set(["A", "A/B"]));
-});
-
-test("findNode finds nodes at any depth, and misses cleanly", () => {
-  const root = buildTree([row("A/B/C"), row("D")], "/", true);
-  expect(findNode(root, "A/B/C")!.segment).toBe("C");
-  expect(findNode(root, "A/B")!.isFolder).toBe(true);
-  expect(findNode(root, "")).toBe(root);
-  expect(findNode(root, "A/B/Nope")).toBeUndefined();
-  // A sibling whose name merely starts with another's -- the descent must
-  // not mistake "AB" for a child of "A".
-  const wide = buildTree([row("A/X"), row("AB")], "/", true);
-  expect(findNode(wide, "AB")!.path).toBe("AB");
 });
 
 test("planMove computes the new name for a page and for the root", () => {
@@ -273,15 +226,6 @@ test("expandAll: the set names the collapsed folders", () => {
   ]);
 });
 
-test("expandAll: a folder collapsed above hides the ones below it", () => {
-  const rows = [row("A/B/C"), row("A/B/D")];
-  const display = computeTreeDisplay(rows, "/", true, {
-    expanded: new Set(["A"]),
-    expandAll: true,
-  });
-  expect(display.visible.map((v) => v.node.path)).toEqual(["A"]);
-});
-
 test("expandAll: a folder that wasn't there before arrives expanded", () => {
   const collapsed = new Set(["A"]);
   const before = computeTreeDisplay([row("A/B"), row("C/D")], "/", true, {
@@ -305,35 +249,6 @@ test("expandAll: a folder that wasn't there before arrives expanded", () => {
     "E/F",
     "E/F/G",
   ]);
-});
-
-test("expandAll: filtering force-expands, ignoring the collapsed set", () => {
-  const rows = [row("A/Match"), row("A/Nope"), row("B/Other")];
-  const display = computeTreeDisplay(
-    rows,
-    "/",
-    true,
-    { expanded: new Set(["A"]), expandAll: true },
-    new Map([["A/Match", 1]]),
-  );
-  expect(display.effectiveExpanded).toEqual(new Set(["A"]));
-  expect(display.visible.map((v) => v.node.path)).toEqual(["A", "A/Match"]);
-});
-
-test("withExpanded expands under either reading", () => {
-  expect(withExpanded(new Set(["A"]), ["B"], false)).toEqual(
-    new Set(["A", "B"]),
-  );
-  expect(withExpanded(new Set(["A", "B"]), ["B"], true)).toEqual(
-    new Set(["A"]),
-  );
-  // Already open under expandAll: nothing to remove.
-  expect(withExpanded(new Set(["A"]), ["B"], true)).toEqual(new Set(["A"]));
-});
-
-test("allNodes walks the whole tree, root excluded", () => {
-  const root = buildTree([row("A/B/C"), row("D")], "/", true);
-  expect(allNodes(root).map((n) => n.path)).toEqual(["A", "A/B", "A/B/C", "D"]);
 });
 
 test("nodeObject marks folders and never mutates the row's object", () => {

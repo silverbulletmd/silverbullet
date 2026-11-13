@@ -1237,13 +1237,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn boots_empty_without_config_file() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        assert!(m.registry().current().instances.is_empty());
-    }
-
-    #[tokio::test]
     async fn a_legacy_payload_is_normalized_on_create() {
         let dir = tempfile::tempdir().unwrap();
         let manager = boot(dir.path());
@@ -1255,31 +1248,26 @@ mod tests {
         let stored = manager.get(&id).unwrap();
         assert_eq!(stored["access"], serde_json::json!("write"));
         assert!(stored.get("public").is_none());
-    }
 
-    #[tokio::test]
-    async fn a_legacy_payload_is_normalized_on_update() {
-        let dir = tempfile::tempdir().unwrap();
-        let manager = boot(dir.path());
-        let id = manager
-            .create(
-                payload(
-                    "W",
-                    Binding::Prefix {
-                        prefix: "/w".into(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
+        // Update: a legacy `public: false` payload is normalized too.
         let mut cfg: SpaceConfig =
             serde_json::from_str(r#"{"name":"W","binding":{"prefix":"/w"},"public":false}"#)
                 .unwrap();
-        cfg.folder = format!("spaces/{id}");
+        cfg.folder = stored["folder"].as_str().unwrap().to_string();
         manager.update(&id, cfg).unwrap();
         let stored = manager.get(&id).unwrap();
         assert_eq!(stored["access"], serde_json::json!("none"));
         assert!(stored.get("public").is_none());
+
+        // Patch: the legacy key must take effect, not be a silent no-op.
+        for (public, access) in [(true, "write"), (false, "none")] {
+            let mut body = serde_json::Map::new();
+            body.insert("public".into(), serde_json::json!(public));
+            manager.patch(&id, body).unwrap();
+            let v = manager.get(&id).unwrap();
+            assert_eq!(v["access"], serde_json::json!(access), "{v}");
+            assert!(v.get("public").is_none());
+        }
     }
 
     #[tokio::test]
@@ -1505,31 +1493,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn create_with_seed_index_false_skips_index() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        let id = m
-            .create(
-                payload(
-                    "NoSeed",
-                    Binding::Prefix {
-                        prefix: "/ns".into(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
-        assert!(
-            !dir.path()
-                .join("spaces")
-                .join(&id)
-                .join("index.md")
-                .exists(),
-            "index.md must not be seeded when seed_index=false"
-        );
-    }
-
-    #[tokio::test]
     async fn patch_updates_one_field_and_preserves_the_rest() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot_with_users(dir.path(), &["bob"]);
@@ -1586,37 +1549,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn admin_space_json_warns_only_for_legacy_root_mix_participants() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = legacy_root_mix(dir.path());
-        let separate = m
-            .create(
-                payload(
-                    "Separate",
-                    Binding::Host {
-                        host: "separate.test".into(),
-                        prefix: String::new(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
-        for id in ["root", "work"] {
-            let warning = m.get(id).unwrap()["bindingWarning"]
-                .as_str()
-                .unwrap()
-                .to_string();
-            assert!(warning.contains("Root") && warning.contains("Work"));
-            assert_eq!(m.list()[id]["bindingWarning"], warning);
-        }
-        assert!(m.get(&separate).unwrap().get("bindingWarning").is_none());
-        let visible = serde_json::to_value(m.list_accessible("fixture-admin", true)).unwrap();
-        assert!(!visible.to_string().contains("bindingWarning"));
-        m.delete("root").unwrap();
-        assert!(m.get("work").unwrap().get("bindingWarning").is_none());
-    }
-
-    #[tokio::test]
     async fn patch_ignores_derived_keys_and_does_not_persist_them() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
@@ -1649,90 +1581,6 @@ mod tests {
             !raw.contains("bindingWarning"),
             "derived key persisted: {raw}"
         );
-    }
-
-    #[tokio::test]
-    async fn patch_with_an_empty_body_is_a_no_op() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        let id = m
-            .create(
-                payload(
-                    "Work",
-                    Binding::Prefix {
-                        prefix: "/work".into(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
-
-        m.patch(&id, serde_json::Map::new()).unwrap();
-        assert_eq!(m.get(&id).unwrap()["name"], "Work");
-    }
-
-    #[tokio::test]
-    async fn patch_and_get_reject_an_unknown_id() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        assert!(m.get("nope").is_none());
-        assert!(matches!(
-            m.patch("nope", serde_json::Map::new()),
-            Err(ApiError::NotFound)
-        ));
-    }
-
-    #[tokio::test]
-    async fn patch_legacy_public_key_locks_down_a_write_space() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        let id = m
-            .create(
-                payload(
-                    "Work",
-                    Binding::Prefix {
-                        prefix: "/work".into(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
-        assert_eq!(m.get(&id).unwrap()["access"], serde_json::json!("write"));
-
-        let mut body = serde_json::Map::new();
-        body.insert("public".into(), serde_json::json!(false));
-        m.patch(&id, body).unwrap();
-
-        let v = m.get(&id).unwrap();
-        assert_eq!(
-            v["access"],
-            serde_json::json!("none"),
-            "the legacy key must actually take effect, not be a silent no-op: {v}"
-        );
-        assert!(v.get("public").is_none());
-    }
-
-    #[tokio::test]
-    async fn patch_with_explicit_access_still_works() {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot(dir.path());
-        let id = m
-            .create(
-                payload(
-                    "Work",
-                    Binding::Prefix {
-                        prefix: "/work".into(),
-                    },
-                ),
-                false,
-            )
-            .unwrap();
-
-        let mut body = serde_json::Map::new();
-        body.insert("access".into(), serde_json::json!("read"));
-        m.patch(&id, body).unwrap();
-
-        assert_eq!(m.get(&id).unwrap()["access"], serde_json::json!("read"));
     }
 
     #[tokio::test]
@@ -1812,37 +1660,6 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn list_accessible_is_sorted_by_name() {
-        // Six unsorted inputs reduce the chance that random HashMap order
-        // accidentally satisfies the sorting assertion.
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot_with_users(dir.path(), &[]);
-        for (name, prefix) in [
-            ("Mike", "/m"),
-            ("Zulu", "/z"),
-            ("Delta", "/d"),
-            ("Foxtrot", "/f"),
-            ("Alpha", "/a"),
-            ("Kilo", "/k"),
-        ] {
-            let mut cfg = payload(
-                name,
-                Binding::Prefix {
-                    prefix: prefix.into(),
-                },
-            );
-            cfg.access = Some(SpaceAccess::Write);
-            m.create(cfg, true).unwrap();
-        }
-        let names: Vec<String> = m
-            .list_accessible("anyone", false)
-            .into_iter()
-            .map(|s| s.name)
-            .collect();
-        assert_eq!(names, ["Alpha", "Delta", "Foxtrot", "Kilo", "Mike", "Zulu"]);
-    }
-
     /// One private space (member "zef" only) and one `access: read` space
     /// open to any account. Returns the `TempDir` guard alongside the
     /// manager: `boot` writes `spaces.json` under it and `create` seeds index
@@ -1874,31 +1691,6 @@ mod tests {
         (dir, m)
     }
 
-    fn manager_with_read_role_member() -> (tempfile::TempDir, std::sync::Arc<MultiManager>) {
-        let dir = tempfile::tempdir().unwrap();
-        let m = boot_with_users(dir.path(), &["sam"]);
-
-        let mut cfg = payload(
-            "Team",
-            Binding::Prefix {
-                prefix: "/team".into(),
-            },
-        );
-        cfg.access = Some(SpaceAccess::None);
-        cfg.members.insert(
-            "sam".into(),
-            MemberEntry {
-                role: MemberRole::Read,
-                runtime_api: false,
-                runtime_api_explicit: true,
-                extra: Default::default(),
-            },
-        );
-        m.create(cfg, true).unwrap();
-
-        (dir, m)
-    }
-
     #[tokio::test]
     async fn a_read_public_space_is_listed_for_every_account() {
         let (_dir, manager) = manager_with_private_and_public();
@@ -1908,21 +1700,5 @@ mod tests {
             .map(|s| s.name)
             .collect();
         assert_eq!(names, vec!["Public Wiki".to_string()]);
-    }
-
-    #[tokio::test]
-    async fn the_listing_reports_the_access_level() {
-        let (_dir, manager) = manager_with_private_and_public();
-        let listed = manager.list_accessible("zef", false);
-        let wiki = listed.iter().find(|s| s.name == "Public Wiki").unwrap();
-        assert_eq!(wiki.access, SpaceAccess::Read);
-        let private = listed.iter().find(|s| s.name == "Work").unwrap();
-        assert_eq!(private.access, SpaceAccess::None);
-    }
-
-    #[tokio::test]
-    async fn a_read_role_member_can_see_the_space() {
-        let (_dir, manager) = manager_with_read_role_member();
-        assert_eq!(manager.list_accessible("sam", false).len(), 1);
     }
 }

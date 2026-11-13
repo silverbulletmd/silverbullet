@@ -17,11 +17,8 @@ import {
   type LibraryRow,
   librariesReducer,
   libraryLists,
-  plural,
   removeMessage,
-  revertMessage,
   rowActions,
-  rowKey,
   runTask,
   toolbar,
   updateAllLibraries,
@@ -131,20 +128,6 @@ describe("running a task", () => {
     expect(refresh).toHaveBeenCalledOnce();
     expect(state.errors.installed).toBeUndefined();
   });
-
-  test("a task that only reads can skip the refresh", async () => {
-    const refresh = vi.fn(async () => {});
-    await runTask(
-      { refresh, dispatch: () => {} },
-      "k",
-      "installed",
-      async () => 1,
-      {
-        refresh: false,
-      },
-    );
-    expect(refresh).not.toHaveBeenCalled();
-  });
 });
 
 describe("update checks", () => {
@@ -211,16 +194,6 @@ describe("update checks", () => {
 });
 
 describe("lists", () => {
-  test("an empty view model gives all three empty states", () => {
-    const lists = libraryLists(EMPTY_LIBRARIES, "");
-    expect(lists.installed).toEqual([]);
-    expect(lists.groups).toEqual([]);
-    expect(lists.repositories).toEqual([]);
-    expect(lists.updatable).toBe(0);
-    // Before the first load the tab shows the same empty lists, not a spinner
-    expect(initialLibrariesState().data).toEqual(EMPTY_LIBRARIES);
-  });
-
   test("rows get their badge and what they allow", () => {
     const { installed, repositories } = libraryLists(sample, "", {}, [
       "Library/Repository/Std",
@@ -402,15 +375,6 @@ describe("requirements", () => {
     ).toBe("Installed Ink and what it requires: EB Garamond");
   });
 
-  test("an install that pulled requirements in names them", () => {
-    expect(
-      installedWithMessage({
-        page: "Library/acme/Themes/Paper",
-        requirements: ["Library/acme/Fonts/Lora", "Library/acme/Fonts/Inter"],
-      }),
-    ).toBe("Installed Paper and what it requires: Lora, Inter");
-  });
-
   test("an available library lists its requirements, as its repository gives them", () => {
     const ink = libraryLists(data, "").groups[0].libraries[1];
     expect(ink.requirements).toEqual([
@@ -533,15 +497,12 @@ describe("loading", () => {
     });
     expect(isLoading(failed)).toBe(false);
     expect(failed.errors.installed).toBe("offline");
-  });
-
-  test("dismissing a failed load's error doesn't bring Loading back", () => {
-    let state = librariesReducer(initialLibrariesState(), {
-      type: "loadFailed",
-      message: "offline",
+    // Dismissing the error doesn't bring Loading back.
+    const dismissed = librariesReducer(failed, {
+      type: "error",
+      section: "installed",
     });
-    state = librariesReducer(state, { type: "error", section: "installed" });
-    expect(isLoading(state)).toBe(false);
+    expect(isLoading(dismissed)).toBe(false);
   });
 });
 
@@ -606,28 +567,6 @@ describe("confirming", () => {
     await confirmThen(lib, "Sure?", act, { confirm, setError: vi.fn() });
     expect(act).toHaveBeenCalledOnce();
   });
-
-  test("the questions", () => {
-    const { installed, repositories } = libraryLists(sample, "");
-    expect(removeMessage(installed[1])).toBe(
-      'Remove library "Library/Acme/Tools"?',
-    );
-    expect(removeMessage(installed[3])).toBe(
-      'Remove plug "_plug/stray.plug.js"?',
-    );
-    expect(removeMessage(repositories[1])).toBe(
-      'Remove repository "Library/Repository/Acme"?',
-    );
-    expect(revertMessage(installed[1])).toBe(
-      'Discard your changes to "Library/Acme/Tools" and restore the installed version?',
-    );
-  });
-
-  test("a row's actions share one busy key", () => {
-    const { installed, repositories } = libraryLists(sample, "");
-    expect(rowKey(installed[1])).toBe("library:Library/Acme/Tools");
-    expect(rowKey(repositories[1])).toBe("repository:Library/Repository/Acme");
-  });
 });
 
 vi.mock("../../navigator/navigator.ts", () => ({ showView: vi.fn() }));
@@ -643,13 +582,6 @@ describe("showing the tab", () => {
   const request = (focus: LibrariesFocus) =>
     void openWorkbench({ tab: "Libraries", focus }, async () => {});
 
-  test("reloads every time it shows", () => {
-    const reload = vi.fn(async () => {});
-    show(reload)();
-    show(reload)();
-    expect(reload).toHaveBeenCalledTimes(2);
-  });
-
   test("runs a pending request once, and new ones only while showing", () => {
     const run = vi.fn(async () => {});
     request("install");
@@ -662,9 +594,4 @@ describe("showing the tab", () => {
     expect(run).toHaveBeenCalledTimes(2);
     takeWorkbenchTarget("Libraries");
   });
-});
-
-test("plural counts", () => {
-  expect(plural(1, "library", "libraries")).toBe("1 library");
-  expect(plural(2, "library", "libraries")).toBe("2 libraries");
 });

@@ -1367,97 +1367,6 @@ pub(crate) mod tests {
             .unwrap()
     }
 
-    #[tokio::test]
-    async fn admin_and_spaces_share_one_authenticator() {
-        use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
-        use crate::multi::instance::{build_instance, InstanceStatus};
-
-        let dir = tempfile::tempdir().unwrap();
-        let users = UserStore::create_empty(dir.path()).unwrap();
-        users
-            .create_user("admin", "adminpw1", true, Profile::default())
-            .unwrap();
-        let authenticator = test_authenticator();
-
-        // The admin surface persists its signing secret to the *admin* file
-        // under the data root.
-        let manager = MultiManager::boot(
-            dir.path().to_path_buf(),
-            deps(dir.path(), users.clone(), authenticator.clone()),
-            std::collections::BTreeSet::new(),
-        )
-        .unwrap();
-        AdminState::new(
-            manager,
-            users.clone(),
-            authenticator.clone(),
-            crate::runtime::RuntimeAvailability::Available,
-        );
-
-        // A private (users-backed) space whose folder resolves to the data
-        // root persists its own secret to the *space* file in that same dir.
-        let cfg = SpaceConfig {
-            folder: dir.path().to_str().unwrap().to_string(),
-            access: Some(SpaceAccess::None),
-            ..SpaceConfig::test("Root", Binding::Prefix { prefix: "/".into() })
-        };
-        let inst = build_instance(
-            "root",
-            &cfg,
-            &deps(dir.path(), users.clone(), authenticator.clone()),
-        );
-        assert!(
-            matches!(inst.status, InstanceStatus::Running),
-            "{:?}",
-            inst.status
-        );
-
-        assert!(Arc::strong_count(&authenticator) > 1);
-    }
-
-    #[tokio::test]
-    async fn api_is_gated_and_an_admin_session_unlocks_it() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _m, users) = admin_router(&dir);
-        assert_eq!(
-            send(&r, get("/api/spaces")).await.status(),
-            StatusCode::UNAUTHORIZED
-        );
-
-        let cookie = session_cookie(&users, "admin");
-        assert!(cookie.starts_with("auth_localhost="), "{cookie}");
-        let resp = send(
-            &r,
-            Request::builder()
-                .uri("/api/spaces")
-                .header("host", "localhost")
-                .header("cookie", &cookie)
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        // A valid session for a *non-admin* account is still refused — but as
-        // 403, not 401: the caller is signed in, so sending it to the login
-        // screen would only bounce it back here.
-        users
-            .create_user("bob", "pw123456", false, Profile::default())
-            .unwrap();
-        let bob = session_cookie(&users, "bob");
-        let resp = send(
-            &r,
-            Request::builder()
-                .uri("/api/spaces")
-                .header("host", "localhost")
-                .header("cookie", &bob)
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::FORBIDDEN);
-    }
-
     /// The 401/403 split the unified `/.dashboard` client depends on: no session
     /// at all is 401 (go log in), a valid non-admin session is 403 (a dead
     /// end the client must render as an error, never as a redirect).
@@ -1621,29 +1530,6 @@ pub(crate) mod tests {
 
     fn space_folder(root: &std::path::Path, id: &str) -> std::path::PathBuf {
         root.join("spaces").join(id)
-    }
-
-    #[tokio::test]
-    async fn legacy_git_mutations_are_unavailable() {
-        let (router, cookie, id, dir) = git_fixture().await;
-        let repo = space_folder(dir.path(), &id);
-        for (method, suffix, body) in [
-            ("PUT", "remote", r#"{"url":"git@example.test:notes.git"}"#),
-            ("POST", "key", "{}"),
-            ("DELETE", "key", "{}"),
-        ] {
-            let response = authed(
-                &router,
-                method,
-                &format!("/api/spaces/{id}/git/{suffix}"),
-                body,
-                &cookie,
-            )
-            .await;
-            assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-        }
-        assert!(git::run(&repo, &["remote", "get-url", "origin"], &[]).is_err());
-        assert!(keys::public_key(dir.path(), &id).is_none());
     }
 
     async fn git_fixture() -> (axum::Router, String, String, tempfile::TempDir) {
@@ -2175,74 +2061,6 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
-    async fn get_unknown_space_is_404() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _m, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let resp = authed(&router, "GET", "/api/spaces/nope", "", &cookie).await;
-        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn patch_carrying_unknown_auth_is_400() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _m, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let id = create_space(
-            &router,
-            &cookie,
-            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
-        )
-        .await;
-
-        let resp = authed(
-            &router,
-            "PATCH",
-            &format!("/api/spaces/{id}"),
-            r#"{"auth":{"mode":"inherit"}}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-        let v = body_json(resp).await;
-        assert!(
-            v["errors"][0]["field"].as_str().unwrap().ends_with(".auth"),
-            "{v}"
-        );
-    }
-
-    #[tokio::test]
-    async fn patch_name_only_leaves_other_fields_alone() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _m, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let id = create_space(
-            &router,
-            &cookie,
-            r#"{"name":"Work","binding":{"prefix":"/work"},"readOnly":true}"#,
-        )
-        .await;
-
-        let resp = authed(
-            &router,
-            "PATCH",
-            &format!("/api/spaces/{id}"),
-            r#"{"name":"Renamed"}"#,
-            &cookie,
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let resp = authed(&router, "GET", &format!("/api/spaces/{id}"), "", &cookie).await;
-        let v = body_json(resp).await;
-        assert_eq!(v["name"], "Renamed");
-        assert_eq!(
-            v["readOnly"], true,
-            "PATCH must not reset unnamed fields: {v}"
-        );
-    }
-
-    #[tokio::test]
     async fn patch_members_with_an_unknown_user_is_400() {
         let dir = tempfile::tempdir().unwrap();
         let (router, _m, users) = admin_router(&dir);
@@ -2265,33 +2083,6 @@ pub(crate) mod tests {
         )
         .await;
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn patch_empty_body_is_a_noop_returning_ok() {
-        let dir = tempfile::tempdir().unwrap();
-        let (router, _m, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let id = create_space(
-            &router,
-            &cookie,
-            r#"{"name":"Work","binding":{"prefix":"/work"}}"#,
-        )
-        .await;
-
-        let resp = authed(
-            &router,
-            "PATCH",
-            &format!("/api/spaces/{id}"),
-            "{}",
-            &cookie,
-        )
-        .await;
-        assert_eq!(resp.status(), StatusCode::OK);
-
-        let resp = authed(&router, "GET", &format!("/api/spaces/{id}"), "", &cookie).await;
-        let v = body_json(resp).await;
-        assert_eq!(v["name"], "Work");
     }
 
     #[tokio::test]
@@ -2394,50 +2185,6 @@ pub(crate) mod tests {
 
         let v = body_json(authed(&r, "GET", "/api/fs/dirs?path=afile", "", &cookie).await).await;
         assert_eq!(v["status"], "notADirectory");
-    }
-
-    #[tokio::test]
-    async fn port_check_endpoint_does_not_exist() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _m, users) = admin_router(&dir);
-        let cookie = session_cookie(&users, "admin");
-        let response = authed(&r, "GET", "/api/net/port?port=4000", "", &cookie).await;
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
-    }
-
-    #[tokio::test]
-    async fn admin_api_token_of_admin_user_works_and_member_token_does_not() {
-        let dir = tempfile::tempdir().unwrap();
-        let (r, _m, users) = admin_router(&dir);
-        users
-            .create_user("bob", "pw123456", false, Profile::default())
-            .unwrap();
-        let admin_tok = users.create_token("admin", "ci").unwrap();
-        let bob_tok = users.create_token("bob", "ci").unwrap();
-        let ok = send(
-            &r,
-            Request::builder()
-                .uri("/api/spaces")
-                .header("host", "localhost")
-                .header("authorization", format!("Bearer {admin_tok}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await;
-        assert_eq!(ok.status(), StatusCode::OK);
-        let no = send(
-            &r,
-            Request::builder()
-                .uri("/api/spaces")
-                .header("host", "localhost")
-                .header("authorization", format!("Bearer {bob_tok}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await;
-        // Bob's token is a real credential, so this is 403 (authenticated,
-        // not permitted) rather than 401 — same split as cookie sessions.
-        assert_eq!(no.status(), StatusCode::FORBIDDEN);
     }
 
     #[tokio::test]

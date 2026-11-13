@@ -47,7 +47,16 @@ test("oauth.deviceFlow wires proxyFetch, timers and the UI", async () => {
     )
     .mockResolvedValueOnce(ok({ access_token: "tok", token_type: "bearer" }));
   const { fn, showDeviceCode, close } = setup();
-  const token = await fn({}, opts);
+  vi.useFakeTimers();
+  let token: unknown;
+  try {
+    const pending = fn({}, opts);
+    // Past the 1 s polling interval
+    await vi.advanceTimersByTimeAsync(1000);
+    token = await pending;
+  } finally {
+    vi.useRealTimers();
+  }
   expect(token).toEqual({ access_token: "tok", token_type: "bearer" });
   expect(showDeviceCode).toHaveBeenCalledWith(
     expect.objectContaining({ userCode: "ABCD-1234" }),

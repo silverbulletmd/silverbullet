@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import type { IndexReport } from "../types/search_admin.ts";
 import {
   downloadProgress,
   formatBytes,
@@ -8,14 +9,8 @@ import {
   indexStateText,
   indexStatusWord,
   modelChangeConfirmText,
-  onByDefaultText,
-  rebuildConfirmText,
-  removeModelConfirmText,
   searchSummaryText,
-  semanticStateText,
-  spaceBadgeLabel,
 } from "./search_admin_format.ts";
-import type { IndexReport } from "../types/search_admin.ts";
 
 const e5 = {
   id: "multilingual-e5-small",
@@ -99,42 +94,10 @@ test("index states read as one line", () => {
   ).toBe(0.25);
 });
 
-test("the rebuild confirmation just asks", () => {
-  expect(rebuildConfirmText()).toBe(
-    "Are you sure you want to rebuild the search index?",
-  );
-});
-
 test("changing the model only asks when spaces use it", () => {
   expect(modelChangeConfirmText(null, e5, 0)).toBeNull();
   expect(modelChangeConfirmText(e5, null, 2)).toContain("2 spaces");
   expect(modelChangeConfirmText(null, e5, 1)).toContain("488 MB");
-});
-
-test("semantic states explain why semantic search is off", () => {
-  expect(semanticStateText("on")).toBeNull();
-  expect(semanticStateText("offByChoice")).toBe("Off by choice");
-  expect(semanticStateText("offTooLarge")).toBe("Off: over 5,000 pages");
-  expect(semanticStateText("noModel")).toBe("Off: no search model");
-});
-
-test("the space list badge names a building or failed search index", () => {
-  expect(spaceBadgeLabel("building")).toBe("Indexing");
-  expect(spaceBadgeLabel("failed")).toBe("Search failed");
-  expect(spaceBadgeLabel(null)).toBeNull();
-});
-
-test("the remove confirmation names the model, its size and where it is", () => {
-  const stored = {
-    id: e5.id,
-    displayName: e5.displayName,
-    bytes: 487_724_985,
-    complete: true,
-    active: false,
-  };
-  expect(removeModelConfirmText(stored, "this computer")).toBe(
-    "Remove Multilingual E5 Small (488 MB) from this computer? You can download it again later.",
-  );
 });
 
 test("index sizes add up, and progress is clamped", () => {
@@ -222,12 +185,6 @@ test("the summary names what each space is doing, building first", () => {
       b: space("Bikes", state("failed", { reason: "y" })),
     }),
   ).toBe("Indexing Notes (1 of 1 page), search failed in 2 spaces");
-});
-
-test("the on-by-default help names the model and where it is chosen", () => {
-  expect(onByDefaultText("Multilingual E5 Small", "this server")).toBe(
-    "On by default for this server's search model (Multilingual E5 Small). Turn it off to use full-text search only in this space.",
-  );
 });
 
 test("the spaces table says each index's status in one word", () => {

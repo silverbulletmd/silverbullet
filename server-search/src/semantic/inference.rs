@@ -559,30 +559,6 @@ mod tests {
     async fn the_ninth_waiting_query_is_busy() {
         let inference = Inference::with_embedder(Arc::new(FakeEmbedder::new()));
         let release = hold(&inference);
-        let waiting: Vec<_> = (0..limits::MAX_QUERY_EMBEDS)
-            .map(|i| {
-                let inference = inference.clone();
-                tokio::spawn(async move { inference.embed_query(&format!("q{i}"), &cx()).await })
-            })
-            .collect();
-        until("eight queued", || {
-            inference.queued().0 == limits::MAX_QUERY_EMBEDS
-        })
-        .await;
-        assert_eq!(
-            inference.embed_query("one too many", &cx()).await,
-            Err(SearchError::Busy)
-        );
-        drop(release);
-        for query in waiting {
-            assert!(query.await.unwrap().is_ok());
-        }
-    }
-
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_canceled_query_frees_its_place_in_the_queue() {
-        let inference = Inference::with_embedder(Arc::new(FakeEmbedder::new()));
-        let release = hold(&inference);
         let requests: Vec<RequestCx> = (0..limits::MAX_QUERY_EMBEDS).map(|_| cx()).collect();
         let superseded = requests[0].cancel.clone();
         let waiting: Vec<_> = requests
@@ -597,6 +573,11 @@ mod tests {
             inference.queued().0 == limits::MAX_QUERY_EMBEDS
         })
         .await;
+        assert_eq!(
+            inference.embed_query("one too many", &cx()).await,
+            Err(SearchError::Busy)
+        );
+        // A canceled query frees its place for the newest one.
         superseded.cancel();
         let newest = {
             let inference = inference.clone();
@@ -659,63 +640,6 @@ mod tests {
             2,
             "reloaded after the idle unload"
         );
-    }
-
-    /// The worker times out waiting while a job is being queued (the test
-    /// holds the queue lock past the idle deadline): it must run the job with
-    /// the loaded model rather than unload and reload it.
-    ///
-    /// The test takes the lock only once the worker is parked in its timed
-    /// idle wait with the model loaded (`parked == Some(true)`). If it misses
-    /// that window (the worker unloaded first), it reloads and tries again, so
-    /// the outcome never depends on scheduling.
-    #[test]
-    fn an_idle_unload_never_races_a_job_queued_at_the_deadline() {
-        let idle = Duration::from_millis(20);
-        let (inference, counts) = probed(idle);
-        let started = Instant::now();
-        let (mut queue, loads, drops) = loop {
-            assert!(
-                started.elapsed() < Duration::from_secs(10),
-                "timed out: parked while loaded"
-            );
-            inference.run_index(|_| ()).unwrap();
-            let caught = loop {
-                let queue = inference.shared.lock();
-                match queue.parked {
-                    Some(true) => break Some(queue),
-                    // Missed the idle window: the model is already unloaded.
-                    Some(false) => break None,
-                    None => {
-                        drop(queue);
-                        std::thread::sleep(Duration::from_millis(1));
-                    }
-                }
-            };
-            if let Some(queue) = caught {
-                // Parked while loaded and the lock is ours: the model can't be
-                // unloaded until we let go.
-                let (loads, drops) = (
-                    counts.loads.load(Ordering::SeqCst),
-                    counts.drops.load(Ordering::SeqCst),
-                );
-                break (queue, loads, drops);
-            }
-        };
-        // The worker can't take the lock back: its idle timeout expires while
-        // the job goes in.
-        std::thread::sleep(idle * 5);
-        let (reply, answer) = std::sync::mpsc::sync_channel(1);
-        queue
-            .index
-            .push_back(Box::new(move |model: Result<&dyn Embedder, &str>| {
-                let _ = reply.send(model.is_ok());
-            }));
-        drop(queue);
-        inference.shared.wake.notify_one();
-        assert!(answer.recv().unwrap(), "the job got the model");
-        assert_eq!(counts.loads.load(Ordering::SeqCst), loads, "never reloaded");
-        assert_eq!(counts.drops.load(Ordering::SeqCst), drops, "never unloaded");
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

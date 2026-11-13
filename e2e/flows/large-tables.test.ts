@@ -26,17 +26,31 @@ test("scrolling past large markdown tables keeps a stable position", async ({
   await expect(page.locator(".sb-table-widget table").first()).toBeVisible();
   await scroller.hover();
 
-  let previous = await scroller.evaluate((element) => element.scrollTop);
+  const scrollTop = () => scroller.evaluate((element) => element.scrollTop);
+  // The widgets above re-measure after each scroll; wait until the position
+  // has stopped moving instead of sleeping a guessed time
+  const settled = () =>
+    expect
+      .poll(async () => {
+        const before = await scrollTop();
+        await page.waitForTimeout(50);
+        return before === (await scrollTop());
+      })
+      .toBe(true);
+
+  const wheel = 1_200;
+  let previous = await scrollTop();
   let largestStep = 0;
-  for (let i = 0; i < 120; i++) {
-    await page.mouse.wheel(0, 300);
-    await page.waitForTimeout(75);
-    const current = await scroller.evaluate((element) => element.scrollTop);
+  for (let i = 0; i < 30; i++) {
+    await page.mouse.wheel(0, wheel);
+    await settled();
+    const current = await scrollTop();
     largestStep = Math.max(largestStep, Math.abs(current - previous));
     previous = current;
   }
 
   expect(previous).toBeGreaterThan(20_000);
-  // Allow modest height corrections, but never a leap across a whole table.
-  expect(largestStep).toBeLessThan(2_000);
+  // Allow modest height corrections on top of the wheel step, but never a leap
+  // across a whole table.
+  expect(largestStep).toBeLessThan(wheel + 1_700);
 });

@@ -173,16 +173,23 @@ describe("DataModel", () => {
     expect(first.listWidth).toBe(120);
     first.setWidth("list", 5000, true);
     expect(first.listWidth).toBe(480);
-  });
 
-  test("a width is remembered only once the drag commits it", () => {
-    const storage = memoryStorage();
-    const first = setup({ storage }).model;
-    first.setWidth("list", 300, false);
-    expect(first.listWidth).toBe(300);
-    expect(setup({ storage }).model.listWidth).toBe(168);
-    first.setWidth("list", 310, true);
-    expect(setup({ storage }).model.listWidth).toBe(310);
+    // A drag in progress is not remembered until it commits.
+    const dragStorage = memoryStorage();
+    const dragged = setup({ storage: dragStorage }).model;
+    dragged.setWidth("list", 300, false);
+    expect(dragged.listWidth).toBe(300);
+    expect(setup({ storage: dragStorage }).model.listWidth).toBe(168);
+    dragged.setWidth("list", 310, true);
+    expect(setup({ storage: dragStorage }).model.listWidth).toBe(310);
+
+    // The query editor's width is clamped and remembered the same way.
+    const clauses = setup({ storage }).model;
+    expect(clauses.clausesWidth).toBe(380);
+    clauses.setWidth("clauses", 500, true);
+    expect(setup({ storage }).model.clausesWidth).toBe(500);
+    clauses.setWidth("clauses", 10, true);
+    expect(clauses.clausesWidth).toBe(240);
   });
 
   test("a load before the space is ready retries until it is", async () => {
@@ -201,15 +208,5 @@ describe("DataModel", () => {
     } finally {
       vi.useRealTimers();
     }
-  });
-
-  test("the query editor's width is clamped and remembered too", () => {
-    const storage = memoryStorage();
-    const first = setup({ storage }).model;
-    expect(first.clausesWidth).toBe(380);
-    first.setWidth("clauses", 500, true);
-    expect(setup({ storage }).model.clausesWidth).toBe(500);
-    first.setWidth("clauses", 10, true);
-    expect(first.clausesWidth).toBe(240);
   });
 });

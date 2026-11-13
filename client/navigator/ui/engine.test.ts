@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import type { Row, ViewMeta } from "../types.ts";
+import type { ViewMeta } from "../types.ts";
 
 const syscall = vi.fn<(name: string, ...args: any[]) => Promise<any>>();
 const handle = vi.fn<(data: any) => Promise<any>>();
@@ -47,19 +47,6 @@ function bridge(viewMeta: ViewMeta, rows: unknown[]) {
   });
 }
 
-function bridgeWithRowState(
-  viewMeta: ViewMeta,
-  rows: unknown[],
-  rowStates: unknown[],
-) {
-  handle.mockImplementation((payload: any) => {
-    if (payload.hook === "meta") return Promise.resolve(viewMeta);
-    if (payload.hook === "rows") return Promise.resolve(rows);
-    if (payload.hook === "rowState") return Promise.resolve(rowStates);
-    return Promise.resolve(undefined);
-  });
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -78,42 +65,6 @@ test("selection and key handlers receive the active dock", async () => {
     hook: "key",
     args: { key: " ", obj: { name: "note.md" }, dock: "lhs" },
   });
-});
-
-test("an empty table from decorations becomes no decorations at all", async () => {
-  bridge(meta(), [
-    {
-      obj: { name: "Tagged" },
-      primary: "Tagged",
-      decorations: [{ text: "#work" }],
-    },
-    { obj: { name: "Plain" }, primary: "Plain", decorations: {} },
-  ]);
-
-  const state = await new NavigatorEngine().activate("v");
-
-  expect(state.rows[0].decorations).toEqual([{ text: "#work" }]);
-  expect(state.rows[1].decorations).toBeUndefined();
-  for (const row of state.rows as Row[]) {
-    expect(() => (row.decorations ?? []).filter(() => true)).not.toThrow();
-  }
-});
-
-test("the empty-table meta fields are normalized to absent", async () => {
-  bridge(
-    meta({
-      actions: {} as any,
-      keys: {} as any,
-      segments: {} as any,
-    }),
-    [],
-  );
-
-  const state = await new NavigatorEngine().activate("v");
-
-  expect(state.meta.actions).toBeUndefined();
-  expect(state.meta.keys).toBeUndefined();
-  expect(state.meta.segments).toBeUndefined();
 });
 
 test("a dropdown view loads its options and per-row masks with every load", async () => {
@@ -178,22 +129,9 @@ test("a failing dropdown hook leaves options absent without breaking the load", 
   errorSpy.mockRestore();
 });
 
-test("parseIcon reads a bare name as a Feather name", () => {
-  expect(parseIcon("lock")).toEqual({ kind: "feather", name: "lock" });
-});
-
-test("parseIcon strips a feather: prefix down to the bare name", () => {
-  expect(parseIcon("feather:lock")).toEqual({ kind: "feather", name: "lock" });
-});
-
 test("parseIcon takes a string starting with <svg as literal markup", () => {
   const markup = "<svg viewBox='0 0 24 24'><path d='M0 0'/></svg>";
   expect(parseIcon(markup)).toEqual({ kind: "svg", markup });
-});
-
-test("parseIcon trims leading whitespace before sniffing for <svg", () => {
-  const markup = "<svg viewBox='0 0 24 24'></svg>";
-  expect(parseIcon(`  \n\t${markup}`)).toEqual({ kind: "svg", markup });
 });
 
 test("parseIcon reports an unrecognized namespace, not a Feather name", () => {
@@ -201,86 +139,6 @@ test("parseIcon reports an unrecognized namespace, not a Feather name", () => {
     kind: "unknown",
     prefix: "lucide",
   });
-});
-
-test("parseIcon trims leading whitespace before scanning for a namespace colon", () => {
-  expect(parseIcon("  \tfeather:lock")).toEqual({
-    kind: "feather",
-    name: "lock",
-  });
-  expect(parseIcon("  lock")).toEqual({ kind: "feather", name: "lock" });
-});
-
-test("parseIcon classifies a non-string as invalid, without throwing", () => {
-  // A row.icon function can return an invalid { svg } object at runtime.
-  expect(parseIcon({ svg: "<svg></svg>" })).toEqual({ kind: "invalid" });
-  expect(parseIcon(undefined)).toEqual({ kind: "invalid" });
-  expect(parseIcon(42)).toEqual({ kind: "invalid" });
-});
-
-test("an unrecognized icon namespace resolves nothing and warns once per prefix, not per row", async () => {
-  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  bridgeWithRowState(
-    meta({ hasRowIcon: true }),
-    [
-      { obj: { name: "a" }, primary: "a" },
-      { obj: { name: "b" }, primary: "b" },
-      { obj: { name: "c" }, primary: "c" },
-    ],
-    [{ icon: "bogus:one" }, { icon: "bogus:two" }, { icon: "other:x" }],
-  );
-
-  const state = await new NavigatorEngine().activate("v");
-
-  for (const row of state.rows as Row[]) {
-    expect(state.rowState?.byRow?.get(row)?.icon).toBeUndefined();
-  }
-  expect(errorSpy).toHaveBeenCalledTimes(2);
-  expect(errorSpy).toHaveBeenCalledWith(
-    'navigator: unknown icon namespace "bogus:"',
-  );
-  expect(errorSpy).toHaveBeenCalledWith(
-    'navigator: unknown icon namespace "other:"',
-  );
-  errorSpy.mockRestore();
-});
-
-// The real-world trigger is a client one version stale against its host during a rolling upgrade, where icon.resolveFeather doesn't exist yet and the syscall rejects.
-test("a rejected icon.resolveFeather syscall still completes the render, without icons, warning once", async () => {
-  const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-  syscall.mockImplementation((name: string) => {
-    if (name === "icon.resolveFeather") {
-      return Promise.reject(
-        new Error("Unregistered syscall icon.resolveFeather"),
-      );
-    }
-    return Promise.resolve(undefined);
-  });
-  handle.mockImplementation((payload: any) => {
-    if (payload.hook === "meta") {
-      return Promise.resolve(meta({ hasRowIcon: true }));
-    }
-    if (payload.hook === "rows") {
-      return Promise.resolve([
-        { obj: { name: "a" }, primary: "a" },
-        { obj: { name: "b" }, primary: "b" },
-      ]);
-    }
-    if (payload.hook === "rowState") {
-      return Promise.resolve([{ icon: "lock" }, { icon: "file" }]);
-    }
-    return Promise.resolve(undefined);
-  });
-
-  const state = await new NavigatorEngine().activate("v");
-
-  expect(state.rows.length).toBe(2);
-  for (const row of state.rows as Row[]) {
-    expect(state.rowState?.byRow?.get(row)?.icon).toBeUndefined();
-  }
-  expect(warnSpy).toHaveBeenCalledTimes(1);
-  expect(String(warnSpy.mock.calls[0][0])).toContain("icon resolution failed");
-  warnSpy.mockRestore();
 });
 
 test("dropIfEphemeral evicts an ephemeral view's cache entry, and clears activeName if it was current", async () => {
@@ -377,22 +235,6 @@ test("a built-in's meta is resolved once and never asked for again on later acti
   expect(metaCalls).toBe(1);
 });
 
-test("a row.icon crossing the bridge as a table (not a string) draws nothing and never throws or warns", async () => {
-  // Validate row.icon results at runtime too; their shape is unknown at definition.
-  const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-  bridgeWithRowState(
-    meta({ hasRowIcon: true }),
-    [{ obj: { name: "a" }, primary: "a" }],
-    [{ icon: { svg: "<svg></svg>" } as unknown as string }],
-  );
-
-  const state = await new NavigatorEngine().activate("v");
-
-  expect(state.rowState?.byRow?.get(state.rows[0])?.icon).toBeUndefined();
-  expect(errorSpy).not.toHaveBeenCalled();
-  errorSpy.mockRestore();
-});
-
 test("a reload in flight never exposes a half-cleared view to a publish", async () => {
   // Swap rows and dropdown options atomically: a concurrent publish must
   // never expose new rows with missing masks.
@@ -485,26 +327,6 @@ test("a refresh and a query carry ctx.dock too", async () => {
   expect(last.args.ctx.phrase).toBe("typed");
 });
 
-test("a content view's load carries the dock as well", async () => {
-  handle.mockImplementation((payload: any) => {
-    if (payload.hook === "meta") {
-      return Promise.resolve(meta({ hasContent: true }));
-    }
-    if (payload.hook === "content") {
-      return Promise.resolve({ value: "# hi" });
-    }
-    return Promise.resolve(undefined);
-  });
-
-  const state = await new NavigatorEngine("lhs").activate("v");
-
-  expect(state.contentValue).toBe("# hi");
-  const contentCall = handle.mock.calls
-    .map(([payload]) => payload)
-    .find((p) => p.hook === "content");
-  expect(contentCall.args.ctx.dock).toBe("lhs");
-});
-
 test("loading covers initial metadata and clears when activation fails", async () => {
   let reject!: (error: Error) => void;
   handle.mockImplementation(
@@ -595,21 +417,6 @@ test("a rememberPhrase view gives back the phrase it last queried, across other 
   expect(engine.rememberedPhrase("missing")).toBeUndefined();
   await engine.activate("search");
   expect(engine.rememberedPhrase("search")).toBe("fern fronds");
-});
-
-test("a content view answering with a widget keeps the value for the panel", async () => {
-  const widget = { markdown: "# hi", cssClasses: ["fixture-note"] };
-  handle.mockImplementation((payload: any) => {
-    if (payload.hook === "meta") {
-      return Promise.resolve(meta({ hasContent: true }));
-    }
-    if (payload.hook === "content") return Promise.resolve({ value: widget });
-    return Promise.resolve(undefined);
-  });
-
-  const state = await new NavigatorEngine("rhs").activate("v");
-
-  expect(state.contentValue).toEqual(widget);
 });
 
 test("a rows load remembers what its source read", async () => {

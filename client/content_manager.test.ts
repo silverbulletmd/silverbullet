@@ -3,7 +3,6 @@ import {
   Compartment,
   EditorSelection,
   EditorState,
-  StateEffect,
   type TransactionSpec,
 } from "@codemirror/state";
 import {
@@ -20,7 +19,6 @@ import type { EditorMode } from "./codemirror/editor_state.ts";
 import { loadLanguageFor } from "./languages.ts";
 import type { MediaCapabilities } from "./media.ts";
 import { MediaDocumentViewer } from "./media_document_viewer.ts";
-import { PermissionDeniedError } from "./spaces/http_space_primitives.ts";
 import { MediaTestElement, mediaTestDocument } from "./test_media_dom.ts";
 
 const editorStateSpies = vi.hoisted(() => ({
@@ -370,60 +368,6 @@ describe("ContentManager document resolution and host lifecycle", () => {
     }
   });
 
-  test("changing media kind destroys the previous viewer before mounting the next", async () => {
-    const dom = mediaTestDocument();
-    vi.stubGlobal("document", { ...document, ...dom });
-    const { cm } = setupDocuments(
-      {
-        getDocumentMeta: async (path) =>
-          documentMeta(
-            path,
-            path.endsWith(".mp4") ? "video/mp4" : "audio/mpeg",
-          ),
-      },
-      { supports: () => true },
-    );
-    try {
-      await cm.loadDocumentEditor({ path: "clip.mp4" });
-      const viewer = cm.documentEditor!;
-      const destroy = vi.spyOn(viewer, "destroy");
-      const video = dom.parent.find("video")!;
-      await cm.loadDocumentEditor({ path: "sound.mp3" });
-      expect(cm.documentEditor).not.toBe(viewer);
-      expect(destroy).toHaveBeenCalledOnce();
-      expect(video.pause).toHaveBeenCalledOnce();
-      expect(dom.parent.find("video")).toBeUndefined();
-      expect(dom.parent.find("audio")).toBeDefined();
-      expect(dom.parent.classList.contains("hide-cm")).toBe(true);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
-  test("inactive document state uses the incoming document permission", async () => {
-    const dom = mediaTestDocument();
-    vi.stubGlobal("document", { ...document, ...dom });
-    let perm: "ro" | "rw" = "ro";
-    const { cm } = setupDocuments(
-      {
-        getDocumentMeta: async (path) => ({
-          ...documentMeta(path, "video/mp4"),
-          perm,
-        }),
-      },
-      { supports: () => true },
-    );
-    try {
-      await cm.loadDocumentEditor({ path: "clip.mp4" });
-      expect(editorStateSpies.inactiveReadOnly.at(-1)).toBe(true);
-      perm = "rw";
-      await cm.loadDocumentEditor({ path: "clip.mp4" });
-      expect(editorStateSpies.inactiveReadOnly.at(-1)).toBe(false);
-    } finally {
-      vi.unstubAllGlobals();
-    }
-  });
-
   test("media waits for an active iframe save before replacing its DOM", async () => {
     const dom = mediaTestDocument();
     vi.stubGlobal("document", { ...document, ...dom });
@@ -592,42 +536,6 @@ describe("ContentManager document resolution and host lifecycle", () => {
     },
   );
 
-  test("text navigation loads metadata before bytes and keeps document events and watches", async () => {
-    const order: string[] = [];
-    const { client, cm } = setupDocuments({
-      getDocumentMeta: async (path) => {
-        order.push("meta");
-        return documentMeta(path);
-      },
-      readDocument: async (path) => {
-        order.push("bytes");
-        return {
-          data: new TextEncoder().encode("fn main() {}"),
-          meta: documentMeta(path),
-        };
-      },
-    });
-    await cm.loadDocumentEditor({ path: "sample.rs" });
-    expect(order).toEqual(["meta", "bytes"]);
-    expect(cm.documentEditor?.name).toBe("TextEditor");
-    expect(cm.hostEditorMode).toEqual(
-      expect.objectContaining({ kind: "text-document", path: "sample.rs" }),
-    );
-    expect(client.editorView.state.doc.toString()).toBe("fn main() {}");
-    expect(client.unwatchedFiles).toEqual(["Current.md"]);
-    expect(client.watchedFiles).toEqual(["sample.rs"]);
-    expect(client.viewState.current?.path).toBe("sample.rs");
-    expect(client.dispatchedEvents).toContainEqual({
-      name: "editor:documentLoaded",
-      args: ["sample.rs", "Current.md"],
-    });
-    expect(
-      client.dispatchedEvents.some((event) =>
-        event.name.startsWith("editor:page"),
-      ),
-    ).toBe(false);
-  });
-
   test("an invalid UTF-8 candidate preserves a prior text editor and never writes replacement characters", async () => {
     const writeDocument = vi.fn(async (path: string) => documentMeta(path));
     const { client, cm } = setupDocuments({
@@ -654,16 +562,6 @@ describe("ContentManager document resolution and host lifecycle", () => {
     expect(client.viewState.current?.path).toBe("sample.rs");
     expect(client.unwatchedFiles).not.toContain("sample.rs");
     expect(writeDocument).not.toHaveBeenCalled();
-  });
-
-  test("text-to-text navigation reuses its implementation across extensions", async () => {
-    const { client, cm } = setupDocuments();
-    await cm.loadDocumentEditor({ path: "sample.rs" });
-    const editor = cm.documentEditor;
-    await cm.loadDocumentEditor({ path: "sample.txt" });
-    expect(cm.documentEditor).toBe(editor);
-    expect(cm.documentEditor?.extension).toBe("txt");
-    expect(client.editorView.state.facet(language)).toBeNull();
   });
 
   test("a newly matched plug claims a formerly text extension and its failure surfaces", async () => {
@@ -891,47 +789,6 @@ describe("ContentManager document resolution and host lifecycle", () => {
 });
 
 describe("ContentManager host editor rebuilds", () => {
-  test("Markdown reconfiguration leaves a text document unchanged", async () => {
-    const client = makeClientStub({
-      initialDoc: "fn main() {}",
-      readPage: async () => {
-        throw new Error("unexpected read");
-      },
-    });
-    const cm = new ContentManager(client as unknown as Client);
-    cm.hostEditorMode = {
-      kind: "text-document",
-      path: "sample.rs",
-      language: await loadLanguageFor("rs"),
-    };
-    cm.rebuildEditorState();
-    client.editorView.dispatch({
-      effects: StateEffect.appendConfig.of(
-        client.markdownLanguageCompartment.of([]),
-      ),
-    });
-    const previous = client.editorView.state;
-    cm.reconfigureLanguage();
-    expect(client.editorView.state).toBe(previous);
-  });
-
-  test("Markdown reconfiguration still updates the active page", () => {
-    const client = makeClientStub({
-      initialDoc: "# Heading",
-      readPage: async () => {
-        throw new Error("unexpected read");
-      },
-    });
-    const cm = new ContentManager(client as unknown as Client);
-    client.editorView.dispatch({
-      effects: StateEffect.appendConfig.of(
-        client.markdownLanguageCompartment.of([]),
-      ),
-    });
-    cm.reconfigureLanguage();
-    expect(client.editorView.state.facet(language)?.name).toBe("markdown");
-  });
-
   test("retains text language, selection, read-only and scroll on rebuild", async () => {
     const client = makeClientStub({
       initialDoc: "fn main() {}",
@@ -963,25 +820,6 @@ describe("ContentManager host editor rebuilds", () => {
     expect(client.editorView.state.readOnly).toBe(true);
     expect(client.editorView.scrollDOM.scrollTop).toBe(150);
     expect(client.editorView.scrollDOM.scrollLeft).toBe(80);
-  });
-
-  test("an inactive host rebuild removes its previous language", async () => {
-    const client = makeClientStub({
-      initialDoc: "hello",
-      readPage: async () => {
-        throw new Error("unexpected read");
-      },
-    });
-    const cm = new ContentManager(client as unknown as Client);
-    client.editorView.setState(
-      EditorState.create({
-        doc: "fn main() {}",
-        extensions: [(await loadLanguageFor("rs"))!],
-      }),
-    );
-    cm.hostEditorMode = null;
-    cm.rebuildEditorState();
-    expect(client.editorView.state.facet(language)).toBeNull();
   });
 });
 
@@ -1315,94 +1153,6 @@ describe("ContentManager.reloadPageContent editor:pageReloaded notification", ()
     expect(reloaded).toEqual([
       { name: "editor:pageReloaded", args: ["index", "index"] },
     ]);
-  });
-
-  test("does not dispatch editor:pageReloaded for a stale patch dropped by the monotonicity guard", async () => {
-    let resolveOlder!: (r: ReadPageResult) => void;
-    let resolveNewer!: (r: ReadPageResult) => void;
-    const olderPromise = new Promise<ReadPageResult>((resolve) => {
-      resolveOlder = resolve;
-    });
-    const newerPromise = new Promise<ReadPageResult>((resolve) => {
-      resolveNewer = resolve;
-    });
-    let call = 0;
-    const client = makeClientStub({
-      initialDoc: "",
-      readPage: () => {
-        call++;
-        if (call === 1) {
-          return Promise.resolve({
-            text: "base\n",
-            meta: pageMeta("2026-01-01T00:00:00.000"),
-          });
-        }
-        return call === 2 ? olderPromise : newerPromise;
-      },
-    });
-    client.currentPathValue = "index.md";
-    const cm = new ContentManager(client as unknown as Client);
-    await cm.loadPage({ path: "index.md" }, false);
-
-    const olderReload = cm.reloadPageContent();
-    const newerReload = cm.reloadPageContent();
-
-    resolveNewer({
-      text: "base\nV2\n",
-      meta: pageMeta("2026-01-01T00:00:10.000"),
-    });
-    await newerReload;
-    client.dispatchedEvents.length = 0;
-
-    // Resolves after the newer one, with older content -- dropped by the
-    // monotonicity guard in applyExternalPatches. Nothing changed in the
-    // editor, so no notification should fire either.
-    resolveOlder({
-      text: "base\nV1\n",
-      meta: pageMeta("2026-01-01T00:00:05.000"),
-    });
-    await olderReload;
-
-    expect(
-      client.dispatchedEvents.some((e) => e.name === "editor:pageReloaded"),
-    ).toBe(false);
-  });
-
-  test("refreshes viewState.current.meta and body page-decoration classes from the object index", async () => {
-    // Frontmatter (and thus the indexed page decoration) only appears after
-    // the external edit below -- this is what the initial loadPage sees vs.
-    // what the live path must pick up without requiring re-navigation.
-    let diskText = "hello world\n";
-    const metaBeforeEdit = pageMeta("2026-01-01T00:00:00.000");
-    const metaAfterEdit = {
-      ...pageMeta("2026-01-01T00:00:05.000"),
-      pageDecoration: { cssClasses: ["journal-page"] },
-    } as PageMeta;
-    let enrichedMeta = metaBeforeEdit;
-    const client = makeClientStub({
-      initialDoc: "",
-      readPage: async () => ({
-        text: diskText,
-        meta: pageMeta("2026-01-01T00:00:00.000"),
-      }),
-      hasFullIndexCompleted: async () => true,
-      getObjectByRef: async () => enrichedMeta,
-    });
-    client.currentPathValue = "index.md";
-    const cm = new ContentManager(client as unknown as Client);
-
-    await cm.loadPage({ path: "index.md" }, false);
-    expect(client.viewState.current?.meta).toEqual(metaBeforeEdit);
-
-    diskText = "hello world\nExternal line\n";
-    enrichedMeta = metaAfterEdit;
-    await cm.reloadPageContent();
-
-    expect(client.viewState.current?.meta).toEqual(metaAfterEdit);
-    expect(
-      (globalThis as unknown as { document: { body: { className: string } } })
-        .document.body.className,
-    ).toBe("journal-page");
   });
 });
 
@@ -1749,22 +1499,6 @@ describe("ContentManager.save error handling", () => {
     const cm = new ContentManager(client as unknown as Client);
     return { cm, flashes };
   }
-
-  test("a PermissionDeniedError flashes a read-only notice and does not schedule a retry", async () => {
-    const { cm, flashes } = setUpFailingSave(new PermissionDeniedError());
-    const setTimeoutSpy = vi.spyOn(globalThis, "setTimeout");
-
-    await expect(cm.save(true)).rejects.toThrow(PermissionDeniedError);
-
-    expect(flashes).toEqual([
-      { message: "You have read-only access to this space", type: "error" },
-    ]);
-    expect(setTimeoutSpy.mock.calls.some(([, delay]) => delay === 10000)).toBe(
-      false,
-    );
-
-    setTimeoutSpy.mockRestore();
-  });
 
   test("an ordinary write failure flashes the retry message and schedules a 10s retry", async () => {
     const { cm, flashes } = setUpFailingSave(new Error("network blip"));

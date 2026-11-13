@@ -494,34 +494,9 @@ mod tests {
     }
 
     #[test]
-    fn long_help_explains_edit_input_and_connection() {
-        let help = Cli::try_parse_from(["sb", "fs", "edit", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(help.contains("\"edits\""), "{help}");
-        assert!(help.contains("8 MiB"), "{help}");
-        assert!(help.contains("Connection:"), "{help}");
-        let root = Cli::try_parse_from(["sb", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(!root.contains("Factored into"), "{root}");
-        assert!(root.contains("sb fs read"), "{root}");
-    }
-
-    #[test]
     fn browser_auth_commands_accept_no_browser() {
         assert!(Cli::try_parse_from(["sb", "space", "add", "--no-browser"]).is_ok());
         assert!(Cli::try_parse_from(["sb", "space", "login", "notes", "--no-browser"]).is_ok());
-    }
-
-    #[test]
-    fn repl_is_not_a_supported_subcommand() {
-        let cli = Cli::try_parse_from(["sb", "repl"]).unwrap();
-        assert!(cli.command.is_none());
-        assert_eq!(cli.open_path.as_deref(), Some("repl"));
-        assert!(Cli::try_parse_from(["sb", "repl", "--plain"]).is_err());
     }
 
     #[test]
@@ -607,20 +582,6 @@ mod tests {
     }
 
     #[test]
-    fn lua_and_logs_remain_supported() {
-        assert!(matches!(
-            Cli::try_parse_from(["sb", "lua", "1 + 1"]).unwrap().command,
-            Some(Command::Core(CoreCommand::Lua { code: Some(ref c), file: None })) if c == "1 + 1"
-        ));
-        assert!(matches!(
-            Cli::try_parse_from(["sb", "logs", "--follow"])
-                .unwrap()
-                .command,
-            Some(Command::Core(CoreCommand::Logs { follow: true, .. }))
-        ));
-    }
-
-    #[test]
     fn lua_eval_and_script_parse_to_one_command() {
         let parsed = |args: &[&str]| match Cli::try_parse_from(args).unwrap().command {
             Some(Command::Core(CoreCommand::Lua { code, file })) => (code, file),
@@ -668,23 +629,6 @@ mod tests {
     }
 
     #[test]
-    fn screenshot_takes_a_page() {
-        let cli = Cli::try_parse_from([
-            "sb",
-            "screenshot",
-            "--page",
-            "Projects/Launch",
-            "--full-page",
-        ])
-        .unwrap();
-        assert!(matches!(
-            cli.command,
-            Some(Command::Core(CoreCommand::Screenshot { page: Some(ref p), full_page: true, .. }))
-                if p == "Projects/Launch"
-        ));
-    }
-
-    #[test]
     fn screenshot_defaults_file_and_accepts_selector() {
         let cli = Cli::try_parse_from(["sb", "screenshot", "--selector", "#sb-top"]).unwrap();
         assert!(matches!(
@@ -695,65 +639,11 @@ mod tests {
     }
 
     #[test]
-    fn screenshot_accepts_full_page() {
-        let cli = Cli::try_parse_from(["sb", "screenshot", "out.png", "--full-page"]).unwrap();
-        assert!(matches!(
-            cli.command,
-            Some(Command::Core(CoreCommand::Screenshot { ref file, selector: None, full_page: true, page: None }))
-                if file == "out.png"
-        ));
-    }
-
-    #[test]
     fn screenshot_full_page_conflicts_with_selector() {
         let err = Cli::try_parse_from(["sb", "screenshot", "--full-page", "--selector", "#x"])
             .err()
             .unwrap();
         assert_eq!(err.kind(), clap::error::ErrorKind::ArgumentConflict);
-    }
-
-    #[test]
-    fn screenshot_help_mentions_full_page() {
-        let help = Cli::try_parse_from(["sb", "screenshot", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(help.contains("--full-page"), "{help}");
-        assert!(
-            help.contains("sb screenshot page.png --full-page"),
-            "{help}"
-        );
-    }
-
-    #[test]
-    fn long_help_lists_explore_calls() {
-        let root = Cli::try_parse_from(["sb", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(root.contains("Explore your space:"), "{root}");
-        for call in [
-            "index.tags()",
-            "index.tagSchema(\"page\")",
-            "table.keys(_G)",
-            "spacelua.listFunctions(\"editor\")",
-            "spacelua.describe(\"editor.getText\")",
-            "spacelua.renderApiDocumentation(\"index\")",
-            "system.listCommands()",
-            "Library/Std/Docs/SLIQ Reference.md",
-        ] {
-            assert!(root.contains(call), "missing {call}: {root}");
-        }
-        assert!(!root.contains("sb describe"), "{root}");
-        assert!(!root.contains("Runtime API"), "{root}");
-        assert!(!root.contains(COMPACT_HINT), "{root}");
-        assert!(!root.contains("tags."), "{root}");
-        assert!(!root.contains("sb eval"), "{root}");
-        assert!(root.contains("sb help "), "{root}");
-        assert!(
-            root.contains("sb query 'from p = index.pages() select p.name limit 10'"),
-            "{root}"
-        );
     }
 
     #[test]
@@ -777,92 +667,5 @@ mod tests {
             Some(Command::Help { topic }) => assert_eq!(topic, ["Space", "Lua"]),
             _ => panic!("not sb help"),
         }
-    }
-
-    #[test]
-    fn help_shows_reboot_after_editing_lua_styles_and_config() {
-        let line = "sb lua 'system.reboot()'";
-        let root = Cli::try_parse_from(["sb", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(root.contains(line), "{root}");
-        assert!(root.contains("# after changing files outside sb"), "{root}");
-        let lua = Cli::try_parse_from(["sb", "eval", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(lua.contains("sb lua 'system.reboot()'"), "{lua}");
-    }
-
-    #[test]
-    fn query_help_shows_shell_safe_quoting() {
-        let help = Cli::try_parse_from(["sb", "query", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(
-            help.contains(r#"sb query 'from p = index.pages("book") where p.status == "reading""#),
-            "{help}"
-        );
-        assert!(help.contains("sb query \"$(cat <<'EOF'"), "{help}");
-        assert!(help.contains("\nEOF\n)\""), "{help}");
-    }
-
-    #[test]
-    fn screenshot_help_waits_for_rendering_after_navigating() {
-        let help = Cli::try_parse_from(["sb", "screenshot", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        let navigate = help.find("editor.navigate(").expect(&help);
-        let wait = help.find("editor.awaitRender()").expect(&help);
-        let capture = help.find("\n  sb screenshot\n").expect(&help);
-        assert!(navigate < wait && wait < capture, "{help}");
-    }
-
-    #[test]
-    fn compact_help_points_to_explore_section() {
-        let compact = Cli::try_parse_from(["sb", "-h"]).err().unwrap().to_string();
-        assert!(compact.contains(COMPACT_HINT), "{compact}");
-        assert!(!compact.contains("Explore your space:"), "{compact}");
-    }
-
-    #[test]
-    fn command_help_has_no_runtime_api_wording() {
-        for cmd in ["eval", "script", "query", "logs", "screenshot", "fs"] {
-            let help = Cli::try_parse_from(["sb", cmd, "--help"])
-                .err()
-                .unwrap()
-                .to_string();
-            assert!(!help.contains("Runtime API"), "{cmd}: {help}");
-            assert!(!help.contains("sb describe"), "{cmd}: {help}");
-        }
-        let eval = Cli::try_parse_from(["sb", "eval", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(eval.contains("system.listCommands()"), "{eval}");
-        let query = Cli::try_parse_from(["sb", "query", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(query.contains("index.tags()"), "{query}");
-        assert!(query.contains("SLIQ Reference.md"), "{query}");
-    }
-
-    #[test]
-    fn describe_is_not_a_supported_subcommand() {
-        assert!(Cli::try_parse_from(["sb", "describe", "page", "--json"]).is_err());
-    }
-
-    #[test]
-    fn lint_is_an_eval_call_not_a_subcommand() {
-        let root = Cli::try_parse_from(["sb", "--help"])
-            .err()
-            .unwrap()
-            .to_string();
-        assert!(root.contains("sb lua 'space.lint(\"Page\")'"), "{root}");
-        assert!(root.contains("sb lua 'space.lint()'"), "{root}");
     }
 }

@@ -175,6 +175,39 @@ fn require_server(space_dir: &std::path::Path) -> Option<(Server, String)> {
     server
 }
 
+/// One server (runtime disabled, writable, empty space) shared by the
+/// read-only tests, so each doesn't boot its own. They must not depend on an
+/// empty space: each writes only files of its own names.
+static SHARED_SERVER: std::sync::OnceLock<Option<String>> = std::sync::OnceLock::new();
+static SHARED_HOLD: std::sync::Mutex<Option<(Server, tempfile::TempDir)>> =
+    std::sync::Mutex::new(None);
+
+extern "C" {
+    fn atexit(callback: extern "C" fn()) -> i32;
+}
+
+/// Stops the shared server when the test binary exits.
+extern "C" fn stop_shared_server() {
+    if let Ok(mut held) = SHARED_HOLD.lock() {
+        drop(held.take());
+    }
+}
+
+/// The base URL of the shared server, or `None` (with a notice) when the
+/// server binary isn't built.
+fn require_shared_server() -> Option<String> {
+    SHARED_SERVER
+        .get_or_init(|| {
+            let space = tempfile::tempdir().unwrap();
+            let (server, base) = require_server(space.path())?;
+            *SHARED_HOLD.lock().unwrap() = Some((server, space));
+            // SAFETY: registers a plain function that touches only statics.
+            unsafe { atexit(stop_shared_server) };
+            Some(base)
+        })
+        .clone()
+}
+
 fn create_file(base: &str, config_home: &std::path::Path, path: &str, bytes: &[u8]) -> Output {
     run_sb_with_input(
         &[
@@ -542,9 +575,7 @@ fn fs_read_only_server_allows_reads_and_rejects_writes() {
 
 #[test]
 fn screenshot_against_server_without_runtime_reports_not_enabled() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = start_server(space.path()) else {
-        eprintln!("skip: silverbullet server binary not built (run `make build-rs` or `cargo build --workspace`)");
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
@@ -561,27 +592,6 @@ fn screenshot_against_server_without_runtime_reports_not_enabled() {
         out.stderr
     );
     assert!(!target.exists(), "no file should be written on failure");
-}
-
-#[test]
-fn eval_against_server_without_runtime_reports_not_enabled() {
-    // `space` is held for the whole test so its tempdir outlives the server.
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = start_server(space.path()) else {
-        eprintln!("skip: silverbullet server binary not built (run `make build-rs` or `cargo build --workspace`)");
-        return;
-    };
-
-    let cfg = tempfile::tempdir().unwrap();
-    let out = run_sb(&["--url", &base, "eval", "1+1"], cfg.path());
-
-    assert_ne!(out.code, 0, "expected non-zero exit (runtime disabled)");
-    assert!(
-        out.stderr.to_lowercase().contains("not enabled")
-            || out.stderr.to_lowercase().contains("runtime"),
-        "expected a runtime-not-enabled error, got stderr: {:?}",
-        out.stderr
-    );
 }
 
 /// `sb search` retries while the server's first index build runs.
@@ -680,8 +690,7 @@ fn search_status_search_and_related_use_the_native_endpoints() {
 
 #[test]
 fn eval_reports_runtime_disabled_hint() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
@@ -696,8 +705,7 @@ fn eval_reports_runtime_disabled_hint() {
 
 #[test]
 fn several_paths_print_sections_with_revisions() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
@@ -739,14 +747,24 @@ fn several_paths_print_sections_with_revisions() {
 
 #[test]
 fn several_paths_json_reports_missing_file_inline_and_exits_3() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
-    assert_eq!(create_file(&base, cfg.path(), "One.md", b"first").code, 0);
+    assert_eq!(
+        create_file(&base, cfg.path(), "Inline.md", b"first").code,
+        0
+    );
     let out = run_sb(
-        &["--url", &base, "--json", "fs", "read", "One.md", "Gone.md"],
+        &[
+            "--url",
+            &base,
+            "--json",
+            "fs",
+            "read",
+            "Inline.md",
+            "Gone.md",
+        ],
         cfg.path(),
     );
     assert_eq!(out.code, 3, "stderr: {}", out.stderr);
@@ -759,14 +777,16 @@ fn several_paths_json_reports_missing_file_inline_and_exits_3() {
 
 #[test]
 fn rendered_read_without_runtime_reports_the_hint() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
-    assert_eq!(create_file(&base, cfg.path(), "One.md", b"first").code, 0);
+    assert_eq!(
+        create_file(&base, cfg.path(), "Rendered.md", b"first").code,
+        0
+    );
     let out = run_sb(
-        &["--url", &base, "fs", "read", "One.md", "--rendered"],
+        &["--url", &base, "fs", "read", "Rendered.md", "--rendered"],
         cfg.path(),
     );
     assert_eq!(out.code, 8, "stderr: {}", out.stderr);
@@ -784,8 +804,7 @@ fn rendered_read_without_runtime_reports_the_hint() {
 
 #[test]
 fn rendered_read_of_a_missing_page_exits_3() {
-    let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some(base) = require_shared_server() else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();

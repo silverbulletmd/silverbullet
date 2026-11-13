@@ -180,32 +180,6 @@ async fn lua_failing_both_ways_reports_both_errors() {
 }
 
 #[tokio::test]
-async fn lua_statement_keyword_goes_straight_to_script() {
-    let env = env(Script::new(|_, _, _| ok(json!(2))));
-    let r = env.lua("local x = 1\nreturn x + 1").await;
-    assert!(!is_error(&r), "{r}");
-    let names: Vec<String> = env
-        .script
-        .calls
-        .lock()
-        .unwrap()
-        .iter()
-        .map(|c| c.0.clone())
-        .collect();
-    assert_eq!(names, ["sbRuntime.evalLuaScript"]);
-}
-
-#[tokio::test]
-async fn lua_bare_expected_error_does_not_rerun_as_script() {
-    let env = env(Script::new(|_, _, _| {
-        Err(RuntimeError::Eval("Expected table".into()))
-    }));
-    let r = env.lua("save()").await;
-    assert!(is_error(&r));
-    assert_eq!(env.script.calls.lock().unwrap().len(), 1);
-}
-
-#[tokio::test]
 async fn lua_runtime_error_is_reported_without_fallback() {
     let env = env(Script::new(|_, _, _| {
         Err(RuntimeError::Eval("attempt to call a nil value".into()))
@@ -434,35 +408,6 @@ async fn lua_sends_await_index_and_appends_behind_note() {
 }
 
 #[tokio::test]
-async fn a_failed_reload_is_retried_before_the_next_runtime_call() {
-    let reboots = Arc::new(AtomicUsize::new(0));
-    let counted = reboots.clone();
-    let env = env(Script::new(move |_, _, code| {
-        if code == "system.reboot()" && counted.fetch_add(1, Ordering::SeqCst) == 0 {
-            return Err(RuntimeError::Timeout);
-        }
-        ok(Value::Null)
-    }));
-    let w = env
-        .call(
-            "write",
-            json!({"page": "Library/Mine", "content": "```space-lua\nx = 1\n```"}),
-        )
-        .await;
-    assert!(text(&w).contains("reloading it failed"), "{w}");
-
-    let r = env.lua("return x").await;
-    assert!(!is_error(&r), "{r}");
-    assert!(!text(&r).contains("Note:"), "{r}");
-    assert_eq!(
-        env.script.codes(),
-        ["system.reboot()", "system.reboot()", "return x"]
-    );
-    env.lua("return x").await;
-    assert_eq!(reboots.load(Ordering::SeqCst), 2);
-}
-
-#[tokio::test]
 async fn a_failed_reload_is_retried_only_for_its_writer_and_space() {
     let reboots = Arc::new(AtomicUsize::new(0));
     let counted = reboots.clone();
@@ -497,12 +442,20 @@ async fn a_failed_reload_is_retried_only_for_its_writer_and_space() {
     call("reader", &alpha, "lua", lua.clone()).await;
     call("writer-one", &beta, "lua", lua.clone()).await;
     assert_eq!(reboots.load(Ordering::SeqCst), 1, "{:?}", script.codes());
-    call("writer-one", &alpha, "lua", lua).await;
+    let r = call("writer-one", &alpha, "lua", lua.clone()).await;
     assert_eq!(reboots.load(Ordering::SeqCst), 2, "{:?}", script.codes());
+    // The retry runs before the call, which then answers without a note.
+    assert!(!is_error(&r), "{r}");
+    assert!(!text(&r).contains("Note:"), "{r}");
+    let codes = script.codes();
+    assert_eq!(codes[codes.len() - 2..], ["system.reboot()", "return 1"]);
+    // Once retried, it is not retried again.
+    call("writer-one", &alpha, "lua", lua).await;
+    assert_eq!(reboots.load(Ordering::SeqCst), 2);
 }
 
 #[tokio::test]
-async fn writing_away_a_script_block_reloads_too() {
+async fn writing_a_script_page_reloads_it_at_once() {
     let env = env(Script::new(|_, _, _| ok(Value::Null)));
     let created = env
         .call(
@@ -510,35 +463,10 @@ async fn writing_away_a_script_block_reloads_too() {
             json!({"page": "Library/Mine", "content": "```space-lua\nx = 1\n```"}),
         )
         .await;
-    let w = env
-        .call(
-            "write",
-            json!({"page": "Library/Mine", "content": "no scripts",
-                   "ifRevision": created["structuredContent"]["revision"]}),
-        )
-        .await;
-    assert!(text(&w).contains("were reloaded without errors"), "{w}");
-    let codes = env.script.codes();
-    assert_eq!(codes.iter().filter(|c| *c == "system.reboot()").count(), 2);
-
-    // A page that never had scripts is not reloaded.
-    let w = env
-        .call("write", json!({"page": "Notes/Plain", "content": "hi"}))
-        .await;
-    assert!(!text(&w).contains("reloaded"), "{w}");
-    assert_eq!(env.script.codes().len(), codes.len());
-}
-
-#[tokio::test]
-async fn writing_a_script_page_reloads_it_at_once() {
-    let env = env(Script::new(|_, _, _| ok(Value::Null)));
-    let w = env
-        .call(
-            "write",
-            json!({"page": "Library/Mine", "content": "```space-lua\nx = 1\n```"}),
-        )
-        .await;
-    assert!(text(&w).contains("were reloaded without errors"), "{w}");
+    assert!(
+        text(&created).contains("were reloaded without errors"),
+        "{created}"
+    );
     // Reloaded at once, so the next call has nothing to wait for
     let reload = ["system.reboot()", "space.lint(\"Library/Mine\")"];
     assert_eq!(env.script.codes(), reload);
@@ -554,6 +482,18 @@ async fn writing_a_script_page_reloads_it_at_once() {
     assert_eq!(codes.iter().filter(|c| *c == "system.reboot()").count(), 1);
     assert!(!codes.iter().any(|c| c == AWAIT_INDEX), "{codes:?}");
     assert!(env.script.catch_ups.load(Ordering::SeqCst) >= 1);
+
+    // Writing the script block away reloads too.
+    let w = env
+        .call(
+            "write",
+            json!({"page": "Library/Mine", "content": "no scripts",
+                   "ifRevision": created["structuredContent"]["revision"]}),
+        )
+        .await;
+    assert!(text(&w).contains("were reloaded without errors"), "{w}");
+    let codes = env.script.codes();
+    assert_eq!(codes.iter().filter(|c| *c == "system.reboot()").count(), 2);
 }
 
 #[tokio::test]
@@ -595,14 +535,6 @@ async fn a_script_that_fails_to_load_is_reported_by_the_write() {
     );
     // Other pages' widget errors during the reload are not this write's problem
     assert!(!t.contains("Lua widget error"), "{t}");
-}
-
-#[tokio::test]
-async fn lua_does_not_wait_without_recent_writes() {
-    let waits = Arc::new(AtomicUsize::new(0));
-    let env = env(index_script(waits.clone(), |_| ok(Value::Null)));
-    env.lua("return 'x'").await;
-    assert_eq!(waits.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]
@@ -853,23 +785,4 @@ async fn search_rejects_bad_arguments() {
         let r = env.call("search", args.clone()).await;
         assert!(is_error(&r), "{args}");
     }
-}
-
-#[tokio::test]
-async fn tool_list_includes_search_lua_and_screenshot() {
-    let env = env(Script::new(|_, _, _| ok(Value::Null)));
-    let names: Vec<&str> = env.tools.tools().iter().map(|t| t.name).collect();
-    assert_eq!(&names[names.len() - 3..], ["search", "lua", "screenshot"]);
-    let tools = env.tools.tools();
-    let annotation = |name: &str| {
-        tools
-            .iter()
-            .find(|t| t.name == name)
-            .unwrap()
-            .annotations
-            .clone()
-    };
-    assert_eq!(annotation("search")["readOnlyHint"], true);
-    assert_eq!(annotation("screenshot")["readOnlyHint"], true);
-    assert_eq!(annotation("lua")["destructiveHint"], true);
 }

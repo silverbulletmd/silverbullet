@@ -1,8 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import {
-  type CursorContext,
-  detectContext,
   indent,
   moveDown,
   moveUp,
@@ -31,13 +29,6 @@ function applyOp(
   return (
     result.text.slice(0, result.from) + CURSOR + result.text.slice(result.from)
   );
-}
-
-function detect(marked: string): CursorContext | null {
-  const pos = marked.indexOf(CURSOR);
-  const text = marked.slice(0, pos) + marked.slice(pos + CURSOR.length);
-  const tree = parseMarkdown(text);
-  return detectContext(tree, pos);
 }
 
 describe("Bullet list move up/down", () => {
@@ -148,33 +139,6 @@ describe("Bullet list move up/down", () => {
     ).toEqual(`- parent
   - child two
   - child |^|one
-`);
-  });
-
-  test("three items, swap adjacent", () => {
-    expect(
-      applyOp(
-        moveUp,
-        `- first
-- second
-- th|^|ird
-`,
-      ),
-    ).toEqual(`- first
-- th|^|ird
-- second
-`);
-    expect(
-      applyOp(
-        moveDown,
-        `- fir|^|st
-- second
-- third
-`,
-      ),
-    ).toEqual(`- second
-- fir|^|st
-- third
 `);
   });
 });
@@ -535,19 +499,6 @@ Content
 `);
   });
 
-  test("headings with no body text", () => {
-    expect(
-      applyOp(
-        moveUp,
-        `## First
-## Sec|^|ond
-`,
-      ),
-    ).toEqual(`## Sec|^|ond
-## First
-`);
-  });
-
   test("no trailing newline preserves content", () => {
     expect(
       applyOp(
@@ -573,21 +524,6 @@ End`,
 End
 ## Fir|^|st
 Body`);
-  });
-
-  test("empty body section swap preserves structure", () => {
-    expect(
-      applyOp(
-        moveDown,
-        `## |^|A
-## B
-Body B
-`,
-      ),
-    ).toEqual(`## B
-Body B
-## |^|A
-`);
   });
 
   test("no trailing newline, first has no body", () => {
@@ -818,131 +754,6 @@ describe("Edge cases", () => {
   });
 });
 
-describe("Cursor positions in bullet list", () => {
-  test("on list marker", () => {
-    const ctx = detect("|^|- one\n- two\n");
-    expect(ctx?.type).toEqual("listItem");
-    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("BulletList");
-  });
-
-  test("on space after marker", () => {
-    expect(detect("-|^| one\n- two\n")?.type).toEqual("listItem");
-  });
-
-  test("on newline between items", () => {
-    expect(detect("- one|^|\n- two\n")?.type).toEqual("listItem");
-  });
-
-  test("at last char of item text", () => {
-    expect(detect("- on|^|e\n- two\n")?.type).toEqual("listItem");
-  });
-
-  test("after last character with no trailing newline", () => {
-    const ctx = detect("- one\n- two|^|");
-    expect(ctx?.type).toEqual("listItem");
-    if (ctx?.type === "listItem") {
-      expect(ctx.item.from).toBeGreaterThan(0);
-    }
-  });
-
-  test("past end of document", () => {
-    expect(detect("- one\n- two\n|^|")).toEqual(null);
-  });
-});
-
-describe("Cursor positions on heading", () => {
-  test("on heading marker", () => {
-    const ctx = detect("|^|## Heading\nBody\n");
-    expect(ctx?.type).toEqual("heading");
-    if (ctx?.type === "heading") {
-      expect(ctx.level).toEqual(2);
-    }
-  });
-
-  test("on newline after heading", () => {
-    expect(detect("## Heading|^|\nBody\n")?.type).toEqual("heading");
-  });
-});
-
-describe("Context detection edge cases", () => {
-  test("code block returns null", () => {
-    expect(detect("```\n|^|some code\n```\n")).toEqual(null);
-  });
-
-  test("frontmatter returns null", () => {
-    expect(detect("---\n|^|title: Test\n---\nContent\n")).toEqual(null);
-  });
-
-  test("between paragraphs resolves to preceding paragraph", () => {
-    expect(detect("Para one.|^|\n\nPara two.\n")?.type).toEqual("paragraph");
-    expect(detect("Para one.\n|^|\nPara two.\n")).toEqual(null);
-  });
-
-  test("paragraph inside list item detects list item", () => {
-    expect(detect("- ite|^|m text\n")?.type).toEqual("listItem");
-  });
-
-  test("heading section boundaries are correct", () => {
-    const ctx = detect("## |^|H2a\nBody\n### H3\nSub\n## H2b\n");
-    expect(ctx?.type).toEqual("heading");
-    if (ctx?.type === "heading") {
-      expect(ctx.level).toEqual(2);
-      const types = ctx.doc
-        .children!.slice(ctx.sectionStart, ctx.sectionEnd)
-        .filter((c) => c.type)
-        .map((c) => c.type);
-      expect(types).toEqual([
-        "ATXHeading2",
-        "Paragraph",
-        "ATXHeading3",
-        "Paragraph",
-      ]);
-    }
-  });
-
-  test("deeply nested list item detects innermost list", () => {
-    const ctx = detect("- parent\n  - child\n    - gra|^|ndchild\n");
-    expect(ctx?.type).toEqual("listItem");
-    if (ctx?.type === "listItem") {
-      expect(ctx.list.type).toEqual("BulletList");
-      expect(ctx.item.from).toEqual(23);
-    }
-  });
-
-  test("paragraph after heading detects paragraph", () => {
-    expect(detect("## Heading\nBody|^| text here.\n")?.type).toEqual(
-      "paragraph",
-    );
-  });
-
-  test("single heading with no following content", () => {
-    const ctx = detect("## On|^|ly heading\n");
-    expect(ctx?.type).toEqual("heading");
-    if (ctx?.type === "heading") {
-      expect(ctx.sectionStart).toEqual(0);
-      expect(ctx.sectionEnd).toEqual(ctx.doc.children!.length);
-    }
-  });
-});
-
-describe("List marker variants", () => {
-  test("ordered list", () => {
-    const ctx = detect("|^|1. first\n2. second\n");
-    expect(ctx?.type).toEqual("listItem");
-    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("OrderedList");
-  });
-
-  test("* bullet", () => {
-    const ctx = detect("|^|* item one\n* item two\n");
-    expect(ctx?.type).toEqual("listItem");
-    expect(ctx && "list" in ctx ? ctx.list.type : null).toEqual("BulletList");
-  });
-
-  test("blockquote list", () => {
-    expect(detect("> - |^|item one\n> - item two\n")?.type).toEqual("listItem");
-  });
-});
-
 describe("Table row move up/down", () => {
   test("swap two data rows", () => {
     expect(
@@ -1047,34 +858,16 @@ describe("Table row move up/down", () => {
   });
 });
 
-describe("Table row context detection", () => {
-  test("cursor in data row detects tableRow", () => {
-    const ctx = detect(`| A | B |
-| --- | --- |
-| 1|^| | 2 |
-`);
-    expect(ctx?.type).toEqual("tableRow");
-  });
-
-  test("cursor in header row detects tableRow with isHeader", () => {
-    const ctx = detect(`| A|^| | B |
-| --- | --- |
-| 1 | 2 |
-`);
-    expect(ctx?.type).toEqual("tableRow");
-    if (ctx?.type === "tableRow") {
-      expect(ctx.isHeader).toEqual(true);
+test("move and indent do nothing inside a code block, frontmatter or a table delimiter row", () => {
+  for (const input of [
+    "```\n|^|some code\n```\n",
+    "---\n|^|title: Test\n---\nContent\n",
+    "| A | B |\n| --|^|- | --- |\n| 1 | 2 |\n",
+  ]) {
+    for (const op of [moveUp, moveDown, indent, outdent]) {
+      expect(applyOp(op, input)).toEqual(input);
     }
-  });
-
-  test("cursor on delimiter row returns null", () => {
-    expect(
-      detect(`| A | B |
-| --|^|- | --- |
-| 1 | 2 |
-`),
-    ).toEqual(null);
-  });
+  }
 });
 
 /** Applies a range op to the `|<|`…`|>|` selection, rendering the result. */

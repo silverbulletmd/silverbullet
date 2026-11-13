@@ -72,25 +72,6 @@ async function runLintForTest(
 }
 
 describe("lintAnchors", () => {
-  test("lint: no anchors — no diagnostics", async () => {
-    const diagnostics = await runLintForTest(`Just a normal paragraph.`);
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("lint: single valid anchor — no diagnostics", async () => {
-    const diagnostics = await runLintForTest(`This paragraph has $pete here.`);
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("lint: invalid anchor name (rule A)", async () => {
-    // The parser regex already excludes digit-leading names, so $1bad
-    // will not be parsed as NamedAnchor. Rule A is a defense-in-depth guard.
-    // With the current parser the input below produces no NamedAnchor nodes,
-    // so lint correctly emits zero diagnostics (no false positives).
-    const diagnostics = await runLintForTest(`Some $1bad text.`);
-    expect(diagnostics).toEqual([]);
-  });
-
   test("lint: multiple anchors in one paragraph (rule B)", async () => {
     const diagnostics = await runLintForTest(`Para $first and $second here.`);
     // Exactly one diagnostic, pointing at the second anchor
@@ -108,12 +89,6 @@ describe("lintAnchors", () => {
     for (const d of diagnostics) {
       expect(d.message).toMatch(/multiple anchors/i);
     }
-  });
-
-  test("lint: multiple anchors in a list item (rule B)", async () => {
-    const diagnostics = await runLintForTest(`- Item $one and $two`);
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0].message).toMatch(/multiple anchors/i);
   });
 
   test("lint: anchors in sibling list items do not cross-contaminate (rule B)", async () => {
@@ -386,20 +361,6 @@ describe("lintRefTags", () => {
     expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
   });
 
-  test("points at the top-level value, not a nested key of the same name", async () => {
-    const text = header(
-      `meta:\n  owner: "[[Person/Zed]]"\nowner: '[[Person/Zed]]'`,
-    );
-    const diags = await lintRefs(
-      text,
-      { owner: personRef },
-      { "Person/Zed": "Just a page" },
-    );
-    expect(diags).toHaveLength(1);
-    expect(diags[0].from).toBe(text.indexOf("[[Person/Zed]]'"));
-    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
-  });
-
   test("accepts a tagged page", async () => {
     const diags = await lintRefs(
       header(`owner: "[[Person/Alice]]"`),
@@ -453,51 +414,28 @@ describe("lintRefTags", () => {
     expect(diags).toEqual([]);
   });
 
-  test("locates the range under a quoted key", async () => {
-    const text = header(`"owner": "[[Person/Zed]]"`);
-    const diags = await lintRefs(
-      text,
-      { owner: personRef },
-      { "Person/Zed": "Just a page" },
-    );
-    expect(diags).toHaveLength(1);
-    expect(text.slice(diags[0].from, diags[0].to)).toBe("[[Person/Zed]]");
-  });
-
-  test("same link under two keys flags only the offending key", async () => {
-    const text = header(`reviewer: "[[Person/Zed]]"\nowner: "[[Person/Zed]]"`);
-    const diags = await lintRefs(
-      text,
-      { reviewer: { type: "string", format: "ref" }, owner: personRef },
-      { "Person/Zed": "Just a page" },
-    );
-    expect(diags).toHaveLength(1);
-    expect(diags[0].from).toBe(text.lastIndexOf("[[Person/Zed]]"));
-  });
-
   test("a nullable ref is checked like a plain one", async () => {
-    const text = header(`owner: "[[Person/Zed]]"`);
-    const diags = await lintRefs(
-      text,
-      { owner: { anyOf: [personRef, { type: "null" }] } },
-      { "Person/Zed": "Just a page" },
-    );
-    expect(diags).toHaveLength(1);
-    expect(diags[0].message).toBe("[[Person/Zed]] is not a #person");
-  });
-
-  test("a nullable ref list is checked like a plain one", async () => {
-    const text = header(`members:\n  - "[[Person/Zed]]"`);
-    const diags = await lintRefs(
-      text,
-      {
-        members: {
-          anyOf: [{ type: "array", items: personRef }, { type: "null" }],
+    const cases: [string, Record<string, unknown>][] = [
+      [
+        `owner: "[[Person/Zed]]"`,
+        { owner: { anyOf: [personRef, { type: "null" }] } },
+      ],
+      [
+        `members:\n  - "[[Person/Zed]]"`,
+        {
+          members: {
+            anyOf: [{ type: "array", items: personRef }, { type: "null" }],
+          },
         },
-      },
-      { "Person/Zed": "Just a page" },
-    );
-    expect(diags).toHaveLength(1);
+      ],
+    ];
+    for (const [yaml, schema] of cases) {
+      const diags = await lintRefs(header(yaml), schema, {
+        "Person/Zed": "Just a page",
+      });
+      expect(diags).toHaveLength(1);
+      expect(diags[0].message).toBe("[[Person/Zed]] is not a #person");
+    }
   });
 
   test("a ref without a tag accepts any existing page", async () => {

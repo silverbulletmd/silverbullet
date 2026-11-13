@@ -8,6 +8,7 @@ use std::path::PathBuf;
 /// right after the rebuild is found within 5 s (Review Focus 2).
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn a_rebuilt_space_takes_over_its_index_while_searches_run() {
+    crate::watcher::native_watcher_for_this_test();
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use std::time::{Duration, Instant};
@@ -580,6 +581,7 @@ mod semantic {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
     async fn a_new_page_is_found_by_meaning() {
+        crate::watcher::native_watcher_for_this_test();
         let dir = tempfile::tempdir().unwrap();
         let fake = Arc::new(FakeEmbedder::new());
         let m = boot(dir.path(), &fake);
@@ -628,7 +630,7 @@ mod semantic {
         }
         // Edits after the delete reach no sink that could recreate it.
         std::fs::write(dir.path().join("notes/Fern.md"), "fronds unfurl\n").unwrap();
-        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_millis(250)).await;
         assert!(!space_dir.exists(), "{:?}", walkdir_list(&space_dir));
     }
 

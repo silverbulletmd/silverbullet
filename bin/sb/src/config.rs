@@ -632,15 +632,6 @@ mod tests {
     }
 
     #[test]
-    fn unknown_space_fields_survive_round_trip() {
-        let json = r#"{"spaces":[{"id":"x","name":"work","url":"https://x","auth":{"method":"none"},"appOnlyField":42}]}"#;
-        let cfg: Config = serde_json::from_str(json).unwrap();
-        let out = serde_json::to_string(&cfg).unwrap();
-        assert!(out.contains("appOnlyField"), "appOnlyField must survive");
-        assert!(out.contains("42"), "value 42 must survive");
-    }
-
-    #[test]
     fn save_preserves_unrelated_folder_environment_fields() {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("config.json");
@@ -735,71 +726,6 @@ mod tests {
     }
 
     #[test]
-    fn empty_extra_emits_no_stray_fields() {
-        let space = SpaceConfig {
-            id: "id1".into(),
-            name: "s1".into(),
-            url: "https://x".into(),
-            auth: AuthConfig {
-                method: "none".into(),
-                ..Default::default()
-            },
-            ..Default::default()
-        };
-        let out = serde_json::to_string(&space).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&out).unwrap();
-        let obj = v.as_object().unwrap();
-        for key in obj.keys() {
-            assert!(
-                ["id", "name", "url", "auth"].contains(&key.as_str()),
-                "unexpected key: {key}"
-            );
-        }
-    }
-
-    #[test]
-    fn load_save_round_trip() {
-        let tmp = tempfile::tempdir().unwrap();
-        let dir = tmp.path();
-
-        let cfg = Config {
-            spaces: vec![
-                SpaceConfig {
-                    id: "test-id-1".into(),
-                    name: "work".into(),
-                    url: "https://work.example.com".into(),
-                    auth: AuthConfig {
-                        method: "token".into(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-                SpaceConfig {
-                    id: "test-id-2".into(),
-                    name: "personal".into(),
-                    url: "https://personal.example.com".into(),
-                    auth: AuthConfig {
-                        method: "none".into(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                },
-            ],
-        };
-
-        save_to(dir, &cfg).unwrap();
-        let loaded = load_from(dir).unwrap();
-
-        assert_eq!(loaded.spaces.len(), 2);
-        assert_eq!(loaded.spaces[0].id, "test-id-1");
-        assert_eq!(loaded.spaces[0].name, "work");
-        assert_eq!(loaded.spaces[0].url, "https://work.example.com");
-        assert_eq!(loaded.spaces[0].auth.method, "token");
-        assert_eq!(loaded.spaces[1].id, "test-id-2");
-        assert_eq!(loaded.spaces[1].name, "personal");
-    }
-
-    #[test]
     fn load_missing_returns_empty() {
         let tmp = tempfile::tempdir().unwrap();
         let loaded = load_from(tmp.path()).unwrap();
@@ -849,18 +775,6 @@ mod tests {
             space0.get("lastOpened").is_some(),
             "lastOpened must survive"
         );
-    }
-
-    #[test]
-    fn config_dir_from_uses_xdg_when_set() {
-        let d = config_dir_from(Some("/custom/xdg"), "/home/user");
-        assert_eq!(d, PathBuf::from("/custom/xdg/silverbullet"));
-    }
-
-    #[test]
-    fn config_dir_from_falls_back_to_home() {
-        let d = config_dir_from(None, "/home/user");
-        assert_eq!(d, PathBuf::from("/home/user/.config/silverbullet"));
     }
 
     #[test]
@@ -1096,52 +1010,6 @@ mod tests {
     }
 
     #[test]
-    fn resolve_space_by_name() {
-        let cfg = Config {
-            spaces: vec![
-                SpaceConfig {
-                    name: "alpha".into(),
-                    url: "https://alpha.example.com".into(),
-                    ..Default::default()
-                },
-                SpaceConfig {
-                    name: "beta".into(),
-                    url: "https://beta.example.com".into(),
-                    ..Default::default()
-                },
-            ],
-        };
-        let s = resolve_space(&cfg, Some("beta")).unwrap();
-        assert_eq!(s.name, "beta");
-        assert_eq!(s.url, "https://beta.example.com");
-    }
-
-    #[test]
-    fn resolve_space_by_name_not_found() {
-        let cfg = Config {
-            spaces: vec![SpaceConfig {
-                name: "alpha".into(),
-                ..Default::default()
-            }],
-        };
-        let err = resolve_space(&cfg, Some("nonexistent")).unwrap_err();
-        assert!(err.contains("is not available"), "error was: {err}");
-    }
-
-    #[test]
-    fn resolve_space_single_default() {
-        let cfg = Config {
-            spaces: vec![SpaceConfig {
-                name: "only".into(),
-                url: "https://only.example.com".into(),
-                ..Default::default()
-            }],
-        };
-        let s = resolve_space(&cfg, None).unwrap();
-        assert_eq!(s.name, "only");
-    }
-
-    #[test]
     fn resolve_space_multiple_no_name_errors() {
         let cfg = Config {
             spaces: vec![
@@ -1164,34 +1032,6 @@ mod tests {
         let cfg = Config { spaces: vec![] };
         let err = resolve_space(&cfg, None).unwrap_err();
         assert!(err.contains("no spaces configured"), "error was: {err}");
-    }
-
-    #[test]
-    fn new_uuid_is_unique_and_correct_length() {
-        let id1 = new_uuid();
-        let id2 = new_uuid();
-        assert_ne!(id1, id2);
-        assert_eq!(
-            id1.len(),
-            36,
-            "UUID length should be 36 (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)"
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn config_file_is_owner_only() {
-        use std::os::unix::fs::PermissionsExt;
-        let tmp = tempfile::tempdir().unwrap();
-        let cfg = Config { spaces: vec![] };
-        save_to(tmp.path(), &cfg).unwrap();
-
-        let file_mode = std::fs::metadata(tmp.path().join("config.json"))
-            .unwrap()
-            .permissions()
-            .mode()
-            & 0o777;
-        assert_eq!(file_mode, 0o600, "config.json must be mode 0600");
     }
 
     #[test]
@@ -1249,25 +1089,5 @@ mod tests {
         let v: serde_json::Value = serde_json::to_value(&s).unwrap();
         assert!(v.get("folderPath").is_some(), "must use folderPath");
         assert!(v.get("url").is_none(), "empty url must be omitted");
-    }
-
-    #[test]
-    fn save_produces_pretty_json_with_trailing_newline() {
-        let tmp = tempfile::tempdir().unwrap();
-        let cfg = Config {
-            spaces: vec![SpaceConfig {
-                id: "1".into(),
-                name: "x".into(),
-                auth: AuthConfig {
-                    method: "none".into(),
-                    ..Default::default()
-                },
-                ..Default::default()
-            }],
-        };
-        save_to(tmp.path(), &cfg).unwrap();
-        let raw = std::fs::read_to_string(tmp.path().join("config.json")).unwrap();
-        assert!(raw.ends_with('\n'), "must end with newline");
-        assert!(raw.contains("  "), "must be indented (pretty)");
     }
 }

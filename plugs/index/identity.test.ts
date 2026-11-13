@@ -4,9 +4,9 @@ import {
   atMentionComplete,
   frontmatterAuthorComplete,
   frontmatterRecipientComplete,
+  identityId,
   listIdentities,
   parseDeclaredNames,
-  identityId,
   spliceAtMention,
 } from "./identity.ts";
 
@@ -250,11 +250,7 @@ test("parseDeclaredNames accepts a list, a plain string, and @ notation", () => 
     "[[Team/Ops Squad]]",
     "ada",
   ]);
-  expect(parseDeclaredNames("  ")).toEqual([]);
-  expect(parseDeclaredNames(undefined)).toEqual([]);
-});
-
-test("parseDeclaredNames also cuts a plain string on commas", () => {
+  // Commas cut too, except inside a wikilink
   expect(parseDeclaredNames("alice, bob")).toEqual(["alice", "bob"]);
   expect(parseDeclaredNames("alice,@bob  carol")).toEqual([
     "alice",
@@ -265,6 +261,8 @@ test("parseDeclaredNames also cuts a plain string on commas", () => {
     "[[Team/Ops, East]]",
     "ada",
   ]);
+  expect(parseDeclaredNames("  ")).toEqual([]);
+  expect(parseDeclaredNames(undefined)).toEqual([]);
 });
 
 function makeCompleteEvent(linePrefix: string) {
@@ -307,14 +305,6 @@ test("atMentionComplete stays out of frontmatter", async () => {
   expect(result).toBeNull();
 });
 
-test("at-mention completion offers your own account, labeled you", async () => {
-  mockSpace([{ username: "ada", me: true }]);
-  const result = await atMentionComplete(makeCompleteEvent("@"));
-  const own = result!.options.find((o: any) => o.label === "ada");
-  expect(own).toBeDefined();
-  expect(own!.detail).toBe("you");
-});
-
 test("frontmatterRecipientComplete filters on what has been typed", async () => {
   mockSpace([
     { username: "ada", fullName: "Ada Lovelace", me: false },
@@ -325,14 +315,6 @@ test("frontmatterRecipientComplete filters on what has been typed", async () => 
   );
   expect(result!.options.map((o: any) => o.label)).toEqual(["ada"]);
   expect(result!.filter).toBe(false);
-});
-
-test("frontmatter recipient completion offers the current user too", async () => {
-  mockSpace([{ username: "ada", me: true }]);
-  const result = await frontmatterRecipientComplete(
-    frontmatterCompleteEvent("recipients: ", "recipients: "),
-  );
-  expect(result!.options.map((o: any) => o.label)).toContain("ada");
 });
 
 test("authors: frontmatter completion offers the same names as recipients:", async () => {

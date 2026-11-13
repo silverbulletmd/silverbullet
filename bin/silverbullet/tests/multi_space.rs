@@ -240,61 +240,42 @@ fn boots_empty_root_with_authenticated_dashboard() {
 /// `boot::detect` errors when a provisioned root (`spaces.json` present) is
 /// booted with the legacy `SB_USER` credential env var set — accounts now
 /// live in `users.json`, so this must exit non-zero rather than silently
-/// ignoring the account data already on disk.
+/// ignoring the account data already on disk. The same gate refuses the
+/// legacy `SB_AUTH_TOKEN` (API tokens now live in `users.json` and are managed
+/// through the admin UI) and `--single` (a folder with `spaces.json` cannot
+/// also be forced into single-space mode).
 #[test]
 fn spaces_json_with_sb_user_refuses_to_boot() {
     let root = tempfile::tempdir().unwrap();
     provision(root.path(), None);
-    let out = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
-        .arg(root.path())
-        .arg("-p")
-        .arg(free_port().to_string())
-        .env("SB_USER", "admin:adminpw1")
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    let stderr = String::from_utf8_lossy(&out.stderr);
+    let boot = |configure: &dyn Fn(&mut Command)| {
+        let mut command = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+        command
+            .arg(root.path())
+            .arg("-p")
+            .arg(free_port().to_string())
+            .env_remove("SB_USER")
+            .env_remove("SB_AUTH_TOKEN");
+        configure(&mut command);
+        let out = command.output().unwrap();
+        assert!(!out.status.success());
+        String::from_utf8_lossy(&out.stderr).into_owned()
+    };
+
+    let stderr = boot(&|c| {
+        c.env("SB_USER", "admin:adminpw1");
+    });
     assert!(stderr.contains("users.json"), "{stderr}");
     assert!(stderr.contains("SB_USER"), "{stderr}");
-}
 
-/// Same provisioned-root gate, but for the legacy `SB_AUTH_TOKEN` env var:
-/// API tokens now live in `users.json` and are managed through the admin UI,
-/// so a provisioned root booted with `SB_AUTH_TOKEN` set must refuse rather
-/// than silently ignore it.
-#[test]
-fn spaces_json_with_sb_auth_token_refuses_to_boot() {
-    let root = tempfile::tempdir().unwrap();
-    provision(root.path(), None);
-    let out = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
-        .arg(root.path())
-        .arg("-p")
-        .arg(free_port().to_string())
-        .env_remove("SB_USER")
-        .env("SB_AUTH_TOKEN", "sometoken")
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    let stderr = String::from_utf8_lossy(&out.stderr);
+    let stderr = boot(&|c| {
+        c.env("SB_AUTH_TOKEN", "sometoken");
+    });
     assert!(stderr.contains("SB_AUTH_TOKEN"), "{stderr}");
-}
 
-/// Same provisioned-root gate, but for `--single` instead of `SB_USER`: a
-/// folder with `spaces.json` cannot also be forced into single-space mode.
-#[test]
-fn spaces_json_with_single_flag_refuses_to_boot() {
-    let root = tempfile::tempdir().unwrap();
-    provision(root.path(), None);
-    let out = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
-        .arg(root.path())
-        .arg("-p")
-        .arg(free_port().to_string())
-        .arg("--single")
-        .env_remove("SB_USER")
-        .output()
-        .unwrap();
-    assert!(!out.status.success());
-    let stderr = String::from_utf8_lossy(&out.stderr);
+    let stderr = boot(&|c| {
+        c.arg("--single");
+    });
     assert!(stderr.contains("--single"), "{stderr}");
 }
 
@@ -551,6 +532,27 @@ fn custom_hostname_prefixes_route_without_cross_host_fallback() {
         config["spacePrefixes"],
         serde_json::json!(["/wiki", "/work"])
     );
+
+    // A host's prefixes cannot repeat, nest or be shadowed by its root.
+    for (name, binding) in [
+        (
+            "Duplicate",
+            serde_json::json!({ "host": "TEAM.LOCALHOST.", "prefix": "/work" }),
+        ),
+        (
+            "Nested",
+            serde_json::json!({ "host": "team.localhost", "prefix": "/work/private" }),
+        ),
+        ("Root", serde_json::json!({ "host": "team.localhost" })),
+    ] {
+        let response = create(name, binding);
+        assert_eq!(
+            response.status(),
+            400,
+            "{name}: {}",
+            response.text().unwrap()
+        );
+    }
 }
 
 #[test]
@@ -618,45 +620,6 @@ fn primary_hostname_bindings_share_routing_and_service_worker_scope_with_prefix_
         get("/notes/.config").json::<serde_json::Value>().unwrap()["spacePrefixes"],
         serde_json::json!(["/notes"])
     );
-}
-
-#[test]
-fn hostname_scope_rejects_duplicate_nested_and_root_prefix_conflicts() {
-    let (_srv, _root, base) = start_multi(&[]);
-    let admin = admin_client(&base);
-    let create = |name: &str, binding: serde_json::Value| {
-        admin
-            .post(format!("{base}/.dashboard/api/admin/spaces"))
-            .json(&serde_json::json!({ "name": name, "binding": binding }))
-            .send()
-            .unwrap()
-    };
-
-    assert!(create(
-        "Work",
-        serde_json::json!({ "host": "team.localhost", "prefix": "/work" })
-    )
-    .status()
-    .is_success());
-    for (name, binding) in [
-        (
-            "Duplicate",
-            serde_json::json!({ "host": "TEAM.LOCALHOST.", "prefix": "/work" }),
-        ),
-        (
-            "Nested",
-            serde_json::json!({ "host": "team.localhost", "prefix": "/work/private" }),
-        ),
-        ("Root", serde_json::json!({ "host": "team.localhost" })),
-    ] {
-        let response = create(name, binding);
-        assert_eq!(
-            response.status(),
-            400,
-            "{name}: {}",
-            response.text().unwrap()
-        );
-    }
 }
 
 #[test]

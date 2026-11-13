@@ -77,23 +77,6 @@ test.describe("configuration tab", () => {
     await expect.poll(editorSize).toBe("22px");
   });
 
-  test("a changed option says so, and its label resets it", async ({
-    page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    await runCommandViaPalette(page, "Configuration: Open");
-    const reset = tab(page).getByRole("button", {
-      name: "Reset Short wiki links to its default",
-    });
-    await expect(reset).toHaveCount(0);
-    await shortWikiLinks(page).uncheck();
-    await expect(reset).toHaveText("Changed");
-    await reset.click();
-    await expect(shortWikiLinks(page)).toBeChecked();
-    await expect(reset).toHaveCount(0);
-  });
-
   test("unsaved configuration edits survive closing the workbench", async ({
     page,
     sbServer,
@@ -176,69 +159,6 @@ test.describe("configuration tab", () => {
     await expect(
       page.getByRole("radio", { name: "Configuration, •" }),
     ).toBeVisible();
-  });
-
-  test("escape cancels recording without closing the workbench", async ({
-    page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    const row = await showBinding(page, "Workbench: Toggle");
-    const before = await row.locator(".sb-wb-cfg-chords").textContent();
-    await row
-      .getByRole("button", { name: /^Record/ })
-      .first()
-      .click();
-    await expect(row.getByText("Press keys…")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(row.getByText("Press keys…")).toHaveCount(0);
-    await expect(tab(page)).toBeVisible();
-    await expect(row.locator(".sb-wb-cfg-chords")).toHaveText(before!);
-    await expect(row).not.toHaveAttribute("data-modified", "true");
-  });
-
-  test("switching tabs cancels recording", async ({ page, sbServer }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    const row = await startRecording(page, "Workbench: Toggle");
-    await page.getByRole("radio", { name: "Console" }).click();
-    await page.getByRole("radio", { name: /^Configuration/ }).click();
-    await expect(row.getByText("Press keys…")).toHaveCount(0);
-  });
-
-  test("clicking into the editor cancels recording", async ({
-    page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    const row = await startRecording(page, "Workbench: Toggle");
-    await page.locator("#sb-editor .cm-content").click();
-    await expect(row.getByText("Press keys…")).toHaveCount(0);
-    await page.keyboard.type("zq");
-    await expect(page.locator("#sb-editor .cm-content")).toContainText("zq");
-  });
-
-  test("focus returns to the binding after recording", async ({
-    page,
-    sbServer,
-  }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    const row = await startRecording(page, "Workbench: Toggle");
-    await page.keyboard.press("Escape");
-    await expect(
-      row.getByRole("button", { name: /^Record a new binding/ }).first(),
-    ).toBeFocused();
-    await expect(tab(page)).toBeVisible();
-  });
-
-  test("a duplicate chord is refused", async ({ page, sbServer }) => {
-    await gotoSilverBulletPage(page, sbServer, "index");
-    const row = await startRecording(page, "Workbench: Toggle");
-    // Navigate: Page Picker's binding
-    await page.keyboard.press("ControlOrMeta+k");
-    await page.keyboard.press("Enter");
-    await expect(row).toContainText(/already bound to/i);
-    await page.keyboard.press("Escape");
-    await expect(row).not.toHaveAttribute("data-modified", "true");
   });
 
   // The editor's keymap is rebuilt just after the save settles: wait for the

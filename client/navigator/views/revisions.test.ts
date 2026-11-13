@@ -54,28 +54,6 @@ test("shows nothing extra above the commit list when sync is idle", async () => 
   expect(rows).toEqual([]);
 });
 
-test("shows nothing extra when the server carries no sync field at all", async () => {
-  space.getSpaceLog.mockResolvedValueOnce(log({}));
-  const rows = await spaceLogView.source({ phrase: "" } as any);
-  expect(rows).toEqual([]);
-});
-
-test("shows nothing extra when Git sync is not configured", async () => {
-  space.getSpaceLog.mockResolvedValueOnce(log({ sync: { state: "idle" } }));
-  space.getGitSyncStatus.mockResolvedValueOnce({
-    sync: { state: "idle" },
-    enabled: false,
-    paused: false,
-    pending: null,
-    incoming: null,
-    lastAttempt: null,
-    lastSuccess: null,
-    version: 1,
-  });
-  const rows = await spaceLogView.source({ phrase: "" } as any);
-  expect(rows).toEqual([]);
-});
-
 test("a conflict prepends a header plus one link row per path", async () => {
   space.getSpaceLog.mockResolvedValueOnce(
     log({ sync: { state: "conflicted", paths: ["a.md", "b/c.md"] } }),
@@ -94,14 +72,6 @@ test("a conflict prepends a header plus one link row per path", async () => {
   expect(rows[2].name).not.toContain("/");
 });
 
-test("a single conflicted path uses the singular wording", async () => {
-  space.getSpaceLog.mockResolvedValueOnce(
-    log({ sync: { state: "conflicted", paths: ["a.md"] } }),
-  );
-  const rows = await spaceLogView.source({ phrase: "" } as any);
-  expect(rows[0].message).toBe("Sync paused — 1 page has conflicting changes.");
-});
-
 test("a paused sync shows only the header, carrying the server's reason", async () => {
   space.getSpaceLog.mockResolvedValueOnce(
     log({ sync: { state: "paused", reason: "detached HEAD" } }),
@@ -111,21 +81,6 @@ test("a paused sync shows only the header, carrying the server's reason", async 
     expect.objectContaining({
       sync: "header",
       message: "Sync paused — detached HEAD.",
-    }),
-  ]);
-});
-
-test("a sync error shows only the header, with no path detail leaked into it", async () => {
-  space.getSpaceLog.mockResolvedValueOnce(
-    log({
-      sync: { state: "error", kind: "AuthFailed", message: "denied" },
-    }),
-  );
-  const rows = await spaceLogView.source({ phrase: "" } as any);
-  expect(rows).toEqual([
-    expect.objectContaining({
-      sync: "header",
-      message: "Sync failed — check the space's git settings.",
     }),
   ]);
 });

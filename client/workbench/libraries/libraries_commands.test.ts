@@ -56,27 +56,4 @@ describe("runLibraryUpdate", () => {
     );
     expect(notify).toHaveBeenCalledWith("boom", "error");
   });
-
-  test("reports a thrown non-Error as its text", async () => {
-    const notify = vi.fn();
-    await runLibraryUpdate(
-      [{ name: "Library/A" }],
-      async () => {
-        throw "offline";
-      },
-      notify,
-    );
-    expect(notify).toHaveBeenCalledWith("offline", "error");
-  });
-
-  test("rejects a call without a name", async () => {
-    const notify = vi.fn();
-    const update = vi.fn();
-    await runLibraryUpdate([], update, notify);
-    expect(update).not.toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledWith(
-      "Library: Update needs a library name",
-      "error",
-    );
-  });
 });

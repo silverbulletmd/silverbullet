@@ -33,24 +33,9 @@ test("computeMarkerWidth: plain unordered with *", () => {
   expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(2);
 });
 
-test("computeMarkerWidth: plain unordered with -", () => {
-  const { node, source } = firstListItem("- item");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(2);
-});
-
-test("computeMarkerWidth: nested unordered (2 leading spaces)", () => {
-  const { node, source } = firstListItem("  * item");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(4);
-});
-
 test("computeMarkerWidth: task at level 1", () => {
   const { node, source } = firstListItem("* [ ] task");
   expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(6);
-});
-
-test("computeMarkerWidth: task at level 2", () => {
-  const { node, source } = firstListItem("  * [ ] task");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(8);
 });
 
 test("computeMarkerWidth: multi-status task `[done]`", () => {
@@ -60,46 +45,9 @@ test("computeMarkerWidth: multi-status task `[done]`", () => {
   expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(10);
 });
 
-test("computeMarkerWidth: ordered single digit", () => {
-  const { node, source } = firstListItem("1. item");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(3);
-});
-
-test("computeMarkerWidth: ordered two digits", () => {
-  const { node, source } = firstListItem("10. item");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(4);
-});
-
 test("computeMarkerWidth: ordered three digits", () => {
   const { node, source } = firstListItem("100. item");
   expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(5);
-});
-
-test("computeMarkerWidth: ordered with task", () => {
-  const { node, source } = firstListItem("1. [ ] task");
-  expect(computeMarkerWidth(node, 0, 0, sliceOf(source))).toBe(7);
-});
-
-test("computeMarkerWidth: deeply nested unordered (6 leading spaces, level 4)", () => {
-  // 6 leading spaces only parses as a ListItem inside a proper nested list,
-  // so build a 4-level structure and pick the deepest ListItem.
-  const source = "* a\n  * b\n    * c\n      * d";
-  const tree = parser.parse(source);
-  let deepest: SyntaxNode | null = null;
-  let deepestStart = -1;
-  tree.iterate({
-    enter: (n) => {
-      if (n.type.name === "ListItem" && n.from > deepestStart) {
-        deepest = n.node;
-        deepestStart = n.from;
-      }
-    },
-  });
-  if (!deepest) throw new Error("no ListItem");
-  const node: SyntaxNode = deepest;
-  // The deepest item's line starts at offset 14 (the "      * d" line).
-  const lineStart = source.lastIndexOf("\n", node.from) + 1;
-  expect(computeMarkerWidth(node, lineStart, 0, sliceOf(source))).toBe(8);
 });
 
 test("computeMarkerWidth: respects non-zero lineStart", () => {

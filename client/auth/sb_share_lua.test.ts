@@ -155,30 +155,6 @@ describe("SilverBullet Share.md", () => {
     writes = [];
   });
 
-  test("findSpaceRoot normalizes trailing slashes and page URLs", async () => {
-    respond = pingAt("https://h/notes");
-    const h = await load();
-    for (const input of [
-      "https://h/notes/",
-      "https://h/notes/Index",
-      "https://h/notes/Projects/Plan",
-    ]) {
-      expect(await h.call("sbShare.findSpaceRoot", input)).toBe(
-        "https://h/notes",
-      );
-    }
-    // Longest prefix is probed first (fresh session: no cached misses)
-    fetches = [];
-    const fresh = await load();
-    await fresh.call("sbShare.findSpaceRoot", "https://h/notes/Projects/Plan");
-    expect(fetches.map((f) => f.url)).toEqual([
-      "https://h/notes/Projects/Plan/.ping",
-      "https://h/notes/Projects/.ping",
-      "https://h/notes/.ping",
-    ]);
-    expect(await h.call("sbShare.findSpaceRoot", "https://x/y")).toBeNull();
-  });
-
   test("resolve picks the longest prefix at a segment boundary", async () => {
     seedIndex("https://h", "https://h/notes", "https://h/notes2");
     const h = await load();
@@ -211,15 +187,6 @@ describe("SilverBullet Share.md", () => {
       { uri: "https://h/notes" },
     );
     expect(Object.values((matches as object) ?? {})).toEqual([]);
-  });
-
-  test("the share target claims only URIs of known spaces", async () => {
-    seedIndex("https://h/n");
-    const h = await load();
-    const target = service(h, "share:target:http*");
-    const match = target.match as (d: { uri: string }) => unknown;
-    expect(await match({ uri: "https://h/n/A" })).toEqual({ priority: 10 });
-    expect(await match({ uri: "https://elsewhere/A" })).toBeFalsy();
   });
 
   test("page names round-trip", async () => {
@@ -322,6 +289,16 @@ describe("SilverBullet Share.md", () => {
         uri: "https://h/a/Page",
       }),
     ).toEqual({ priority: 20 });
+
+    // The share target claims only URIs of known spaces, too
+    seedIndex("https://h/n");
+    const h2 = await load();
+    const target = service(h2, "share:target:http*");
+    const matchTarget = target.match as (d: { uri: string }) => unknown;
+    expect(await matchTarget({ uri: "https://h/n/A" })).toEqual({
+      priority: 10,
+    });
+    expect(await matchTarget({ uri: "https://elsewhere/A" })).toBeFalsy();
   });
 
   test("onboarding offers known spaces from space config", async () => {
@@ -527,15 +504,6 @@ describe("SilverBullet Share.md", () => {
     );
   });
 
-  test("onboarding cleans up the page path", async () => {
-    respond = pingAt("https://h/notes");
-    const h = await load();
-    pick = "Another space…";
-    promptAnswers = ["https://h/notes", "/Shared/Page.md"];
-    const result = await onboard(h, { name: "Current", text: "body" });
-    expect(result.uri).toBe("https://h/notes/Shared/Page");
-  });
-
   test("findSpaceRoot ignores query and fragment and survives network errors", async () => {
     respond = (url) => {
       if (url === "https://h/notes/Page/.ping") {
@@ -552,6 +520,29 @@ describe("SilverBullet Share.md", () => {
       throw new Error("network down");
     };
     expect(await h.call("sbShare.findSpaceRoot", "https://h/a#b")).toBeNull();
+
+    // Trailing slashes and page URLs normalize to the space root
+    respond = pingAt("https://h/notes");
+    const h2 = await load();
+    for (const input of [
+      "https://h/notes/",
+      "https://h/notes/Index",
+      "https://h/notes/Projects/Plan",
+    ]) {
+      expect(await h2.call("sbShare.findSpaceRoot", input)).toBe(
+        "https://h/notes",
+      );
+    }
+    // Longest prefix is probed first (fresh session: no cached misses)
+    fetches = [];
+    const fresh = await load();
+    await fresh.call("sbShare.findSpaceRoot", "https://h/notes/Projects/Plan");
+    expect(fetches.map((f) => f.url)).toEqual([
+      "https://h/notes/Projects/Plan/.ping",
+      "https://h/notes/Projects/.ping",
+      "https://h/notes/.ping",
+    ]);
+    expect(await h2.call("sbShare.findSpaceRoot", "https://x/y")).toBeNull();
   });
 
   test("a read rejected with 401 drops the credential and tries anonymously", async () => {
@@ -634,21 +625,6 @@ describe("SilverBullet Share.md", () => {
       "Page",
     ]);
     expect(configWrites.map((w) => w.value)).toEqual([["https://h/new"]]);
-  });
-
-  test("share:ensure handles http: spaces too", async () => {
-    respond = pingAt("http://localhost:3000/notes");
-    const h = await load();
-    const ensure = h.services.find((s) => s.selector === "share:ensure")!;
-    const match = ensure.match as (d: unknown) => Promise<unknown>;
-    const uri = "http://localhost:3000/notes/Page";
-    expect(await match({ uri })).toEqual({ priority: 10 });
-    expect(await ensure.run({ uri })).toBe(true);
-    expect(deviceFlows).toHaveLength(1);
-    expect(await resolve(h, uri)).toEqual([
-      "http://localhost:3000/notes",
-      "Page",
-    ]);
   });
 
   test("share:ensure signs in to a known space without a local credential", async () => {

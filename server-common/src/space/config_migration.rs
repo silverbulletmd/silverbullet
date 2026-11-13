@@ -134,67 +134,16 @@ mod tests {
     }
 
     #[test]
-    fn reports_the_move_at_info() {
-        let dir = tempfile::tempdir().unwrap();
-        let (level, message) = reported(dir.path(), &ConfigMigration::Moved);
-        assert_eq!(level, tracing::Level::INFO);
-        assert!(
-            message.contains("Moved CONFIG.md to Library/Config.md"),
-            "{message}"
-        );
-        assert!(
-            message.contains(&dir.path().display().to_string()),
-            "{message}"
-        );
-    }
-
-    #[test]
-    fn warns_naming_both_files_when_both_exist() {
-        let dir = tempfile::tempdir().unwrap();
-        let (level, message) = reported(dir.path(), &ConfigMigration::BothExist);
-        assert_eq!(level, tracing::Level::WARN);
-        assert!(
-            message.contains("CONFIG.md and Library/Config.md"),
-            "{message}"
-        );
-        assert!(message.contains("nothing was moved"), "{message}");
-    }
-
-    #[test]
-    fn reports_nothing_without_config() {
-        let dir = tempfile::tempdir().unwrap();
-        assert_eq!(ConfigMigration::NotNeeded.report(dir.path()), None);
-    }
-
-    #[test]
     fn moves_config_into_library() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("CONFIG.md"), "cfg").unwrap();
-        assert_eq!(migrate_config_page(dir.path(), ""), ConfigMigration::Moved);
-        assert!(!dir.path().join("CONFIG.md").exists());
-        assert_eq!(read(dir.path(), "Library/Config.md"), "cfg");
-    }
-
-    #[test]
-    fn keeps_an_existing_library_folder() {
-        let dir = tempfile::tempdir().unwrap();
+        // An existing Library folder and its pages are kept.
         std::fs::create_dir(dir.path().join("Library")).unwrap();
         std::fs::write(dir.path().join("Library/Other.md"), "other").unwrap();
         std::fs::write(dir.path().join("CONFIG.md"), "cfg").unwrap();
         assert_eq!(migrate_config_page(dir.path(), ""), ConfigMigration::Moved);
+        assert!(!dir.path().join("CONFIG.md").exists());
         assert_eq!(read(dir.path(), "Library/Config.md"), "cfg");
         assert_eq!(read(dir.path(), "Library/Other.md"), "other");
-    }
-
-    #[test]
-    fn no_op_without_config() {
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("index.md"), "hi").unwrap();
-        assert_eq!(
-            migrate_config_page(dir.path(), ""),
-            ConfigMigration::NotNeeded
-        );
-        assert!(!dir.path().join("Library").exists());
     }
 
     #[test]

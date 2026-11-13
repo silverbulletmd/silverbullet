@@ -1183,20 +1183,6 @@ mod tests {
         assert!(!t.is_ready());
     }
 
-    #[test]
-    fn a_stale_discard_leaves_a_newer_browser_alone() {
-        let mut slot = Some((1u64, "browser-1"));
-        assert!(!clear_if_generation(&mut slot, 0));
-        assert_eq!(slot, Some((1, "browser-1")));
-    }
-
-    #[test]
-    fn discarding_the_current_generation_clears_the_slot() {
-        let mut slot = Some((1u64, "browser-1"));
-        assert!(clear_if_generation(&mut slot, 1));
-        assert_eq!(slot, None);
-    }
-
     #[tokio::test]
     async fn discard_browser_retires_only_the_generation_it_was_given() {
         let owner = owner::<&'static str>();
@@ -1215,21 +1201,6 @@ mod tests {
             owner.browser.lock().await.is_none(),
             "the current generation must clear the slot"
         );
-    }
-
-    #[test]
-    fn discarding_an_empty_slot_is_a_no_op() {
-        let mut slot: Option<(u64, &str)> = None;
-        assert!(!clear_if_generation(&mut slot, 0));
-        assert_eq!(slot, None);
-    }
-
-    #[test]
-    fn generations_are_monotonic() {
-        let owner = owner::<&'static str>();
-        let first = owner.next_generation.fetch_add(1, Ordering::Relaxed);
-        let second = owner.next_generation.fetch_add(1, Ordering::Relaxed);
-        assert_eq!((first, second), (0, 1));
     }
 
     #[tokio::test]

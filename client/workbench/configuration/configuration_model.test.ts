@@ -69,13 +69,18 @@ function setup(initial: ConfigurationSource) {
     reloadWith: async (text: string) => {
       current = { ...current, configText: text };
       reload();
-      await vi.waitFor(() => expect(model.source?.configText).toBe(text));
+      await flush();
+      expect(model.source?.configText).toBe(text);
     },
   };
 }
 
+// Let the model's async load settle; vi.waitFor would poll on a 50 ms timer.
+const flush = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
 async function ready(model: ConfigurationModel) {
-  await vi.waitFor(() => expect(model.ready).toBe(true));
+  await flush();
+  expect(model.ready).toBe(true);
 }
 
 describe("ConfigurationModel", () => {
@@ -196,11 +201,8 @@ describe("ConfigurationModel", () => {
     };
     const model = new ConfigurationModel(deps);
     model.subscribe(() => {});
-    await vi.waitFor(() =>
-      expect(model.loadError).toBe(
-        "Couldn't read Library/Config: Network error",
-      ),
-    );
+    await flush();
+    expect(model.loadError).toBe("Couldn't read Library/Config: Network error");
     expect(model.ready).toBe(false);
   });
 
