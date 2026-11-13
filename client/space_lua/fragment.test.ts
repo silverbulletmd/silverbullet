@@ -80,7 +80,7 @@ test("tostring and string functions refuse widgets", async () => {
   expect(await evalWith("tostring(5)", {})).toBe("5");
 });
 
-test("distinct queries keep separate widgets that serialise alike", async () => {
+test("distinct queries keep separate widgets that serialize alike", async () => {
   const env = new LuaEnv(luaBuildStandardEnv());
   env.set(
     "mk",

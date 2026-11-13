@@ -28,7 +28,7 @@ Appends a button to one surface's list. Keys:
 * `description` (optional): accessible label of the button
 * `onlyContexts` (optional): only show the button while the cursor (in the line menu: the start of the line's text) is inside one of these contexts, e.g. `{"ListItem"}` for outlines or `{"FencedCode:lua"}` for Lua code blocks
 * `exceptContexts` (optional): hide the button while the cursor is inside one of these contexts
-* `group` (optional, line menu only): buttons with the same `group` (e.g. `"Heading"`) share one submenu row labelled with it, in list order, where the first of them is.
+* `group` (optional, line menu only): buttons with the same `group` (e.g. `"Heading"`) share one submenu row labeled with it, in list order, where the first of them is.
 * `activeContexts` (optional, line menu only): show the button ticked when the line is inside one of these contexts, e.g. `{"ATXHeading2"}` for **Heading 2**.
 
 Contexts match by prefix against the syntax nodes enclosing the cursor, the same way as `onlyContexts`/`exceptContexts` for [[API/slashCommand|slash commands]]. Useful ones are `Paragraph`, `ListItem`, `Task`, `FencedCode`, `FrontMatter`, `Table`, `Blockquote` and `ATXHeading1`–`ATXHeading6`. Four more, starting with `@`, are facts about the line or page rather than syntax nodes: `@blank`, on an empty (or whitespace-only) line, `@hasChildren`, on a list item with nested items, `@folded`, on a line whose heading or item is folded (the default line menu uses it to offer **Expand** instead of **Collapse**), and `@hasFrontmatter`, anywhere on a page that has frontmatter. They work on every surface and for slash commands too, where `@blank` ignores the `/` you typed.

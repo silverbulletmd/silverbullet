@@ -114,7 +114,7 @@ const workerLogout = new WorkerLogout(
     const engine = proxyRouter.syncEngine;
     if (engine) {
       while ((await engine.syncSpace()) !== 0) {
-        if (!workerLogout.active) throw new Error("Logout was cancelled.");
+        if (!workerLogout.active) throw new Error("Logout was canceled.");
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
       return syncDatabaseName ? [syncDatabaseName] : [];

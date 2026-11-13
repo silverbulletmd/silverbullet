@@ -265,7 +265,7 @@ fn classify(what: &str, e: &TantivyError) -> Fault {
 ///
 /// `validate_checksum` only covers files listed in `.managed.json`; opening
 /// the reader still catches missing segment files and most damage when that
-/// list was lost, so the checksum is defence in depth, not the only check.
+/// list was lost, so the checksum is defense in depth, not the only check.
 fn open_existing(dir: &Path) -> Result<(Index, IndexReader), Fault> {
     #[cfg(test)]
     if dir.join(tests::PANIC_ON_OPEN).exists() {

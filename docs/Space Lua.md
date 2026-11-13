@@ -81,7 +81,7 @@ When iterating on a `space-lua` block, follow this loop:
 1. **Edit** the script in the editor.
 2. **Reload**: run `System: Reload` (Ctrl-Alt-r) to re-execute all `space-lua` definitions without a full page reload (you can reload the browser also if you prefer). Run `Space: Reindex` (via the command palette) if you also need the [[Object Index]] rebuilt with fresh data (e.g. if you use [[API/tag#tag.define(spec)]]).
 3. **Check the logs**: a reload completing without a visible error **does not mean your script is healthy**. Lua syntax errors, load-time failures, and runtime exceptions during indexing or widget rendering all surface in the logs, not always as a user-visible reload failure. The [[Workbench]] shows them in its Console tab, and its Scripts tab shows which scripts failed to load and why.
-4. **Verify** the behaviour in the editor.
+4. **Verify** the behavior in the editor.
 
 ## Runaway scripts
 A `space-lua` definition (or any other Lua execution: an expression, a widget, a command) is given a small time budget on the browser’s main thread. This only counts time the script is actually **busy computing**: loop iterations, function calls, table access, and the like. It never counts time a script spends **waiting** — on an [[API/editor#editor.prompt|editor.prompt]], a network call, or the [[Object Index]] — however long that wait takes, since the main thread is free to do other things in the meantime.

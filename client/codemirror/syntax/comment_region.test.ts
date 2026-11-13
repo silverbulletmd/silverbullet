@@ -132,7 +132,7 @@ describe("comment region decorations", () => {
 });
 
 describe("resolveRange", () => {
-  test("removes the block's own lines and nothing of its neighbours", () => {
+  test("removes the block's own lines and nothing of its neighbors", () => {
     // Both blank lines are separators the author wrote, one on each side of
     // the block, so both survive.
     expect(applyResolve(closedComment)).toBe("Before.\n\n\nAfter.\n");
@@ -187,8 +187,8 @@ describe("comment region styling", () => {
       ),
     );
     expect(rule).toMatch(new RegExp(`padding-right:\\s*${inset - border}px`));
-    // A `border-left` shorthand would also set a colour, outranking the
-    // `.sb-admonition` colour in colors.scss on a line carrying both.
+    // A `border-left` shorthand would also set a color, outranking the
+    // `.sb-admonition` color in colors.scss on a line carrying both.
     expect(rule).not.toMatch(/border-left:/);
   });
 
@@ -205,9 +205,9 @@ describe("comment region styling", () => {
     expect(editorCss).not.toMatch(/\.sb-comment-block\.sb-line-blockquote/);
   });
 
-  test("the border colour is pinned, not left to currentColor", () => {
-    // The colourless longhands would otherwise inherit `currentColor` and
-    // paint a text-coloured hairline.
+  test("the border color is pinned, not left to currentColor", () => {
+    // The colorless longhands would otherwise inherit `currentColor` and
+    // paint a text-colored hairline.
     const rule = colorsCss.match(/\.sb-comment-block \{[^}]*\}/)?.[0] ?? "";
     expect(rule).toMatch(/border-left-color:/);
     expect(rule).toMatch(/border-right-color:/);

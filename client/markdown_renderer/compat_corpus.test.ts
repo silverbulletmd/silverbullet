@@ -6,8 +6,8 @@ import {
   renderCorpusLive,
 } from "./compose_test_env.ts";
 
-// Re-serialise through one DOM so attribute quoting and entities match.
-function normaliseHtml(html: string): string {
+// Re-serialize through one DOM so attribute quoting and entities match.
+function normalizeHtml(html: string): string {
   const d = document.createElement("div");
   d.innerHTML = html;
   return d.innerHTML;
@@ -87,6 +87,6 @@ for (const [name, [markdown, expected]] of Object.entries(CORPUS)) {
     const html = await renderCorpusHtml(env, markdown);
     expect(html).toBe(expected);
     const liveHtml = await renderCorpusLive(env, markdown);
-    expect(normaliseHtml(liveHtml)).toBe(normaliseHtml(html));
+    expect(normalizeHtml(liveHtml)).toBe(normalizeHtml(html));
   });
 }

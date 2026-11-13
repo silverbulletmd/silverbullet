@@ -64,7 +64,7 @@ export class SpaceStyles {
       value: `<div id="${THEME_STYLE_ID}" hidden></div>${content}`,
     });
     document.getElementById("custom-styles")!.innerHTML = content;
-    // A space style may recolour the top bar
+    // A space style may recolor the top bar
     updateThemeColor();
 
     this.loaded = styles;

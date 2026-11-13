@@ -87,7 +87,7 @@ impl Resolve for PublicOnlyResolver {
 }
 
 /// Refuses the whole name when any address is non-public, rather than
-/// dialling the public ones: a name that also points inward is not one the
+/// dialing the public ones: a name that also points inward is not one the
 /// server should be fetching from.
 fn only_public(
     host: &str,

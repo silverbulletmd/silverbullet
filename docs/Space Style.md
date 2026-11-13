@@ -37,7 +37,7 @@ somestyle {
 Styles load in the same order as [[Space Lua#Definition loading|Space Lua scripts]]: by priority, highest first, where a block without a priority counts as `0`. Blocks with the same priority load in page name order, and blocks on the same page load top to bottom. Later styles win when selectors are equally specific. The [[Workbench/Code/Styles|Space Style]] section of the [[Workbench/Code|Code]] tab shows the actual order.
 
 # Tone colors
-SilverBullet defines six tones as CSS variables, which themes adapt to their colours: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in every theme:
+SilverBullet defines six tones as CSS variables, which themes adapt to their colors: `--tone-success`, `--tone-warning`, `--tone-danger`, `--tone-info`, `--tone-neutral` and `--tone-accent`. Each has a `-soft` variant for backgrounds (for example `--tone-danger-soft`). Your own styles can use them to stay readable in every theme:
 
 ```css
 .overdue {

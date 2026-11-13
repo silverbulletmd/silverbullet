@@ -213,7 +213,7 @@ test("bad targets get a clear error", async () => {
 
 // Final review findings
 
-test("C1: a ref returned by append can't edit a neighbour after the page changed", async () => {
+test("C1: a ref returned by append can't edit a neighbor after the page changed", async () => {
   await write("P", "");
   const a = await appendObject("P", { tag: "task", name: "A" });
   const b = await appendObject("P", { tag: "task", name: "B" });
@@ -231,7 +231,7 @@ test("C1: a bare positional ref is refused", async () => {
   expect(await read("P")).toBe("* [ ] A\n* [ ] B\n");
 });
 
-test("C2: a stale table row with Name/Done columns doesn't edit its neighbour", async () => {
+test("C2: a stale table row with Name/Done columns doesn't edit its neighbor", async () => {
   const text =
     "| Name | Done |\n|---|---|\n| Ada | no |\n| Bob | no |\n| Cyd | no |\n";
   await write("T", text);

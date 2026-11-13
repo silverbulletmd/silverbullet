@@ -15,7 +15,7 @@
 //! the folded ones, with no similar tier. A sequence whose first or last
 //! token is a lone CJK character matches it inside the page's bigrams (see
 //! `edge_patterns`). Both modes are limited to the request's scope (the page
-//! `kind`) and its include/exclude lists. The words come analysed from
+//! `kind`) and its include/exclude lists. The words come analyzed from
 //! `words`, which the passage matcher uses too.
 
 use std::collections::HashSet;
@@ -56,7 +56,7 @@ pub struct Plan {
     /// The fallback run when `exact` matches no page; `None` for phrases and
     /// for a query without a word that has a token.
     pub similar: Option<Box<dyn Query>>,
-    /// The query's words, analysed once; the passage matcher borrows them.
+    /// The query's words, analyzed once; the passage matcher borrows them.
     pub words: QueryWords,
 }
 

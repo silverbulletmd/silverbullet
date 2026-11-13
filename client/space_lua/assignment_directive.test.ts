@@ -7,7 +7,7 @@ import {
   renderToText,
 } from "@silverbulletmd/silverbullet/lib/tree";
 
-test("recognises name = expr", () => {
+test("recognizes name = expr", () => {
   expect(parseAssignmentDirective("salary = 500")).toEqual({
     name: "salary",
     nameOffset: 0,

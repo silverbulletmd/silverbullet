@@ -16,7 +16,7 @@ export type DeepCheckState =
       pages: number;
       ms: number;
       at: number;
-      cancelled: boolean;
+      canceled: boolean;
       error?: string;
     };
 
@@ -76,14 +76,14 @@ export class DeepCheck {
     } finally {
       this.controller = undefined;
     }
-    const cancelled = controller.signal.aborted;
+    const canceled = controller.signal.aborted;
     this.set({
       kind: "done",
       found,
-      pages: cancelled ? done : total,
+      pages: canceled ? done : total,
       ms: Date.now() - started,
       at: Date.now(),
-      cancelled,
+      canceled,
       ...(error === undefined ? {} : { error }),
     });
   }

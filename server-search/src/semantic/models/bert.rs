@@ -40,7 +40,7 @@ impl HiddenActLayer {
         let _enter = self.span.enter();
         match self.act {
             // https://github.com/huggingface/transformers/blob/cd4584e3c809bb9e1392ccd3fe38b40daba5519a/src/transformers/activations.py#L213
-            // Local change: a vectorisable erf (see `fast_ops`).
+            // Local change: a vectorizable erf (see `fast_ops`).
             HiddenAct::Gelu => super::fast_ops::gelu_erf(xs),
             HiddenAct::GeluApproximate => xs.gelu(),
             HiddenAct::Relu => xs.relu(),

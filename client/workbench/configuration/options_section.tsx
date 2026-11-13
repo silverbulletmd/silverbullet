@@ -293,8 +293,8 @@ function Control(props: Omit<ControlProps, "value" | "set">) {
 }
 
 /**
- * The accent colour on screen as `#rrggbb`: what an unset (or non-hex)
- * `accentColor` falls back to, since a colour picker only takes hex.
+ * The accent color on screen as `#rrggbb`: what an unset (or non-hex)
+ * `accentColor` falls back to, since a color picker only takes hex.
  */
 function shownAccentHex(): string {
   return resolvedColor(document, "color", "--ui-accent-color") ?? "#000000";
@@ -307,7 +307,7 @@ function shownAccentHex(): string {
  */
 function useAccentPreview(client: Client, color: string | undefined): void {
   useEffect(() => {
-    // "": an unset colour previews the theme's own accent
+    // "": an unset color previews the theme's own accent
     client.spaceTheme.preview({ accent: color ?? "" });
   }, [client, color]);
   useEffect(

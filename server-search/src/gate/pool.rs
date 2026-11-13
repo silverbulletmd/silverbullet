@@ -29,7 +29,7 @@ impl Pool {
     ) -> Result<OwnedSemaphorePermit, SearchError> {
         tokio::select! {
             biased;
-            _ = cancel.cancelled() => Err(SearchError::Cancelled),
+            _ = cancel.cancelled() => Err(SearchError::Canceled),
             permit = tokio::time::timeout(self.wait, self.sem.clone().acquire_owned()) => match permit {
                 Ok(Ok(permit)) => Ok(permit),
                 _ => Err(SearchError::Busy),

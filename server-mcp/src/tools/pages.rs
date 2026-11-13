@@ -109,7 +109,7 @@ pub(super) fn definitions() -> Vec<ToolDef> {
             name: "edit",
             title: "Edit a page",
             description: "Replace exact text in a page. Each edit's oldText must match exactly once \
-                in the page as read (line endings are normalised), and edits must not overlap; all \
+                in the page as read (line endings are normalized), and edits must not overlap; all \
                 apply or none does. With dryRun the unified diff is returned and nothing is written."
                 .into(),
             input_schema: input_schema::<EditArgs>(),

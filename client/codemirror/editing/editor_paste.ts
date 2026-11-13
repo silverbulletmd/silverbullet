@@ -350,9 +350,9 @@ export function documentExtension(editor: Client) {
         );
         if (confirmedFilePath === undefined) {
           // Unlike the initial filename prompt, we're inside a workflow here
-          // and should be explicit that the user action cancelled the whole
+          // and should be explicit that the user action canceled the whole
           // operation.
-          editor.ui.flashNotification("Upload cancelled by user", "info");
+          editor.ui.flashNotification("Upload canceled by user", "info");
           return;
         }
         confirmedFilePath = confirmedFilePath.trim();

@@ -488,7 +488,7 @@ export function SpaceForm({
             </span>
           </label>
           {/* Only meaningful while shell commands are on, so it appears with
-          them rather than sitting there greyed out. */}
+          them rather than sitting there grayed out. */}
           {shellEnabled && (
             <Fragment>
               <label for="space-shell-whitelist">

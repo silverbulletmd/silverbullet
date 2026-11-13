@@ -5,7 +5,7 @@ use axum::extract::State;
 use axum::http::{header, HeaderMap, Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde_json::{json, Value};
-use silverbullet_server::auth::mcp::normalise_authority;
+use silverbullet_server::auth::mcp::normalize_authority;
 
 use crate::tool::{Caller, ToolSet};
 
@@ -169,7 +169,7 @@ fn origin_allowed(headers: &HeaderMap) -> bool {
         .trim();
     let scheme = scheme.to_ascii_lowercase();
     !own.is_empty()
-        && normalise_authority(origin_authority, &scheme) == normalise_authority(own, &scheme)
+        && normalize_authority(origin_authority, &scheme) == normalize_authority(own, &scheme)
 }
 
 /// For the 2026-07-28 era the routing headers must agree with the body.
@@ -556,7 +556,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn default_ports_are_normalised() {
+    async fn default_ports_are_normalized() {
         let host = [("host", "notes.example.test")];
         assert_eq!(
             origin_status("https://notes.example.test:443", &host).await,

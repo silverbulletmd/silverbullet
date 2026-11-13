@@ -1122,7 +1122,7 @@ describe("Several list items selected", () => {
     expect(applyRangeOp(moveDown, "- a\n- |<|b\n- c|>|\n")).toBe("blocked");
   });
 
-  test("move a run of sibling items up or down past its neighbour", () => {
+  test("move a run of sibling items up or down past its neighbor", () => {
     expect(applyRangeOp(moveUp, "- a\n- |<|b\n- c|>|\n- d\n")).toEqual(
       "- |<|b\n- c|>|\n- a\n- d\n",
     );

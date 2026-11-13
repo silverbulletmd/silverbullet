@@ -65,7 +65,7 @@ impl MultiHost {
     }
 
     /// Whether `caller` may use `instance` now: the user can write to it and
-    /// the grant covers it. Only grants are honoured here, since `/.mcp` on a
+    /// the grant covers it. Only grants are honored here, since `/.mcp` on a
     /// multi-space server authenticates nothing else.
     fn allowed(&self, caller: &Caller, instance: &SpaceInstance) -> bool {
         let granted = match &caller.credential {

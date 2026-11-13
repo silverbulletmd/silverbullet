@@ -268,7 +268,7 @@ function PageNameEditor({
     }
   };
 
-  // An <input> can't colour parts of its text, so while it isn't focused a
+  // An <input> can't color parts of its text, so while it isn't focused a
   // copy on top shows the folder and the last segment apart
   const slash = name.lastIndexOf("/");
   return (

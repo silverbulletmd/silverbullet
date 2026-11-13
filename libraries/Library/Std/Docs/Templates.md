@@ -50,7 +50,7 @@ Item templates render each row of a query. The standard library provides some in
 | Template | Renders |
 | --- | --- |
 | `templates.pageItem` | A page as `* [[name]]` |
-| `templates.fullPageItem` | A page as a link labelled with its full name |
+| `templates.fullPageItem` | A page as a link labeled with its full name |
 | `templates.taskItem` | A task as a toggleable checkbox linked to its source |
 | `templates.itemItem` | A list item linked to its source |
 | `templates.paragraphItem` | A paragraph linked to its source |

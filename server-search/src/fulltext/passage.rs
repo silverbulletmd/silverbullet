@@ -1,7 +1,7 @@
 //! Passages for full-text results: the best lines of a page with UTF-16
 //! highlights, computed from the page text with the index's own analyzers so
 //! a highlight marks what made the page match. The [`Matcher`] borrows the
-//! plan's analysed words and highlights the alternatives
+//! plan's analyzed words and highlights the alternatives
 //! ([`WordList::alternatives`]) the plan's clauses are built from, so it
 //! applies the query's rules, not a copy.
 //!
@@ -237,7 +237,7 @@ fn starts_cjk(t: &str) -> bool {
 
 /// Each distinct raw token that folding accents changes, folded
 /// (`żółw` → `zolw`). Only tokens with a character folding may change are
-/// analysed ([`may_fold`]): ASCII, CJK (a page of it has hundreds of
+/// analyzed ([`may_fold`]): ASCII, CJK (a page of it has hundreds of
 /// thousands of distinct bigrams), Arabic, Cyrillic and Greek tokens fold to
 /// themselves.
 fn fold_vocabulary<'t>(

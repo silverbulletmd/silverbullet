@@ -15,7 +15,7 @@ import {
 describe("themeInfoFromFrontmatter", () => {
   const page = "Library/x/Paper/Night";
 
-  it("builds a ThemeInfo and normalises the counterpart", () => {
+  it("builds a ThemeInfo and normalizes the counterpart", () => {
     expect(
       themeInfoFromFrontmatter(page, {
         tags: "meta/theme",

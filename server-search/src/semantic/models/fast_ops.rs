@@ -1,11 +1,11 @@
-//! A vectorisable exact GELU (erf form) for f32 on the CPU. candle's
+//! A vectorizable exact GELU (erf form) for f32 on the CPU. candle's
 //! `gelu_erf` calls scalar `libm::erff` per element, which showed up as a
 //! large share of a forward pass once matmuls got fast. Used where a model
 //! uses GELU (BERT, so e5-small); ModernBERT models such as Granite use SiLU.
 //!
 //! The erf approximation is a rational one, clamped to [-4, 4], with an odd
 //! numerator of degree 13 over an even denominator of degree 8: a few ulp
-//! from `erff`, branch-free, so it auto-vectorises. Its coefficients are the
+//! from `erff`, branch-free, so it auto-vectorizes. Its coefficients are the
 //! float ones of Eigen's `generic_fast_erf_float`
 //! (<https://gitlab.com/libeigen/eigen>, MPL-2.0), which XLA uses for f32
 //! `erf` too (<https://github.com/openxla/xla>, Apache-2.0).

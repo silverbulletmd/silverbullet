@@ -242,7 +242,7 @@ export async function interpolateLuaString(
 
 /**
  * Converts an optional Lua options table into a `PrintOptions` object,
- * keeping only the recognised keys with the expected types.
+ * keeping only the recognized keys with the expected types.
  */
 function toPrintOptions(
   sf: LuaStackFrame,

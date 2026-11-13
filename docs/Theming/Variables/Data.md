@@ -15,7 +15,7 @@ The `#theme-variable` objects that [[Theming/Variables]] lists, one block per gr
 * `derivesFrom`: the variables its default is computed from.
 * `since`: the first release in which you could set it, or `edge`.
 * `stability`: `stable`, `experimental` or `deprecated`.
-* `description`: what it colours.
+* `description`: what it colors.
 
 # Data
 ```#theme-variable
@@ -26,7 +26,7 @@ light: "#fcfcfd"
 dark: "#15171e"
 since: "0.3.6"
 stability: stable
-description: "The page background. Most surfaces (top bar, panels, buttons, modals) mix it with another base colour."
+description: "The page background. Most surfaces (top bar, panels, buttons, modals) mix it with another base color."
 ---
 name: "--root-color"
 group: Surfaces and text
@@ -35,7 +35,7 @@ light: "#1f2330"
 dark: "#e3e5ec"
 since: "0.3.6"
 stability: stable
-description: "Body text colour."
+description: "Body text color."
 ---
 name: "--subtle-color"
 group: Surfaces and text
@@ -433,7 +433,7 @@ derivesFrom:
 - "--root-color"
 since: "0.7.7"
 stability: stable
-description: "Accent-coloured text and outlines, such as links in the Workbench."
+description: "Accent-colored text and outlines, such as links in the Workbench."
 ---
 name: "--ui-accent-muted-color"
 group: Shared surfaces
@@ -443,7 +443,7 @@ derivesFrom:
 - "--ui-accent-color"
 since: "edge"
 stability: experimental
-description: "The accent's hue at a quarter of its strength. The accent itself marks what you act on (links, the caret, selection, checkboxes, buttons); this muted version tints everything else (washes, bullets, quote bars), so a bright accent doesn't turn the whole page that colour."
+description: "The accent's hue at a quarter of its strength. The accent itself marks what you act on (links, the caret, selection, checkboxes, buttons); this muted version tints everything else (washes, bullets, quote bars), so a bright accent doesn't turn the whole page that color."
 ---
 name: "--ui-accent-muted-soft-color"
 group: Shared surfaces
@@ -628,7 +628,7 @@ derivesFrom:
 - "--root-background-color"
 since: "0.3.6"
 stability: stable
-description: "Top bar background. Mobile browsers and the Desktop title bar take their colour from it."
+description: "Top bar background. Mobile browsers and the Desktop title bar take their color from it."
 ---
 name: "--top-border-color"
 group: Top bar
@@ -697,7 +697,7 @@ derivesFrom:
 - "--subtle-color"
 since: "edge"
 stability: experimental
-description: "The folder part of the page name in the top bar, such as `Projects/` in `Projects/Phoenix`. Set it to `currentColor` to follow the page name's colour."
+description: "The folder part of the page name in the top bar, such as `Projects/` in `Projects/Phoenix`. Set it to `currentColor` to follow the page name's color."
 ---
 name: "--top-page-folder-font-weight"
 group: Top bar
@@ -1937,7 +1937,7 @@ group: Admonitions
 level: specific
 since: "0.7.6"
 stability: stable
-description: "Colour of an [[Markdown/Admonition|admonition]]: its bar, title and icon. Set on `.sb-admonition[admonition=\"…\"]`, per type; the built-in types use tones."
+description: "Color of an [[Markdown/Admonition|admonition]]: its bar, title and icon. Set on `.sb-admonition[admonition=\"…\"]`, per type; the built-in types use tones."
 ---
 name: "--admonition-icon"
 group: Admonitions

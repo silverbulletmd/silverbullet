@@ -64,7 +64,7 @@ function WidgetBar({
         {/* `.sb-nav-title` is the panel header's own label class, so the
             title reads identically in every dock; only the strip around it
             belongs to the page widget. The title doubles as the fold's
-            larger click target -- it carried no behaviour of its own, so
+            larger click target -- it carried no behavior of its own, so
             nothing is swallowed to get it. */}
         <span
           className="sb-nav-title sb-page-widget-title"

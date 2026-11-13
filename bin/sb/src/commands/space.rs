@@ -651,7 +651,7 @@ fn prompt(reader: &mut impl BufRead, message: &str, default: &str) -> Result<Str
         .map_err(|e| format!("reading stdin: {e}"))?
         == 0
     {
-        return Err("Input ended; space configuration cancelled.".into());
+        return Err("Input ended; space configuration canceled.".into());
     }
     let value = line.trim();
     Ok(if value.is_empty() { default } else { value }.to_string())
@@ -663,7 +663,7 @@ mod tests {
     use crate::config::{AuthConfig, Config, SpaceConfig};
 
     #[test]
-    fn cancelled_prompt_does_not_accept_a_default() {
+    fn canceled_prompt_does_not_accept_a_default() {
         assert!(prompt(&mut std::io::Cursor::new(b""), "", "browser").is_err());
     }
 

@@ -54,7 +54,7 @@ export type SharedRefs = {
   /** Token of the last activation applied -- see `createActivate`. */
   handledToken: MutableRef<number | undefined>;
   /**
-   * The activation token last signalled ready for (see `signalReady`) --
+   * The activation token last signaled ready for (see `signalReady`) --
    * shared between `createActivate`'s immediate signal (a reopen of the
    * already-displayed view, which shows already-settled content) and
    * `NavRoot`'s paint-timed one (a fresh load, gated on the render that

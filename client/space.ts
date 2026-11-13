@@ -105,7 +105,7 @@ export class Space {
       }
       const pageText = (await this.readPage(result.page)).text;
       // Page-level anchors don't have a meaningful range — return the
-      // whole page (matches the behaviour for refs with no details).
+      // whole page (matches the behavior for refs with no details).
       if (result.hostTag === "page") {
         return { offset: 0, text: pageText };
       }

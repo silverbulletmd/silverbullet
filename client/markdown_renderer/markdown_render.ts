@@ -110,9 +110,9 @@ function trimLeadingSpace(tags: Tag[]): Tag[] {
 
 /**
  * Drop whitespace-only text nodes from Document-level children only when
- * BOTH neighbours are block-level (so they already have their own margins
+ * BOTH neighbors are block-level (so they already have their own margins
  * and don't need explicit `<br/>` separators). Trailing/leading whitespace
- * (no neighbour on one side) is also dropped.
+ * (no neighbor on one side) is also dropped.
  */
 function collapseBlockWhitespace(
   children: ParseTree[],

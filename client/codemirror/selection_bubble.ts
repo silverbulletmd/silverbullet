@@ -19,17 +19,17 @@ import { contextsAt, matchesNodeContexts } from "../lib/node_contexts.ts";
 const EDGE = 8;
 
 /**
- * The x the bubble centres on: the middle of the selected text on the
+ * The x the bubble centers on: the middle of the selected text on the
  * selection's first visual row, from its left edge to `right` (the selection's
  * end, or the end of that row when the selection runs on). Just `left` when
  * `right` is unknown or not right of it.
  */
-export function selectionCentreX(left: number, right?: number): number {
+export function selectionCenterX(left: number, right?: number): number {
   return right === undefined || right <= left ? left : (left + right) / 2;
 }
 
 /**
- * Where the bubble goes (client coordinates): centred on `left`, 8px above
+ * Where the bubble goes (client coordinates): centered on `left`, 8px above
  * the selection's first row, flipped below it when there is no room above
  * `minTop` (the editor's visible top, below the top bar), and kept 8px inside
  * the viewport and no higher than `minTop`.
@@ -83,7 +83,7 @@ function measureSelection(view: EditorView) {
   const end = view.coordsAtPos(Math.min(to, rowEnd), -1);
   const onFirstRow = end && end.top < coords.bottom && end.bottom > coords.top;
   return {
-    left: selectionCentreX(coords.left, onFirstRow ? end.right : undefined),
+    left: selectionCenterX(coords.left, onFirstRow ? end.right : undefined),
     top: coords.top,
     bottom: coords.bottom,
     minTop,

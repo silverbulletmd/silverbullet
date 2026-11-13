@@ -18,7 +18,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Turn either off for the space with `markupBar.selectionBubble` and `markupBar.lineHandle` (also in [[Workbench/Configuration]]), or per device with `Editor: Toggle Markup Bar`. Phones keep their bar above the keyboard as before.
   * Each surface has its own button list: `markupBar.mobile` (the phone bar), `markupBar.selection` (the bubble) and `markupBar.line` (the ⋮ menu, whose buttons also take `group` and `activeContexts`).
 * [[Theming]]: themes are here, properly and can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select` and `Theme: Toggle Light/Dark`.
-  * A theme is a `Library/` page tagged `meta/theme`: a few base colours give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].
+  * A theme is a `Library/` page tagged `meta/theme`: a few base colors give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].
   * New [[API/theme]] API to list themes and pick one for this device.
   * A fresh look for **SilverBullet Light** and **SilverBullet Dark**: Inter for the interface and Lora for your pages, quieter chrome, links as underlined accent text, hashtags as pills, round task checkboxes, tables and callouts as cards, and a page title that sets the folder apart from the page name. Everything follows one accent color.
   * **Breaking for theme authors**, see [[Theming/Upgrading Existing Styles]].

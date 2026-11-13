@@ -1,4 +1,4 @@
-// Lets low-level runtime code recognise view values without depending on the
+// Lets low-level runtime code recognize view values without depending on the
 // navigator, not even for types: `navigator/view_value.ts` narrows on top of it.
 export const VIEW_VALUE_MARK: unique symbol = Symbol.for("sb.viewValue");
 

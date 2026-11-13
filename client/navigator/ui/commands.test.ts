@@ -129,7 +129,7 @@ it("informational rows neither select nor dismiss a modal", async () => {
 });
 
 // A tree whose folders may name something openable -- the space tree. Folders
-// in the revisions and TOC trees are groupings, and keep the behaviour above.
+// in the revisions and TOC trees are groupings, and keep the behavior above.
 describe("selecting a tree node when folders are selectable", () => {
   it("a folder with no page of its own opens that page and expands", async () => {
     const { cmd, selected, expanded, navigated } = setup(true);

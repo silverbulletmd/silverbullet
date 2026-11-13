@@ -36,7 +36,7 @@ export function oauthSyscalls(client: Client): SysCallMapping {
         }
       },
       description:
-        "Runs an OAuth 2.0 device authorization flow (RFC 8628). Shows a modal with a code for the user to enter, polls until approved, and returns the raw token response. Errors start with one of `cancelled:`, `expired:`, `denied:` or `failed:`.",
+        "Runs an OAuth 2.0 device authorization flow (RFC 8628). Shows a modal with a code for the user to enter, polls until approved, and returns the raw token response. Errors start with one of `canceled:`, `expired:`, `denied:` or `failed:`.",
       parameters: [
         {
           name: "opts",

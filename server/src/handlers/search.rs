@@ -117,7 +117,7 @@ impl IntoResponse for SearchFailure {
             | SearchError::QueryTooShort(_)
             | SearchError::Unsupported(_) => StatusCode::BAD_REQUEST,
             SearchError::Unavailable(_) => StatusCode::NOT_FOUND,
-            SearchError::Cancelled => StatusCode::CONFLICT,
+            SearchError::Canceled => StatusCode::CONFLICT,
             SearchError::Busy => StatusCode::TOO_MANY_REQUESTS,
             SearchError::Failed(_) => StatusCode::UNPROCESSABLE_ENTITY,
         };

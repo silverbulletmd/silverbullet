@@ -41,4 +41,4 @@ Beyond the hard rules above, there is a widely-used stylistic convention for eve
 * **Use Title Case with spaces**: name a page as you’d write it in prose: `Customer Persona`, `Release Process` — not `customer-persona`, `release_process`, or `CustomerPersona`. The page name doubles as its title and as inline link text, so a readable name reads well in context: `see [[Release Process]]`.
 * **Keep the namespace flat** by default: place most pages at the top level and reach for folders only once a clear grouping earns it. See [[Guide/Best Practices#Flat name space]] for the rationale.
 
-These are conventions, not enforced rules — your space is yours to organise however suits you.
+These are conventions, not enforced rules — your space is yours to organize however suits you.

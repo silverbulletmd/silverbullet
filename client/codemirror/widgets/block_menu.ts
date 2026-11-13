@@ -186,7 +186,7 @@ export function joinGroups<Id extends string>(
 const submenuIcon: PopupIcon = () => widgetActionIcon("edit");
 
 /**
- * One submenu row per widget in `widgets`, labelled by their sources (a
+ * One submenu row per widget in `widgets`, labeled by their sources (a
  * number added where labels repeat), each opening that widget's full menu;
  * widgets with an empty menu are left out
  */

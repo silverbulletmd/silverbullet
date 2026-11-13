@@ -298,7 +298,7 @@ impl SpaceSearch {
     }
 
     /// Switches semantic search to `spec` (`None`: off). The old service
-    /// shuts down (its download is cancelled and its spaces fail their next
+    /// shuts down (its download is canceled and its spaces fail their next
     /// job, so the caller rebuilds them); the new one starts downloading its
     /// model at once. `false` when nothing changed (the same model), and in
     /// RAM, which has no model store (single-space mode never gets here).

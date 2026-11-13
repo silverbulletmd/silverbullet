@@ -30,7 +30,7 @@ Create a page such as `Library/myuser/Themes/Sepia`:
     }
     ```
 
-After it saves, Sepia shows up in ${widgets.commandButton("Theme: Select")} and under Configuration → Appearance → Theme. Everything you didn’t set, such as the top bar, buttons, pickers and hashtags, derives from these few colours.
+After it saves, Sepia shows up in ${widgets.commandButton("Theme: Select")} and under Configuration → Appearance → Theme. Everything you didn’t set, such as the top bar, buttons, pickers and hashtags, derives from these few colors.
 
 # Frontmatter
 * `tags`: _must_ include `meta/theme`.
@@ -45,12 +45,12 @@ Mistakes in this frontmatter, such as a misspelled `scheme`, show as lint warnin
 The page name is the theme’s identity: the space setting and device choices store it. If you rename or move a theme, spaces and devices that picked it fall back to the default.
 
 # Build on a built-in theme
-A theme starts from the built-in theme with the same scheme. A light theme starts from SilverBullet Light, the built-in defaults. A dark theme starts from [[^Library/Std/Themes/SilverBullet Dark]], so you only set what you want different, and every colour you leave alone is already right for a dark page.
+A theme starts from the built-in theme with the same scheme. A light theme starts from SilverBullet Light, the built-in defaults. A dark theme starts from [[^Library/Std/Themes/SilverBullet Dark]], so you only set what you want different, and every color you leave alone is already right for a dark page.
 
 # Base and specific variables
-[[Theming/Variables]] lists every variable. **Base variables** are the palette: page and text colours, the accent, link colours, tones and the code palette. Start with these. **Specific variables** colour one part of the interface, and derive from the base ones: the top bar mixes the page and subtle colours, alerts and notifications use the tones, hashtags and the selected completion use the strong accent.
+[[Theming/Variables]] lists every variable. **Base variables** are the palette: page and text colors, the accent, link colors, tones and the code palette. Start with these. **Specific variables** color one part of the interface, and derive from the base ones: the top bar mixes the page and subtle colors, alerts and notifications use the tones, hashtags and the selected completion use the strong accent.
 
-Set a specific variable only when its derived colour doesn’t work for your palette. A dark theme that needs many specific variables is a sign a derivation is missing: please [report it](https://github.com/silverbulletmd/silverbullet/issues).
+Set a specific variable only when its derived color doesn’t work for your palette. A dark theme that needs many specific variables is a sign a derivation is missing: please [report it](https://github.com/silverbulletmd/silverbullet/issues).
 
 The derivations are computed on `html`. Set base variables there: a base variable set on another element changes that element, but not the specific variables computed from it. For example, `#sb-top { --root-color: red; }` doesn’t change the top bar’s text, because `--top-color` was already computed on `html`. Set `--top-color` instead, or set `--root-color` on `html`.
 
@@ -108,7 +108,7 @@ scheme: light
     ---
     name: Library/myuser/Themes/Paper
     tags: meta/library
-    description: Warm paper colours, light and dark.
+    description: Warm paper colors, light and dark.
     files:
     - Paper/Light.md
     - Paper/Night.md
@@ -162,6 +162,6 @@ Installing the theme then installs the font library too, unless it is already in
 
 # Checking your theme
 * Switch to it with **Theme: Select**, and back with **Use space default**.
-* Look at pickers, the command palette, notifications, a table, code blocks, frontmatter and hashtags: most of the derived colours show up there.
+* Look at pickers, the command palette, notifications, a table, code blocks, frontmatter and hashtags: most of the derived colors show up there.
 * The [[Workbench/Code/Styles|Space Style]] section of the Workbench shows your theme’s blocks, and whether the browser parsed them.
 * `theme.getActive()` in the [[Workbench/Console]] shows which theme is on screen, see [[API/theme|the theme API]].

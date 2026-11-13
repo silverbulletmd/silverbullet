@@ -15,7 +15,7 @@ pub mod tokens;
 
 pub use redirect::{is_loopback_redirect, redirect_allowed};
 pub use resource::{
-    authorization_server_metadata, canonical_mcp_url, canonical_origin, normalise_authority,
+    authorization_server_metadata, canonical_mcp_url, canonical_origin, normalize_authority,
     protected_resource_metadata, resource_metadata_url,
 };
 pub use tokens::{

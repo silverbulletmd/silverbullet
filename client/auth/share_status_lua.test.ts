@@ -189,12 +189,12 @@ describe("Share.md status engine", () => {
       expect(results.Page).toEqual({ ok: true, result: false });
     });
 
-    test("stops when cancelled, leaving the rest out", async () => {
+    test("stops when canceled, leaving the rest out", async () => {
       await twoPages();
       w.pages.set("C", "Plain\n");
       let calls = 0;
       const results = (await w.h.call("share.shareMany", ["Page", "B", "C"], {
-        cancelled: () => calls++ >= 1,
+        canceled: () => calls++ >= 1,
       })) as Record<string, unknown>;
       expect(Object.keys(results)).toEqual(["Page"]);
     });

@@ -74,37 +74,37 @@ export function QueryPreview({
 
   useEffect(() => {
     if (!text) return;
-    let cancelled = false;
+    let canceled = false;
     const timer = setTimeout(
       async () => {
         lastRun.current = Date.now();
         try {
           if (leadingText && countText) {
             const rows = await evalQueryText(client, leadingText);
-            if (cancelled) return;
+            if (canceled) return;
             const value = limit === null ? rows : firstRows(rows, limit);
             const counts = leadingCounts(rows, limit);
             setResult({ kind: "value", value, ...counts });
             if (counts.matched !== null) return;
             const all = await evalQueryText(client, countText);
-            if (!cancelled) {
+            if (!canceled) {
               setResult({ kind: "value", value, ...fullCounts(all, limit) });
             }
             return;
           }
           const all = await evalQueryText(client, text);
           const value = limit === null ? all : firstRows(all, limit);
-          if (!cancelled) {
+          if (!canceled) {
             setResult({ kind: "value", value, ...fullCounts(all, limit) });
           }
         } catch (error) {
-          if (!cancelled) setResult({ kind: "error", error });
+          if (!canceled) setResult({ kind: "error", error });
         }
       },
       previewDelay(Date.now(), lastRun.current),
     );
     return () => {
-      cancelled = true;
+      canceled = true;
       clearTimeout(timer);
     };
     // A new version of the space's data runs the same query again

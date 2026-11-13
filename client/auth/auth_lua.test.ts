@@ -109,9 +109,9 @@ describe("Auth.md", () => {
   });
 
   test("stores nothing when connect fails", async () => {
-    behavior.connectError = "cancelled: user closed the dialog";
+    behavior.connectError = "canceled: user closed the dialog";
     await expect(h.call("auth.headers", "test:y")).rejects.toThrow(
-      "cancelled:",
+      "canceled:",
     );
     expect(storedKeys()).toEqual([]);
   });

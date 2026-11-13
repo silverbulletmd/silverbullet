@@ -7,7 +7,7 @@ export type AssignmentDirective = {
 
 const ASSIGNMENT_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(?!=)/;
 
-/** Recognises a `${name = expr}` body; null for any other directive. */
+/** Recognizes a `${name = expr}` body; null for any other directive. */
 export function parseAssignmentDirective(
   body: string,
 ): AssignmentDirective | null {

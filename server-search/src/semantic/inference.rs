@@ -45,7 +45,7 @@ struct Queue {
     index: VecDeque<IndexJob>,
     stop: bool,
     /// While the worker is parked on the condvar: whether it holds a loaded
-    /// model (so its wait is the timed idle wait). Tests synchronise on it.
+    /// model (so its wait is the timed idle wait). Tests synchronize on it.
     #[cfg(test)]
     parked: Option<bool>,
 }
@@ -200,7 +200,7 @@ impl Inference {
 
     /// Downloads the model when it is missing (resuming a partial download)
     /// and returns once its files are verified. Concurrent callers share one
-    /// download (the store serialises them).
+    /// download (the store serializes them).
     pub async fn wait_ready(&self) -> Result<(), DownloadError> {
         match &self.models {
             None => Ok(()),
@@ -210,10 +210,10 @@ impl Inference {
 
     /// The query's vector. Waits behind at most one index job; `Busy` when
     /// [`limits::MAX_QUERY_EMBEDS`] embeds already wait or at the request's
-    /// deadline, `Cancelled` when the request is (its job is then skipped).
+    /// deadline, `Canceled` when the request is (its job is then skipped).
     pub async fn embed_query(&self, text: &str, cx: &RequestCx) -> Result<Vec<f32>, SearchError> {
         if cx.cancel.is_cancelled() {
-            return Err(SearchError::Cancelled);
+            return Err(SearchError::Canceled);
         }
         let (reply, answer) = oneshot::channel();
         let cancel = cx.cancel.child_token();
@@ -238,7 +238,7 @@ impl Inference {
         let _skip = cancel.drop_guard();
         tokio::select! {
             biased;
-            _ = cx.cancel.cancelled() => Err(SearchError::Cancelled),
+            _ = cx.cancel.cancelled() => Err(SearchError::Canceled),
             answer = answer => match answer {
                 Ok(Ok(vector)) => Ok(vector),
                 Ok(Err(message)) => Err(SearchError::Unavailable(message)),
@@ -537,7 +537,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_cancelled_query_is_skipped() {
+    async fn a_canceled_query_is_skipped() {
         let fake = Arc::new(FakeEmbedder::new());
         let inference = Inference::with_embedder(fake.clone());
         let release = hold(&inference);
@@ -549,7 +549,7 @@ mod tests {
         };
         until("the query queued", || inference.queued().0 == 1).await;
         cancel.cancel();
-        assert_eq!(query.await.unwrap(), Err(SearchError::Cancelled));
+        assert_eq!(query.await.unwrap(), Err(SearchError::Canceled));
         drop(release);
         inference.run_index(|_| ()).unwrap();
         assert_eq!(fake.calls.load(Ordering::SeqCst), 0, "the query never ran");
@@ -580,7 +580,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn a_cancelled_query_frees_its_place_in_the_queue() {
+    async fn a_canceled_query_frees_its_place_in_the_queue() {
         let inference = Inference::with_embedder(Arc::new(FakeEmbedder::new()));
         let release = hold(&inference);
         let requests: Vec<RequestCx> = (0..limits::MAX_QUERY_EMBEDS).map(|_| cx()).collect();
@@ -617,7 +617,7 @@ mod tests {
         for (i, query) in waiting.into_iter().enumerate() {
             let answer = query.await.unwrap();
             if i == 0 {
-                assert_eq!(answer, Err(SearchError::Cancelled));
+                assert_eq!(answer, Err(SearchError::Canceled));
             } else {
                 assert!(answer.is_ok());
             }

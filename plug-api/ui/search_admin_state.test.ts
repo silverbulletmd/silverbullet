@@ -102,7 +102,7 @@ test("a confirmed change shows the new model and polls its download", async () =
   expect(h0.get).toHaveBeenCalledTimes(2);
 });
 
-test("a cancelled change keeps the saved model", async () => {
+test("a canceled change keeps the saved model", async () => {
   vi.stubGlobal(
     "confirm",
     vi.fn(() => false),
@@ -211,7 +211,7 @@ test("a confirmed action marks its key running and reports a failure", async () 
   });
   expect(onError).toHaveBeenCalledWith("disk full");
 
-  // Nothing to act on, or a cancelled confirmation: nothing runs.
+  // Nothing to act on, or a canceled confirmation: nothing runs.
   await act(() => action.start("none"));
   confirm.mockReturnValue(false);
   await act(() => action.start("garden"));

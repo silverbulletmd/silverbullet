@@ -138,11 +138,11 @@ export function OidcWizard({
 
   useEffect(() => {
     if (!testId) return;
-    let cancelled = false;
+    let canceled = false;
     let pending = false;
     const deadline = Date.now() + 10 * 60_000;
     const poll = async () => {
-      if (pending || cancelled) return;
+      if (pending || canceled) return;
       if (Date.now() > deadline) {
         setResult({
           status: "error",
@@ -157,7 +157,7 @@ export function OidcWizard({
           "GET",
           `authentication/test/${encodeURIComponent(testId)}`,
         );
-        if (cancelled) return;
+        if (canceled) return;
         setResult(next);
         if (next.status !== "running") {
           setTestId(undefined);
@@ -166,7 +166,7 @@ export function OidcWizard({
           testProof.current = undefined;
         }
       } catch (error: any) {
-        if (!cancelled) {
+        if (!canceled) {
           failed(error);
           setTestId(undefined);
         }
@@ -179,7 +179,7 @@ export function OidcWizard({
       void poll();
     }, 1000);
     return () => {
-      cancelled = true;
+      canceled = true;
       clearInterval(timer);
     };
   }, [testId]);

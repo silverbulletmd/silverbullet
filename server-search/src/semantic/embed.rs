@@ -30,7 +30,7 @@ pub trait Embedder: Send + Sync {
     /// passage window (passage prefix and special tokens included);
     /// `text.len()` when all of it fits. Always a char boundary.
     fn fit(&self, text: &str) -> usize;
-    /// One L2-normalised vector of `spec().dim` per input, each input cut to one window.
+    /// One L2-normalized vector of `spec().dim` per input, each input cut to one window.
     fn embed(&self, texts: &[&str], kind: EmbedKind) -> Result<Vec<Vec<f32>>, EmbedError>;
 }
 
@@ -167,7 +167,7 @@ impl CandleEmbedder {
         self.window(&format!("{prefix}{text}"))
     }
 
-    /// Raw pooled (not normalised) vector per window; runs on the caller's thread.
+    /// Raw pooled (not normalized) vector per window; runs on the caller's thread.
     pub(crate) fn pool_windows(&self, windows: &[&[u32]]) -> Result<Vec<Vec<f32>>, EmbedError> {
         let mut out = Vec::with_capacity(windows.len());
         for batch in windows.chunks(BATCH_WINDOWS) {
@@ -234,7 +234,7 @@ impl CandleEmbedder {
                     self.spec.dim
                 )));
             }
-            l2_normalise(&mut vector)?;
+            l2_normalize(&mut vector)?;
             out[i] = vector;
         }
         Ok(out)
@@ -252,7 +252,7 @@ fn check_hidden(spec: &ModelSpec, hidden: usize) -> Result<(), EmbedError> {
     }
 }
 
-pub(crate) fn l2_normalise(vector: &mut [f32]) -> Result<(), EmbedError> {
+pub(crate) fn l2_normalize(vector: &mut [f32]) -> Result<(), EmbedError> {
     let norm = vector.iter().map(|v| v * v).sum::<f32>().sqrt();
     if !norm.is_finite() || norm <= 0.0 {
         return Err(EmbedError::Run(
@@ -379,7 +379,7 @@ mod tests {
         assert_eq!(w[31], 3, "the end token is kept");
         let got = e.embed(&[&text], EmbedKind::Passage).unwrap();
         let mut expected = e.pool_windows(&[&w[..]]).unwrap().remove(0);
-        l2_normalise(&mut expected).unwrap();
+        l2_normalize(&mut expected).unwrap();
         assert!(max_diff(&got[0], &expected) < 1e-5);
     }
 
@@ -429,7 +429,7 @@ mod tests {
         // Passage adds "passage: " first, so compare against windows built without any prefix.
         let raw = e.window("query: garden basil").unwrap();
         let mut expected = e.pool_windows(&[&raw[..]]).unwrap().remove(0);
-        l2_normalise(&mut expected).unwrap();
+        l2_normalize(&mut expected).unwrap();
         assert!(max_diff(&q[0], &expected) < 1e-5);
         assert!(max_diff(&q[0], &p_manual[0]) > 1e-4);
     }
@@ -446,12 +446,12 @@ mod tests {
         let got = e.embed(&["garden basil"], EmbedKind::Passage).unwrap();
         let w = [2, id("garden"), id("basil"), 3];
         let mut expected = e.pool_windows(&[&w[..]]).unwrap().remove(0);
-        l2_normalise(&mut expected).unwrap();
+        l2_normalize(&mut expected).unwrap();
         assert!(max_diff(&got[0], &expected) < 1e-5);
     }
 
     #[test]
-    fn cls_pooling_is_the_normalised_first_token_state() {
+    fn cls_pooling_is_the_normalized_first_token_state() {
         let (_dir, cls) = tiny_with(Architecture::Bert, Pooling::Cls, "query: ", "passage: ");
         let (_dir2, mean) = tiny();
         let text = "garden basil soil";
@@ -464,7 +464,7 @@ mod tests {
             .unwrap()
             .to_vec1::<f32>()
             .unwrap();
-        l2_normalise(&mut first).unwrap();
+        l2_normalize(&mut first).unwrap();
         let got = cls.embed(&[text], EmbedKind::Passage).unwrap();
         assert!(max_diff(&got[0], &first) < 1e-5);
         // Same weights, different pooling: the vectors differ.
@@ -489,7 +489,7 @@ mod tests {
                 *a += v / rows.len() as f32;
             }
         }
-        l2_normalise(&mut avg).unwrap();
+        l2_normalize(&mut avg).unwrap();
         let got = e.embed(&[text], EmbedKind::Passage).unwrap();
         assert!(max_diff(&got[0], &avg) < 1e-5);
     }
@@ -525,7 +525,7 @@ mod tests {
                 *a += v / rows.len() as f32;
             }
         }
-        l2_normalise(&mut avg).unwrap();
+        l2_normalize(&mut avg).unwrap();
         assert!(max_diff(&alone[0], &avg) < 1e-5);
     }
 
@@ -547,13 +547,13 @@ mod tests {
         // No prefixes: a query embeds like a passage.
         let q = e.embed(&["garden basil"], EmbedKind::Query).unwrap();
         assert!(max_diff(&q[0], &alone[0]) < 1e-6);
-        // CLS: the normalised first token state.
+        // CLS: the normalized first token state.
         let w = e
             .prefixed_window("garden basil", EmbedKind::Passage)
             .unwrap();
         let (hidden, _) = e.hidden_batch(&[&w[..]]).unwrap();
         let mut first = hidden.get(0).unwrap().to_vec2::<f32>().unwrap()[0].clone();
-        l2_normalise(&mut first).unwrap();
+        l2_normalize(&mut first).unwrap();
         assert!(max_diff(&alone[0], &first) < 1e-5);
     }
 

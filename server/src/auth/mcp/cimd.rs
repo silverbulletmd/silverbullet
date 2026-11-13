@@ -72,7 +72,7 @@ fn validate(id: &str, allow_http_loopback: bool) -> Result<Url, OAuthError> {
     if url.scheme() != "https" && !http_loopback {
         return Err(bad());
     }
-    // Parsing normalises dot segments, case and default ports away; the
+    // Parsing normalizes dot segments, case and default ports away; the
     // document must name exactly this string as its client_id, so anything
     // the parser rewrote is refused rather than silently fetched elsewhere.
     if url.as_str() != id

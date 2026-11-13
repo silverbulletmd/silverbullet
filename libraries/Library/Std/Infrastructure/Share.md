@@ -368,7 +368,7 @@ local function chooseVersion(s, remoteText, message)
     local copyName = saveConflictCopy(s.name, remoteText)
     editor.flashNotification("Saved their version as " .. copyName)
   end
-  -- Cancelled: the sides still differ, as the user knows
+  -- Canceled: the sides still differ, as the user knows
   return "notified"
 end
 
@@ -491,13 +491,13 @@ function share.check(names)
 end
 
 -- Shares the pages in order. opts.onProgress(index, total, name) is called
--- before each page, opts.cancelled() before each page too: a true stops the
+-- before each page, opts.canceled() before each page too: a true stops the
 -- run, leaving the remaining pages out of the result.
 function share.shareMany(names, opts)
   opts = opts or {}
   local results = {}
   for i, name in ipairs(names) do
-    if opts.cancelled and opts.cancelled() then
+    if opts.canceled and opts.canceled() then
       break
     end
     if opts.onProgress then

@@ -430,7 +430,7 @@ export const readOnlyAtomicRanges = EditorView.atomicRanges.of((view) => {
     set.between(from, to, (rangeFrom, rangeTo, value) => {
       if (value === hiddenLineDecoration) {
         // Include both surrounding line breaks so the cursor can only stop
-        // on the neighbouring (visible) lines, never inside the hidden one.
+        // on the neighboring (visible) lines, never inside the hidden one.
         const line = doc.lineAt(rangeFrom);
         ranges.push(
           invisibleDecoration.range(

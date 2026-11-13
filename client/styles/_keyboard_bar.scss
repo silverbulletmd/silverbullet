@@ -50,7 +50,7 @@ html.sb-viewport-tracked #sb-main .cm-editor .cm-scroller {
     color: var(--action-button-color);
     -webkit-tap-highlight-color: transparent;
 
-    // Not the top bar's border colour: a theme may hide that border
+    // Not the top bar's border color: a theme may hide that border
     &:active {
       background-color: var(--ui-surface-hover-background-color);
     }

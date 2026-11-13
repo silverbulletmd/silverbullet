@@ -15,7 +15,7 @@ Each row shows:
 * **Style:** the page it’s on, with the block’s position in the page when the page holds several.
 * **Priority** and **Rules:** its priority (“–” when it sets none) and how many rules the browser parsed from it.
 
-A block on a [[Theming|theme]] page is marked with its theme. Blocks of themes that aren’t active are greyed out and show “–” for rules. The footer counts them separately, as inactive.
+A block on a [[Theming|theme]] page is marked with its theme. Blocks of themes that aren’t active are grayed out and show “–” for rules. The footer counts them separately, as inactive.
 
 Browsers drop CSS they can’t parse without reporting it, so an amber row almost always means a syntax error, like a missing `{`. A block that only holds comments isn’t flagged. A typo that breaks just one rule in a block shows up only as that block’s rule count being one lower than you’d expect.
 

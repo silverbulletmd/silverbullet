@@ -287,7 +287,7 @@ export const pagePicker: BuiltinView<PageObj> = {
         chips.push({
           text: String(obj.extension).toUpperCase(),
           position: "right",
-          // Greyed out when this client has no editor for it: the row is still
+          // Grayed out when this client has no editor for it: the row is still
           // selectable, it just isn't an offer.
           cssClass: canViewDocument(obj.name)
             ? undefined

@@ -309,7 +309,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn cancelling_redirects_with_access_denied_and_the_state() {
+    async fn canceling_redirects_with_access_denied_and_the_state() {
         let (state, cookie) = login_state();
         let resp = approve(state, &cookie, false).await;
         let loc = resp.headers()["location"].to_str().unwrap();

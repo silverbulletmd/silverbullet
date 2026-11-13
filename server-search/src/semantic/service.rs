@@ -277,7 +277,7 @@ struct Opener {
 impl Opener {
     /// Opens the cell's sink (or shares it), waits for the model's files,
     /// then runs a sync worker over `view` and `feed`. `None` when the space
-    /// was forgotten or the download cancelled meanwhile; `Err` when the
+    /// was forgotten or the download canceled meanwhile; `Err` when the
     /// sink can't be opened.
     async fn start(
         self,
@@ -328,7 +328,7 @@ impl Opener {
 
 /// Waits until the model's files are ready, downloading them (one download
 /// for the server: `download` is its turn) and retrying a failed download
-/// every [`DOWNLOAD_RETRY`]. Only fails when the download was cancelled
+/// every [`DOWNLOAD_RETRY`]. Only fails when the download was canceled
 /// ([`Inference::stop`]).
 async fn wait_for_model(
     inference: &Inference,
@@ -338,7 +338,7 @@ async fn wait_for_model(
         let _turn = download.lock().await;
         match inference.wait_ready().await {
             Ok(()) => return Ok(()),
-            Err(DownloadError::Cancelled) => return Err(DownloadError::Cancelled),
+            Err(DownloadError::Canceled) => return Err(DownloadError::Canceled),
             Err(e) => {
                 tracing::warn!(
                     "Semantic search: downloading {} failed ({e}); retrying in {} s",
@@ -347,7 +347,7 @@ async fn wait_for_model(
                 );
                 // Holding the turn: the next space retries after this wait.
                 tokio::select! {
-                    _ = inference.stopped() => return Err(DownloadError::Cancelled),
+                    _ = inference.stopped() => return Err(DownloadError::Canceled),
                     _ = tokio::time::sleep(DOWNLOAD_RETRY) => {}
                 }
             }

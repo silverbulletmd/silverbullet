@@ -224,12 +224,12 @@ function AttrValue({ value }: { value: unknown }) {
     Array.isArray(value) && value.every((v) => typeof v !== "object");
   useEffect(() => {
     if (!nested || flatList) return;
-    let cancelled = false;
+    let canceled = false;
     void syscall("yaml.stringify", value).then((t: string) => {
-      if (!cancelled) setText(t.trimEnd());
+      if (!canceled) setText(t.trimEnd());
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [value]);
   if (flatList) return <>{(value as unknown[]).join(", ")}</>;

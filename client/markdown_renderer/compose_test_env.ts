@@ -131,7 +131,7 @@ export function testHost(
 }
 
 // Unwrap slot wrappers so live output compares with the static snapshot.
-export function normaliseLive(node: HTMLElement): string {
+export function normalizeLive(node: HTMLElement): string {
   for (const w of Array.from(node.querySelectorAll(".sb-slot"))) {
     w.replaceWith(...Array.from(w.childNodes));
   }
@@ -157,5 +157,5 @@ export async function renderCorpusLive(
   const ctx = createRenderContext(testHost(t), {
     hostPage: { name: pageName },
   });
-  return normaliseLive((await renderMarkdown(markdown, ctx)).node);
+  return normalizeLive((await renderMarkdown(markdown, ctx)).node);
 }

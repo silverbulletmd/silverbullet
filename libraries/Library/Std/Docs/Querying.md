@@ -58,7 +58,7 @@ Do not call a construct invalid without running it. Existing pages may use forms
 * Always add `limit` while exploring: a bare collection such as `index.pages("book")` returns at most 1000 rows, then a `"<truncated: ...>"` entry, and functions show up as markers like `"<function>"`. Fields you do not see in a sample may exist on other objects, so sample the relevant tag or pages.
 * There is no `contains`. Test a substring with `s:find("x", 1, true)` (nil when absent), prefixes and suffixes with `s:startsWith("x")` and `s:endsWith("x")`, and membership with `table.includes(t, value)`.
 * Results are distinct: rows equal after `select` appear once. `select {status = t.status}` yields one row per status. Count with `group by` and `#group`, or keep an identifying field such as `ref` in the row.
-* `query[[...]]` must be parenthesised before indexing: `(query[[...]])[1]`. A literal `]]` cannot appear inside the brackets; use `query[==[ ... ]==]`.
+* `query[[...]]` must be parenthesized before indexing: `(query[[...]])[1]`. A literal `]]` cannot appear inside the brackets; use `query[==[ ... ]==]`.
 * The index updates asynchronously. Right after an edit a narrow query may miss it; an empty result from a stale index is not evidence that nothing matches.
 
 Keep `ref` in rows so an answer can point back to its source. If you fall back to reading Markdown because the index is unavailable, say the result comes from reading files, not from an exhaustive index query. A limit gives a partial answer: if completeness matters, count first or page with `order by` plus `limit` and `offset`. Do not put mutations in a query.

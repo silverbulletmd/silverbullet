@@ -11,7 +11,7 @@ pub enum SearchError {
     #[error("{0}")]
     Unavailable(String),
     #[error("Superseded by a newer search")]
-    Cancelled,
+    Canceled,
     #[error("Search failed: {0}")]
     Failed(String),
 }
@@ -25,7 +25,7 @@ impl SearchError {
             SearchError::Unsupported(_) => "unsupported",
             SearchError::Busy => "busy",
             SearchError::Unavailable(_) => "unavailable",
-            SearchError::Cancelled => "cancelled",
+            SearchError::Canceled => "canceled",
             SearchError::Failed(_) => "failed",
         }
     }

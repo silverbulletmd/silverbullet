@@ -754,7 +754,7 @@ mod model_choice {
     }
 
     /// The services download from a slow local model server.
-    /// A model server whose download never finishes until it is cancelled.
+    /// A model server whose download never finishes until it is canceled.
     async fn manager_with_stalled_model_server(
         spaces: &[(&str, Option<bool>)],
     ) -> (tempfile::TempDir, Arc<MultiManager>, Arc<TestModelServer>) {

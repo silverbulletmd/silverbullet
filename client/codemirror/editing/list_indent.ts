@@ -180,7 +180,7 @@ function pendingMarkerSlots(
  * visited before their nested children. CodeMirror concatenates same-position
  * line decorations' `style` attributes with `;`, and the last declaration of
  * a given property wins — so the inner item's (deeper) marker width
- * overwrites the outer item's for the nested portion. This is the behaviour
+ * overwrites the outer item's for the nested portion. This is the behavior
  * we want: every line gets the marker width of the innermost ListItem it
  * belongs to. Column slots follow the same innermost-wins rule via `slots`.
  *

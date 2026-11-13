@@ -114,7 +114,7 @@ fn write_yaml(w: &mut dyn Write, v: &Value) -> io::Result<()> {
     write!(w, "{}", s)
 }
 
-/// Preferred column order.  Columns not in this list come after, alphabetised.
+/// Preferred column order.  Columns not in this list come after, alphabetized.
 const PREFERRED_COLUMNS: &[&str] = &[
     "tag",
     "ref",

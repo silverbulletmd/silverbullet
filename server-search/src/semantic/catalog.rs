@@ -35,9 +35,9 @@ pub struct Thresholds {
     pub related_min: f32,
     /// How much a related page's closeness to the whole space counts
     /// against it: it scores `cos(target, page) - related_damping *
-    /// cos(page, centroid)` (the centroid is the normalised mean page
+    /// cos(page, centroid)` (the centroid is the normalized mean page
     /// vector), so hub pages, close to everything, rank below specific
-    /// neighbours. `related_min` applies to that score.
+    /// neighbors. `related_min` applies to that score.
     pub related_damping: f32,
     pub max_gap: f32,
     /// The RRF weight of full-text hits from the similar tier (pages with
@@ -98,16 +98,16 @@ const fn resident(weights: u64) -> u64 {
     (weights * 5).div_ceil(4)
 }
 
-// The thresholds, calibrated on the eval's labelled corpus with
+// The thresholds, calibrated on the eval's labeled corpus with
 // `search-eval calibrate` (method and sweep in
 // `crates/search-eval/results/README-semantic.md` of the app repository):
 // `search_min`, `max_gap` and `similar_weight` keep hybrid nDCG@10 within
-// 0.01 of the best while minimising negative queries with results;
-// `related_min` and `related_damping` (swept jointly) maximise the F1
+// 0.01 of the best while minimizing negative queries with results;
+// `related_min` and `related_damping` (swept jointly) maximize the F1
 // of related P@5 and R@5.
 
 // Granite's `search_min` sits on a steep edge: the rule picks 0.81, but
-// 0.815 keeps labelled hybrid at 0.966 while lifting typo queries on the
+// 0.815 keeps labeled hybrid at 0.966 while lifting typo queries on the
 // 5,000-page space from 0.673 to 0.749 (README-semantic.md, Granite section).
 const GRANITE_97M_THRESHOLDS: Thresholds = Thresholds {
     search_min: 0.815,
@@ -409,9 +409,9 @@ mod tests {
         assert_eq!(e5.max_tokens, 512);
     }
 
-    /// What the model picker shows: the model card's page and licence.
+    /// What the model picker shows: the model card's page and license.
     #[test]
-    fn every_entry_names_its_homepage_and_licence() {
+    fn every_entry_names_its_homepage_and_license() {
         let g = default_model();
         assert_eq!(
             g.homepage,

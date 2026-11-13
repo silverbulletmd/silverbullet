@@ -16,7 +16,7 @@ use super::download::ModelStore;
 use super::service::SemanticService;
 use super::test_model::write_tiny_model;
 
-/// Minimal HTTP/1.1 file server: honours `Range: bytes=N-`, counts requests, and can ignore
+/// Minimal HTTP/1.1 file server: honors `Range: bytes=N-`, counts requests, and can ignore
 /// ranges, drop the connection part-way, corrupt or lengthen bodies, send slowly, and stall.
 /// (Raw sockets rather than axum: a mid-body connection kill needs a streamed body, and the
 /// crate has no futures stream dependency to build one.)
@@ -109,7 +109,7 @@ async fn serve(conn: TcpStream, server: Arc<FileServer>) {
         }
     }
     if stall {
-        // Returns when the client hangs up (a cancelled download).
+        // Returns when the client hangs up (a canceled download).
         let _ = conn.read(&mut [0u8; 1]).await;
         return;
     }
@@ -149,8 +149,8 @@ impl TestModelServer {
 
     /// Serves every file of the model but its last byte, then stalls: a
     /// download never finishes, and stays in its first file (and its
-    /// `.partial`) until it is cancelled. Wait for `Downloading` with
-    /// `done > 0` before cancelling: the `.partial` exists from then on.
+    /// `.partial`) until it is canceled. Wait for `Downloading` with
+    /// `done > 0` before canceling: the `.partial` exists from then on.
     pub async fn stalled() -> TestModelServer {
         TestModelServer::serving(true).await
     }

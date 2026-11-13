@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { bubblePosition, selectionCentreX } from "./selection_bubble.ts";
+import { bubblePosition, selectionCenterX } from "./selection_bubble.ts";
 
 describe("bubblePosition", () => {
   const viewport = { width: 1000, height: 800 };
@@ -56,14 +56,14 @@ describe("bubblePosition", () => {
   });
 });
 
-describe("selectionCentreX", () => {
+describe("selectionCenterX", () => {
   test("the middle of the first row's selected span", () => {
-    expect(selectionCentreX(400, 480)).toBe(440);
+    expect(selectionCenterX(400, 480)).toBe(440);
   });
 
   test("the left edge when the span is unknown or empty", () => {
-    expect(selectionCentreX(400)).toBe(400);
-    expect(selectionCentreX(400, 400)).toBe(400);
-    expect(selectionCentreX(400, 380)).toBe(400);
+    expect(selectionCenterX(400)).toBe(400);
+    expect(selectionCenterX(400, 400)).toBe(400);
+    expect(selectionCenterX(400, 380)).toBe(400);
   });
 });

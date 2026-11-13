@@ -4,7 +4,7 @@
   color: var(--root-color);
 }
 
-// Beats CodeMirror's injected cursor colour.
+// Beats CodeMirror's injected cursor color.
 .cm-cursor,
 .cm-dropCursor {
   border-left: 1.2px solid var(--editor-caret-color) !important;
@@ -173,7 +173,7 @@
     border-radius: 0;
   }
 
-  // CodeMirror's own find colours are fixed yellow/orange (light) and
+  // CodeMirror's own find colors are fixed yellow/orange (light) and
   // cyan/magenta (dark), whatever the theme.
   .cm-searchMatch {
     background-color: var(--editor-search-match-background-color);
@@ -311,7 +311,7 @@
       color: var(--modal-color);
     }
 
-    // Its detail loses the fill too, or it stays light text on the page colour
+    // Its detail loses the fill too, or it stays light text on the page color
     ul:hover li[aria-selected]:not(:hover) .cm-completionDetail {
       color: var(--editor-completion-detail-color);
     }
@@ -506,7 +506,7 @@ tbody tr:nth-of-type(even) {
 }
 
 // The `<!--` / `-->` delimiters of a comment whose body is parsed as markdown:
-// the body styles itself, so only the markers get the comment colour.
+// the body styles itself, so only the markers get the comment color.
 // An opaque surface, so the button reads as a control rather than dissolving
 // into the region's own tint.
 .sb-comment-resolve {

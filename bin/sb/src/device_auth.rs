@@ -196,7 +196,7 @@ fn poll(client: &Client, base: &str, code: &str, remaining: Duration) -> Result<
     match body["error"].as_str() {
         Some("authorization_pending") => Ok(Poll::Pending),
         Some("slow_down") => Ok(Poll::SlowDown),
-        Some("access_denied") => Err("Sign-in cancelled in the browser.".into()),
+        Some("access_denied") => Err("Sign-in canceled in the browser.".into()),
         Some("expired_token") => Err("Sign-in expired. Run the command again.".into()),
         Some("invalid_grant") => {
             Err("Sign-in attempt is no longer valid. Run the command again.".into())
@@ -305,7 +305,7 @@ mod tests {
     fn device_login_denial_does_not_return_tokens() {
         let (base, server) = server(&["access_denied"]);
         let error = authorize(&base, |_, _| {}, |_| {}).unwrap_err();
-        assert!(error.contains("cancelled"));
+        assert!(error.contains("canceled"));
         assert_eq!(server.join().unwrap().len(), 2);
     }
 

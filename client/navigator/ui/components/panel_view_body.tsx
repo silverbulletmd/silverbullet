@@ -40,9 +40,9 @@ export function PanelViewBody({
   // A view that doesn't follow the editor isn't built again for a new page
   const builtFor = follows ? page : "";
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     void buildPanel(client, name, { tab, page, dock }).then((result) => {
-      if (cancelled) return;
+      if (canceled) return;
       setPanel(
         "error" in result
           ? result
@@ -54,7 +54,7 @@ export function PanelViewBody({
       );
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [client, name, tab, builtFor, dock]);
 

@@ -277,7 +277,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn system_browsers_are_recognised() {
+    fn system_browsers_are_recognized() {
         for path in [
             "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
             "/Applications/Chromium.app/Contents/MacOS/Chromium",

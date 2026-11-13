@@ -351,7 +351,7 @@ mod tests {
         );
     }
 
-    /// A solid-colour PNG whose row `y` has red channel = `first_row + y`.
+    /// A solid-color PNG whose row `y` has red channel = `first_row + y`.
     fn striped_png(width: u32, height: u32, first_row: u8, color: png::ColorType) -> Vec<u8> {
         let channels = match color {
             png::ColorType::Rgb => 3,

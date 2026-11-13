@@ -73,9 +73,9 @@ export async function saveFile(file: UploadFile) {
       );
       if (confirmedFilePath === undefined) {
         // Unlike the initial filename prompt, we're inside a workflow here
-        // and should be explicit that the user action cancelled the whole
+        // and should be explicit that the user action canceled the whole
         // operation.
-        void editor.flashNotification("Upload cancelled by user", "info");
+        void editor.flashNotification("Upload canceled by user", "info");
         return;
       }
       confirmedFilePath = confirmedFilePath.trim();

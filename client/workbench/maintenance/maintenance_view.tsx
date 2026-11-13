@@ -295,7 +295,7 @@ function DeepStatus(props: {
         <span className="sb-wbm-hint">
           ran {time} · {plural(state.pages, "page")} ·{" "}
           {seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s
-          {state.cancelled ? " · cancelled" : ""}
+          {state.canceled ? " · canceled" : ""}
         </span>
         <Button onClick={props.onRun}>Run again</Button>
       </DeepLine>

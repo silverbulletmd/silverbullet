@@ -44,8 +44,8 @@ pub enum DownloadError {
     Checksum(String),
     #[error("size mismatch for {0}")]
     Size(String),
-    #[error("download cancelled")]
-    Cancelled,
+    #[error("download canceled")]
+    Canceled,
     #[error("{0}")]
     Http(String),
     #[error(transparent)]
@@ -65,7 +65,7 @@ pub struct StoredModel {
 /// One model's download bookkeeping.
 #[derive(Default)]
 struct Slot {
-    /// Serialises `ensure` and `remove` for the model.
+    /// Serializes `ensure` and `remove` for the model.
     turn: tokio::sync::Mutex<()>,
     /// The running download's progress, or the last failure; `None` means
     /// "what is on disk".
@@ -211,7 +211,7 @@ impl ModelStore {
 
     /// Idempotent. Returns the model directory once every file is verified, or on error or
     /// cancel. Progress is readable through `state` meanwhile. Concurrent calls for the same
-    /// model are serialised; later ones find it ready. If the future is dropped mid-download the
+    /// model are serialized; later ones find it ready. If the future is dropped mid-download the
     /// state falls back to what is on disk.
     pub async fn ensure(
         &self,
@@ -220,14 +220,14 @@ impl ModelStore {
     ) -> Result<PathBuf, DownloadError> {
         let slot = self.slot(spec);
         let _turn = tokio::select! {
-            _ = cancel.cancelled() => return Err(DownloadError::Cancelled),
+            _ = cancel.cancelled() => return Err(DownloadError::Canceled),
             turn = slot.turn.lock() => turn,
         };
         if self.is_ready(spec) {
             *slot.state.lock().unwrap() = None;
             return Ok(self.dir(spec));
         }
-        // `remove` cancels this child token; the caller's token is honoured through it too.
+        // `remove` cancels this child token; the caller's token is honored through it too.
         let cancel = cancel.child_token();
         *slot.cancel.lock().unwrap() = Some(cancel.clone());
         slot.set(DownloadState::Downloading {
@@ -237,7 +237,7 @@ impl ModelStore {
         let _running = Running(slot.clone());
         match self.fetch_all(spec, &slot, &cancel).await {
             Ok(dir) => Ok(dir),
-            Err(DownloadError::Cancelled) => Err(DownloadError::Cancelled),
+            Err(DownloadError::Canceled) => Err(DownloadError::Canceled),
             Err(e) => {
                 slot.set(DownloadState::Failed {
                     message: e.to_string(),
@@ -372,7 +372,7 @@ impl ModelStore {
             req = req.header(reqwest::header::RANGE, format!("bytes={from}-"));
         }
         tokio::select! {
-            _ = cancel.cancelled() => Err(DownloadError::Cancelled),
+            _ = cancel.cancelled() => Err(DownloadError::Canceled),
             sent = req.send() => sent.map_err(|e| {
                 DownloadError::Http(format!("request for {} failed: {e}", file.name))
             }),
@@ -457,7 +457,7 @@ async fn stream_into(
         let chunk = tokio::select! {
             _ = cancel.cancelled() => {
                 out.flush().await?;
-                return Err(DownloadError::Cancelled);
+                return Err(DownloadError::Canceled);
             }
             chunk = resp.chunk() => chunk,
         };

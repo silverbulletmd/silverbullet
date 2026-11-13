@@ -2446,7 +2446,7 @@ describe("Same-millisecond divergence", () => {
 
   // The local subset: an editor save landing in the same millisecond as the
   // revision the engine recorded, with the same byte length.
-  test("a locally signalled path that drifted is pushed", async () => {
+  test("a locally signaled path that drifted is pushed", async () => {
     const { secondary, snapshot, sync } = await colliding(
       LOCAL_EDIT,
       BASE,
@@ -2467,7 +2467,7 @@ describe("Same-millisecond divergence", () => {
   // The remote subset: the local copy is exactly the revision last synced, and
   // the remote moved on at the same millisecond and length. Only the revision
   // the change event reports can tell.
-  test("a remotely signalled path that moved is pulled", async () => {
+  test("a remotely signaled path that moved is pulled", async () => {
     const { primary, snapshot, sync } = await colliding(
       BASE,
       REMOTE_EDIT,
@@ -2485,7 +2485,7 @@ describe("Same-millisecond divergence", () => {
 
   // Both sides moved inside the same millisecond: neither may be dropped, so
   // this routes through conflict resolution.
-  test("a signalled path that moved on both ends is resolved", async () => {
+  test("a signaled path that moved on both ends is resolved", async () => {
     const { primary, secondary, snapshot, sync } = await colliding(
       LOCAL_EDIT,
       REMOTE_EDIT,
@@ -2509,7 +2509,7 @@ describe("Same-millisecond divergence", () => {
 
   // The verification is a check, not a push: a signal for a path that
   // genuinely didn't move must stay a no-op.
-  test("a signalled path that did not move stays a no-op", async () => {
+  test("a signaled path that did not move stays a no-op", async () => {
     const { primary, secondary, snapshot, sync } = await colliding(
       BASE,
       BASE,
@@ -2540,8 +2540,8 @@ describe("Same-millisecond divergence", () => {
   });
 
   // Periodic scans cannot afford a content check per file; same-millisecond
-  // collisions remain invisible until a path is explicitly signalled.
-  test("an unsignalled path is still classified by timestamps alone", async () => {
+  // collisions remain invisible until a path is explicitly signaled.
+  test("an unsignaled path is still classified by timestamps alone", async () => {
     const { secondary, snapshot, sync } = await colliding(
       LOCAL_EDIT,
       BASE,

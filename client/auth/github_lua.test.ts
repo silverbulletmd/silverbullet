@@ -139,7 +139,7 @@ describe("Github.md", () => {
     expect(deviceFlows).toHaveLength(0);
   });
 
-  test("honours github.clientId override", async () => {
+  test("honors github.clientId override", async () => {
     cfg["github.clientId"] = "my-client";
     await h.call("auth.headers", "github");
     expect(deviceFlows[0].clientId).toBe("my-client");
@@ -727,9 +727,9 @@ describe("Github.md", () => {
       ).toEqual(["docs/A.md", "docs/My Notes/C D.md", "docs/Old.md"]);
     });
 
-    test("a cancelled commit message writes nothing", async () => {
+    test("a canceled commit message writes nothing", async () => {
       commitMessage = undefined;
-      expect(await batch()).toEqual({ cancelled: true });
+      expect(await batch()).toEqual({ canceled: true });
       expect(fetches).toHaveLength(0);
     });
 

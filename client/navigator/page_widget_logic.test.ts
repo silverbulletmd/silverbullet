@@ -377,8 +377,8 @@ test("identical rows produce an identical identity, and a changed field does not
   expect(rowsIdentity(a)).not.toBe(rowsIdentity(renamed));
 });
 
-// A Lua-built object can carry closures; those serialise away. Anything that
-// defeats serialisation entirely has to read as "cannot say".
+// A Lua-built object can carry closures; those serialize away. Anything that
+// defeats serialization entirely has to read as "cannot say".
 test("rowsIdentity ignores functions, and gives up on a cycle", () => {
   const withFn = [{ obj: { name: "A", run: () => {} }, primary: "A" }];
   const without = [{ obj: { name: "A" }, primary: "A" }];
@@ -412,7 +412,7 @@ test("error transitions always commit, in both directions", () => {
   expect(shouldCommit(bad, loadIdentity("boom", ""))).toBe(false);
 });
 
-test("an unserialisable result is treated as changed, never as unchanged", () => {
+test("an unserializable result is treated as changed, never as unchanged", () => {
   const known = loadIdentity(undefined, "# hi");
   expect(shouldCommit(known, loadIdentity(undefined, undefined))).toBe(true);
 });

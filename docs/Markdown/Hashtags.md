@@ -1,6 +1,6 @@
 ---
 tags: glossary page-tag-example
-description: "An inline #tag that annotates a page or object for categorisation and querying."
+description: "An inline #tag that annotates a page or object for categorization and querying."
 references:
 - client/codemirror/syntax/hashtag.ts
 - plugs/index/tags.ts

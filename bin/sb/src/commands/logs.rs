@@ -1,6 +1,6 @@
 //! `sb logs` — show console logs from the running SilverBullet server.
 //!
-//! Behaviour:
+//! Behavior:
 //!  - Initial fetch: `conn.logs(lines, None)`, print each entry as
 //!    `<RFC3339-UTC> [<level>] <text>`, track the highest timestamp seen.
 //!  - With `--follow`: loop every 500 ms, fetch `conn.logs(0, Some(last_ts))`,

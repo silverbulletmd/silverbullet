@@ -443,7 +443,7 @@ local function writeBatch(data)
   github.checkConfig()
   local message = editor.prompt("Commit message:", "Publish " .. data.root)
   if not message or message:trim() == "" then
-    return {cancelled = true}
+    return {canceled = true}
   end
   local repo, ref = splitRoot(data.root)
   local head = responseBody(github.request(

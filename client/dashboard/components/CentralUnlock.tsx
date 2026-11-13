@@ -106,7 +106,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
   }
 
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     let removeListener = () => {};
     const start = async () => {
       try {
@@ -134,7 +134,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
         data.scope = scope.href;
         if (new URL(data.centralOrigin).origin !== data.centralOrigin)
           throw new Error("Invalid central login origin");
-        if (cancelled) return;
+        if (canceled) return;
         if (dashboard) {
           if (data.encrypt) localStorage.setItem("enableEncryption", "true");
           location.replace(data.destination);
@@ -156,7 +156,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
         }
         registration.current = await registerEncryptionWorker(data.scope);
         const key = await readEncryptionKey(registration.current);
-        if (cancelled) return;
+        if (canceled) return;
         if (key && (data.loginMethod !== "local" || !window.opener)) {
           await finish(data, key);
           return;
@@ -182,7 +182,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
             return;
           receiving.current = true;
           void finish(data, event.data.key).catch((error: Error) => {
-            if (!cancelled) {
+            if (!canceled) {
               setError(error.message);
               setBusy(false);
             }
@@ -190,7 +190,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
         };
         addEventListener("message", receive);
         const timer = setTimeout(() => {
-          if (!cancelled && !receiving.current) {
+          if (!canceled && !receiving.current) {
             setError(
               "The sign-in window could not provide the local key. Start a new sign-in.",
             );
@@ -206,7 +206,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
           data.centralOrigin,
         );
       } catch (error: any) {
-        if (!cancelled) {
+        if (!canceled) {
           setError(error.message ?? "Could not unlock local data");
           setBusy(false);
         }
@@ -214,7 +214,7 @@ export function CentralUnlock({ resume }: { resume: string }) {
     };
     void start();
     return () => {
-      cancelled = true;
+      canceled = true;
       mounted.current = false;
       removeListener();
     };

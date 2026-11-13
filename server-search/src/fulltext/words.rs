@@ -1,4 +1,4 @@
-//! The query's words, analysed once, and the rules for how each word
+//! The query's words, analyzed once, and the rules for how each word
 //! matches a page ([`WordList::alternatives`]): which words are phrases,
 //! their stems per language, stopwords literal or merely present, folding
 //! only where it can change a token, lone CJK characters inside bigrams,
@@ -184,7 +184,7 @@ pub struct WordList {
     pub parts: Vec<Part>,
 }
 
-/// The query's words, analysed once.
+/// The query's words, analyzed once.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum QueryWords {
     /// Phrase mode: the phrase's raw tokens, and the same folded.
@@ -212,7 +212,7 @@ impl WordList {
         }
         let words: Vec<Word> = distinct
             .into_iter()
-            .filter_map(|w| analyse_word(index, w))
+            .filter_map(|w| analyze_word(index, w))
             .collect();
         let parts = similar_parts(&words);
         Ok(WordList { words, parts })
@@ -313,7 +313,7 @@ impl WordList {
 }
 
 /// `None` for a word without tokens (punctuation).
-fn analyse_word(index: &Index, word: &str) -> Option<Word> {
+fn analyze_word(index: &Index, word: &str) -> Option<Word> {
     let mut raw = analyze(index, RAW_TOKENIZER, word);
     let kind = if raw.len() > 1 {
         WordKind::Seq(raw)

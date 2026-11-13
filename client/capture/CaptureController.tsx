@@ -46,23 +46,23 @@ export function CaptureController({ client, initialId }: Props) {
       client.bootConfig.disableServiceWorker
     )
       return;
-    let cancelled = false;
+    let canceled = false;
     const url = new URL("service_worker.js", document.baseURI).href;
     void openCaptureStore(url).then(async (opened) => {
-      if (cancelled) return;
+      if (canceled) return;
       setStore(opened);
       setQueue(await opened.list(ownerId));
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [client, ownerId]);
 
   useEffect(() => {
     if (!store || !ownerId || !selectedId) return;
-    let cancelled = false;
+    let canceled = false;
     void store.get(selectedId, ownerId).then((found) => {
-      if (cancelled) return;
+      if (canceled) return;
       setRecord(found);
       setDraft(
         found && (editedDrafts.current.get(found.id) ?? editable(found)),
@@ -70,7 +70,7 @@ export function CaptureController({ client, initialId }: Props) {
       setError(found ? undefined : "This capture is unavailable.");
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [store, ownerId, selectedId]);
 
@@ -99,17 +99,17 @@ export function CaptureController({ client, initialId }: Props) {
 
   useEffect(() => {
     if (!draft || !ready) return;
-    let cancelled = false;
+    let canceled = false;
     void client.clientSystem.serviceRegistry
       .discover("capture", draft)
       .then((found) => {
-        if (!cancelled) setMatches(found);
+        if (!canceled) setMatches(found);
       })
       .catch((reason) => {
-        if (!cancelled) setError(String(reason));
+        if (!canceled) setError(String(reason));
       });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [client, draft, ready, revision]);
 

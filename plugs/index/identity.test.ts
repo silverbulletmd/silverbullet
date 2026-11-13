@@ -41,7 +41,7 @@ test("identityId lowercases, so @Bob and @bob are one recipient", () => {
   expect(identityId("bob")).toBe("@bob");
 });
 
-test("accounts are recipients, labelled by full name", async () => {
+test("accounts are recipients, labeled by full name", async () => {
   mockSpace([
     { username: "ada", fullName: "Ada Lovelace", me: false },
     { username: "bob", me: false },
@@ -53,7 +53,7 @@ test("accounts are recipients, labelled by full name", async () => {
   ]);
 });
 
-test("your own account is labelled you, under your real username", async () => {
+test("your own account is labeled you, under your real username", async () => {
   mockSpace([
     { username: "ada", fullName: "Ada Lovelace", me: true },
     { username: "bob", me: false },
@@ -245,7 +245,7 @@ test("parseDeclaredNames accepts a list, a plain string, and @ notation", () => 
   expect(parseDeclaredNames("@ada @sales")).toEqual(["ada", "sales"]);
   expect(parseDeclaredNames(["@ada"])).toEqual(["ada"]);
   // A wikilink survives the cut whole, spaces and all, so the indexer can
-  // recognise one and leave it alone rather than minting junk names from it
+  // recognize one and leave it alone rather than minting junk names from it
   expect(parseDeclaredNames("[[Team/Ops Squad]] ada")).toEqual([
     "[[Team/Ops Squad]]",
     "ada",
@@ -307,7 +307,7 @@ test("atMentionComplete stays out of frontmatter", async () => {
   expect(result).toBeNull();
 });
 
-test("at-mention completion offers your own account, labelled you", async () => {
+test("at-mention completion offers your own account, labeled you", async () => {
   mockSpace([{ username: "ada", me: true }]);
   const result = await atMentionComplete(makeCompleteEvent("@"));
   const own = result!.options.find((o: any) => o.label === "ada");

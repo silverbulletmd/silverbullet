@@ -124,7 +124,7 @@ export function textBlockAt(
  * before or after it, blank lines between them skipped. None past
  * frontmatter, nor for a block nested in a list or quote.
  */
-function neighbour(
+function neighbor(
   state: EditorState,
   span: BlockSpan,
   dir: -1 | 1,
@@ -172,11 +172,11 @@ export function canMoveBlock(
   span: BlockSpan,
   dir: -1 | 1,
 ): boolean {
-  return !!neighbour(state, span, dir);
+  return !!neighbor(state, span, dir);
 }
 
 /**
- * Swaps the block with its neighbouring block (see `neighbour`), the blank
+ * Swaps the block with its neighboring block (see `neighbor`), the blank
  * lines between them staying where they are. A selection inside either moves
  * with it, so a `${…}` being edited stays open. Undefined when there is
  * nothing to move past.
@@ -186,7 +186,7 @@ export function moveBlock(
   span: BlockSpan,
   dir: -1 | 1,
 ): TransactionSpec | undefined {
-  const near = neighbour(state, span, dir);
+  const near = neighbor(state, span, dir);
   if (!near) return;
   const self = lineSpan(state, span);
   const [first, second] = dir < 0 ? [near, self] : [self, near];

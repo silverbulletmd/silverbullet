@@ -15,7 +15,7 @@ use crate::auth::cookie::{is_secure_request, request_host};
 /// Lowercase, without a trailing dot on the host and without the scheme's
 /// default port, so `NOTES.example.test.:443` over https and
 /// `notes.example.test` compare equal.
-pub fn normalise_authority(authority: &str, scheme: &str) -> String {
+pub fn normalize_authority(authority: &str, scheme: &str) -> String {
     let authority = authority.trim().to_ascii_lowercase();
     let (host, port) = match authority.rsplit_once(':') {
         Some((host, port))
@@ -50,7 +50,7 @@ pub fn canonical_origin(headers: &HeaderMap, primary_url: Option<&str>) -> Strin
     };
     format!(
         "{scheme}://{}",
-        normalise_authority(&request_host(headers), scheme)
+        normalize_authority(&request_host(headers), scheme)
     )
 }
 
@@ -67,7 +67,7 @@ fn primary_origin(primary_url: &str) -> Option<String> {
     };
     Some(format!(
         "{scheme}://{}",
-        normalise_authority(&authority, scheme)
+        normalize_authority(&authority, scheme)
     ))
 }
 
@@ -131,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn normalise_authority_table() {
+    fn normalize_authority_table() {
         for (authority, scheme, expected) in [
             ("NOTES.Example.test.", "http", "notes.example.test"),
             ("notes.example.test:443", "https", "notes.example.test"),
@@ -143,7 +143,7 @@ mod tests {
             ("[::1]:3000", "http", "[::1]:3000"),
         ] {
             assert_eq!(
-                normalise_authority(authority, scheme),
+                normalize_authority(authority, scheme),
                 expected,
                 "{authority} over {scheme}"
             );
@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_url_normalises_host() {
+    fn canonical_url_normalizes_host() {
         for (host, proto, expected) in [
             (
                 "NOTES.Example.test.",

@@ -127,7 +127,7 @@ export function themeBlocks<B extends ThemeBlock>(
 
 /**
  * The `accentColor` setting as a `<style>` that follows the theme's blocks, or
- * "" when unset or not a plain colour value (it lands inside a stylesheet).
+ * "" when unset or not a plain color value (it lands inside a stylesheet).
  */
 export function accentCss(color: string | undefined): string {
   const value = color?.trim();

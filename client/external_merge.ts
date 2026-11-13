@@ -66,9 +66,9 @@ export function computeExternalChanges(
  * Mirrors `server-merge`'s diff3: a base line survives as a sync point only
  * where both sides leave it byte-identical, chunks are the runs between
  * consecutive sync points, and a chunk both sides touched is a conflict. An
- * whole-line insertion at an exact line boundary leaves both neighbouring
+ * whole-line insertion at an exact line boundary leaves both neighboring
  * lines intact, so it occupies the gap rather than a line -- but it joins an
- * adjoining run when either neighbour was rewritten.
+ * adjoining run when either neighbor was rewritten.
  *
  * Errs toward deferring: the server's word-level refinement rescues some
  * same-chunk cases this treats as collisions, which costs a round trip but
@@ -109,7 +109,7 @@ function classifyEdits(
   const boundaries = new Set<number>();
   changes.iterChanges((from, to, _fromB, _toB, inserted) => {
     if (from === to) {
-      // Only a whole-line insertion at a line start leaves both neighbouring
+      // Only a whole-line insertion at a line start leaves both neighboring
       // lines byte-identical; anything else rewrites the line it lands in.
       if (
         isLineStart(from) &&

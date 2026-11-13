@@ -14,7 +14,7 @@ static RELEASED: Condvar = Condvar::new();
 /// How long an open waits for a file's owner before it warns (once).
 const OWNER_WARN: Duration = Duration::from_secs(30);
 
-/// `path` with its longest existing ancestor canonicalised, so a file has
+/// `path` with its longest existing ancestor canonicalized, so a file has
 /// one key whether or not it (or its directory) exists yet.
 fn owner_key(path: &Path) -> PathBuf {
     let mut rest = Vec::new();

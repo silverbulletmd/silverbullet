@@ -20,7 +20,7 @@ ${query[[
 # Tips
 * Prefer a variable when one exists: it keeps working when the markup changes, and it applies to panels and pickers as well as the editor.
 * Scope editor rules with `#sb-main .cm-editor` so they don’t leak into panels and widgets.
-* To match a theme or a scheme, combine these with `html[data-sb-theme]` or `html[data-sb-scheme]`, see [[Theming#Customising on top of a theme|Customising on top of a theme]].
+* To match a theme or a scheme, combine these with `html[data-sb-theme]` or `html[data-sb-scheme]`, see [[Theming#Customizing on top of a theme|Customizing on top of a theme]].
 
 # Data
 The list above is a query over the `#theme-selector ` objects on [[Theming/Selectors/Data]].

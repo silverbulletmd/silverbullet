@@ -447,7 +447,7 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
     let fx = fixture(&[
         (
             "Library/Bike theme.md".into(),
-            "Colours for the bike pages.".into(),
+            "Colors for the bike pages.".into(),
         ),
         (
             "Library/Bike log.md".into(),

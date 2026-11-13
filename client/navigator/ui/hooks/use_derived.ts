@@ -149,7 +149,7 @@ export function useDerived({
     return result.ranked;
   }, [view, sourceMode, filteredRows, rankPhrase]);
 
-  // An exact name the active segment hides still shows, on top and labelled
+  // An exact name the active segment hides still shows, on top and labeled
   // with where it lives: otherwise you get neither the row nor a create.
   const trimmedRankPhrase = rankPhrase.trim();
   const elsewhere = useMemo(() => {

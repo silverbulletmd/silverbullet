@@ -351,7 +351,7 @@ export type PickManyOptions = {
 /**
  * Shows a checklist, every item unchecked, with a confirm and a cancel button.
  *
- * @returns the `id`s of the ticked items (possibly none), or undefined when cancelled
+ * @returns the `id`s of the ticked items (possibly none), or undefined when canceled
  */
 export function pickMany(
   options: PickManyOptions,
@@ -370,7 +370,7 @@ export type ChooseVersionOptions = {
 /**
  * Shows a line diff of `mine` against `theirs` and one button per choice.
  *
- * @returns the clicked choice's `id`, or undefined when cancelled
+ * @returns the clicked choice's `id`, or undefined when canceled
  */
 export function chooseVersion(
   options: ChooseVersionOptions,

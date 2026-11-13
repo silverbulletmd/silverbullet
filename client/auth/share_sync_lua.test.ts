@@ -414,7 +414,7 @@ describe("Share.md sharing", () => {
     expect(w.localShare().hash).toBe(await hashOf("A\n"));
   });
 
-  test("a cancelled version choice leaves the hash alone", async () => {
+  test("a canceled version choice leaves the hash alone", async () => {
     await w.setup("A\n", "B\n", "C\n");
     const before = w.pages.get("Page");
     w.chooseAnswer = undefined;
@@ -587,7 +587,7 @@ describe("Share.md sharing", () => {
     expect(await w.sharePage()).toBe("THREW Not configured");
   });
 
-  test("cancelling Which version leaves the outcome to the user", async () => {
+  test("canceling Which version leaves the outcome to the user", async () => {
     await w.setup("A\n", "B\n", "C\n", { hash: false });
     w.chooseAnswer = undefined;
     expect(await w.sharePage()).toBeNull();

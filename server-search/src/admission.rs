@@ -52,7 +52,7 @@ impl RequestCx {
         }
     }
 
-    /// For tests and internal callers: no limits beyond `deadline`, never cancelled by others.
+    /// For tests and internal callers: no limits beyond `deadline`, never canceled by others.
     pub fn unlimited(deadline: Duration) -> Self {
         Self {
             deadline: tokio::time::Instant::now() + deadline,
@@ -84,7 +84,7 @@ mod tests {
     use std::time::Duration;
 
     #[tokio::test]
-    async fn unlimited_requests_get_a_slot_at_once_and_are_never_cancelled() {
+    async fn unlimited_requests_get_a_slot_at_once_and_are_never_canceled() {
         let cx = RequestCx::unlimited(Duration::from_secs(3));
         let mut queries: Vec<QuerySlot> = Vec::new();
         for _ in 0..=crate::limits::MAX_QUERIES {

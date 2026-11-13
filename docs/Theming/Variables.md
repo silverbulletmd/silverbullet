@@ -8,15 +8,15 @@ references:
 ---
 These are the CSS variables a theme sets. They come in two levels:
 
-* **Base variables** are the palette: page and text colours, the accent, link colours, tones, the code palette, the page width and the fonts. Setting a handful of them gives a complete theme.
-* **Specific variables** colour one part of the interface, such as the top bar, pickers or hashtags. Their defaults derive from base variables, so you only set one when the derived colour isn’t what you want.
+* **Base variables** are the palette: page and text colors, the accent, link colors, tones, the code palette, the page width and the fonts. Setting a handful of them gives a complete theme.
+* **Specific variables** color one part of the interface, such as the top bar, pickers or hashtags. Their defaults derive from base variables, so you only set one when the derived color isn’t what you want.
 
 Set them in a plain `html { … }` rule. [[Theming/Creating a Theme]] shows how, and explains why a base variable set on another element doesn’t re-derive the specific ones.
 
 How to read the lists:
 
 * **Light** is the built-in default, which [[^Library/Std/Themes/SilverBullet Light]] uses.
-* **Dark** is the built-in dark palette, which [[^Library/Std/Themes/SilverBullet Dark]] uses and every dark theme starts from. When it’s empty, the light definition applies, computed from the dark base colours.
+* **Dark** is the built-in dark palette, which [[^Library/Std/Themes/SilverBullet Dark]] uses and every dark theme starts from. When it’s empty, the light definition applies, computed from the dark base colors.
 * **Since** is the first release in which you could set the variable, or `edge` for the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge). Variables marked **experimental** may change or go away, usually because the feature they belong to is experimental. All others are stable.
 * The font variables belong to [[Fonts]]: a theme suggests fonts in its frontmatter instead of setting them.
 

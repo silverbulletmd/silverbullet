@@ -8,10 +8,10 @@ APIs and extension points of [[Share]], which publishes a page to, pulls it from
 
 # API
 ## share.sharePage(name?)
-Shares a page according to its `share.*` frontmatter, the same as the `Share: Page` command. Without a name it shares the current page. Returns `true` when something was shared, `false` when there was nothing to do, and `nil` when the user already knows the outcome (a conflict, or a cancelled “Which version?” dialog). Errors with `Not configured` when the page has no `share.uri`.
+Shares a page according to its `share.*` frontmatter, the same as the `Share: Page` command. Without a name it shares the current page. Returns `true` when something was shared, `false` when there was nothing to do, and `nil` when the user already knows the outcome (a conflict, or a canceled “Which version?” dialog). Errors with `Not configured` when the page has no `share.uri`.
 
 ## share.shareMany(names, opts?)
-Shares the pages in order with `share.sharePage`. `opts.onProgress(index, total, name)` is called before each page, and `opts.cancelled()` is also checked before each page: when it returns true the run stops and the remaining pages are left out of the result. Returns a table keyed by page name with `{ok = true, result = ...}` or `{ok = false, error = ...}`. One failing page doesn’t stop the others.
+Shares the pages in order with `share.sharePage`. `opts.onProgress(index, total, name)` is called before each page, and `opts.canceled()` is also checked before each page: when it returns true the run stops and the remaining pages are left out of the result. Returns a table keyed by page name with `{ok = true, result = ...}` or `{ok = false, error = ...}`. One failing page doesn’t stop the others.
 
 ## share.status(name)
 Tells offline whether a page changed locally since its last pull or sync, as its `share.hash` tells, without reading the remote. Returns `{uri, mode, state}` where `state` is `unchanged`, `localChanged`, or `unknown` when the page has no `share.hash` to compare with. A `push` page is always `unchecked`: push keeps no `share.hash`, so only its remote can tell (see [[#share.check(names)]]). Remembered per page on its text, as views ask often.
@@ -99,7 +99,7 @@ Returns what a push sends: `text` without its `share.*` keys, with the steps ena
 The `share.*` frontmatter keys are always removed. The rest of the frontmatter is kept as it is. The steps are:
 * `bake`: runs the page’s [[Baked Sections|live content]] and keeps the result as plain text, without the markers (text after a marker on its line stays).
 * `links`: [[Link|wiki links]] and transclusions to a page in the share (or the page itself) are rewritten by the target’s `link` function. A link to any other page becomes its text (its alias, or the page name), and a transclusion of anything outside the share is removed. Wiki link syntax inside code is left alone.
-* `comments`: removes HTML comments (`<!-- ... -->`), both whole blocks and inline, except the markers of baked sections. A removed block leaves its neighbours as separate blocks.
+* `comments`: removes HTML comments (`<!-- ... -->`), both whole blocks and inline, except the markers of baked sections. A removed block leaves its neighbors as separate blocks.
 
 After the built-in steps the `share:transform` services run (see below) when `extensions` is set.
 
@@ -149,7 +149,7 @@ Sync writes to the remote are conditional where the transport supports it: they 
 Share is extended through the [[API/service|service]] API.
 
 ## share:onboard
-Offers a way to share a page for the first time. These are the options listed by `Share: Page`. Register one with `match` fields `name` and `description` (shown in the list). `run(data)` receives `{name, text, content}`: the page name, its text, and `content`, the text a push would send (transformed for a generic target, so a provider that uploads during onboarding doesn’t publish comments or `share.*` keys, `ctx.uri` is not set during this transform). When that transform fails, `Share: Page` reports the error and offers no providers. It returns `{uri, mode}` to set up the frontmatter, or nil when cancelled. A `hash` in the result is ignored. `Share: Page` then shares the page as usual, which uploads it in `push` mode. A provider doesn’t need to upload it itself. When that first share fails, the `share.*` keys are taken out again, so the page stays unshared.
+Offers a way to share a page for the first time. These are the options listed by `Share: Page`. Register one with `match` fields `name` and `description` (shown in the list). `run(data)` receives `{name, text, content}`: the page name, its text, and `content`, the text a push would send (transformed for a generic target, so a provider that uploads during onboarding doesn’t publish comments or `share.*` keys, `ctx.uri` is not set during this transform). When that transform fails, `Share: Page` reports the error and offers no providers. It returns `{uri, mode}` to set up the frontmatter, or nil when canceled. A `hash` in the result is ignored. `Share: Page` then shares the page as usual, which uploads it in `push` mode. A provider doesn’t need to upload it itself. When that first share fails, the `share.*` keys are taken out again, so the page stays unshared.
 
 ```space-lua
 service.define {
@@ -186,7 +186,7 @@ service.define {
 ```
 
 ## share:writeBatch:<root>
-Writes and deletes the files of a publish of several pages under one root in a single call, for example as one commit. It is invoked with `{root, writes, deletes}`: `writes` lists `{uri, content}`, `deletes` lists URIs. An error marks every write and delete of the call as failed. GitHub registers one that makes a single commit, asking for the commit message first. A service the user cancels returns `{cancelled = true}` (GitHub’s does when the commit message is dismissed or empty): then nothing is written. Gists and SilverBullet spaces have no such service: their files are written and deleted one by one with `net.writeURI` and `net.deleteURI` (GitHub has no `net.deleteURI`).
+Writes and deletes the files of a publish of several pages under one root in a single call, for example as one commit. It is invoked with `{root, writes, deletes}`: `writes` lists `{uri, content}`, `deletes` lists URIs. An error marks every write and delete of the call as failed. GitHub registers one that makes a single commit, asking for the commit message first. A service the user cancels returns `{canceled = true}` (GitHub’s does when the commit message is dismissed or empty): then nothing is written. Gists and SilverBullet spaces have no such service: their files are written and deleted one by one with `net.writeURI` and `net.deleteURI` (GitHub has no `net.deleteURI`).
 
 ## net.listURI: and net.deleteURI:
 To publish several pages under one root, [[API/net|net.listURI and net.deleteURI]] list and remove the files there: a provider registers `net.listURI:myservice:*` returning `{uri, hash?}` for every file under `data.uri`, in the form its `memberUri` builds (`hash` a git blob SHA when it has one, see [[#share.gitBlobSha(text)]]), and `net.deleteURI:myservice:*` deleting `data.uri`. A listing called with `{signIn = true}` may sign in. Without it, the listing should fail rather than prompt. SilverBullet spaces list every page under the root (a root that is the whole space isn’t listed, so nothing is offered for removal there), GitHub every `.md` file under the root folder (with blob SHAs), and gists every `.md` file of the gist. Without a listing service, `net.listURI` returns `nil`.

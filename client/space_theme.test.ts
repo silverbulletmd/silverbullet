@@ -204,7 +204,7 @@ describe("APPLY_THEME_JS", () => {
 });
 
 describe("reportTitlebarColors", () => {
-  test("hands Desktop the top bar colours and scheme, once per change", () => {
+  test("hands Desktop the top bar colors and scheme, once per change", () => {
     const setTitlebarColors = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("silverbulletDesktop", { setTitlebarColors });
     applyThemeToDocument(
@@ -488,7 +488,7 @@ describe("SpaceTheme", () => {
     expect((await boot.apply()).page).toBe(BUILTIN_DARK_THEME);
   });
 
-  test("theme-color follows a space style that recolours the top bar", async () => {
+  test("theme-color follows a space style that recolors the top bar", async () => {
     document.head.innerHTML = `<meta name="theme-color" content="#e1e1e1">`;
     const { SpaceStyles } = await import("./space_style.ts");
     const { deps } = stubDeps({ space: light.page });

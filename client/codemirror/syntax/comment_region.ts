@@ -54,7 +54,7 @@ class CommentLabelWidget extends WidgetType {
 
 /**
  * The span Resolve deletes: the block's whole lines including the newline that
- * ends it, never a neighbour's. Deleting the *preceding* newline instead would
+ * ends it, never a neighbor's. Deleting the *preceding* newline instead would
  * strand a blank first line when the block starts the document.
  */
 export function resolveRange(

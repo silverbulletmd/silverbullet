@@ -1134,7 +1134,7 @@ mod tests {
     }
 
     #[test]
-    fn activity_honours_since_and_top() {
+    fn activity_honors_since_and_top() {
         let (_dir, store) = fixture();
         let future = 4_000_000_000;
         let a = activity(&store, future, future, 5).unwrap();

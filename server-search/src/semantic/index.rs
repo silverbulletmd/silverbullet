@@ -45,7 +45,7 @@ impl Chunk {
 pub struct Page {
     pub stamp: FileStamp,
     pub chunks: Vec<Chunk>,
-    /// The normalised mean of the chunk vectors; `None` without chunks.
+    /// The normalized mean of the chunk vectors; `None` without chunks.
     pub vector: Option<Vec<f32>>,
 }
 
@@ -179,9 +179,9 @@ impl VectorIndex {
         out
     }
 
-    /// The normalised mean of every page vector: the direction of the
+    /// The normalized mean of every page vector: the direction of the
     /// space's hubs (a page's mean cosine to all pages is its cosine to the
-    /// unnormalised mean). `None` without page vectors. Summed in path
+    /// unnormalized mean). `None` without page vectors. Summed in path
     /// order, so the same pages always give the same bits.
     pub fn centroid(&self) -> Option<Vec<f32>> {
         let mut pages: Vec<(&String, &[f32])> = self
@@ -196,7 +196,7 @@ impl VectorIndex {
     /// The pages related to `path`, `path` left out, best first, at most
     /// `k`; each with its chunk closest to `path`'s page vector. A page
     /// scores `cos(target, page) - damping * cos(page, centroid)`, which
-    /// ranks hubs (pages close to everything) below specific neighbours,
+    /// ranks hubs (pages close to everything) below specific neighbors,
     /// and must score at least `min`. `None` when `path` isn't indexed.
     pub fn related(
         &self,
@@ -261,7 +261,7 @@ pub fn cosine(a: &[f32], b: &[f32]) -> f32 {
     a.iter().zip(b).map(|(x, y)| x * y).sum()
 }
 
-/// The normalised mean of `vectors`; `None` for none (or a zero sum).
+/// The normalized mean of `vectors`; `None` for none (or a zero sum).
 fn mean<'a>(vectors: impl Iterator<Item = &'a [f32]>) -> Option<Vec<f32>> {
     let mut sum: Option<Vec<f32>> = None;
     for v in vectors {
@@ -396,7 +396,7 @@ mod tests {
         size: 10,
     };
 
-    /// A unit vector in 4 dimensions, normalised from `v`.
+    /// A unit vector in 4 dimensions, normalized from `v`.
     fn unit(v: [f32; 4]) -> Vec<f32> {
         let n = v.iter().map(|x| x * x).sum::<f32>().sqrt();
         v.iter().map(|x| x / n).collect()
@@ -439,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn a_page_vector_is_the_normalised_mean_of_its_chunks() {
+    fn a_page_vector_is_the_normalized_mean_of_its_chunks() {
         let p = page(&[[1., 0., 0., 0.], [0., 1., 0., 0.]]);
         let v = p.vector.unwrap();
         assert!((v[0] - 0.70710677).abs() < 1e-6 && (v[1] - 0.70710677).abs() < 1e-6);
@@ -500,8 +500,8 @@ mod tests {
     }
 
     #[test]
-    fn damping_ranks_a_hub_below_a_specific_neighbour() {
-        // Invented vectors: the hub is close to everything, the neighbour
+    fn damping_ranks_a_hub_below_a_specific_neighbor() {
+        // Invented vectors: the hub is close to everything, the neighbor
         // only to the target.
         let mut index = VectorIndex::new(4);
         for (path, v) in [

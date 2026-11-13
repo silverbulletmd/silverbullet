@@ -162,7 +162,7 @@ mod tests {
     }
 
     /// The space stamps its own modification times on write, so
-    /// `lastModified` is normalised to 0 on both sides (expected.json holds 0).
+    /// `lastModified` is normalized to 0 on both sides (expected.json holds 0).
     #[tokio::test]
     async fn matches_shared_fixture() {
         let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../testdata/tooling");

@@ -35,7 +35,7 @@
 
   --highlight-color: color-mix(in srgb, #f5c518 32%, transparent);
 
-  // Semantic tones for space-style: the colour for text and marks,
+  // Semantic tones for space-style: the color for text and marks,
   // -soft for backgrounds.
   --tone-success: #1f7a43;
   --tone-success-soft: #e2f2e7;
@@ -57,7 +57,7 @@
   --editor-code-number-color: #01833c;
   --editor-code-operator-color: #808080;
   --editor-code-atom-color: #5a0000;
-  // Between the subtle text grey and the meta grey: quieter than code, still readable
+  // Between the subtle text gray and the meta gray: quieter than code, still readable
   --editor-code-comment-color: color-mix(in srgb, var(--subtle-color), var(--meta-color));
 
   --editor-width: 800px;
@@ -79,7 +79,7 @@
   // The accent marks what you act on (links, caret, selection, checkboxes,
   // buttons). Everything else takes a muted version: the accent's hue at a
   // quarter of its chroma, so it sits with any tint without turning the page
-  // that colour.
+  // that color.
   --ui-accent-muted-color: oklch(from var(--ui-accent-color) l calc(c * 0.25) h);
   --ui-accent-muted-soft-color: color-mix(in srgb, var(--ui-accent-muted-color) 14%, transparent);
   // Labels (headings, table heads, card titles, form keys) are ink, not accent.
@@ -116,7 +116,7 @@
   --top-saved-color: var(--root-color);
   --top-unsaved-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 70%);
   --top-loading-color: var(--subtle-color);
-  // currentColor keeps the folder in step with the saved/unsaved/loading colour
+  // currentColor keeps the folder in step with the saved/unsaved/loading color
   --top-page-folder-color: var(--subtle-color);
   --top-page-folder-font-weight: 500;
 
@@ -153,7 +153,7 @@
 
   // Notifications and alerts
   --notifications-border-color: var(--ui-surface-border-color);
-  // Notifications are cards on the modal colour; a dot in the alert colour marks the kind
+  // Notifications are cards on the modal color; a dot in the alert color marks the kind
   --notification-info-background-color: var(--modal-background-color);
   --notification-error-background-color: var(--modal-background-color);
   --notification-warning-background-color: var(--modal-background-color);

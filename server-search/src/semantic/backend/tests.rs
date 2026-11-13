@@ -716,13 +716,13 @@ async fn a_model_that_fails_to_load_falls_back_to_words() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_cancelled_natural_query_is_cancelled() {
+async fn a_canceled_natural_query_is_canceled() {
     let fx = ready(FakeEmbedder::new()).await;
     let cx = cx();
     cx.cancel.cancel();
     assert_eq!(
         fx.backend.query(natural("chain"), cx).await,
-        Err(SearchError::Cancelled)
+        Err(SearchError::Canceled)
     );
 }
 

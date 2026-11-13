@@ -38,7 +38,7 @@ test("the note falls back to the page's last segment for an unknown theme", () =
   );
 });
 
-test("an uninstalled set theme gets a labelled option", () => {
+test("an uninstalled set theme gets a labeled option", () => {
   expect(missingThemeOption("Gone/Theme X", themes)).toEqual({
     value: "Gone/Theme X",
     label: "Theme X (not installed)",

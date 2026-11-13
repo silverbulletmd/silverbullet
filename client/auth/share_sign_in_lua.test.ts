@@ -82,7 +82,7 @@ describe("Share.md signing in to SilverBullet spaces", () => {
     w.store = new Map();
     w.h = await w.load();
     w.genericReads.set(URI, "<html>Sign in</html>");
-    w.deviceFlowError = "cancelled: Sign-in cancelled";
+    w.deviceFlowError = "canceled: Sign-in canceled";
     await w.setup("A\n", "A\n", "C\n", { hash: false });
     const before = w.pages.get("Page");
     await expect(w.h.call("share.sharePage", "Page")).rejects.toThrow(
@@ -251,18 +251,18 @@ describe("Share.md signing in to SilverBullet spaces", () => {
     expect(w.genericReadCount).toBe(0);
   });
 
-  test("a cancelled sign-in during onboarding is reported", async () => {
+  test("a canceled sign-in during onboarding is reported", async () => {
     w.store = new Map();
     w.cfg["share.silverbullet.spaces"] = [SPACE];
     w.h = await w.load();
-    w.deviceFlowError = "cancelled: Sign-in cancelled";
+    w.deviceFlowError = "canceled: Sign-in canceled";
     w.editorText = "Hello\n";
     const r = await w.h.commands.get("Share: Page")!().catch(
       (e) => `THREW ${e.message}`,
     );
     expect(r).toBeUndefined();
     expect(w.notifications).toHaveLength(1);
-    expect(w.notifications[0][0]).toMatch(/^Error: .*cancelled/);
+    expect(w.notifications[0][0]).toMatch(/^Error: .*canceled/);
     expect(w.notifications[0][1]).toBe("error");
     expect(w.editorText).toBe("Hello\n");
     expect(w.remote.has("Page")).toBe(false);

@@ -13,7 +13,7 @@ Example:
 This is a comment. Its body is *real* markdown.
 -->
 
-Inside SilverBullet the `<!--` and `-->` markers are hidden and the region gets a tint of its own, labelled `comment` in its top right corner. The “Resolve” button can be used to dismiss (= delete) the comment in its entirety.
+Inside SilverBullet the `<!--` and `-->` markers are hidden and the region gets a tint of its own, labeled `comment` in its top right corner. The “Resolve” button can be used to dismiss (= delete) the comment in its entirety.
 
 # Use cases
 Comments can be used to make notes to self or to team mates about the regular page content. There may be other future use cases as well.

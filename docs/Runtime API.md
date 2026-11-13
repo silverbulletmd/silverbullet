@@ -109,7 +109,7 @@ curl -H "X-Timeout: 60" \
 # Waiting for the index
 The Lua endpoints and `/.runtime/screenshot` can first wait until the space’s index has caught up with recent file changes (edits made through the [[HTTP API]], a script or another device), so a query sees a page written a moment ago. Send `X-Await-Index: 1` (`true` and `yes` also count). The server waits for its file watcher to pass changes on, then for the client’s index queue to empty, for at most the smaller of 5 seconds and `X-Timeout`. The request then runs with its full `X-Timeout`.
 
-`POST /.search/query` (see [[HTTP API#Search]]) honours the same header: a signed-in member’s query first waits, for at most the smaller of 5 seconds and `X-Timeout`, until the search index has caught up with recent file changes. Public visitors’ queries do not wait and get `X-Index-Status: unknown`.
+`POST /.search/query` (see [[HTTP API#Search]]) honors the same header: a signed-in member’s query first waits, for at most the smaller of 5 seconds and `X-Timeout`, until the search index has caught up with recent file changes. Public visitors’ queries do not wait and get `X-Index-Status: unknown`.
 
 The response carries `X-Index-Status`, only when the request had `X-Await-Index`:
 

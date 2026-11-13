@@ -11,7 +11,7 @@
 // The space needs an `index` sampler page and a `ThemeScratch` page; the
 // script types into ThemeScratch and clears it. It must not set a `theme`:
 // light and dark are SilverBullet Light and Dark, picked by emulating the
-// system colour scheme.
+// system color scheme.
 //
 // <out.json> gets `<name>-light.json` / `<name>-dark.json` siblings, e.g.
 // `baseline.json` writes baseline-light.json and baseline-dark.json.

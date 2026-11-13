@@ -166,7 +166,7 @@ describe("undo/redo of an external edit preserves the user's cursor (regression)
 
     // Cursor moves away after typing, before undo -- same shape as the
     // external-edit scenario above, but here the "jump back to where you
-    // were before the edit" behaviour is correct and must survive.
+    // were before the edit" behavior is correct and must survive.
     state = state.update({ selection: { anchor: 8 } }).state;
 
     const target = {

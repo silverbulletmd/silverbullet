@@ -58,7 +58,7 @@ pub const ALLOW_SYSTEM_CHROME: &str = "SB_TEST_ALLOW_SYSTEM_CHROME";
 ///
 /// In CI a skip is fatal, not a courtesy: `release` and `docker` gate on this
 /// job, so a run that skips its way to green would ship code that nothing
-/// exercised. Locally, skipping is the right behaviour.
+/// exercised. Locally, skipping is the right behavior.
 #[allow(dead_code)]
 pub fn test_chrome_or_skip(test_name: &str) -> Option<String> {
     let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());

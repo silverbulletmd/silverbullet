@@ -48,7 +48,7 @@ test("an older check cannot overwrite a newer edit", async () => {
   expect(session.canApply).toBe(false);
 });
 
-test("cancelled draft ignores a late successful check", async () => {
+test("canceled draft ignores a late successful check", async () => {
   const session = new GitDraftSession(draft);
   let finish!: (value: GitDraft) => void;
   const pending = session.run(

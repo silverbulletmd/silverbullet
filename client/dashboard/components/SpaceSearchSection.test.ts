@@ -151,7 +151,7 @@ test("Rebuild is disabled while an index builds or waits to", async () => {
   expect(button()!.disabled).toBe(false);
 });
 
-test("a cancelled confirmation rebuilds nothing", async () => {
+test("a canceled confirmation rebuilds nothing", async () => {
   api.getSpaceSearch.mockResolvedValue(ready);
   vi.stubGlobal(
     "confirm",

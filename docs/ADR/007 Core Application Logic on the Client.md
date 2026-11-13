@@ -26,7 +26,7 @@ v2 **eliminates the server-side PlugOS runtime**: plug execution, indexing, the 
 * **One runtime, not two.** Removing the server-side execution environment ended the parity burden and the class of subtle dual-mode bugs — the core motivation.
 * **Offline-first by construction** — the client keeps a full local copy of the space, so it keeps working with no server reachable.
 * **No round-trips for logic** — queries and index lookups are local, keeping the UI responsive.
-* **The server became trivial and swappable.** Because it only moves bytes, the whole backend could be re-implemented in another language without changing application behaviour — what made subsequent server migrations cheap (see [[ADR/010 Rust Backend]]).
+* **The server became trivial and swappable.** Because it only moves bytes, the whole backend could be re-implemented in another language without changing application behavior — what made subsequent server migrations cheap (see [[ADR/010 Rust Backend]]).
 * **Cheap to self-host** — a minimal file-serving process is all that is required. Memory usage was reduced from a few hundred MB to single to low-double digits.
 
 ## Negative / trade-offs

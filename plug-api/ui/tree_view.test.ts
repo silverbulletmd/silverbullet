@@ -195,7 +195,7 @@ test("long sibling lists render a first chunk, extended to reach the selected ro
   }
 });
 
-test("the rendered window extends to nearby rows and re-centres on distant ones", () => {
+test("the rendered window extends to nearby rows and re-centers on distant ones", () => {
   expect(windowIncluding([0, 200], [], 1000)).toEqual([0, 200]);
   expect(windowIncluding([0, 200], [250], 1000)).toEqual([0, 251]);
   expect(windowIncluding([0, 200], [600], 1000)).toEqual([500, 700]);

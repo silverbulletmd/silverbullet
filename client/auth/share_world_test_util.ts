@@ -64,7 +64,7 @@ export class ShareWorld {
   openedUrls: string[] = [];
   clipboard: string[] = [];
   confirmAnswer = true;
-  // editor.chooseVersion calls, and the choice id it returns (nil: cancelled)
+  // editor.chooseVersion calls, and the choice id it returns (nil: canceled)
   chooseVersions: Array<Record<string, unknown>> = [];
   chooseAnswer: string | undefined;
   // Current page as the editor sees it, for the Share: Page command

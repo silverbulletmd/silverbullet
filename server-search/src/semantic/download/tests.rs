@@ -183,7 +183,7 @@ async fn cancel_mid_file_leaves_resumable_partial() {
         }
     };
     let (res, _) = tokio::join!(fx.store.ensure(&fx.spec, &cancel), progress);
-    assert!(matches!(res, Err(DownloadError::Cancelled)), "{res:?}");
+    assert!(matches!(res, Err(DownloadError::Canceled)), "{res:?}");
     assert_ne!(fx.store.state(&fx.spec), DownloadState::Ready);
     let kept = std::fs::metadata(partial(&fx, "model.safetensors"))
         .unwrap()
@@ -324,7 +324,7 @@ async fn remove_during_ensure_cancels_and_ends_missing() {
         fx.store.remove(&fx.spec).await.unwrap();
     };
     let (res, ()) = tokio::join!(fx.store.ensure(&fx.spec, &t), remover);
-    assert!(matches!(res, Err(DownloadError::Cancelled)), "{res:?}");
+    assert!(matches!(res, Err(DownloadError::Canceled)), "{res:?}");
     assert!(!fx.store.dir(&fx.spec).exists());
     assert_eq!(fx.store.state(&fx.spec), DownloadState::Missing);
 }

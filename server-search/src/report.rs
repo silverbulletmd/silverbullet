@@ -138,7 +138,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reports_serialise_flat_and_camel_case() {
+    fn reports_serialize_flat_and_camel_case() {
         let r = IndexReport {
             kind: IndexKind::FullText,
             state: IndexState::Ready {

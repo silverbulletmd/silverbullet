@@ -131,12 +131,12 @@ describe("runDeviceFlow", () => {
     expect(t.sleeps).toEqual([5000, 10000]);
   });
 
-  it('rejects with reason "cancelled" when the modal is cancelled', async () => {
+  it('rejects with reason "canceled" when the modal is canceled', async () => {
     const t = makeDeps([deviceResp(), pending(), pending()], { cancelAt: 2 });
     await expect(runDeviceFlow(opts, t.deps)).rejects.toMatchObject({
-      reason: "cancelled",
+      reason: "canceled",
     });
-    // The device code request and one poll, none after cancelling
+    // The device code request and one poll, none after canceling
     expect(t.fetch).toHaveBeenCalledTimes(2);
     expect(t.close).toHaveBeenCalled();
   });
@@ -149,7 +149,7 @@ describe("runDeviceFlow", () => {
       return resp(200, { access_token: "t" });
     });
     await expect(runDeviceFlow(opts, t.deps)).rejects.toMatchObject({
-      reason: "cancelled",
+      reason: "canceled",
     });
   });
 

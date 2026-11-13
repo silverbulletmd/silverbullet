@@ -806,7 +806,7 @@ mod tests {
         {
             assert!(
                 std::time::Instant::now() < deadline,
-                "cancelled launch left process {pid} alive"
+                "canceled launch left process {pid} alive"
             );
             std::thread::sleep(Duration::from_millis(10));
         }
@@ -863,7 +863,7 @@ mod tests {
         {
             assert!(
                 std::time::Instant::now() < deadline,
-                "cancelled launch left process {pid} alive"
+                "canceled launch left process {pid} alive"
             );
             std::thread::sleep(Duration::from_millis(10));
         }

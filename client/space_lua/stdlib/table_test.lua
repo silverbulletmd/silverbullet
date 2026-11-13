@@ -265,7 +265,7 @@ end
 
 -- table.pack / table.unpack edge cases
 do
-  -- __newindex is honoured by pack
+  -- __newindex is honored by pack
   local log = {}
   local proxy = setmetatable({}, {
     __newindex = function(t, k, v)
@@ -308,7 +308,7 @@ do
   assertEqual(d, 30)
   assertEqual(e, nil)
 
-  -- unpack honours __index
+  -- unpack honors __index
   local mt_tbl = setmetatable({}, {
     __index = function(_, k) return k * 10 end
   })

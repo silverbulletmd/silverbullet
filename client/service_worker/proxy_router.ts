@@ -122,7 +122,7 @@ export function isInitialSyncLocalReadCandidate(
 /**
  * Whether a request is a server-sent event stream (EventSource always asks for
  * `text/event-stream`). The worker must not proxy these: a stream it forwards
- * with `fetch()` is not cancelled when the page that opened it goes away, and
+ * with `fetch()` is not canceled when the page that opened it goes away, and
  * if the reverse proxy holds back the stream's bytes, Chrome never notices the
  * reader is gone. Every page load then leaks one connection, and over HTTP/1.1
  * (six per host) the whole space stalls after a handful of reloads. Left

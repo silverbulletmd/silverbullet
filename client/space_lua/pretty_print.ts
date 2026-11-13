@@ -332,7 +332,7 @@ class Printer {
     for (let i = 0; i < items.length; i++) {
       if (i > 0) {
         out += "\n";
-        // blank line separating function definitions from neighbours
+        // blank line separating function definitions from neighbors
         const previous = items[i - 1];
         const isDocumentationPair =
           previous.type === "Comment" &&

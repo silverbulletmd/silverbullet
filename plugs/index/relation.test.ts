@@ -768,7 +768,7 @@ test("a frontmatter recipients wikilink stays a page relation", async () => {
   expect(declared.filter((o) => o.toTag === "identity").length).toBe(1);
 });
 
-test("a recipients declaration is summarised by the page's opening line", async () => {
+test("a recipients declaration is summarized by the page's opening line", async () => {
   const { space } = createMockSystem();
   await space.writePage("Team/Operations", "");
   const text = [

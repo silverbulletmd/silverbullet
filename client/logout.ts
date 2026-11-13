@@ -124,7 +124,7 @@ export class LogoutParticipant {
       try {
         await this.attempt.saved;
         if (this.attempt?.id !== message.id)
-          throw new Error("Logout was cancelled.");
+          throw new Error("Logout was canceled.");
         port?.postMessage({ ok: true });
       } catch (error) {
         port?.postMessage({

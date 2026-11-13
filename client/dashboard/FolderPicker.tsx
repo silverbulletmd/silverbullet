@@ -108,14 +108,14 @@ export function FolderPicker({
 
   useEffect(() => {
     if (!browsing) return;
-    let cancelled = false;
+    let canceled = false;
     void (async () => {
       const listPath = browsePath ? `${browsePath.replace(/\/+$/, "")}/` : "";
       const r = await fetchDirs(apiBase, listPath);
-      if (!cancelled) setBrowseDirs(r?.suggestions ?? []);
+      if (!canceled) setBrowseDirs(r?.suggestions ?? []);
     })();
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [browsing, browsePath, apiBase]);
 

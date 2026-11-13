@@ -9,14 +9,14 @@ The `oauth` namespace runs OAuth 2.0 sign-in flows. It is what [[API/auth|auth]]
 ## Errors
 `oauth.deviceFlow` raises an error whose message starts with one of these prefixes, so callers can tell the outcomes apart:
 
-* `cancelled:` the user closed the code dialog.
+* `canceled:` the user closed the code dialog.
 * `expired:` the device code expired before it was approved.
 * `denied:` the user (or the server) denied the request.
 * `failed:` anything else, such as a network error or an unexpected response. The text after the prefix is the underlying message. An OAuth error code from the server (for example `unauthorized_client`) appears in it.
 
 ```space-lua
 local ok, err = pcall(oauth.deviceFlow, opts)
-if not ok and tostring(err):find("cancelled:", 1, true) then
+if not ok and tostring(err):find("canceled:", 1, true) then
   return nil
 end
 ```
@@ -25,7 +25,7 @@ end
 ## oauth.deviceFlow
 `oauth.deviceFlow(opts)`
 
-Runs an OAuth 2.0 device authorization flow (RFC 8628). Shows a modal with a code for the user to enter, polls until approved, and returns the raw token response. Errors start with one of `cancelled:`, `expired:`, `denied:` or `failed:`.
+Runs an OAuth 2.0 device authorization flow (RFC 8628). Shows a modal with a code for the user to enter, polls until approved, and returns the raw token response. Errors start with one of `canceled:`, `expired:`, `denied:` or `failed:`.
 
 **Parameters:**
 

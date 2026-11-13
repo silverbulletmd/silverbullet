@@ -50,7 +50,7 @@ function setup(pages: Record<string, string>, currentPage?: string) {
   return { pageVars, getVar, setVar, sf, pages, edits };
 }
 
-// LuaTable.set may return a value or a promise; normalise to a promise
+// LuaTable.set may return a value or a promise; normalize to a promise
 const assign = (t: LuaTable, k: string, sf: LuaStackFrame) =>
   Promise.resolve().then(() => t.set(k, 1, sf));
 

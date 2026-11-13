@@ -147,7 +147,7 @@ config.define("theme", {
 
 config.define("accentColor", {
   type = "string",
-  description = "Accent colour for links, buttons, checkboxes and selections, on top of the theme's. Any CSS colour, such as #c2410c. Leave empty for the theme's own.",
+  description = "Accent color for links, buttons, checkboxes and selections, on top of the theme's. Any CSS color, such as #c2410c. Leave empty for the theme's own.",
   ui = { category = "Appearance", label = "Accent color", priority = 5, color = true },
 })
 
@@ -622,7 +622,7 @@ end
 
 -- The line menu's buttons also take a submenu group and a tick
 local lineButtonSchema = markupButtonSchema {
-  group = { type = "string", description = "Buttons with the same group share one submenu row, labelled with it" },
+  group = { type = "string", description = "Buttons with the same group share one submenu row, labeled with it" },
   activeContexts = schema.nullableArray "string",
 }
 

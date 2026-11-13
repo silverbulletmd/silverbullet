@@ -2,7 +2,7 @@
 description: Writing or editing page prose, frontmatter, links, tags, attributes, tasks and mentions in SilverBullet Markdown. Read before writing page content others will read. Not needed to read pages, to edit a space-lua block, or to add a query or widget call such as ${...} to a page (use Space Lua, Querying or Building Interfaces).
 tags: meta/skill
 ---
-SilverBullet stores pages as plain Markdown. Keep prose useful when read outside SilverBullet, and preserve the style the space already uses: read a few neighbouring pages (or the space's operating manual, if it has one) before writing.
+SilverBullet stores pages as plain Markdown. Keep prose useful when read outside SilverBullet, and preserve the style the space already uses: read a few neighboring pages (or the space's operating manual, if it has one) before writing.
 
 # Pages and links
 A file `Projects/Orchard.md` is the page `Projects/Orchard`. The `read`, `write` and `edit` tools take the page name; page APIs and wiki links omit the `.md` suffix. Wiki links are rooted at the space root, regardless of the directory of the page containing them.

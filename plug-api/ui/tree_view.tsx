@@ -440,7 +440,7 @@ function rowProps(node: TreeNode, shared: SharedRowProps): SharedRowProps {
 }
 
 /** The rendered slice of a long list, moved to include each `required`
- * index: extended when it lies close by, re-centred when it lies far away. */
+ * index: extended when it lies close by, re-centered when it lies far away. */
 export function windowIncluding(
   window: [number, number],
   required: number[],

@@ -73,7 +73,7 @@ pub struct SemanticSink {
     /// The first build finished (recorded in the file at its next save).
     complete: AtomicBool,
     index: RwLock<VectorIndex>,
-    /// Serialises applies and checkpoints. Every worker of a space (two
+    /// Serializes applies and checkpoints. Every worker of a space (two
     /// while an instance rebuilds) applies through this one sink, so its
     /// file has one writer.
     saved: Mutex<Saved>,

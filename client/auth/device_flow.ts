@@ -32,7 +32,7 @@ export type DeviceFlowDeps = {
 
 export class DeviceFlowError extends Error {
   constructor(
-    public reason: "cancelled" | "expired" | "denied" | "failed",
+    public reason: "canceled" | "expired" | "denied" | "failed",
     message: string,
   ) {
     super(message);
@@ -157,7 +157,7 @@ export async function runDeviceFlow(
           grant_type: grantType,
         }),
       );
-      // Cancelled while the request was underway
+      // Canceled while the request was underway
       signal.throwIfAborted();
       const body = jsonBody(resp);
       // OAuth errors are in the JSON body; the status varies by server
@@ -191,7 +191,7 @@ export async function runDeviceFlow(
     }
   } catch (e) {
     if (signal.aborted) {
-      throw new DeviceFlowError("cancelled", "Sign-in cancelled");
+      throw new DeviceFlowError("canceled", "Sign-in canceled");
     }
     throw e;
   } finally {

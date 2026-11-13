@@ -67,7 +67,7 @@ impl Reply {
 
     pub fn with_structured(mut self, structured: impl Serialize) -> Self {
         self.structured =
-            Some(serde_json::to_value(structured).expect("structured content serialises"));
+            Some(serde_json::to_value(structured).expect("structured content serializes"));
         self
     }
 

@@ -28,7 +28,7 @@ An installed library or repository row shows its share URI. Its context menu off
 * *Revert*: in place of *Update* when a check found a library **changed locally** (edited here, unchanged at its source): discards your edits and restores the installed version, after asking.
 * *Open page*: opens its page, the same as clicking the row.
 * *Copy URI*: copies its share URI.
-* *Remove*: removes it, after asking. A library that another installed library requires can’t be removed: *Remove* is greyed out, and its tooltip says which to remove first.
+* *Remove*: removes it, after asking. A library that another installed library requires can’t be removed: *Remove* is grayed out, and its tooltip says which to remove first.
 
 Plugs only offer *Remove*.
 

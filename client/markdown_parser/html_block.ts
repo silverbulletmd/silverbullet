@@ -7,7 +7,7 @@ import type {
 import { NodeType, Tree } from "@lezer/common";
 
 // CommonMark spec §4.6 — the same block-level element names that
-// the built-in lezer HTMLBlock parser recognises (type 6).
+// the built-in lezer HTMLBlock parser recognizes (type 6).
 const blockTagRe =
   /^\s*<\/?(?:address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?:\s|\/?>|$)/i;
 
@@ -44,7 +44,7 @@ const closeTagRe = /^<\/([a-zA-Z][\w-]*)>/;
 /**
  * Consume lines for a "raw" HTML block (comments, CDATA, script/pre/style,
  * processing instructions, declarations) and emit a single flat node.
- * This mirrors the built-in HTMLBlock behaviour for these types.
+ * This mirrors the built-in HTMLBlock behavior for these types.
  */
 function parseRawHtmlBlock(
   cx: BlockContext,

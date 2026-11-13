@@ -683,7 +683,7 @@ async fn service_with_test_model_server() -> (Arc<SemanticService>, TestModelSer
 }
 
 /// [`service_with_test_model_server`] with a server whose download never
-/// finishes, so it can be cancelled mid-download.
+/// finishes, so it can be canceled mid-download.
 async fn service_with_stalled_test_model_server() -> (Arc<SemanticService>, TestModelServer) {
     let server = TestModelServer::stalled().await;
     (server.service(), server)

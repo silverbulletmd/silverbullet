@@ -95,7 +95,7 @@ body.recipe-page #sb-main .cm-editor { border-left: 4px solid var(--tone-accent)
 ```
 ````
 
-The class lands on the page body, on links to the tagged pages and on their picker entries. Prefer the tone colours (`var(--tone-success)`, `warning`, `danger`, `info`, `neutral`, `accent`, each with a `-soft` variant) over fixed colours: every theme, light or dark, sets them to read well. Existing pages pick up a new class after a reindex (see above).
+The class lands on the page body, on links to the tagged pages and on their picker entries. Prefer the tone colors (`var(--tone-success)`, `warning`, `danger`, `info`, `neutral`, `accent`, each with a `-soft` variant) over fixed colors: every theme, light or dark, sets them to read well. Existing pages pick up a new class after a reindex (see above).
 
 # Rendering and style
 `renderFrontmatter` and `renderDataBlock` receive the object with its current values and a context `ctx` with `ctx.values`, `ctx.kind`, `ctx.readOnly` and `ctx.set(key, value)`, `ctx.remove(key)`, `ctx.move(key, delta)` to edit the YAML. For frontmatter, the first tag in the page's `tags` with a renderer wins. Full details and examples are on the `API/tag` page of the SilverBullet documentation (docs.silverbullet.md; edge.silverbullet.md for Edge builds). For CSS classes on tagged pages, icons and widgets, see Building Interfaces.

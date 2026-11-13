@@ -32,7 +32,7 @@ function hex(channels: number[]): string {
     .join("")}`;
 }
 
-/** A computed colour as `#rrggbb`; `theme-color` takes few colour syntaxes. */
+/** A computed color as `#rrggbb`; `theme-color` takes few color syntaxes. */
 function toHexColor(value: string): string | undefined {
   const v = value.trim();
   if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
@@ -47,7 +47,7 @@ function toHexColor(value: string): string | undefined {
   return undefined;
 }
 
-/** A custom property resolved to a colour as `#rrggbb`; the property itself computes to its unresolved `color-mix()`. */
+/** A custom property resolved to a color as `#rrggbb`; the property itself computes to its unresolved `color-mix()`. */
 export function resolvedColor(
   doc: Document,
   property: "background-color" | "color",
@@ -91,9 +91,7 @@ export function reportTitlebarColors(
   if (!background) {
     if (!warnedTitlebar) {
       warnedTitlebar = true;
-      console.debug(
-        "Title bar colours not reported: top background unparsable",
-      );
+      console.debug("Title bar colors not reported: top background unparsable");
     }
     return;
   }
@@ -111,7 +109,7 @@ export function reportTitlebarColors(
   });
 }
 
-/** Points the browser's `theme-color` at the top bar as the page's styles now colour it. */
+/** Points the browser's `theme-color` at the top bar as the page's styles now color it. */
 export function updateThemeColor(doc = document): void {
   const color = topBackgroundColor(doc);
   if (!color) return;
@@ -217,7 +215,7 @@ export type SpaceThemeDeps = {
 
 /**
  * What `preview()` shows over `apply()`'s theme. `accent: ""` previews no
- * accent colour (the theme's own).
+ * accent color (the theme's own).
  */
 export type ThemePreview = { page?: string; accent?: string };
 
@@ -337,7 +335,7 @@ export class SpaceTheme {
   }
 
   /**
-   * Shows a theme `page` and/or an `accent` colour over `apply()`'s theme,
+   * Shows a theme `page` and/or an `accent` color over `apply()`'s theme,
    * until each is cleared (set to undefined); a key left out keeps its
    * preview. Not cached.
    */

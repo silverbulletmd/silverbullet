@@ -1,6 +1,6 @@
 /**
  * The admin search API's JSON (`/.dashboard/api/admin/search` and
- * `/.dashboard/api/admin/spaces/{id}/search`), as the server serialises it
+ * `/.dashboard/api/admin/spaces/{id}/search`), as the server serializes it
  * (`server/src/multi/search_admin.rs`, `server-search/src/report.rs`).
  */
 

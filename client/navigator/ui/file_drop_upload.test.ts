@@ -74,7 +74,7 @@ test("falls back to transferred files when a file entry cannot be read", async (
   ]);
 });
 
-test("cancelling destination leaves all files unwritten", async () => {
+test("canceling destination leaves all files unwritten", async () => {
   const writePage = vi.fn();
   const writeDocument = vi.fn();
   await uploadFiles(
@@ -125,7 +125,7 @@ test("preflights collisions before writing and preserves nested paths", async ()
   expect(prompt).toHaveBeenCalledTimes(2);
 });
 
-test("cancelling a collision prevents earlier files from being written", async () => {
+test("canceling a collision prevents earlier files from being written", async () => {
   const writeDocument = vi.fn();
   const prompt = vi
     .fn()

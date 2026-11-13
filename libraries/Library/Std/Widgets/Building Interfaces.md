@@ -48,8 +48,8 @@ Place the widget by calling `board.tasks()` in a page expression, with `widgets.
 
 A plain expression runs once when the page opens and re-runs only when something it read changes. Time, `datastore`, `config`, network calls and Lua globals are not tracked, so render those through `widget.new { content = ..., refreshOn = {...} }`.
 
-# Tones and colour
-Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with CSS variables `--tone-<name>` and `--tone-<name>-soft` that every theme sets to read well on its background. In your own CSS colour with `var(--tone-danger)` rather than fixed values. If you must use a fixed colour, check it in a light and a dark theme.
+# Tones and color
+Tones are `success`, `warning`, `danger`, `info`, `neutral` and `accent`, with CSS variables `--tone-<name>` and `--tone-<name>-soft` that every theme sets to read well on its background. In your own CSS color with `var(--tone-danger)` rather than fixed values. If you must use a fixed color, check it in a light and a dark theme.
 
 # DOM builder
 * `dom.tag { attr = "value", child, child }`: string keys are attributes, and `on*` keys are event handlers. `class` also takes a list (`{ "card", urgent and "card-urgent" }`), and `style` takes a table (`{ width = "40%" }`).

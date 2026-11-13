@@ -74,7 +74,7 @@ pub(crate) struct JobCx<A> {
 }
 
 impl<A> JobCx<A> {
-    /// The query was cancelled or ran past its deadline: stop between pages.
+    /// The query was canceled or ran past its deadline: stop between pages.
     pub fn stopped(&self) -> bool {
         self.stop.load(Ordering::Relaxed)
     }
@@ -91,7 +91,7 @@ pub(crate) struct Finished<A> {
 }
 
 /// Runs `job` in `spawn_blocking` with `slot`, until it finishes, the request
-/// is cancelled (`Cancelled`) or its deadline passes (`timed_out`, with what
+/// is canceled (`Canceled`) or its deadline passes (`timed_out`, with what
 /// the job found so far). A job error is returned as is; a panic is logged as
 /// "`what` failed" and answers `Failed`.
 ///
@@ -120,7 +120,7 @@ pub(crate) async fn run_blocking<A: Default + Send + 'static>(
         biased;
         _ = cx.cancel.cancelled() => {
             stop.store(true, Ordering::Relaxed);
-            return Err(SearchError::Cancelled);
+            return Err(SearchError::Canceled);
         }
         done = &mut task => match done {
             Ok(result) => {
@@ -248,7 +248,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_cancelled_request_is_cancelled_but_its_slot_stays_with_the_work() {
+    async fn a_canceled_request_is_canceled_but_its_slot_stays_with_the_work() {
         let pool = one_slot();
         let cx = request(&pool, Duration::from_secs(5));
         let slot = cx.query_slot().await.unwrap();
@@ -261,7 +261,7 @@ mod tests {
             Ok(())
         });
         cancel.cancel();
-        assert_eq!(running.await.err(), Some(SearchError::Cancelled));
+        assert_eq!(running.await.err(), Some(SearchError::Canceled));
         let other = request(&pool, Duration::from_secs(5));
         assert_eq!(other.query_slot().await.err(), Some(SearchError::Busy));
         release.send(()).unwrap();

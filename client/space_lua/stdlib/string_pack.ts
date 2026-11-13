@@ -190,7 +190,7 @@ function packInt(v: bigint, size: number, islittle: boolean): Uint8Array {
   let val = v;
   // Two's complement mask
   const mask = (1n << BigInt(size * 8)) - 1n;
-  val = ((val % (mask + 1n)) + (mask + 1n)) & mask; // normalise to unsigned
+  val = ((val % (mask + 1n)) + (mask + 1n)) & mask; // normalize to unsigned
   for (let i = 0; i < size; i++) {
     buf[islittle ? i : size - 1 - i] = Number(val & 0xffn);
     val >>= 8n;

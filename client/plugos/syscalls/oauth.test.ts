@@ -56,7 +56,7 @@ test("oauth.deviceFlow wires proxyFetch, timers and the UI", async () => {
   expect(close).toHaveBeenCalled();
 });
 
-test("oauth.deviceFlow rejects with 'cancelled:' when the user cancels", async () => {
+test("oauth.deviceFlow rejects with 'canceled:' when the user cancels", async () => {
   proxyFetch.mockResolvedValueOnce(
     ok({
       device_code: "dc",
@@ -70,7 +70,7 @@ test("oauth.deviceFlow rejects with 'cancelled:' when the user cancels", async (
   const { fn, cancel } = setup();
   const p = fn({}, opts);
   setTimeout(cancel, 10);
-  await expect(p).rejects.toThrow(/^cancelled:/);
+  await expect(p).rejects.toThrow(/^canceled:/);
 });
 
 test("oauth.deviceFlow prefixes non-flow errors with 'failed:'", async () => {

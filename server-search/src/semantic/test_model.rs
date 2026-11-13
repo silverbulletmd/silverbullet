@@ -262,7 +262,7 @@ pub fn fake_spec() -> ModelSpec {
 }
 
 /// A deterministic embedder for tests: a bag of words hashed into
-/// `spec.dim` dimensions and normalised, so texts sharing words are close.
+/// `spec.dim` dimensions and normalized, so texts sharing words are close.
 /// `fit` allows `budget` whitespace-separated pieces per window. Counts
 /// calls and embedded texts, can sleep per call, can be held (each call
 /// then waits, after it is counted, until `hold` is cleared), and can be

@@ -25,7 +25,7 @@
   --tone-info-soft: #192c40;
   --tone-accent-soft: color-mix(in srgb, var(--ui-accent-color) 22%, transparent);
   --ui-accent-muted-soft-color: color-mix(in srgb, var(--ui-accent-muted-color) 22%, transparent);
-  // Accent text moves further toward the light text colour to stay readable.
+  // Accent text moves further toward the light text color to stay readable.
   --ui-accent-text-color: color-mix(in oklab, var(--ui-accent-color), var(--root-color) 35%);
   --modal-backdrop-color: rgba(0, 0, 0, 0.5);
   --modal-shadow-color: rgba(0, 0, 0, 0.55);

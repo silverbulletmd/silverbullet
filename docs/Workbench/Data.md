@@ -12,7 +12,7 @@ ${widgets.commandButton("Workbench: Data")} opens this tab in the [[Workbench]],
 
 # The tag list
 * **Pinned** tags come first: `page` and `task` unless you change them. Hover a tag and click its pin to pin or unpin it. Pins are kept in the `workbench.pinnedTags` option of your [[^Library/Config]], so everyone using the space sees the same ones.
-* **Defined**: your tags that have a [[Schema]], most objects first. A tag with objects that don't match its schema shows a ⚠ count. A tag that's defined but not used yet is greyed out.
+* **Defined**: your tags that have a [[Schema]], most objects first. A tag with objects that don't match its schema shows a ⚠ count. A tag that's defined but not used yet is grayed out.
 * **No schema**: your tags without one, most objects first, so the list reads as a to-do list.
 * **Built-in**: the tags SilverBullet indexes itself (`item`, `link`, `header`, …), collapsed until you open it.
 

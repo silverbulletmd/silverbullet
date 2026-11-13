@@ -177,7 +177,7 @@ async fn the_similar_tier_answers_without_a_notice() {
 async fn scope_limits_queries_to_pages_or_tool_pages_by_location() {
     let fx = ready(TestView::with(&[
         ("Garden/Fern.md", "Ferns like shade.\n"),
-        ("Library/Fern style.md", "Fern colours for the theme.\n"),
+        ("Library/Fern style.md", "Fern colors for the theme.\n"),
         ("Library/Fern log.md", "Fern log for the week.\n"),
     ]))
     .await;
@@ -380,7 +380,7 @@ async fn the_ninth_concurrent_query_is_busy_after_a_second() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn a_cancelled_query_stops_with_cancelled() {
+async fn a_canceled_query_stops_with_canceled() {
     let view = TestView::with(GARDEN);
     let fx = Arc::new(ready(view.clone()).await);
     let reads = view.total_reads();
@@ -397,7 +397,7 @@ async fn a_cancelled_query_stops_with_cancelled() {
         .await
         .expect("cancellation returns promptly")
         .unwrap();
-    assert_eq!(r.unwrap_err(), SearchError::Cancelled);
+    assert_eq!(r.unwrap_err(), SearchError::Canceled);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

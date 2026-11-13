@@ -184,7 +184,7 @@ test("fieldKind unwraps nullable and array-or-string schemas", async () => {
   ).toEqual(["tags", "string", "refs", "unknown"]);
 });
 
-test("fieldKind and typeName recognise tags and @names", async () => {
+test("fieldKind and typeName recognize tags and @names", async () => {
   expect(
     await lua(`
       local page = store.tags.page.schema.properties

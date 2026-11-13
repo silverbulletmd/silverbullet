@@ -287,7 +287,7 @@ pub(crate) async fn launch_browser(
 /// A page handle whose tab must be closed explicitly rather than dropped.
 ///
 /// Abstracted behind a trait for exactly one reason: `PageCloseGuard`'s
-/// behaviour under task cancellation is the thing this module most needs to
+/// behavior under task cancellation is the thing this module most needs to
 /// test, and `chromiumoxide::Page` cannot be constructed without a live Chrome.
 /// Production only ever instantiates it at `P = Page`.
 ///
@@ -717,7 +717,7 @@ mod tests {
         assert_eq!(
             await_closes(&closed, 1).await,
             1,
-            "a cancelled launch must close its page, not drop the handle"
+            "a canceled launch must close its page, not drop the handle"
         );
         assert!(live.lock().await.is_none());
         assert!(!ready.load(Ordering::Relaxed));

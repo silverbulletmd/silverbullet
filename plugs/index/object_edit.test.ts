@@ -269,7 +269,7 @@ test("findTarget picks the task, not the anchor object with the same ref", async
   expect(found.tag).toBe("task");
 });
 
-test("findTarget fails on a stale position ref instead of editing a neighbour", async () => {
+test("findTarget fails on a stale position ref instead of editing a neighbor", async () => {
   const original = "* [ ] A #x\n* [ ] B #x\n";
   const [a] = (await objectsOf(original)).filter((o) => o.tag === "task");
   // Text inserted above shifts every position

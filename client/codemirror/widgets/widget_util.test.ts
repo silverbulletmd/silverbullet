@@ -33,13 +33,13 @@ test("clicking a mention in a widget opens the Mention Inbox on that recipient",
   const div = widget('<span data-mention-name="Hana">@Hana</span>');
   attachWidgetEventHandlers(div, client as unknown as Client);
 
-  const notCancelled = click(div.querySelector("[data-mention-name]")!);
+  const notCanceled = click(div.querySelector("[data-mention-name]")!);
 
   expect(client.openNavigatorView).toHaveBeenCalledWith("inbox", {
     dropdown: "@hana",
     focus: false,
   });
-  expect(notCancelled).toBe(false);
+  expect(notCanceled).toBe(false);
 });
 
 test("a wiki link navigates locally, in a new window with a modifier", () => {

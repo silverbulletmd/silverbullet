@@ -344,7 +344,7 @@ enum Stop {
     /// Storage couldn't list the space: nothing is changed, and a reconcile
     /// is scheduled.
     Unlisted,
-    Cancelled,
+    Canceled,
 }
 
 /// How a reconcile reports itself, chosen once up front.
@@ -436,7 +436,7 @@ impl Worker {
                     Ok(_) => Instant::now() + RECONCILE_EVERY,
                     // A rebuild's reconcile stays `Rebuilding` for the retry.
                     Err(Stop::GaveUp | Stop::Unlisted) => Instant::now() + RETRY_LATER,
-                    Err(Stop::Cancelled) => return,
+                    Err(Stop::Canceled) => return,
                 };
                 continue;
             }
@@ -451,7 +451,7 @@ impl Worker {
                         }
                         next_reconcile = next_reconcile.min(Instant::now() + RETRY_LATER)
                     }
-                    Err(Stop::Cancelled) => return,
+                    Err(Stop::Canceled) => return,
                 }
                 continue;
             }
@@ -922,7 +922,7 @@ impl Worker {
                 self.skipped += skipped;
                 Ok(reads)
             }
-            Some(None) => Err(Stop::Cancelled),
+            Some(None) => Err(Stop::Canceled),
             None => Err(self.gave_up()),
         }
     }

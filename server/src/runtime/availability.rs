@@ -6,7 +6,7 @@ use serde::Serialize;
 /// not a shortcut: the runtime factory captures the same decision for the
 /// process lifetime, so a browser installed after boot changes nothing until
 /// the server restarts — reporting a fresher answer than the factory can
-/// honour would be a lie.
+/// honor would be a lie.
 ///
 /// Serialized internally tagged, so the wire form is `{"status": "no_chrome"}`
 /// and `{"status": "failed", "message": "..."}`.

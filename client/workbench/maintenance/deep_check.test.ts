@@ -34,7 +34,7 @@ describe("DeepCheck", () => {
       kind: "done",
       found,
       pages: 2,
-      cancelled: false,
+      canceled: false,
     });
   });
 
@@ -55,7 +55,7 @@ describe("DeepCheck", () => {
     expect(calls).toBe(1);
   });
 
-  it("cancel aborts the signal and ends in done with cancelled: true", async () => {
+  it("cancel aborts the signal and ends in done with canceled: true", async () => {
     let signal: AbortSignal | undefined;
     const dc = new DeepCheck(
       (opts) =>
@@ -68,7 +68,7 @@ describe("DeepCheck", () => {
     dc.cancel();
     await running;
     expect(signal?.aborted).toBe(true);
-    expect(dc.state).toMatchObject({ kind: "done", cancelled: true });
+    expect(dc.state).toMatchObject({ kind: "done", canceled: true });
   });
 
   it("listeners stop receiving after unsubscribe", async () => {
@@ -90,7 +90,7 @@ describe("DeepCheck", () => {
     expect(dc.state).toMatchObject({ kind: "done", error: "boom" });
   });
 
-  it("a cancelled run reports the pages actually checked", async () => {
+  it("a canceled run reports the pages actually checked", async () => {
     const dc = new DeepCheck(
       (opts) =>
         new Promise((resolve) => {
@@ -101,6 +101,6 @@ describe("DeepCheck", () => {
     const running = dc.run();
     dc.cancel();
     await running;
-    expect(dc.state).toMatchObject({ kind: "done", cancelled: true, pages: 3 });
+    expect(dc.state).toMatchObject({ kind: "done", canceled: true, pages: 3 });
   });
 });

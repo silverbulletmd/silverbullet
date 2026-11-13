@@ -2,16 +2,16 @@
 description: Themes and CSS styling of a space, from picking its theme and writing a theme page (meta/theme) to space-style blocks, theme variables, light and dark, and fonts. Read before choosing or writing a theme, writing or changing a space-style block, changing fonts, or checking how a space looks in dark mode. Not needed to attach a class to a widget or a tag (Building Interfaces covers that).
 tags: meta/skill
 ---
-A **theme** is a page under `Library/` tagged `meta/theme`. It sets the colours and whether the space is light or dark; dark mode is a dark theme being active. SilverBullet ships two: `Library/Std/Themes/SilverBullet Light` and `Library/Std/Themes/SilverBullet Dark`. Ordinary styling is CSS in `space-style` blocks on any other page under `Library/` (blocks elsewhere do not apply), on top of whichever theme is active. A `write` or `edit` of a page with `space-style` blocks reloads them and reports lint problems; after `space.writePage` from `lua`, call `system.reboot()`.
+A **theme** is a page under `Library/` tagged `meta/theme`. It sets the colors and whether the space is light or dark; dark mode is a dark theme being active. SilverBullet ships two: `Library/Std/Themes/SilverBullet Light` and `Library/Std/Themes/SilverBullet Dark`. Ordinary styling is CSS in `space-style` blocks on any other page under `Library/` (blocks elsewhere do not apply), on top of whichever theme is active. A `write` or `edit` of a page with `space-style` blocks reloads them and reports lint problems; after `space.writePage` from `lua`, call `system.reboot()`.
 
 # Pick the route
 * **A new look as a whole** (palette, a light and dark pair): write a theme, see Writing a theme.
 * **Use an installed theme:** set the space's `theme` setting, see Picking a theme.
-* **Adjust colours, widths or elements whatever the theme:** a `space-style` block on an ordinary page such as `Library/Style`, see Customising on top of a theme.
+* **Adjust colors, widths or elements whatever the theme:** a `space-style` block on an ordinary page such as `Library/Style`, see Customizing on top of a theme.
 * **Fonts:** configuration, not CSS, see Fonts.
 
 # Steps
-1. **Read the theme.** `theme.getActive()` names it; list its variables (snippet under Variables). Most colours are a variable away: set the variable before reaching for a selector.
+1. **Read the theme.** `theme.getActive()` names it; list its variables (snippet under Variables). Most colors are a variable away: set the variable before reaching for a selector.
 2. **Inspect each element you will style** before writing CSS for it: its classes, computed styles and parent chain (snippet under Inspecting an element). Inherited fonts, negative margins and wrapper classes show up here, and only by accident in a screenshot.
 3. **Write the block** or the theme page, with the variables and selectors below.
 4. **Check it.** The `write`/`edit` result lists lint problems (theme frontmatter included); fix them. `read` the page with `rendered: true`, take a `screenshot` in a light and in a dark theme (see Checking light and dark), and run the inspection snippet again on every element you targeted.
@@ -55,16 +55,16 @@ html {
 * **Prefix variables of your own** with the theme's name (`--sepia-ink`).
 * **Strong accent:** hashtag pills and the selected completion fill with `--ui-accent-strong-color` and write on it in `--ui-accent-strong-contrast-color`, which assumes the fill comes out dark. With a very light accent, set both.
 
-After the write, `theme.list()` includes it. Switch to it with `theme.setDeviceTheme(page)` to check it, and look at a page with a table, code, frontmatter and hashtags, the command palette and a notification: most derived colours show there.
+After the write, `theme.list()` includes it. Switch to it with `theme.setDeviceTheme(page)` to check it, and look at a page with a table, code, frontmatter and hashtags, the command palette and a notification: most derived colors show there.
 
 # Variables
-Themes and styles work by setting CSS custom properties on `html`. **Base variables** are the palette; nearly every other (**specific**) variable derives from them: the top bar mixes the page and subtle colours, alerts and notifications use the tones, hashtags and the selected completion use the strong accent. Set base variables first, and a specific one only when its derived colour does not work.
+Themes and styles work by setting CSS custom properties on `html`. **Base variables** are the palette; nearly every other (**specific**) variable derives from them: the top bar mixes the page and subtle colors, alerts and notifications use the tones, hashtags and the selected completion use the strong accent. Set base variables first, and a specific one only when its derived color does not work.
 
 The base variables:
 * Surfaces and text: `--root-background-color`, `--root-color`, `--subtle-color`, `--subtle-background-color`, `--ui-surface-border-color`.
 * Accent: `--ui-accent-color`, `--ui-accent-contrast-color`, `--ui-accent-strong-color`, `--ui-accent-strong-contrast-color`.
 * Links and meta: `--link-color`, `--link-missing-color`, `--link-invalid-color`, `--meta-color`, `--meta-subtle-color`. Marks: `--highlight-color`.
-* Tones: `--tone-<name>` and `--tone-<name>-soft` for `success`, `warning`, `danger`, `info`, `neutral` and `accent`. They are also for your own styles and widgets: every theme gives them values that read on its background, so colour with `var(--tone-danger)` rather than a fixed colour, which needs checking in a light and a dark theme.
+* Tones: `--tone-<name>` and `--tone-<name>-soft` for `success`, `warning`, `danger`, `info`, `neutral` and `accent`. They are also for your own styles and widgets: every theme gives them values that read on its background, so color with `var(--tone-danger)` rather than a fixed color, which needs checking in a light and a dark theme.
 * Code: `--editor-code-color` and `--editor-code-<part>-color` for `variable`, `typename`, `string`, `number`, `operator`, `atom`, `comment`.
 * Layout: `--editor-width`. Fonts (set through configuration): `--ui-font`, `--editor-font`, `--editor-monospace-font`, `--editor-font-size`.
 
@@ -88,7 +88,7 @@ return theme.getActive().page .. "\n" .. table.concat(rows, "\n")
 
 To compare with another theme, switch to it with `theme.setDeviceTheme(page)` first, and restore the device theme afterwards (see Checking light and dark).
 
-# Customising on top of a theme
+# Customizing on top of a theme
 Ordinary `space-style` blocks load after the theme, so a rule there beats the theme's rule for the same selector (or one as specific), whatever its `/* priority: N */` (priority orders ordinary blocks among themselves: highest first, so a lower priority loads later and wins ties). Target a rule at:
 
 ```css
@@ -108,7 +108,7 @@ html[data-sb-theme$="/Sepia"] {
 }
 ```
 
-A colour in a plain `html` rule applies in dark themes too, so give every colour you set a `html[data-sb-scheme="dark"]` value as well, or use a tone or another variable (`var(--tone-accent)`) that each theme already sets. Read `data-sb-scheme` and `data-sb-theme` in selectors and scripts; SilverBullet sets them from the active theme, so switch themes with the theme API rather than setting them. `data-theme` is a deprecated alias of `data-sb-scheme`.
+A color in a plain `html` rule applies in dark themes too, so give every color you set a `html[data-sb-scheme="dark"]` value as well, or use a tone or another variable (`var(--tone-accent)`) that each theme already sets. Read `data-sb-scheme` and `data-sb-theme` in selectors and scripts; SilverBullet sets them from the active theme, so switch themes with the theme API rather than setting them. `data-theme` is a deprecated alias of `data-sb-scheme`.
 
 A look with a palette of its own is a theme, not a stack of overrides: write one instead.
 

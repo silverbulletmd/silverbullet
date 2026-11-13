@@ -873,7 +873,7 @@ async fn provider_callback(
     };
     let (id, provider, testing, remember) = taken;
     let identity = if !query.error.is_empty() {
-        Err("Sign-in was cancelled or refused by the provider".into())
+        Err("Sign-in was canceled or refused by the provider".into())
     } else {
         crate::auth::oidc::client::finish(
             &provider.config,

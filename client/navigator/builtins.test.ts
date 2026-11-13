@@ -537,7 +537,7 @@ test("std.spaceTree sources the same content as the space picker, sorted by name
   ]);
 });
 
-test("std.spaceTree's ordering honours the space's queryCollation config, not raw codepoint order", async () => {
+test("std.spaceTree's ordering honors the space's queryCollation config, not raw codepoint order", async () => {
   index.isAvailable.mockResolvedValue(true);
   index.queryLuaObjects.mockImplementation((tag) =>
     Promise.resolve(

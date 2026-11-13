@@ -243,7 +243,7 @@ test.describe("the line handle", () => {
     await expect(sbPage.locator(".sb-in-option:visible")).toHaveCount(0);
   });
 
-  test("a page with frontmatter offers no Add tag; its form is labelled until hovered", async ({
+  test("a page with frontmatter offers no Add tag; its form is labeled until hovered", async ({
     sbPage,
     sbServer,
   }) => {

@@ -59,7 +59,7 @@ export class WorkerLogout {
           });
         }, 30_000);
         attempt.clients = await this.clients();
-        if (this.attempt !== attempt) throw new Error("Logout was cancelled.");
+        if (this.attempt !== attempt) throw new Error("Logout was canceled.");
         if (attempt.preserved) {
           for (const client of attempt.clients)
             client.postMessage({ type: "logout-preserve", id: message.id });
@@ -78,11 +78,11 @@ export class WorkerLogout {
             client.postMessage({ type: "logout-revoked", id: message.id });
         }
         await saving;
-        if (this.attempt !== attempt) throw new Error("Logout was cancelled.");
+        if (this.attempt !== attempt) throw new Error("Logout was canceled.");
         if (attempt.preserved) return;
         const databases = await this.synchronize();
         if (this.attempt !== attempt || this.cleared)
-          throw new Error("Logout was cancelled.");
+          throw new Error("Logout was canceled.");
         attempt.ready = true;
         port?.postMessage({ ok: true, databases });
       } else if (this.attempt?.id === message.id) {

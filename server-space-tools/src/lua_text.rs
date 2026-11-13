@@ -261,7 +261,7 @@ mod tests {
     }
 
     #[test]
-    fn statements_are_recognised_by_their_first_word() {
+    fn statements_are_recognized_by_their_first_word() {
         for code in [
             "return 1",
             "  local x = 1",

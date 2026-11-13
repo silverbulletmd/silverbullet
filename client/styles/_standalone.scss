@@ -102,7 +102,7 @@ body.sb-standalone {
   }
 
   // Links used for navigation should look like their button counterparts while
-  // retaining normal link behaviour (copy, open in a new tab, history).
+  // retaining normal link behavior (copy, open in a new tab, history).
   a.sb-button,
   a.sb-button-primary {
     display: inline-flex;
@@ -374,7 +374,7 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
 }
 
 /* Bottom-of-form destructive zone. Delete stays visually destructive (via
-   .sb-button-danger's colour) but is sized like every other button — it
+   .sb-button-danger's color) but is sized like every other button — it
    shouldn't dominate the page. */
 .sb-standalone .sb-danger-zone {
   margin-top: 2rem;

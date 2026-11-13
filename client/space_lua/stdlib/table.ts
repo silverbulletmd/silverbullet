@@ -521,7 +521,7 @@ export const tableApi = new LuaTable({
 
   /**
    * Returns all values t[i], t[i+1], ..., t[j].
-   * i defaults to 1, j defaults to #t (honours __len).
+   * i defaults to 1, j defaults to #t (honors __len).
    * Empty range returns no values (null), not an empty multi-res.
    */
   unpack: new LuaBuiltinFunction({

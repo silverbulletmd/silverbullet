@@ -11,7 +11,7 @@ export type PopupEntry<Id extends string = string> =
       label: string;
       icon: PopupIcon;
       current?: boolean;
-      /** Why it can't be picked now: shown greyed out, as its tooltip */
+      /** Why it can't be picked now: shown grayed out, as its tooltip */
       disabled?: string;
       /** Trailing, right-aligned hint, e.g. the item's keyboard shortcut */
       hint?: string;

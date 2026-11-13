@@ -111,7 +111,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn admissions_without_supersede_never_cancel_or_get_cancelled() {
+    async fn admissions_without_supersede_never_cancel_or_get_canceled() {
         let gate = Gate::new();
         let alice = |supersede| admission(Some("alice"), true, "tab-1", supersede);
         let first = gate.admit(alice(true)).unwrap();
@@ -185,6 +185,6 @@ mod tests {
         let wait = older.query_slot();
         tokio::pin!(wait);
         gate.admit(query("alice", "tab-1")).unwrap();
-        assert!(matches!(wait.await, Err(SearchError::Cancelled)));
+        assert!(matches!(wait.await, Err(SearchError::Canceled)));
     }
 }

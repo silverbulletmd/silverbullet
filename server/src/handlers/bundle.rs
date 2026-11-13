@@ -511,7 +511,7 @@ mod tests {
     }
 
     #[test]
-    fn unrecognised_shapes_fall_back_to_revalidating() {
+    fn unrecognized_shapes_fall_back_to_revalidating() {
         // A false positive pins a mutable file for a year, so anything that is
         // not unmistakably an esbuild hash must degrade to `no-cache`.
         for path in [

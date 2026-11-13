@@ -160,7 +160,7 @@ type ExpectedLocal =
  * when the millisecond timestamps then classify the path as unchanged.
  */
 export type SyncSignal =
-  // Nothing was signalled: a periodic scan, or a caller with no origin
+  // Nothing was signaled: a periodic scan, or a caller with no origin
   // information. Classification is trusted as-is.
   | { type: "unknown" }
   // Something happened to this path, with no revision to name it by.
@@ -170,7 +170,7 @@ export type SyncSignal =
   | { type: "remoteRevision"; hash: string };
 
 /**
- * Which side of a signalled path actually moved, once its content was
+ * Which side of a signaled path actually moved, once its content was
  * compared against the revision this replica last synced.
  */
 type Divergence = "none" | "local" | "remote" | "both";
@@ -791,16 +791,16 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
       syncBack
     ) {
       // Timestamps and sizes both match, which is all the millisecond
-      // resolution scan can tell. If something explicitly signalled this
+      // resolution scan can tell. If something explicitly signaled this
       // path, that classification is verified against content once rather
       // than trusted.
-      switch (await this.classifySignalled(path, snapshot, signal)) {
+      switch (await this.classifySignaled(path, snapshot, signal)) {
         case "none":
           break;
         case "local":
           console.log(
             "[sync]",
-            "Signalled path differs locally despite matching timestamps, pushing",
+            "Signaled path differs locally despite matching timestamps, pushing",
             path,
           );
           operations += await this.pushLocalCopy(path, snapshot);
@@ -808,7 +808,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         case "remote":
           console.log(
             "[sync]",
-            "Signalled path holds another remote revision despite matching timestamps, pulling",
+            "Signaled path holds another remote revision despite matching timestamps, pulling",
             path,
           );
           operations += await this.pullRemoteCopy(
@@ -820,7 +820,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
         case "both":
           console.log(
             "[sync]",
-            "Signalled path differs on both ends despite matching timestamps, resolving",
+            "Signaled path differs on both ends despite matching timestamps, resolving",
             path,
           );
           operations += await this.reconcileOrResolve(path, snapshot);
@@ -960,7 +960,7 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
    * Costs one local read, and no network round trip beyond the one
    * `remoteRevision` already makes for an unrecorded path.
    */
-  private async classifySignalled(
+  private async classifySignaled(
     path: string,
     snapshot: SyncSnapshot,
     signal: SyncSignal,

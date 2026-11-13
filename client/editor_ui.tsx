@@ -310,7 +310,7 @@ export class MainUI {
 
   private lastChooseVersionId = 0;
 
-  /** Resolves with the clicked choice's id, or undefined when cancelled. */
+  /** Resolves with the clicked choice's id, or undefined when canceled. */
   chooseVersion(options: ChooseVersionOptions): Promise<string | undefined> {
     return new Promise((resolve) => {
       const id = ++this.lastChooseVersionId;
@@ -329,7 +329,7 @@ export class MainUI {
 
   private lastPickManyId = 0;
 
-  /** Resolves with the ticked items' ids, or undefined when cancelled. */
+  /** Resolves with the ticked items' ids, or undefined when canceled. */
   pickMany(options: PickManyOptions): Promise<string[] | undefined> {
     return new Promise((resolve) => {
       const id = ++this.lastPickManyId;
