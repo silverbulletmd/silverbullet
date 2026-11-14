@@ -15,6 +15,11 @@ export type ProcessingMessage = MQMessage & {
   ts: number;
 };
 
+export type QueueWorkerOptions = MQSubscribeOptions & {
+  /** Checked before every poll; while true, the worker does not poll. */
+  pause?: () => boolean | Promise<boolean>;
+};
+
 const DEFAULT_LEASE_RENEW_INTERVAL = 2000;
 
 const queuedPrefix = ["mq", "queued"];
@@ -28,9 +33,25 @@ export class QueueWorker {
   constructor(
     private mq: DataStoreMQ,
     readonly queue: string,
-    readonly options: MQSubscribeOptions,
+    readonly options: QueueWorkerOptions,
     private callback: (messages: MQMessage[]) => Promise<void> | void,
   ) {}
+
+  /**
+   * A throw from the predicate would end run()'s loop for the rest of the
+   * session, so a failing check counts as not paused.
+   */
+  private async isPaused(): Promise<boolean> {
+    if (!this.options.pause) {
+      return false;
+    }
+    try {
+      return await this.options.pause();
+    } catch (e) {
+      console.error(`Pause check for queue "${this.queue}" failed`, e);
+      return false;
+    }
+  }
 
   /**
    * This is the main loop of the worker, whenever it exits the loop it means the worker has stopped
@@ -41,6 +62,10 @@ export class QueueWorker {
       while (true) {
         if (this.stopping) {
           break;
+        }
+        if (await this.isPaused()) {
+          await sleep(this.options.pollInterval || 1000);
+          continue;
         }
         const messages = await this.mq.poll(
           this.queue,
@@ -237,7 +262,7 @@ export class DataStoreMQ {
    */
   subscribe(
     queue: string,
-    options: MQSubscribeOptions,
+    options: QueueWorkerOptions,
     callback: (messages: MQMessage[]) => Promise<void> | void,
   ): QueueWorker {
     const worker = new QueueWorker(this, queue, options, callback);

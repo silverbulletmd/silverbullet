@@ -592,6 +592,12 @@ export class ObjectIndex {
     // after a first boot.
     this.rebuildInProgress = true;
     try {
+      // Wait out batches that other clients leased before this lock was taken.
+      // Those batches index under the other clients' rules. If their writes
+      // land after clearIndex, the objects survive, because this reindex's
+      // jobs skip the per-file clear. This client keeps draining meanwhile,
+      // because rebuildInProgress exempts it from the pause.
+      await this.mq.awaitEmptyQueue("indexQueue");
       // Record that a reindex is underway *before* we delete the version key,
       // so an interruption between here and `markFullIndexComplete` is
       // recoverable (see `ensureFullIndex`).
@@ -620,6 +626,11 @@ export class ObjectIndex {
     }
   }
 
+  private get reindexLockName(): string {
+    const dbName = (this.ds.kv as any).dbName ?? "default";
+    return `sb-reindex:${dbName}`;
+  }
+
   /**
    * Cross-window mutual exclusion for global reindex work.
    */
@@ -628,8 +639,32 @@ export class ObjectIndex {
     if (!locks?.request) {
       return fn();
     }
-    const dbName = (this.ds.kv as any).dbName ?? "default";
-    return locks.request(`sb-reindex:${dbName}`, fn);
+    return locks.request(this.reindexLockName, fn);
+  }
+
+  /**
+   * True while another client on this database holds the reindex lock. Each
+   * client indexes under its own Space Lua. Unless the reindexing client does
+   * all the indexing, one reindex writes several rule sets into the index.
+   */
+  async isForeignReindexRunning(): Promise<boolean> {
+    // The reindexing client must keep draining, or its reindex never finishes.
+    if (this.rebuildInProgress) {
+      return false;
+    }
+    const locks = (navigator as any)?.locks;
+    if (!locks?.query) {
+      return false;
+    }
+    try {
+      const state = await locks.query();
+      return (state.held ?? []).some(
+        (lock: any) => lock.name === this.reindexLockName,
+      );
+    } catch {
+      // Uncoordinated indexing beats a stalled queue.
+      return false;
+    }
   }
 
   public async hasFullIndexCompleted() {
@@ -718,6 +753,11 @@ export class ObjectIndex {
 
   private scanGeneration(tag: string): string {
     return `${this.allScansGeneration}:${this.scanGenerations.get(tag) ?? 0}`;
+  }
+
+  /** Other clients' writes don't invalidate this memo; only the TTL ages it. */
+  forgetMemoizedScans() {
+    this.invalidateScanMemo();
   }
 
   /** Without `tags`, drops every tag's memo. */

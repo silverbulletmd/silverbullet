@@ -916,3 +916,36 @@ describe("ObjectIndex tag page decorations", () => {
     expect(await queued()).toEqual([{ path: "Alpha.md" }]);
   });
 });
+
+// A batch another client leased just before the reindex took its lock is still
+// running under that client's rules; anything it writes after the clear
+// survives the reindex.
+test("a reindex clears the index only after leased batches are acked", async () => {
+  vi.useFakeTimers();
+  try {
+    const { objectIndex, mq } = makeFreshSetup();
+    await objectIndex.indexObjects("Old", [pageObject("Old")]);
+    await mq.send("indexQueue", { path: "Old.md" });
+    const [leased] = await mq.poll("indexQueue", 1);
+    const spaceStub = { deduplicatedFileList: async () => [] };
+
+    let finished = false;
+    const reindex = objectIndex.reindexSpace(spaceStub as any).then(() => {
+      finished = true;
+    });
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(finished).toBe(false);
+    expect(
+      await objectIndex.getObjectByRef("Old", "page", "Old"),
+    ).toBeDefined();
+
+    await mq.ack("indexQueue", leased.id);
+    await vi.advanceTimersByTimeAsync(1000);
+    await reindex;
+    expect(
+      await objectIndex.getObjectByRef("Old", "page", "Old"),
+    ).toBeUndefined();
+  } finally {
+    vi.useRealTimers();
+  }
+});
