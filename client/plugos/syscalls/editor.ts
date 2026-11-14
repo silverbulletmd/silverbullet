@@ -346,6 +346,41 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
       ],
     },
+    "editor.posAtDOM": {
+      callback: (_ctx, node: unknown): number | undefined => {
+        // Unset while booting
+        const view = client.editorView as EditorView | undefined;
+        if (
+          !view ||
+          !(node instanceof Node) ||
+          !view.contentDOM.contains(node)
+        ) {
+          return undefined;
+        }
+        try {
+          return view.posAtDOM(node, 0);
+        } catch {
+          // Not part of the document view (a nested widget's own DOM)
+          return undefined;
+        }
+      },
+      description:
+        "Returns the document position of a DOM node in the editor, e.g. a widget's element. Nodes inside a widget return the widget's position.",
+      parameters: [
+        {
+          name: "node",
+          type: "Node",
+          description: "A DOM node inside the editor.",
+        },
+      ],
+      returns: [
+        {
+          type: "number | undefined",
+          description:
+            "The offset, or undefined if the node isn't in the editor.",
+        },
+      ],
+    },
     "editor.save": {
       callback: () => {
         return client.save(true);
