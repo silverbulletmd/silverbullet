@@ -29,6 +29,7 @@ import {
   space,
 } from "@silverbulletmd/silverbullet/syscalls";
 import type { ClickEvent } from "@silverbulletmd/silverbullet/type/client";
+import { markdownLinkParts } from "../../client/markdown_parser/markdown_link.ts";
 import { tagPrefix } from "../index/constants.ts";
 import { identityId } from "../index/identity.ts";
 
@@ -122,11 +123,11 @@ async function actionClickOrActionEnter(
     }
     case "Image":
     case "Link": {
-      const urlNode = findNodeOfType(mdTree, "URL");
-      if (!urlNode) {
+      const parts = markdownLinkParts(mdTree.children ?? []);
+      if (!parts) {
         return;
       }
-      const url = urlNode.children![0].text!;
+      const url = renderToText(parts.url);
       if (url.length <= 1) {
         return editor.flashNotification("Empty link, ignoring", "error");
       }

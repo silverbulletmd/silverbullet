@@ -28,10 +28,11 @@ import type {
   ObjectValue,
   PageMeta,
 } from "@silverbulletmd/silverbullet/type/index";
+import { wikiLinkRegex } from "../../client/markdown_parser/constants.ts";
 import {
-  mdLinkRegex,
-  wikiLinkRegex,
-} from "../../client/markdown_parser/constants.ts";
+  childrenWithin,
+  markdownLinkParts,
+} from "../../client/markdown_parser/markdown_link.ts";
 import { collectAnchor } from "./anchor.ts";
 import { asDataBlock, dataDocuments } from "./data.ts";
 import type { FrontMatter } from "./frontmatter.ts";
@@ -320,6 +321,47 @@ function authorsFor(
   return best;
 }
 
+/**
+ * Emits the relation of a markdown link or image.
+ * @returns false if `n` has no url, so is not a link
+ */
+function emitMarkdownLink(ctx: EmitCtx, n: ParseTree): boolean {
+  const children = n.children ?? [];
+  const parts = markdownLinkParts(children);
+  if (!parts) return false;
+  // From the nodes, not the page text: the parser drops carriage returns,
+  // so on CRLF pages the node positions are not page text offsets
+  const textOf = (from: number, to: number) =>
+    childrenWithin(children, from, to).map(renderToText).join("");
+  const target = markdownLinkTarget(
+    ctx.pageMeta.name,
+    textOf(parts.destinationFrom, parts.destinationTo),
+  );
+  if (!target) return true;
+  emitTextualEdge(ctx, {
+    ...innermostContainer(n, ctx.pageMeta.name),
+    ...target,
+    kind: "mention",
+    range: [n.from!, n.to!],
+    alias: textOf(parts.textFrom, parts.textTo),
+  });
+  return true;
+}
+
+function markdownLinkTarget(
+  pageName: string,
+  url: string,
+): { to: string; toTag: string } | null {
+  if (!isLocalURL(url)) {
+    return { to: url, toTag: "url" };
+  }
+  const ref = parseToRef(resolveMarkdownLink(pageName, decodeURI(url)));
+  if (!ref) return null;
+  return isMarkdownPath(ref.path)
+    ? { to: getNameFromPath(ref.path), toTag: "page" }
+    : { to: ref.path, toTag: "document" };
+}
+
 export async function indexRelations(
   pageMeta: PageMeta,
   frontmatter: FrontMatter,
@@ -403,47 +445,13 @@ export async function indexRelations(
       }
 
       if (n.type === "Link" || n.type === "Image") {
-        mdLinkRegex.lastIndex = 0;
-        const match = mdLinkRegex.exec(renderToText(n));
-        if (!match) return false;
-        const { title: alias, url } = match.groups as {
-          url: string;
-          title: string;
-        };
-        const { from, fromTag } = innermostContainer(n, pageMeta.name);
-        const base = {
-          from,
-          fromTag,
-          range: [n.from!, n.to!] as [number, number],
-          alias,
-        };
-        if (!isLocalURL(url)) {
-          emitTextualEdge(ctx, {
-            ...base,
-            kind: "mention",
-            to: url,
-            toTag: "url",
-          });
-          return true;
-        }
-        const ref = parseToRef(
-          resolveMarkdownLink(pageMeta.name, decodeURI(url)),
-        );
-        if (!ref) return true;
-        if (isMarkdownPath(ref.path)) {
-          emitTextualEdge(ctx, {
-            ...base,
-            kind: "mention",
-            to: getNameFromPath(ref.path),
-            toTag: "page",
-          });
-        } else {
-          emitTextualEdge(ctx, {
-            ...base,
-            kind: "mention",
-            to: ref.path,
-            toTag: "document",
-          });
+        if (!emitMarkdownLink(ctx, n)) return false;
+        // Images in the link text (`[![alt](img.png)](doc.pdf)`) are links
+        // of their own
+        if (n.type === "Link") {
+          for (const image of collectNodesOfType(n, "Image")) {
+            emitMarkdownLink(ctx, image);
+          }
         }
         return true;
       }

@@ -4,6 +4,7 @@
 // dependency.
 
 import { describe, expect, test } from "vitest";
+import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { spliceReference } from "./refactor_splice.ts";
 
 function splice(
@@ -24,6 +25,7 @@ function splice(
     oldName,
     newName,
     pageToEdit,
+    tree: parseMarkdown(text),
   });
 }
 
@@ -163,6 +165,54 @@ describe("markdown images (markdown-link form with leading `!`)", () => {
   });
 });
 
+describe("markdown links around an image", () => {
+  test("rewrites the link target, not the image", () => {
+    expect(
+      splice(
+        "See [![alt|300](/preview.webp)](/Report.pdf).",
+        "[![alt|300](/preview.webp)](/Report.pdf)",
+        "Report.pdf",
+        "Docs/Report 2.pdf",
+      ),
+    ).toBe("See [![alt|300](/preview.webp)](</Docs/Report 2.pdf>).");
+  });
+
+  test("rewrites the image inside the link", () => {
+    expect(
+      splice(
+        "[![alt](preview.webp)](Report.pdf)",
+        "![alt](preview.webp)",
+        "preview.webp",
+        "small.webp",
+      ),
+    ).toBe("[![alt](small.webp)](Report.pdf)");
+  });
+});
+
+describe("markdown links with parentheses in the url", () => {
+  test("rewrites the whole url", () => {
+    expect(splice("[a](Old(1))", "[a](Old(1))", "Old(1)", "New")).toBe(
+      "[a](New)",
+    );
+  });
+});
+
+describe("markdown link the tree does not match", () => {
+  test("is left alone", () => {
+    const text = "See [a](Old) here";
+    expect(
+      spliceReference({
+        text,
+        range: [4, 12],
+        oldName: "Old",
+        newName: "New",
+        pageToEdit: "Editor",
+        tree: parseMarkdown("See [a](Olx) here"),
+      }),
+    ).toBe(text);
+  });
+});
+
 describe("non-link slice returns text unchanged", () => {
   test("empty range", () => {
     expect(
@@ -172,6 +222,7 @@ describe("non-link slice returns text unchanged", () => {
         oldName: "x",
         newName: "y",
         pageToEdit: "Editor",
+        tree: parseMarkdown("Some text"),
       }),
     ).toBe("Some text");
   });
@@ -188,6 +239,7 @@ describe("write format", () => {
         newName: "bla/Renamed",
         newWikiName: "Renamed",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[Renamed]] here");
   });
@@ -202,6 +254,7 @@ describe("write format", () => {
         newName: "bla/Renamed",
         newWikiName: "Renamed",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[Renamed]] here");
   });
@@ -216,6 +269,7 @@ describe("write format", () => {
         newName: "bla/Renamed",
         newWikiName: "bla/Renamed",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[bla/Renamed]] here");
   });
@@ -230,6 +284,7 @@ describe("write format", () => {
         newName: "bla/Renamed",
         newWikiName: "Renamed",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[Renamed#Setup|the notes]] here");
   });
@@ -244,6 +299,7 @@ describe("write format", () => {
         newName: "bla/Renamed",
         newWikiName: "Renamed",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [the notes](bla/Renamed) here");
   });
@@ -260,6 +316,7 @@ describe("caret (meta) links", () => {
         newName: "Library/Std/Settings",
         newWikiName: "Settings",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[^Library/Std/Settings]] here");
   });
@@ -275,6 +332,7 @@ describe("caret (meta) links", () => {
       newName: "Library/Std/APIs/Tag",
       newWikiName: "Tag",
       pageToEdit: "Editor",
+      tree: parseMarkdown(text),
     });
     expect(result).toBe("Ref [[^Library/Std/APIs/Tag]] here");
     expect(result).not.toContain("[[^Tag]]");
@@ -290,6 +348,7 @@ describe("caret (meta) links", () => {
         newName: "Library/Std/Settings",
         newWikiName: "Settings",
         pageToEdit: "Editor",
+        tree: parseMarkdown(text),
       }),
     ).toBe("See [[^Library/Std/Settings#Options|the options]] here");
   });
