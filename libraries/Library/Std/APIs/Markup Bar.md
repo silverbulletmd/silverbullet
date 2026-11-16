@@ -5,7 +5,7 @@ tags: meta/api
 
 Defines the buttons of the markup bar: the phone bar above the keyboard (`mobile`), the desktop bubble over selected text (`selection`) and the desktop ⋮ line menu (`line`), each with its own list in [[^Library/Std/Config]].
 
-See [[API/markupBar]] for the keys, contexts and examples.
+See [[Markup Bar]] for what it does and [[API/markupBar]] for the keys, contexts and examples.
 
 # Implementation
 ```space-lua

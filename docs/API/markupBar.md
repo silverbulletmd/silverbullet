@@ -7,7 +7,7 @@ references:
 - client/lib/markup_buttons.ts
 - client/lib/node_contexts.ts
 ---
-The markup bar puts editing buttons in three places, each with its own list in [[^Library/Std/Config]], shown in list order:
+The [[Markup Bar|markup bar]] puts editing buttons in three places, each with its own list in [[^Library/Std/Config]], shown in list order:
 
 * `markupBar.mobile`: on phones and tablets, the bar above the on-screen keyboard (or along the bottom of the screen with a hardware keyboard).
 * `markupBar.selection`: on desktop, the formatting bubble over selected text.

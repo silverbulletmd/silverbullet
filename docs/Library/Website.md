@@ -131,6 +131,7 @@ docsNav.sections = {
         { ref = "Outlines" },
         { ref = "Completion" },
         { ref = "Slash Command" },
+        { ref = "Markup Bar" },
         { ref = "Linked Mention" },
         { ref = "Linked Tasks" },
         { ref = "Page Picker" },

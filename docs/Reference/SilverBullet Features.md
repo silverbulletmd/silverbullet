@@ -10,6 +10,7 @@ Look up the editing interface, visual tools and feature behavior.
 * [[Search]], [[Graph View]] and [[X-Ray]] — searching and exploring connections.
 * [[Linked Mention]] and [[Linked Tasks]] — incoming references and tasks linked to a page.
 * [[Slash Command]] — inserting content through slash commands.
+* [[Markup Bar]] — editing buttons above the keyboard, over selected text and in the ⋮ line menu.
 * [[Outlines]], [[Completion]], [[Vim]] and [[Keyboard Shortcuts]] — editing and keyboard behavior.
 
 # Data and queries

@@ -8,7 +8,7 @@ references:
 Slash commands are quick ways to perform repetitive tasks. You trigger them by typing `/` in your text (after whitespace) followed by the command name — autocompletion will help you find the right one.
 
 # The slash menu
-Type `/` on an empty line to see what you can add, grouped under headers: **Basic blocks**, **Lists**, **Callouts**, **Media**, **Insert**, **Dates** and **Advanced**. Keep typing to filter: a command is found by its name (`/h1`), the label the menu shows (`/heading`) and its aliases (`/divider`). The ⋮ handle’s menu on an empty line lists the same blocks, one submenu per group.
+Type `/` on an empty line to see what you can add, grouped under headers: **Basic blocks**, **Lists**, **Callouts**, **Media**, **Insert**, **Dates** and **Advanced**. Keep typing to filter: a command is found by its name (`/h1`), the label the menu shows (`/heading`) and its aliases (`/divider`). The [[Markup Bar|⋮ handle’s menu]] on an empty line lists the same blocks, one submenu per group.
 
 On a line that already has text, a block converts that line (like the ⋮ menu’s “Turn into”): `/h2` makes it a heading, `/bullet` a list item, a callout puts the text in the callout. Blocks that can’t hold the line’s text, such as a code block, table or divider, go on their own line below it. The menu leaves out what doesn’t fit where you are: no headings or lists inside code or frontmatter, no headings or lists on a list item, and no **Page properties** on a page that has frontmatter already.
 
