@@ -658,6 +658,19 @@ Shows a checklist, every item unchecked, and lets the user tick any number of th
 
 - `string[] | undefined` — The ids of the ticked items (possibly none), or undefined if dismissed.
 
+## editor.posAtDOM
+`editor.posAtDOM(node)`
+
+Returns the document position of a DOM node in the editor, e.g. a widget’s element. Nodes inside a widget return the widget’s position.
+
+**Parameters:**
+
+- `node` (`Node`) — A DOM node inside the editor.
+
+**Returns:**
+
+- `number | undefined` — The offset, or undefined if the node isn’t in the editor.
+
 ## editor.prompt
 `editor.prompt(message, defaultValue?, options?)`
 
