@@ -270,18 +270,6 @@ export const readOnlyCursorActive = StateField.define<boolean>({
   },
 });
 
-/**
- * A read-only editor never gets DOM focus, so CodeMirror's theme hides its
- * cursor. Flag the editor once the user has moved the cursor so the stylesheet
- * can show it anyway.
- */
-export const readOnlyCursorVisible = EditorView.editorAttributes.compute(
-  [readOnlyCursorActive],
-  (state) => ({
-    class: state.field(readOnlyCursorActive) ? "sb-readonly-cursor" : "",
-  }),
-);
-
 type SourceRange = { from: number; to: number };
 
 /** Marks a selection change as an explicit request to show the source (Alt-click) */
@@ -411,61 +399,6 @@ export function hideBlockSource(
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   }
-}
-
-/**
- * Read-only mode never reveals source, so the cursor would otherwise walk
- * through characters hidden behind replaced ranges (link targets, markup,
- * widgets) and lines hidden by hideBlockSource, without visibly moving.
- * Make those ranges atomic so each takes a single cursor step.
- */
-export const readOnlyAtomicRanges = EditorView.atomicRanges.of((view) => {
-  // Revealed source is walked character by character
-  if (sourceRevealed(view.state)) return Decoration.none;
-  const { doc } = view.state;
-  const { from, to } = view.viewport;
-  const ranges: Range<Decoration>[] = [];
-  for (const source of view.state.facet(EditorView.decorations)) {
-    const set = typeof source === "function" ? source(view) : source;
-    set.between(from, to, (rangeFrom, rangeTo, value) => {
-      if (value === hiddenLineDecoration) {
-        // Include both surrounding line breaks so the cursor can only stop
-        // on the neighboring (visible) lines, never inside the hidden one.
-        const line = doc.lineAt(rangeFrom);
-        ranges.push(
-          invisibleDecoration.range(
-            Math.max(line.from - 1, 0),
-            Math.min(line.to + 1, doc.length),
-          ),
-        );
-      } else if (value.point && rangeTo > rangeFrom) {
-        ranges.push(invisibleDecoration.range(rangeFrom, rangeTo));
-      }
-    });
-  }
-  return Decoration.set(ranges, true);
-});
-
-/**
- * Whether the read-only cursor sits on the rendered element starting at
- * `from`, i.e. the one "Navigate: To This Page" would follow.
- */
-export function isReadOnlyCursorAt(
-  state: EditorState,
-  from: number,
-  to: number,
-) {
-  if (
-    !state.readOnly ||
-    !state.field(readOnlyCursorActive, false) ||
-    sourceRevealed(state)
-  ) {
-    return false;
-  }
-  return state.selection.ranges.some(
-    (selection) =>
-      selection.empty && selection.head >= from && selection.head < to,
-  );
 }
 
 export type WidgetRenderMode = "ready" | "loading" | "disabled";

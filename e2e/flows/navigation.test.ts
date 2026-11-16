@@ -312,7 +312,7 @@ test.describe("browser history", () => {
   });
 });
 
-test.describe("read-only keyboard navigation", () => {
+test.describe("read-only navigation", () => {
   test.use({
     serverEnv: { SB_READ_ONLY: "1" },
     spaceFiles: {
@@ -321,25 +321,14 @@ test.describe("read-only keyboard navigation", () => {
     },
   });
 
-  const placeCursor = (page: Page, needle: string, offset = 0) =>
-    page.evaluate(
-      ([needle, offset]) => {
-        const view = (globalThis as any).client.editorView;
-        view.dispatch({
-          selection: {
-            anchor: view.state.doc.toString().indexOf(needle) + offset,
-          },
-        });
-      },
-      [needle, offset] as const,
-    );
-
-  test("plain Enter on a wiki link opens the page", async ({
+  test("following a link after a click opens the page at the top", async ({
     sbPage: page,
   }) => {
-    await placeCursor(page, "[[");
-    await expect(page.locator(".sb-link-cursor")).toHaveText("Destination");
-    await page.keyboard.press("Enter");
+    // A click leaves a native selection in the read-only editor, which must
+    // not be read back into the next page as a cursor at its end.
+    await page.getByText("Intro text.").click();
+    await page.locator(".sb-wiki-link", { hasText: "Destination" }).click();
     await expect(currentPage(page)).toHaveValue("Destination");
+    await expect.poll(() => selectionLine(page)).toBe(1);
   });
 });

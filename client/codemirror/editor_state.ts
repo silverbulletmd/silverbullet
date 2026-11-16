@@ -75,20 +75,12 @@ import { createSmartQuoteKeyBindings } from "./editing/smart_quotes.ts";
 import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
 import { parseAhead } from "./parse_ahead.ts";
-import {
-  readOnlyFollowCursor,
-  readOnlyWidgetLinks,
-} from "./readonly_widget_links.ts";
 import { selectedWidgets } from "./selected_widgets.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
-import {
-  readOnlyCursorActive,
-  readOnlyCursorVisible,
-  readOnlyReveal,
-} from "./util.ts";
+import { readOnlyCursorActive, readOnlyReveal } from "./util.ts";
 import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
 export type EditorMode =
@@ -217,10 +209,7 @@ export function buildSharedEditorExtensions(
           EditorState.readOnly.of(true),
           readOnlyChangeFilter,
           readOnlyCursorActive,
-          readOnlyCursorVisible,
           readOnlyReveal,
-          readOnlyWidgetLinks,
-          readOnlyFollowCursor(client),
         ]
       : [];
 

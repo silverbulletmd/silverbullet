@@ -8,11 +8,7 @@ import type { EditorState } from "@codemirror/state";
 import { Decoration, type EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import { caretElement } from "../../../plug-api/ui/caret.tsx";
-import {
-  decoratorStateField,
-  isCursorInRange,
-  isReadOnlyCursorAt,
-} from "../util.ts";
+import { decoratorStateField, isCursorInRange } from "../util.ts";
 
 /**
  * Widget to render checkbox for a task list item.
@@ -22,8 +18,6 @@ class CheckboxWidget extends WidgetType {
 
   constructor(
     public checked: boolean,
-    // The read-only keyboard cursor sits on the checkbox
-    readonly cursor: boolean,
     readonly fallbackPos: number,
     readonly clickCallback: (pos: number) => void,
     readonly getView: () => EditorView | null,
@@ -34,7 +28,6 @@ class CheckboxWidget extends WidgetType {
   toDOM(): HTMLElement {
     const wrap = document.createElement("span");
     wrap.classList.add("sb-checkbox");
-    if (this.cursor) wrap.classList.add("sb-checkbox-cursor");
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = this.checked;
@@ -216,7 +209,6 @@ export function taskListPlugin({
           const dec = Decoration.replace({
             widget: new CheckboxWidget(
               checkboxStatus,
-              isReadOnlyCursorAt(state, from + nfrom, from + nto),
               from + nfrom + 1,
               onCheckboxClick,
               getView,

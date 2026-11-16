@@ -801,7 +801,6 @@ config.set("markupBar.mobile", {
 config.set("markupBar.selection", {
   { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-format-strikethrough", description = "Strikethrough", command = "Text: Strikethrough", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-code", description = "Code", command = "Text: Code", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "edit-3", description = "Highlight", command = "Text: Marker", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "md-link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
@@ -825,8 +824,6 @@ config.set("markupBar.line", {
   { icon = "type", description = "Normal text", group = "Heading", command = "Text: Normal Text", onlyContexts = {"ATXHeading"} },
   { icon = "arrow-up", description = "Move section up", command = "Outline: Move Up", onlyContexts = {"ATXHeading"} },
   { icon = "arrow-down", description = "Move section down", command = "Outline: Move Down", onlyContexts = {"ATXHeading"} },
-  { icon = "md-format-indent-increase", description = "Demote section", command = "Outline: Move Right", onlyContexts = {"ATXHeading"} },
-  { icon = "md-format-indent-decrease", description = "Promote section", command = "Outline: Move Left", onlyContexts = {"ATXHeading"} },
   -- A table row
   { icon = "arrow-up", description = "Move row up", command = "Outline: Move Up", onlyContexts = {"TableRow"} },
   { icon = "arrow-down", description = "Move row down", command = "Outline: Move Down", onlyContexts = {"TableRow"} },
@@ -838,14 +835,11 @@ config.set("markupBar.line", {
   { icon = "md-format-list-bulleted", description = "Turn into bullet item", command = "Text: Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
   { icon = "md-format-list-numbered", description = "Turn into numbered item", command = "Text: Number Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
   { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
-  { icon = "md-format-quote", description = "Turn into quote", command = "Text: Quote Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
-  { icon = "paperclip", description = "Upload file", command = "File: Upload", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "paperclip", description = "Upload file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
   -- A list item that is no task yet
   { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
   -- A heading or a list item with nested items: Collapse when open, Expand when folded
   { icon = "md-unfold-less", description = "Collapse", command = "Outline: Toggle Fold", onlyContexts = {"ATXHeading", "@hasChildren"}, exceptContexts = {"@folded"} },
   { icon = "md-unfold-more", description = "Expand", command = "Outline: Toggle Fold", onlyContexts = {"@folded"} },
-  -- A table, with its source showing
-  { icon = "grid", description = "Format table", command = "Table: Format", onlyContexts = {"Table"} },
 })
 ```

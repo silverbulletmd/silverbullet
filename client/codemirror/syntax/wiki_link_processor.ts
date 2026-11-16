@@ -18,7 +18,7 @@ import type { Client } from "../../client.ts";
 import { pageByPath } from "../../lib/page_meta.ts";
 import { liveContextForClient } from "../../markdown_renderer/compose_client.ts";
 import { renderMarkdownInto } from "../../markdown_renderer/render_into.ts";
-import { isCursorInRange, isReadOnlyCursorAt, LinkWidget } from "../util.ts";
+import { isCursorInRange, LinkWidget } from "../util.ts";
 
 export type WikiLinkMatch = {
   leadingTrivia: string;
@@ -159,9 +159,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
         icon,
         title: helpText,
         href: ref ? encodePageURI(encodeRef(ref)) : undefined,
-        cssClass: `sb-wiki-link ${css}${
-          isReadOnlyCursorAt(state, matchFrom, matchTo) ? " sb-link-cursor" : ""
-        }`,
+        cssClass: `sb-wiki-link ${css}`,
         from: matchFrom,
         callback: (e, at) => callback(e, ref, at - matchFrom),
         content: alias?.includes("${")
