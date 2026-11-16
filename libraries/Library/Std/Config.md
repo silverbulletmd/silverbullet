@@ -838,6 +838,8 @@ config.set("markupBar.line", {
   { icon = "paperclip", description = "Upload file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
   -- A list item that is no task yet
   { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  -- A task, done or not
+  { icon = "trash-2", description = "Remove all completed tasks", command = "Task: Remove Completed", onlyContexts = {"Task"} },
   -- A heading or a list item with nested items: Collapse when open, Expand when folded
   { icon = "md-unfold-less", description = "Collapse", command = "Outline: Toggle Fold", onlyContexts = {"ATXHeading", "@hasChildren"}, exceptContexts = {"@folded"} },
   { icon = "md-unfold-more", description = "Expand", command = "Outline: Toggle Fold", onlyContexts = {"@folded"} },
