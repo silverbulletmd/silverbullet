@@ -275,13 +275,13 @@ $comment-border: 1px;
     box-shadow: var(--ui-shadow-popover);
     overflow: hidden;
 
-    > ul {
+    >ul {
       font-family: var(--ui-font);
       font-size: 0.85em;
       // CodeMirror's 10em shows barely three two-line slash rows
       max-height: min(24em, 50vh);
 
-      > li {
+      >li {
         border-radius: var(--ui-radius-sm);
         padding: 4px 8px 4px 4px;
       }
@@ -300,7 +300,7 @@ $comment-border: 1px;
     }
 
     // The slash menu's group headers ("Basic blocks", "Lists", …)
-    > ul > completion-section {
+    >ul>completion-section {
       border-bottom: none;
       padding: 8px 8px 2px;
       font-family: var(--ui-font);
@@ -375,8 +375,10 @@ $comment-border: 1px;
   }
 
   .sb-header-mark-slot {
-    display: inline-block;
-    min-width: var(--sb-header-hang);
+    display: inline-flex;
+    justify-content: flex-end;
+    width: var(--sb-header-hang);
+    white-space: pre;
     text-indent: 0;
   }
 
@@ -392,6 +394,10 @@ $comment-border: 1px;
     .sb-header-inside.sb-line-h5,
     .sb-header-inside.sb-line-h6 {
       --sb-header-hang: 0px;
+    }
+
+    .sb-header-mark-slot {
+      width: auto;
     }
   }
 
@@ -616,12 +622,12 @@ $comment-border: 1px;
   // Custom task states, in the editor and in rendered widgets: a quiet label
   // in the interface font, the brackets faint
   .sb-task-slot .sb-atom,
-  .sb-task > .sb-task-mark {
+  .sb-task>.sb-task-mark {
     color: var(--meta-subtle-color);
   }
 
   .sb-task-slot [data-task-state] .sb-task-state,
-  .sb-task > .sb-task-state {
+  .sb-task>.sb-task-state {
     font-family: var(--ui-font);
     font-size: 0.72em;
     font-weight: 600;
@@ -735,7 +741,7 @@ $comment-border: 1px;
     margin: 0 2px;
     white-space: nowrap;
 
-    > * {
+    >* {
       font-family: var(--editor-font);
       color: inherit;
     }
@@ -768,7 +774,7 @@ $comment-border: 1px;
     padding: 0 2px;
   }
 
-  .cm-line:not(.sb-line-fenced-code) + .sb-line-fenced-code {
+  .cm-line:not(.sb-line-fenced-code)+.sb-line-fenced-code {
     border-top-left-radius: var(--ui-radius-lg);
     border-top-right-radius: var(--ui-radius-lg);
   }
@@ -863,7 +869,7 @@ $comment-border: 1px;
     padding-bottom: 10px;
     white-space: normal;
 
-    .sb-object-preview-item + .sb-object-preview-item {
+    .sb-object-preview-item+.sb-object-preview-item {
       margin-top: 6px;
     }
 
@@ -883,7 +889,7 @@ $comment-border: 1px;
       min-height: 0;
       background: none;
 
-      > div > .content {
+      >div>.content {
         overflow: visible;
       }
     }
@@ -904,7 +910,7 @@ $comment-border: 1px;
   .sb-frontmatter-preview {
     position: relative;
 
-    > .sb-object-preview-label {
+    >.sb-object-preview-label {
       position: absolute;
       top: 4px;
       right: 4px;
@@ -920,19 +926,17 @@ $comment-border: 1px;
       transition: opacity 0.12s;
     }
 
-    &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within)
-      .sb-widget-menu-bar {
+    &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within) .sb-widget-menu-bar {
       visibility: hidden;
     }
 
-    &:is(:has(.sb-hover-revealed, [aria-expanded="true"]), :focus-within)
-      > .sb-object-preview-label {
+    &:is(:has(.sb-hover-revealed, [aria-expanded="true"]), :focus-within)>.sb-object-preview-label {
       opacity: 0;
     }
 
     // The label is wider than the ⋯ the rows' asides leave room for; the
     // first row's value stops short of it
-    .sb-fm-form > .sb-fm-row:first-child > .sb-fm-value {
+    .sb-fm-form>.sb-fm-row:first-child>.sb-fm-value {
       margin-right: 2em;
     }
   }
@@ -940,16 +944,15 @@ $comment-border: 1px;
   // Touch screens always show the ⋯ menus, so the label would cover them
   @media (hover: none) {
     .sb-frontmatter-preview {
-      > .sb-object-preview-label {
+      >.sb-object-preview-label {
         display: none;
       }
 
-      .sb-fm-form > .sb-fm-row:first-child > .sb-fm-value {
+      .sb-fm-form>.sb-fm-row:first-child>.sb-fm-value {
         margin-right: 0;
       }
 
-      &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within)
-        .sb-widget-menu-bar {
+      &:not(:has(.sb-hover-revealed, [aria-expanded="true"])):not(:focus-within) .sb-widget-menu-bar {
         visibility: visible;
       }
     }
@@ -967,7 +970,7 @@ $comment-border: 1px;
   // The line handle: an overlay in the left padding, level with the first row
   // of the hovered line and as tall as it: a bare, subtle icon button. It
   // reserves no space; the plugin places and shows it.
-  .cm-scroller > .sb-line-handle {
+  .cm-scroller>.sb-line-handle {
     position: absolute;
     z-index: 2;
     display: flex;
@@ -1004,7 +1007,7 @@ $comment-border: 1px;
 
   // Touch screens have no hover to reveal it
   @media (hover: none) {
-    .cm-scroller > .sb-line-handle {
+    .cm-scroller>.sb-line-handle {
       display: none;
     }
   }
@@ -1109,7 +1112,7 @@ $comment-border: 1px;
 
     // A child as wide as the line (a marquee, a full-width inline-block)
     // plus this padding would wrap the closing padding onto a line of its own
-    > * {
+    >* {
       max-width: calc(100% - 4px);
     }
 
@@ -1123,6 +1126,7 @@ $comment-border: 1px;
   // Inline widget tables look like plain Markdown tables. Header and even-row
   // colors already come from the thead/tbody rules in colors.scss.
   .sb-table-scroll .sb-view-table {
+
     th,
     td {
       padding: 8px;
@@ -1157,8 +1161,7 @@ $comment-border: 1px;
 
   // Shown once the mouse rests on its own widget (`installHoverReveal`), not
   // on any hover: a nested widget's ⋯ shows apart from its parent's
-  :is(.sb-lua-directive-block, .sb-lua-directive-inline):is(.sb-hover-revealed, :focus-within)
-    > div > .sb-widget-menu-bar,
+  :is(.sb-lua-directive-block, .sb-lua-directive-inline):is(.sb-hover-revealed, :focus-within)>div>.sb-widget-menu-bar,
   .sb-widget-menu-bar:has([aria-expanded="true"]) {
     opacity: 1;
     pointer-events: auto;
@@ -1246,7 +1249,7 @@ $comment-border: 1px;
   .sb-lua-directive-inline:has(:is(input, select, textarea, [contenteditable="true"])) {
     padding: 0;
 
-    > * {
+    >* {
       max-width: 100%;
     }
   }
@@ -1275,7 +1278,7 @@ $comment-border: 1px;
       max-width: 100%;
     }
 
-    > div > .content > :is(img, video) {
+    >div>.content> :is(img, video) {
       border-radius: var(--ui-radius-lg);
       outline: 1px solid var(--ui-surface-border-color);
       outline-offset: -1px;
@@ -1522,7 +1525,7 @@ div:not(.cm-focused).cm-fat-cursor {
   max-width: 100%;
   vertical-align: 0.12em;
 
-  > .sb-page-var-tag {
+  >.sb-page-var-tag {
     vertical-align: baseline;
   }
 }
@@ -1540,8 +1543,8 @@ div:not(.cm-focused).cm-fat-cursor {
 }
 
 // Block values (tables, lists) get the tag as a caption above them
-.sb-page-var-block > .sb-page-var-tag,
-.sb-page-var:has(> * table, > * .sb-lua-directive-block) > .sb-page-var-tag {
+.sb-page-var-block>.sb-page-var-tag,
+.sb-page-var:has(> * table, > * .sb-lua-directive-block)>.sb-page-var-tag {
   display: table;
   margin: 0 0 0.3em;
 }
