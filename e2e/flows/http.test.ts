@@ -93,6 +93,8 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
   const offlineRoute = (route: Route) =>
     route.fulfill({ status: 503, body: "Temporary server failure" });
   await page.route("**/*", offlineRoute);
+  // Exercise the background listing even if boot finished before the outage.
+  await page.evaluate(() => (globalThis as any).client.updatePageListCache());
   await page.evaluate(() =>
     (globalThis as any).client.navigate({ path: "HTTP Offline Target.md" }),
   );

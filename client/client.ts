@@ -576,7 +576,9 @@ export class Client {
         return;
       }
       this.lastFileListPoll = now;
-      void this.eventedSpacePrimitives.fetchFileList();
+      void this.eventedSpacePrimitives.fetchFileList().catch((error) => {
+        this.reportError(error, "polling the file list");
+      });
     }, fetchFileListInterval + jitter());
 
     this.eventHook.addLocalListener(
@@ -1009,7 +1011,9 @@ export class Client {
     });
     this.refreshDecorations();
 
-    void this.space.spacePrimitives.fetchFileList();
+    void this.space.spacePrimitives.fetchFileList().catch((error) => {
+      this.reportError(error, "refreshing the file list");
+    });
   }
 
   /**

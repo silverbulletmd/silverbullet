@@ -68,7 +68,7 @@ function coldClient(index: { available: boolean }) {
     objectIndex: { isIndexAvailable: async () => index.available },
     space: {
       fetchPageList: async () => [{ name: "index" }],
-      spacePrimitives: { fetchFileList: vi.fn() },
+      spacePrimitives: { fetchFileList: vi.fn().mockResolvedValue([]) },
     },
     pageMetaAugmenter: { augmentObjectArray: async () => {} },
     queryLuaObjects,
