@@ -139,6 +139,20 @@ export function extractItemFromNode(
   // child sublist anchors don't bleed into the parent item's ref.
   const anchor = nameNode ? collectAnchor(nameNode) : null;
 
+  // An item can consist of just a heading (`* # Title`). Its anchor is left
+  // out above: the heading is also indexed as a header, which owns it.
+  if (!nameNode) {
+    const headingNode = itemNode.children!.find((n) =>
+      /^(ATX|Setext)Heading/.test(n.type ?? ""),
+    );
+    if (headingNode) {
+      nameNode = {
+        type: "Paragraph",
+        children: headingNode.children!.filter((n) => n.type !== "HeaderMark"),
+      };
+    }
+  }
+
   const tags = collectTags(itemNode);
   const attributes = collectAttributes(itemNode);
   const links = collectPageLinks(itemNode);

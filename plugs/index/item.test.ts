@@ -167,3 +167,23 @@ test("user `range` attribute cannot overwrite an item's source offsets", async (
   expect(md.slice(item.range[0], item.range[1])).toContain("An item");
   expect(typeof item.pos).toBe("number");
 });
+
+// Regression test for https://github.com/silverbulletmd/silverbullet/issues/2199
+test("list item whose content is a heading gets its name and text", async () => {
+  const items = await indexItemsForTest(
+    "* item-normal\n* # item-header #tag [prio: 1]\n* Setext item\n  ===\n",
+  );
+  expect(items.map((i) => [i.name, i.text])).toEqual([
+    ["item-normal", "item-normal"],
+    ["item-header", "item-header #tag [prio: 1]"],
+    ["Setext item", "Setext item"],
+  ]);
+  expect(items[1].tags).toEqual(["tag"]);
+  expect(items[1].prio).toEqual(1);
+});
+
+test("an anchor in a list item's heading stays with the header", async () => {
+  const items = await indexItemsForTest("* # Heading item $hdr\n", "MyPage");
+  expect(items[0].name).toBe("Heading item");
+  expect(items[0].ref).toMatch(/^MyPage@\d+$/);
+});
