@@ -276,12 +276,6 @@ describe("lintLua", () => {
     });
   }
 
-  test("reports a parse error in a page-lua block", async () => {
-    const diagnostics = await lintLuaFor("```page-lua\nfunction (\n```\n");
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0].severity).toBe("error");
-  });
-
   test("ignores a parse error in space-lua on a regular page", async () => {
     const diagnostics = await lintLuaFor(
       "```space-lua\nfunction (\n```\n",
@@ -296,14 +290,7 @@ describe("lintLua", () => {
       "Library/A",
     );
     expect(diagnostics).toHaveLength(1);
-  });
-
-  test("still checks page-lua on any page", async () => {
-    const diagnostics = await lintLuaFor(
-      "```page-lua\nfunction (\n```\n",
-      "Notes",
-    );
-    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe("error");
   });
 });
 

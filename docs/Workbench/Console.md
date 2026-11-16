@@ -23,7 +23,7 @@ Type Lua at the bottom prompt and press Enter to run it. For a first experiment,
 
 The REPL can operate in two “contexts”:
 * **Space context:** access to space-wide [[Space Lua]] variables and functions.
-* **Page context:** also includes the current page’s variables and functions declared in [[Space Lua/Page Lua|page-lua blocks]].
+* **Page context:** also includes the current page’s [[Space Lua#Page variables|page variables]].
 
 What you can enter in the REPL:
 * **Expressions** show their value: `1 + 2` shows `3`, and `"a", "b"` shows both values. A statement, like an assignment or a loop, shows nothing unless it ends with `return`.

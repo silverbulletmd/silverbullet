@@ -20,7 +20,7 @@ const LINK_NODES = new Set([
   "FootnoteRef",
 ]);
 
-const LUA_FENCES = ["FencedCode:space-lua", "FencedCode:page-lua"];
+const LUA_FENCES = ["FencedCode:space-lua"];
 
 function luaFencePrefix(parent: string): string | undefined {
   return LUA_FENCES.find((prefix) => parent.startsWith(prefix));
@@ -40,12 +40,10 @@ function luaCodeFromParents(parentNodes?: string[]): string | null {
   return null;
 }
 
-// `${…}` and page-lua run in their page's scope; space-lua in the global one
+// `${…}` runs in its page's scope; space-lua in the global one
 function inPageScope(parentNodes?: string[]): boolean {
-  return (parentNodes ?? []).some(
-    (parent) =>
-      parent.startsWith("LuaDirective") ||
-      parent.startsWith("FencedCode:page-lua"),
+  return (parentNodes ?? []).some((parent) =>
+    parent.startsWith("LuaDirective"),
   );
 }
 

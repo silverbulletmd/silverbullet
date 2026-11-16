@@ -60,9 +60,9 @@ function stateFor(doc: string) {
   return EditorState.create({ doc, extensions: [extendedMarkdownLanguage] });
 }
 
-test("pages with a page-lua block or an assignment have definitions", () => {
-  expect(hasPageDefinitions(stateFor("```page-lua\nx = 1\n```\n"))).toBe(true);
+test("pages with an assignment have definitions", () => {
   expect(hasPageDefinitions(stateFor("Budget ${salary = 500}"))).toBe(true);
+  expect(hasPageDefinitions(stateFor("${local rate = 0.1}"))).toBe(true);
   expect(hasPageDefinitions(stateFor("${1 + 1} and ${a == b}"))).toBe(false);
   expect(hasPageDefinitions(stateFor("```lua\nx = 1\n```\n"))).toBe(false);
 });

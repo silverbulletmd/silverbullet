@@ -126,7 +126,7 @@ export function pageVarsSyscalls(
         return variables.get(name) ?? null;
       },
       description:
-        "Returns one variable a page defines with a `page-lua` block or a `${name = expr}` assignment. Errors when the page doesn't define it.",
+        "Returns one variable a page defines with a `${name = expr}` assignment. Errors when the page doesn't define it.",
       signatures: ["pageVars.get(name, page?)"],
       parameters: [
         { name: "name", description: "Variable name." },
@@ -143,7 +143,7 @@ export function pageVarsSyscalls(
         return pageVarsTable(resolved.scope, resolved.page);
       },
       description:
-        "Returns a read-only table of all variables a page defines with `page-lua` blocks and `${name = expr}` assignments.",
+        "Returns a read-only table of all variables a page defines with `${name = expr}` assignments.",
       signatures: ["pageVars.all(page?)"],
       parameters: [pageParameter],
       examples: [

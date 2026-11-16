@@ -543,11 +543,6 @@ $comment-border: 1px;
     display: block;
   }
 
-  .sb-page-lua-error {
-    font-size: 0.9em;
-    padding: 0.2em 0;
-  }
-
   .sb-loading-widget {
     display: inline-flex;
     align-items: center;
@@ -1515,6 +1510,33 @@ div:not(.cm-focused).cm-fat-cursor {
   // Centers the tag in the inline value's outline (equal gap above and below)
   vertical-align: 0.15em;
   white-space: nowrap;
+}
+
+// A `${local …}` shows its formula instead of its value: quieter, and cut
+// short (the full formula is the title). A flex row centers the two, since
+// the clipped formula's baseline is its bottom edge; the lift centers the row
+// in the directive's outline
+.sb-page-var-hidden {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  vertical-align: 0.12em;
+
+  > .sb-page-var-tag {
+    vertical-align: baseline;
+  }
+}
+
+.sb-page-var-formula {
+  min-width: 0;
+  max-width: 32em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--editor-monospace-font, monospace);
+  font-size: 0.85em;
+  color: var(--ui-label-color);
+  opacity: 0.8;
 }
 
 // Block values (tables, lists) get the tag as a caption above them

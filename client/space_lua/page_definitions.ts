@@ -7,9 +7,8 @@ import {
 import { parse } from "../markdown_parser/parse_tree.ts";
 import { extendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 
-export type Definition =
-  | { kind: "block"; index: number; source: string }
-  | { kind: "assign"; name: string; exprSource: string };
+/** A `${name = expr}` cell. */
+export type Definition = { name: string; exprSource: string };
 
 /** Where a `${name = expr}` cell's expression sits in the page text. */
 export type AssignmentCell = {
@@ -56,7 +55,6 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
   const duplicateNames = new Set<string>();
   let frontmatter: Record<string, unknown> = {};
   let isTemplate = false;
-  let blockIndex = 0;
 
   traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode" || node.type === "Hashtag") {
@@ -66,19 +64,8 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
         frontmatter = parseFrontmatter(nodeText);
       return true;
     }
-    if (node.type === "FencedCode") {
-      const info = findNodeOfType(node, "CodeInfo");
-      if (info && renderToText(info).trim() === "page-lua") {
-        const code = findNodeOfType(node, "CodeText");
-        definitions.push({
-          kind: "block",
-          index: blockIndex++,
-          source: code ? renderToText(code) : "",
-        });
-      }
-      // Never look for directives inside code
-      return true;
-    }
+    // Never look for directives inside code
+    if (node.type === "FencedCode") return true;
     if (node.type === "LuaDirective") {
       const body = findNodeOfType(node, "LuaExpressionDirective");
       const nameNode = body && findNodeOfType(body, "LuaAssignmentName");
@@ -89,7 +76,7 @@ export function extractDefinitions(text: string): ExtractedDefinitions {
         seen.add(name);
         const exprStart = bodyText.indexOf("=") + 1;
         const exprSource = bodyText.slice(exprStart);
-        definitions.push({ kind: "assign", name, exprSource });
+        definitions.push({ name, exprSource });
         cells.push({
           name,
           exprSource,

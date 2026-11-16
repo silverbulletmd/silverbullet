@@ -13,7 +13,6 @@ const eagerLanguages: Record<string, Language> = {
   data: yamlStreamLanguage,
   toc: yamlStreamLanguage,
   "space-lua": luaLanguage,
-  "page-lua": luaLanguage,
   lua: luaLanguage,
 };
 

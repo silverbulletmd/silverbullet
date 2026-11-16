@@ -18,6 +18,13 @@ export function assignmentNameOf(
   return name ? state.sliceDoc(name.from, name.to) : undefined;
 }
 
+/** Whether a directive node is a `${local name = expr}`, whose value is hidden. */
+export function isLocalAssignment(directive: SyntaxNode): boolean {
+  return !!directive
+    .getChild("LuaExpressionDirective")
+    ?.getChild("LuaAssignmentLocal");
+}
+
 /** A `${…}` in the page */
 export type DirectiveTarget = {
   from: number;

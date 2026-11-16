@@ -1,7 +1,7 @@
 Language syntax, extension mechanisms and callable APIs.
 
 # Space Lua
-* [[Space Lua]] and [[Space Lua/Page Lua]] — the language and page-local definitions.
+* [[Space Lua]] — the language, including [[Space Lua#Page variables|page variables]].
 * [[Space Lua/Standard Library]], [[Space Lua/Conventions]] and [[Space Lua/Quirks]] — built-in behavior and language conventions.
 * [[Space Lua/Thread Locals]], [[Space Lua/JavaScript Interop]] and [[Space Lua/DOM]] — execution context and browser integration.
 

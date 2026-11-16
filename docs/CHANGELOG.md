@@ -3,12 +3,12 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge (3.0 edition)
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* [[Space Lua/Page Lua]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` or with `page-lua` code blocks, use them in any `${...}` on the page.
+* [[Space Lua#Page variables|Page variables]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` (or hide them with `${local name = expression}`), use them in any `${...}` on the page, and read or set them from other pages with [[API/pageVars]].
 * [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
   * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
   * [[Workbench/Configuration]]: the [[Configuration Manager]] moved into the Workbench.
   * [[Workbench/Data]]: for each tag, **Objects** builds queries visually (exportable as [[Space Lua/Integrated Query]] to paste in your page) and **Schema** shows and edits its attributes, saved to [[^Library/Config]].
-  * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with Page Lua variables and functions. Also logs a lot of useful stuff.
+  * [[Workbench/Console]]: Lua console to evaluate expressions, test things out, debug. Switch between space and page context to work with page variables. Also logs a lot of useful stuff.
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.

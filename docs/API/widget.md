@@ -132,7 +132,7 @@ After installing the definition, this shows a clock updated every second inside 
 # When expressions update
 An expression re-runs when something it read changes, and only then. SilverBullet records what each evaluation reads.
 
-`${1 + 1}` and other expressions that read nothing changeable run once. When a re-run produces the same output, the widget is left as it was. This applies to `${...}` expressions, Lua code fences, custom syntax, frontmatter previews, views and [[Space Lua/Page Lua|page variables]].
+`${1 + 1}` and other expressions that read nothing changeable run once. When a re-run produces the same output, the widget is left as it was. This applies to `${...}` expressions, Lua code fences, custom syntax, frontmatter previews, views and [[Space Lua#Page variables|page variables]].
 
 Not tracked: `datastore`, `config`, network calls, plug functions (`system.invokeFunction`), time and randomness, Lua globals and JavaScript APIs. To re-run on those, render through a content function with an explicit `refreshOn`:
 

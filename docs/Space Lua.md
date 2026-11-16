@@ -10,8 +10,7 @@ Space Lua is a custom dialect and implementation of the [Lua programming languag
 In essence, Space Lua adds a few features to SilverBullet’s [[Markdown]] language:
 
 * [[#Definitions]]: Code written in `space-lua` code blocks on [[Tool Page|tool pages]] is enabled across your entire space.
-* [[Space Lua/Page Lua]]: Code written in `page-lua` code blocks are enabled on the page they’re defined on.
-* [[#Expressions]]: The `${expression}` syntax will [[Live Preview]] to its evaluated value. It is common to use this mechanism to render custom [[API/widget|Widgets]].
+* [[#Expressions]]: The `${expression}` syntax will [[Live Preview]] to its evaluated value. It is common to use this mechanism to render custom [[API/widget|Widgets]]. With `${name = expression}` it defines a [[#Page variables|page variable]] other expressions on the page can use.
 
 Have a look at [[Space Lua/Conventions]] for best practices around code style.
 
@@ -105,6 +104,79 @@ This mechanism is often used in conjunction with [[Space Lua/Integrated Query]] 
 
 Because `${...}` expressions are evaluated live, their output only exists inside SilverBullet, the markdown file just holds the source. If you want a page to render correctly *outside* SilverBullet too (on GitHub, in another editor), see [[Baked Sections]]: it writes a `${...}` expression’s rendered output into the page as plain markdown, while keeping it updatable.
 
+## Page variables
+#maturity/experimental
+
+A `${...}` can also define a _page variable_ with `${name = expression}`. It shows its value, and any other `${...}` on the same page can use the name. This turns a page into a kind of work sheet (think: spreadsheet or Python notebook).
+
+My salary right now: ${salary = 1000} USD.
+I’m getting a raise of ${increase = 5}%, so my new salary shall be ${salary * (1 + increase / 100)} USD.
+
+To define a value without showing it, write `local` in front: `${local name = expression}`. The editor shows its name and formula instead of its value (or its error, if it fails), and the rendered page shows nothing. A local variable is otherwise like any other: the page and [[API/pageVars]] can read it.
+
+How page variables are evaluated:
+* Each name can be defined only once per page.
+* Like in a spreadsheet, order doesn’t matter: a definition can use any other definition on the page, above or below it. `${a = b + 1}` above `${b = 1}` works. Each definition runs once, when something first needs it.
+* Definitions that depend on each other in a loop, such as `${a = b + 1}` and `${b = a + 1}`, are a _circular reference_: each definition in the loop shows an error naming it.
+* A definition that uses a failing definition fails too, with an error naming the one that failed.
+* Every other `${...}` runs after all definitions, so it can use any of them, wherever it appears on the page.
+* Values are recalculated when the page is saved (SilverBullet saves automatically shortly after you stop typing), and when anything a definition read changes, such as the results of a query or another page’s variables (see [[API/widget#When expressions update]]).
+* A transcluded page is evaluated in its own scope. Scopes are never merged with the page that embeds it.
+
+### Tables and queries
+A definition can hold any value, such as a table or the results of a query:
+
+${recentPages = query[[
+  from p = index.contentPages()
+  order by p.lastModified desc
+  limit 3
+]]}
+
+Other expressions can then build on it: ${#recentPages} pages.
+
+### Other pages’ variables
+`pageVars.get(name, "page name")` returns a variable defined on page `page name`, and `pageVars.all("page name")` all of them as a read-only table. For instance, referencing a variable defined on [[Examples/Budget]]: ${pageVars.get("marketingBudget", "Examples/Budget") - 100}
+
+### Setting values
+`pageVars.set(name, value)` changes a value by rewriting its `${name = …}` in the page text, so the page shows and saves the new value and everything that uses it updates. Without a page argument it sets the variable on the page the code is on. Pass a page name as the third argument to set another page’s.
+
+Copy this complete Markdown example into a writable page:
+
+```markdown
+My salary: ${salary = 1000} USD.
+Raise: ${increase = 5}%.
+New salary: ${salary * (1 + increase / 100)} USD.
+
+${widgets.button("Give me a raise", function() pageVars.set("increase", 10) end)}
+```
+
+The new salary starts at 1050 USD. Clicking the button saves `increase = 10` and displays 1100 USD. This write-back example is inert in the read-only documentation.
+
+A variable can also hold a table literal. Copy this complete Markdown example into a writable page to try a button that adds to it:
+
+```markdown
+${todos = {
+  {
+    title = "Book venue",
+    done = true,
+  },
+}}
+
+Open: ${#query[[from t = todos where not t.done]]} of ${#todos}
+
+${widgets.button("Add task", function()
+  local title = editor.prompt("Task?")
+  if title then
+    table.insert(todos, { title = title, done = false })
+    pageVars.set("todos", todos)
+  end
+end)}
+```
+
+Initially it shows “Open: 0 of 1”. Adding an unfinished task saves the updated table in the page and changes the result to “Open: 1 of 2”.
+
+Only a `${name = …}` holding a plain value (a number, string, `true`, `false` or `nil`) or a table literal of plain values can be set. A formula such as `${total = a + b}`, or a name the page doesn’t define, is an error. See [[API/pageVars]].
+
 # Space Lua vs “OG” Lua
 Space Lua is a _custom Lua implementation_. It does not use the official [Lua](https://www.lua.org) nor [LuaJIT](https://luajit.org) implementations, nor a WebAssembly build of them. For the reasoning behind that choice — and its trade-offs — see [[ADR/005 Space Lua]].
 
@@ -114,4 +186,4 @@ In addition to quirks, Space introduces a (minimal) set of new features on top c
 
 1. [[Space Lua/Integrated Query]], embedding a query language into Lua itself
 2. [[Space Lua/Thread Locals]]
-3. [[Space Lua/Page Lua]]: per-page variables and calculations
+3. [[#Page variables]]: per-page variables and calculations

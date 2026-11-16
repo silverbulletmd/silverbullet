@@ -99,6 +99,8 @@ const LuaDirectives: MarkdownConfig = {
     { name: "LuaExpressionDirective" },
     // The `name` of a `${name = expr}` assignment
     { name: "LuaAssignmentName" },
+    // The `local` of a `${local name = expr}`, whose value isn't shown
+    { name: "LuaAssignmentLocal", style: t.keyword },
     { name: "LuaDirectiveMark", style: ct.DirectiveMarkTag },
   ],
   parseInline: [
@@ -134,6 +136,15 @@ const LuaDirectives: MarkdownConfig = {
         }
         const nameStart = pos + 2 + (assignment?.nameOffset ?? 0);
         const bodyEl = cx.elt("LuaExpressionDirective", pos + 2, endPos - 1, [
+          ...(assignment?.localOffset !== undefined
+            ? [
+                cx.elt(
+                  "LuaAssignmentLocal",
+                  pos + 2 + assignment.localOffset,
+                  pos + 2 + assignment.localOffset + "local".length,
+                ),
+              ]
+            : []),
           ...(assignment
             ? [
                 cx.elt(

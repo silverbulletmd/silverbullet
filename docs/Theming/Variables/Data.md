@@ -1690,7 +1690,7 @@ derivesFrom:
 - "--ui-label-color"
 since: "edge"
 stability: experimental
-description: "Page Lua variable names. Experimental because [[Space Lua/Page Lua]] is experimental."
+description: "Page variable names. Experimental because [[Space Lua#Page variables|page variables]] are experimental."
 ---
 name: "--editor-page-var-tag-background-color"
 group: Editor links and tags
@@ -1700,7 +1700,7 @@ derivesFrom:
 - "--ui-accent-muted-soft-color"
 since: "edge"
 stability: experimental
-description: "Background of Page Lua variable names. Experimental because [[Space Lua/Page Lua]] is experimental."
+description: "Background of page variable names. Experimental because [[Space Lua#Page variables|page variables]] are experimental."
 ```
 
 

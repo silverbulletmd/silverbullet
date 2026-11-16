@@ -15,6 +15,7 @@ import type { Client } from "../../client.ts";
 import { mdLinkRegex } from "../../markdown_parser/constants.ts";
 import { marksTemplate } from "../../space_lua/page_definitions.ts";
 import type { PageScope } from "../../space_lua/page_scope.ts";
+import { parseAssignmentDirective } from "../../space_lua/assignment_directive.ts";
 import { renderPageDirective } from "../../space_lua/render_widget.ts";
 import { dirtyRegions } from "../decoration_regions.ts";
 import { frontmatterInRange } from "../syntax/frontmatter_block.ts";
@@ -25,20 +26,18 @@ import {
   widgetRenderMode,
 } from "../util.ts";
 import { directiveCacheKey } from "./directive_actions.ts";
-import { assignmentNameOf, directiveExpr } from "./directive_at.ts";
+import {
+  assignmentNameOf,
+  directiveExpr,
+  isLocalAssignment,
+} from "./directive_at.ts";
 import { LoadingWidget } from "./loading_widget.ts";
 import { type InlineWrapper, LuaWidget, OccurrenceKeys } from "./lua_widget.ts";
-import { PageLuaErrorWidget } from "./page_lua_error_widget.ts";
 
 const sourceMark = Decoration.mark({ class: "sb-lua-directive-source" });
 
-function isPageLuaBlock(node: SyntaxNode, state: EditorState): boolean {
-  const info = node.getChild("CodeInfo");
-  return !!info && state.sliceDoc(info.from, info.to).trim() === "page-lua";
-}
-
 type PageFacts = {
-  /** A `page-lua` block or an assignment directive */
+  /** An assignment directive */
   definitions: boolean;
   /** Marked `#meta/template`, which shows its directives as source */
   template: boolean;
@@ -61,10 +60,7 @@ function scanPageFacts(
         }
         return false;
       }
-      if (node.name === "FencedCode") {
-        if (isPageLuaBlock(node.node, state)) facts.definitions = true;
-        return false;
-      }
+      if (node.name === "FencedCode") return false;
       if (node.name === "LuaDirective") {
         if (assignmentNameOf(node.node, state)) facts.definitions = true;
         return false;
@@ -74,10 +70,7 @@ function scanPageFacts(
   return facts;
 }
 
-/**
- * Whether `from`–`to` holds anything `scanPageFacts` looks for. Page-lua
- * blocks are also numbered across the page, so these always rebuild it all.
- */
+/** Whether `from`–`to` holds anything `scanPageFacts` looks for. */
 function holdsPageFacts(state: EditorState, from: number, to: number) {
   const facts = scanPageFacts(state, from, to);
   return facts.definitions || facts.template;
@@ -108,7 +101,7 @@ const pageFactsField = StateField.define<PageFacts>({
   },
 });
 
-/** Whether the page has a `page-lua` block or an assignment directive. */
+/** Whether the page has an assignment directive. */
 export function hasPageDefinitions(state: EditorState): boolean {
   return scanPageFacts(state).definitions;
 }
@@ -204,27 +197,12 @@ export function luaDirectivePlugin(client: Client): Extension {
           );
         }
       }
-      let blockIndex = 0;
 
       syntaxTree(state).iterate({
         from: range?.from,
         to: range?.to,
         enter: (node) => {
-          if (node.name === "FencedCode") {
-            if (scope && isPageLuaBlock(node.node, state)) {
-              const error = scope.blockErrors.get(blockIndex++);
-              if (error) {
-                widgets.push(
-                  Decoration.widget({
-                    widget: new PageLuaErrorWidget(error),
-                    block: true,
-                    side: 1,
-                  }).range(node.to),
-                );
-              }
-            }
-            return false;
-          }
+          if (node.name === "FencedCode") return false;
 
           if (node.name !== "LuaDirective") {
             return;
@@ -299,6 +277,9 @@ export function luaDirectivePlugin(client: Client): Extension {
                   kind: "directive",
                   wrappers: directiveWrappers(node.node, state, pageName),
                   label: assignmentName,
+                  formula: isLocalAssignment(node.node)
+                    ? parseAssignmentDirective(expressionText)?.exprSource
+                    : undefined,
                 },
               }),
             }).range(node.from),

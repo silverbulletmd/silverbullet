@@ -192,10 +192,7 @@ export async function lintLua({
       const codeLang = codeInfo.children![0].text!;
       // space-lua only runs on Tool Pages; elsewhere it is an example, and
       // fragments like a bare query[[...]] are not valid chunks.
-      const runs =
-        codeLang === "page-lua" ||
-        (codeLang === "space-lua" && isToolPage(name));
-      if (!runs) {
+      if (codeLang !== "space-lua" || !isToolPage(name)) {
         return true;
       }
       const codeText = findNodeOfType(node, "CodeText");

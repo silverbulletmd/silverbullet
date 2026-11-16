@@ -8,9 +8,11 @@ import {
   LuaBuiltinFunction,
   LuaEnv,
   LuaNativeJSFunction,
-  type LuaStackFrame,
+  LuaStackFrame,
   LuaTable,
 } from "./runtime.ts";
+import { evalStatement } from "./eval.ts";
+import { parseBlock } from "./parse.ts";
 import { luaBuildStandardEnv } from "./stdlib.ts";
 import { PageScopes, pageScopeChangedEvent } from "./page_scope.ts";
 
@@ -50,9 +52,7 @@ function withPageVars(env: LuaEnv, scopes: PageScopes) {
 
 const budget = [
   "${salary = 500}",
-  "```page-lua",
-  "function raise(a) return a * (1 + rate) end",
-  "```",
+  "${raised = salary * (1 + rate)}",
   "${rate = 0.1}",
 ].join("\n");
 
@@ -61,9 +61,8 @@ test("builds definitions into a boundary env", async () => {
   const scope = (await scopes.get("Budget"))!;
   expect(scope.assignments.get("salary")).toEqual({ value: 500 });
   expect(scope.assignments.get("rate")).toEqual({ value: 0.1 });
-  expect(scope.env.get("raise")).toBeTruthy();
+  expect(scope.env.get("raised")).toBeCloseTo(550);
   expect(spaceEnv.variables.has("salary")).toBe(false);
-  expect(spaceEnv.variables.has("raise")).toBe(false);
   expect(scope.firstError).toBeNull();
 });
 
@@ -83,21 +82,11 @@ test("definitions can use definitions further down the page", async () => {
   expect(scope.firstError).toBeNull();
 });
 
-test("a cell can call a function from a block below it", async () => {
-  const { scopes } = setup({
-    P: "${raised = raise(100)}\n```page-lua\nfunction raise(a) return a * (1 + rate) end\n```\n${rate = 0.5}",
-  });
+test("a local cell defines its value like any other", async () => {
+  const { scopes } = setup({ P: "${shown = hidden * 2} ${local hidden = 21}" });
   const scope = (await scopes.get("P"))!;
-  expect(scope.assignments.get("raised")).toEqual({ value: 150 });
-});
-
-test("a block can use a cell below it", async () => {
-  const { scopes } = setup({
-    P: "```page-lua\ndoubled = base * 2\n```\n${base = 21}",
-  });
-  const scope = (await scopes.get("P"))!;
-  expect(scope.blockErrors.size).toBe(0);
-  expect(scope.env.get("doubled")).toBe(42);
+  expect(scope.assignments.get("hidden")).toEqual({ value: 21 });
+  expect(scope.assignments.get("shown")).toEqual({ value: 42 });
 });
 
 test("forward references read concurrently settle", async () => {
@@ -106,14 +95,6 @@ test("forward references read concurrently settle", async () => {
   });
   const scope = (await scopes.get("P"))!;
   expect(scope.assignments.get("m")).toEqual({ value: 3 });
-});
-
-test("a name several blocks assign reads as its final value", async () => {
-  const { scopes } = setup({
-    P: "${v = n}\n```page-lua\nn = 1\n```\n```page-lua\nn = 2\n```",
-  });
-  const scope = (await scopes.get("P"))!;
-  expect(scope.assignments.get("v")).toEqual({ value: 2 });
 });
 
 test("circular references are an error at every definition in the cycle", async () => {
@@ -134,32 +115,12 @@ test("a cell that reads itself is a circular reference", async () => {
   });
 });
 
-test("cycles through functions and blocks are detected", async () => {
-  const { scopes } = setup({
-    Fn: "```page-lua\nfunction f() return x end\n```\n${x = f()}",
-    Block: "```page-lua\ny = x + 1\n```\n${x = y}",
-  });
-  const fn = (await scopes.get("Fn"))!;
-  expect(fn.assignments.get("x")).toEqual({
+test("cycles through functions are detected", async () => {
+  const { scopes } = setup({ P: "${x = (function() return x end)()}" });
+  const scope = (await scopes.get("P"))!;
+  expect(scope.assignments.get("x")).toEqual({
     error: "circular reference: `x` → `x`",
   });
-  expect(fn.blockErrors.size).toBe(0);
-
-  const block = (await scopes.get("Block"))!;
-  const message =
-    "circular reference: page-lua block 1 → `x` → page-lua block 1";
-  expect(block.blockErrors.get(0)).toBe(message);
-  expect(block.assignments.get("x")).toEqual({ error: message });
-});
-
-test("a block may read a global it assigns later in itself", async () => {
-  const { scopes } = setup({
-    P: "```page-lua\nbefore = later\nlater = 1\n```",
-  });
-  const scope = (await scopes.get("P"))!;
-  expect(scope.blockErrors.size).toBe(0);
-  expect(scope.env.get("before")).toBeNull();
-  expect(scope.env.get("later")).toBe(1);
 });
 
 test("reading a failing cell fails with that cell's error", async () => {
@@ -179,12 +140,9 @@ test("reading a failing cell fails with that cell's error", async () => {
 });
 
 test("errors are recorded per definition and the build continues", async () => {
-  const { scopes } = setup({
-    P: "${a = nil + 1}\n```page-lua\nerror('boom')\n```\n${b = 2}",
-  });
+  const { scopes } = setup({ P: "${a = nil + 1} ${b = 2}" });
   const scope = (await scopes.get("P"))!;
   expect("error" in scope.assignments.get("a")!).toBe(true);
-  expect(scope.blockErrors.get(0)).toMatch(/boom/);
   expect(scope.assignments.get("b")).toEqual({ value: 2 });
   expect(scope.firstError).not.toBeNull();
   expect(scope.env.has("a")).toBe(false);
@@ -199,37 +157,18 @@ test("duplicate names are an error at every occurrence", async () => {
   expect(scope.env.has("x")).toBe(false);
 });
 
-test("a block can't reassign a name a ${name = …} cell defines", async () => {
+test("a cell's code can't reassign another cell", async () => {
   const { scopes } = setup({
-    Above: "${n = 1}\n```page-lua\nn = n + 1\nother = 3\n```",
-    Below: "```page-lua\nm = 1\n```\n${m = 2}",
-  });
-  const above = (await scopes.get("Above"))!;
-  expect(above.blockErrors.get(0)).toBe(
-    "`n` is defined by a ${n = …} cell on this page",
-  );
-  // The cell's value stands, and the block's other globals are kept
-  expect(above.env.get("n")).toBe(1);
-  expect(above.env.get("other")).toBe(3);
-  expect(above.firstError).toMatch(/page-lua block 1: `n` is defined by/);
-
-  const below = (await scopes.get("Below"))!;
-  expect(below.blockErrors.get(0)).toBe(
-    "`m` is defined by a ${m = …} cell on this page",
-  );
-  expect(below.env.get("m")).toBe(2);
-});
-
-test("assigning a space global shadows it inside the page only", async () => {
-  const { scopes, spaceEnv } = setup({
-    P: "```page-lua\nprint = 5\n```",
+    P: "${n = 1} ${m = (function() n = 5 return 1 end)()}",
   });
   const scope = (await scopes.get("P"))!;
-  expect(scope.env.get("print")).toBe(5);
-  expect(spaceEnv.get("print")).not.toBe(5);
+  expect(scope.assignments.get("m")).toEqual({
+    error: "`n` is defined by a ${n = …} cell on this page",
+  });
+  expect(scope.env.get("n")).toBe(1);
 });
 
-test("a runaway block is stopped and later definitions are marked", async () => {
+test("a runaway cell is stopped and later definitions are marked", async () => {
   // A clock that jumps a second per read exhausts the busy limit at once,
   // instead of burning it in real time
   let t = 0;
@@ -239,10 +178,11 @@ test("a runaway block is stopped and later definitions are marked", async () => 
   });
   try {
     const { scopes } = setup({
-      P: "```page-lua\nwhile true do end\n```\n${after = 1}",
+      P: "${loop = (function() while true do end end)()} ${after = 1}",
     });
     const scope = (await scopes.get("P"))!;
-    expect(scope.blockErrors.get(0)).toMatch(/budget|too long|stopped/i);
+    const loop = scope.assignments.get("loop")!;
+    expect("error" in loop && loop.error).toMatch(/budget|too long|stopped/i);
     expect(scope.assignments.get("after")).toEqual({
       error: "stopped: budget exceeded",
     });
@@ -458,9 +398,7 @@ test("clear while a build is in flight drops the stale build", async () => {
 test("page code can't clear the build chain through _CTX", async () => {
   const { scopes, spaceEnv } = setup({
     Budget: [
-      "```page-lua",
-      "_CTX._pageScopeChain = nil",
-      "```",
+      "${clear = (function() _CTX._pageScopeChain = nil return 1 end)()}",
       "${salary = pageVars.get('salary', 'Budget')}",
     ].join("\n"),
   });
@@ -489,18 +427,18 @@ test("definitions see indexed page meta when it is available", async () => {
   expect(scope.assignments.get("owner")).toEqual({ value: "Ada" });
 });
 
-test("functions called from definitions see the page through _CTX", async () => {
-  const { scopes } = setup({
-    Budget: [
-      "---",
-      "rate: 5",
-      "---",
-      "```page-lua",
-      "function info() return _CTX.currentPage.name .. ':' .. _CTX.currentPage.rate end",
-      "```",
-      "${x = info()}",
-    ].join("\n"),
+test("space functions called from definitions see the page through _CTX", async () => {
+  const { scopes, spaceEnv } = setup({
+    Budget: ["---", "rate: 5", "---", "${x = info()}"].join("\n"),
   });
+  const chunk = parseBlock(
+    "function info() return _CTX.currentPage.name .. ':' .. _CTX.currentPage.rate end",
+  );
+  await evalStatement(
+    chunk,
+    spaceEnv,
+    LuaStackFrame.createWithGlobalEnv(spaceEnv, chunk.ctx),
+  );
   const scope = (await scopes.get("Budget"))!;
   expect(scope.assignments.get("x")).toEqual({ value: "Budget:5" });
 });

@@ -37,6 +37,18 @@ test("display cells see the whole page scope; assignments show a tag", async () 
   expect(html).toContain("525");
 });
 
+test("a local cell shows nothing but is used, and shows its error", async () => {
+  const out = await render(
+    { Budget: "${local rate = 0.5} pay: ${100 * rate} ${local bad = nil + 1}" },
+    "Budget",
+  );
+  const html = out.node.innerHTML;
+  expect(html).toContain("pay: ");
+  expect(html).toContain("50");
+  expect(html).not.toContain("sb-page-var-tag");
+  expect(html).toContain("Lua error");
+});
+
 test("pages without definitions render as before", async () => {
   const out = await render({ Plain: "Two: ${1 + 1}" }, "Plain");
   expect(out.node.innerHTML).toContain("2");

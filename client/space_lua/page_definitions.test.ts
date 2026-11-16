@@ -4,27 +4,19 @@ import { extractDefinitions } from "./page_definitions.ts";
 const page = [
   "${salary = 500} and ${salary * 2}",
   "",
-  "```page-lua",
-  "function raise(a, p) return a * (1 + p / 100) end",
-  "```",
-  "",
   "```lua",
   "-- ${notADefinition = 1}",
   "```",
   "",
-  "Raise ${increase = 5}%",
+  "Raise ${increase = 5}% ${local hidden = 1}",
 ].join("\n");
 
-test("collects blocks and assignments in document order", () => {
+test("collects assignments in document order", () => {
   const { definitions, duplicateNames } = extractDefinitions(page);
   expect(definitions).toEqual([
-    { kind: "assign", name: "salary", exprSource: " 500" },
-    {
-      kind: "block",
-      index: 0,
-      source: "function raise(a, p) return a * (1 + p / 100) end",
-    },
-    { kind: "assign", name: "increase", exprSource: " 5" },
+    { name: "salary", exprSource: " 500" },
+    { name: "increase", exprSource: " 5" },
+    { name: "hidden", exprSource: " 1" },
   ]);
   expect(duplicateNames.size).toBe(0);
 });

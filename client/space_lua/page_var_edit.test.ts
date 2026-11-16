@@ -116,12 +116,8 @@ test("refuses functions, tables with metatables and cyclic tables", () => {
   );
 });
 
-test("refuses missing cells, page-lua names, formulas and duplicates", () => {
+test("refuses missing cells, formulas and duplicates", () => {
   expect(() => planPageVarEdit("${x = 1}", "Budget", "rate", 1)).toThrow(
-    "pageVars.set: Budget has no ${rate = …}",
-  );
-  const block = "```page-lua\nrate = 1\n```\n";
-  expect(() => planPageVarEdit(block, "Budget", "rate", 2)).toThrow(
     "pageVars.set: Budget has no ${rate = …}",
   );
   expect(() => planPageVarEdit("${t = a + b}", "Budget", "t", 2)).toThrow(

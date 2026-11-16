@@ -21,7 +21,7 @@ Search has its own index and startup behavior. [[Search#The search index]] expla
 # Reload definitions deliberately
 A `space-lua` block on a page under `Library/` defines reusable code after it is loaded. On other pages it only displays source and installs nothing. `System: Reload` reloads that code through [[API/system#system.reboot]]. It also waits for indexing and incorporates external changes to the open page. An apparently successful reload does not establish that every script loaded correctly: check errors in [[Workbench/Code/Scripts]] and [[Workbench/Console]].
 
-[[Space Lua/Page Lua|Page Lua]] has a separate page-local execution model. Consult its reference when a calculation depends on local variables. You do not need to create a global definition to display an ordinary query.
+[[Space Lua#Page variables|Page variables]] have a separate page-local execution model. Consult its reference when a calculation depends on them. You do not need to create a global definition to display an ordinary query.
 
 # Reindex after changing transforms
 A transform runs while an object is indexed. Changing a transform does not retroactively rewrite every stored object. Define `tag.define` transforms in [[^Library/Config]], which loads before indexing, then explicitly reindex existing content after reloading the definition. See [[API/tag]] for transforms and [[Reference/Indexing Internals]] for the lifecycle. Do this in a writable space. Published readers cannot rebuild someone else’s index.

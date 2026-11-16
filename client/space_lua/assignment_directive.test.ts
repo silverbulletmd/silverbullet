@@ -13,15 +13,28 @@ test("recognizes name = expr", () => {
     nameOffset: 0,
     exprSource: " 500",
     exprOffset: 8,
+    local: false,
   });
   expect(parseAssignmentDirective("  rate=0.2")?.name).toBe("rate");
+});
+
+test("recognizes local name = expr", () => {
+  expect(parseAssignmentDirective(" local  rate = 0.2")).toEqual({
+    name: "rate",
+    nameOffset: 8,
+    exprSource: " 0.2",
+    exprOffset: 14,
+    local: true,
+    localOffset: 1,
+  });
+  // `localx` is just a name
+  expect(parseAssignmentDirective("localx = 1")?.local).toBe(false);
 });
 
 test("ignores comparisons and non-assignments", () => {
   expect(parseAssignmentDirective("a == b")).toBeNull();
   expect(parseAssignmentDirective("salary * 2")).toBeNull();
   expect(parseAssignmentDirective("t.x = 1")).toBeNull();
-  expect(parseAssignmentDirective("local x = 1")).toBeNull();
   expect(parseAssignmentDirective("a, b = 1, 2")).toBeNull();
 });
 
@@ -34,6 +47,15 @@ test("markdown parser produces a LuaDirective for an assignment", () => {
   const name = findNodeOfType(body, "LuaAssignmentName")!;
   expect(renderToText(name)).toBe("salary");
   expect(name.from).toBe(7);
+});
+
+test("a local assignment gets a LuaAssignmentLocal node", () => {
+  const tree = parse(extendedMarkdownLanguage, "${local rate = 0.2}");
+  const body = findNodeOfType(tree, "LuaExpressionDirective")!;
+  expect(renderToText(findNodeOfType(body, "LuaAssignmentLocal")!)).toBe(
+    "local",
+  );
+  expect(renderToText(findNodeOfType(body, "LuaAssignmentName")!)).toBe("rate");
 });
 
 test("only assignments get a LuaAssignmentName node", () => {
