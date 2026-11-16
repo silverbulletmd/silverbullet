@@ -5,9 +5,9 @@ You were told there’s [no such thing as a silver bullet](https://en.wikipedia.
 SilverBullet is _indie software_. If you use it, please help us [keep the project financially sustainable](https://silverbullet.md/funding).
 
 # The premise
-SilverBullet helps you keep and organize your personal and team knowledge as (primarily) _Markdown files under your control_. It is a tool designed to scale from just a nice and clean markdown note taking experience, to a super-advanced, seemingly custom-built knowledge base with structured data, queries and fitting your custom workflows. Check our [use cases](https://silverbullet.md/explore) page for examples of what’s possible.
+SilverBullet helps you keep and organize your personal and team knowledge as (primarily) _Markdown files under your control_. It is a tool designed to scale from just a nice and clean markdown note taking experience, to a super-advanced, seemingly custom-built knowledge base with structured data, queries and fitting all your custom workflows. Check our [use cases](https://silverbullet.md/explore) page for examples of what’s possible.
 
-The great thing: this is all possible _within one tool_ through the powerful combination of markdown and Lua scripting. Learn it, and the sky is the limit. And don’t worry too much about the “scripting” part — you can get quite far by having SilverBullet generate a lot of the code for you, check [[Workbench]].
+The great thing: this is all possible _within one tool_ through the powerful combination of [[Markdown]] and [[Space Lua|Lua]] scripting. Learn it, and the sky is the limit. And don’t worry too much about the “scripting” part — you can get quite far by having SilverBullet generate a lot of the code for you, check [[Workbench]].
 
 # Find your way
 * [[Getting Started|Start here]] — learn [[Markdown]], connect [[Page|Pages]], add [[Tag|Tags]], try queries in [[Workbench]].

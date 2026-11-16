@@ -37,16 +37,16 @@ As you’ll notice as you type, the markdown codes disappear when you move out y
 
 ![Photo Walk with formatted headings, three task checkboxes and a Woodland Hike link.](../Screenshots/markdown-basics-preview.png)
 
-A blank line separates paragraphs. `# Plan` becomes a heading, `*` starts a bullet, and `* [ ]` becomes an unchecked task. `[x]` is a completed task. `[[Woodland Hike]]` is a link to a page named `Woodland Hike`. The destination does not have to exist yet: follow the link and write content there whenever you’re ready to create it.
+A blank line separates paragraphs. `# Plan` becomes a heading, `*` starts a bullet, and `* [ ]` becomes an unchecked task. `[x]` is a completed task. `[[Woodland Hike]]` is a link to a page named `Woodland Hike`. The destination does not have to exist yet: follow the link and write content there whenever you’re ready to create it. You can follow links by clicking them or by by hitting `Command-Enter` (macOS) or `Ctrl-Enter` (Windows, Linux).
 
-#protip While you can type all this markdown by hand, you don’t have to. Try a [[Slash Command]]. Type `/today` to insert today’s date, or `/task` to turn the current line into a task. Or `/h1` to create a heading. You can edit the markdown it inserts just like anything you typed yourself.
+#protip While you can type all this markdown by hand, you don’t have to. Try a [[Slash Command]]. Type `/today` to insert today’s date, or `/task` to turn the current line into a task. Or `/h1` to create a heading.  Alternatively, use the [[Markup Bar]].
 
 #protip Use **Alt/Option-click** on any rendered element if you need to reveal its source and move your cursor there.
 
 And in case you were wondering — SilverBullet saves edits automatically. There is no Save button.
 
 # Dive into [[Markdown]]
-Now that we have a page, let’s try a few more things. You can add these examples to `Photo Walk`, either by typing them out or copying and pasting them.
+Now that we have a page, let’s try a few more things. 
 
 ## Bold and italic text
 ```markdown
@@ -55,7 +55,7 @@ Bring **a charged battery** and wear _comfortable shoes_.
 
 We don’t want to forget that battery, so let’s make it **bold** by putting two asterisks on either side. For _italics_, use an underscore on either side, as with the comfortable shoes.
 
-#protip There are keyboard shortcuts for many markdown codes, including bold (**Cmd-b** on Mac, **Ctrl-b** on Linux and Windows), italic (**Cmd-i** on Mac, **Ctrl-i** on Linux and Windows), discover them by bringing up the [[Command Palette]] (**Cmd-/** on Mac, **Ctrl-/** on Linux and Windows).
+#protip There are keyboard shortcuts for many markdown codes, including bold (**Cmd-b** on Mac, **Ctrl-b** on Linux and Windows), italic (**Cmd-i** on Mac, **Ctrl-i** on Linux and Windows). Alternatively, when you select text you’ll also see the [[Markup Bar]] appear, and you can select an option from that to apply it.
 
 ## Headings and lists
 We already used `# Plan` and `# Pack` to give our page some structure. You can go a level deeper with `##`, and deeper still with `###`. Just leave a space after the `#` characters. Let’s add a route:

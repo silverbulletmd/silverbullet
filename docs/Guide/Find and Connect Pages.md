@@ -37,7 +37,7 @@ Double-click a page’s node to open it. Scroll or pinch to zoom, and drag empty
 
 The graph gives you another way to explore your pages through links you have already created. It needs no tags or queries. See [[Graph View]] for filters, additional relationships and docking options.
 
-# The linking habit
+### The linking habit
 #protip As you will discover, it is beneficial to _link liberally_. If you think some word or concept is significant and may need more elaboration (its own page) later — link it! Even if you don’t create the page you link to yet, it’s worth linking to. Once you linked to it once, future auto completes after typing `[[` will show it _even if it doesn’t exist yet_. Later you can create the page, even as one without content just so you can see all the locations that link to it with [[Linked Mention|Linked Mentions]].
 
 # Find a page without a link
