@@ -14,7 +14,8 @@ RUN apk add --no-cache git curl bash tini openssh-client
 # SB_FOLDER is deliberately unset: the entrypoint resolves it to /data, or the legacy /space.
 # /data is not created here, so Docker does not copy root ownership onto an empty volume mounted there.
 ENV SB_HOSTNAME=0.0.0.0 \
-    SB_PORT=3000
+    SB_PORT=3000 \
+    SB_INSTALL_KIND=docker
 
 EXPOSE 3000
 HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT/.instance" || exit 1

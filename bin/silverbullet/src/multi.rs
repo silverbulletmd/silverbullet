@@ -24,6 +24,7 @@ use silverbullet_server::multi::instance::{
 use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
+use silverbullet_server::update_check::UpdateCheck;
 use silverbullet_server_common::space::BUNDLED_COPY_ON_WRITE;
 use silverbullet_server_common::SpacePrimitives;
 use silverbullet_server_mcp::{MultiHost, Tools};
@@ -153,7 +154,7 @@ pub async fn build_multi_stack(
         disable_service_worker: config.disable_service_worker,
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
-        shutdown: shutdown_rx,
+        shutdown: shutdown_rx.clone(),
         search: silverbullet_server::search::SpaceSearch::in_root(
             silverbullet_server::search::search_root(&root),
         ),
@@ -223,6 +224,15 @@ pub async fn build_multi_stack(
         runtime_availability,
     )
     .with_provider_store(providers.clone());
+    if let Some(update_check) = UpdateCheck::from_env(&root, crate::VERSION) {
+        tracing::info!("Update check enabled (daily, anonymous; set SB_UPDATE_CHECK=0 to disable)");
+        // Without a shutdown signal (tests) the state is still reported but
+        // no background task is started.
+        if let Some(rx) = shutdown_rx.clone() {
+            update_check.clone().spawn(rx);
+        }
+        admin_state = admin_state.with_update_check(update_check);
+    }
     admin_state = match &mcp_stores {
         Some((_, grants)) => admin_state.with_mcp(grants.clone(), mcp_availability),
         None => admin_state.with_mcp_availability(mcp_availability),

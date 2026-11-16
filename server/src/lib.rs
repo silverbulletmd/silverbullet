@@ -20,6 +20,7 @@ pub mod search;
 pub mod shell;
 mod ssr;
 pub mod state;
+pub mod update_check;
 pub mod watcher;
 
 pub use fs_guard::FsGuard;

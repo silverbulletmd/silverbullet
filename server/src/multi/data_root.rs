@@ -83,6 +83,8 @@ pub(crate) fn reserved(path: &str) -> bool {
                     | "spaces.json.tmp"
                     | "server.json"
                     | "server.json.tmp"
+                    | "update-check.json"
+                    | "update-check.json.tmp"
                     | "authentication.json"
                     | ".silverbullet.browser-sessions.json"
                     | crate::auth::MULTI_AUTH_FILE_NAME
@@ -333,6 +335,13 @@ mod tests {
             assert!(reserved(path), "{path}");
         }
         assert!(!reserved("notes/server.json"));
+    }
+
+    #[test]
+    fn update_check_state_is_reserved() {
+        assert!(reserved("update-check.json"));
+        assert!(reserved("update-check.json.tmp"));
+        assert!(!reserved("notes/update-check.json"));
     }
 
     #[test]

@@ -246,8 +246,81 @@ async fn server_info_reports_runtime_availability_and_is_admin_gated() {
     assert_eq!(resp.status(), StatusCode::OK);
     assert_eq!(
         body_json(resp).await,
-        serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "runtimeApiEnabled": true, "mcp": { "status": "available" }, "mcpEnabled": false, "primaryUrl": null, "searchModel": null }),
+        serde_json::json!({ "runtimeApi": { "status": "no_chrome" }, "runtimeApiEnabled": true, "mcp": { "status": "available" }, "mcpEnabled": false, "primaryUrl": null, "searchModel": null, "updateCheck": { "update": null, "security": [] } }),
     );
+}
+
+fn router_with_update_check(
+    dir: &tempfile::TempDir,
+    update_check: Arc<crate::update_check::UpdateCheck>,
+) -> (axum::Router, Arc<UserStore>) {
+    let users = UserStore::create_empty(dir.path()).unwrap();
+    users
+        .create_user("admin", "adminpw1", true, Profile::default())
+        .unwrap();
+    let authenticator = test_authenticator();
+    let manager = MultiManager::boot(
+        dir.path().to_path_buf(),
+        deps(dir.path(), users.clone(), authenticator.clone()),
+        std::collections::BTreeSet::new(),
+    )
+    .unwrap();
+    let state = Arc::new(
+        AdminState::new(
+            manager,
+            users.clone(),
+            authenticator,
+            crate::runtime::RuntimeAvailability::Available,
+        )
+        .with_update_check(update_check),
+    );
+    (
+        axum::Router::new().nest("/api", build_admin_api_router(state)),
+        users,
+    )
+}
+
+#[tokio::test]
+async fn server_info_reports_update_check_disabled() {
+    let dir = tempfile::tempdir().unwrap();
+    let (router, _manager, users) = admin_router(&dir);
+    let cookie = session_cookie(&users, "admin");
+    let resp = authed(&router, "GET", "/api/server-info", "", &cookie).await;
+    assert_eq!(
+        body_json(resp).await["updateCheck"],
+        serde_json::json!({ "update": null, "security": [] })
+    );
+}
+
+#[tokio::test]
+async fn server_info_reports_stored_update() {
+    let dir = tempfile::tempdir().unwrap();
+    let state_dir = tempfile::tempdir().unwrap();
+    std::fs::write(
+        state_dir.path().join(crate::update_check::STATE_FILE),
+        serde_json::json!({
+            "version": "2.8.0-0-g4d5eac537-2026-11-02T07-41-34Z",
+            "checkedAt": 1_700_000_000u64,
+            "answer": {
+                "update": { "version": "2.9.0", "url": "https://example.test/release", "title": "SilverBullet 2.9" },
+                "security": [{ "id": "SB-1", "fixedIn": "2.8.1", "severity": "high", "summary": "Bad", "url": "https://example.test/SB-1" }]
+            }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let update_check = crate::update_check::UpdateCheck::load(
+        state_dir.path(),
+        "2.8.0-0-g4d5eac537-2026-11-02T07-41-34Z",
+        "http://127.0.0.1:1/unused".into(),
+        "binary".into(),
+    );
+    let (router, users) = router_with_update_check(&dir, update_check);
+    let cookie = session_cookie(&users, "admin");
+    let resp = authed(&router, "GET", "/api/server-info", "", &cookie).await;
+    let info = body_json(resp).await["updateCheck"].clone();
+    assert_eq!(info["update"]["version"], "2.9.0");
+    assert_eq!(info["security"].as_array().unwrap().len(), 1);
 }
 
 #[tokio::test]

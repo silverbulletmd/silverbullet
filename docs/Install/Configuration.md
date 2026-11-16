@@ -25,6 +25,20 @@ SilverBullet offers a few basic Prometheus metrics, these can be configured with
 
 * `SB_METRICS_PORT`: HTTP port to expose metrics (under the default `/metrics` endpoint) on
 
+# Update check
+A multi-space Server checks about once a day whether a newer SilverBullet release exists and whether the version you run has a known security issue. Single-space mode and [[Desktop]] don't run this check.
+
+* `SB_UPDATE_CHECK`: Set to `0` (or `false` or `off`) to turn the update check off. It is on by default.
+
+**What is sent.** Every 24 hours, give or take up to 2 hours of random jitter, the Server makes one request:
+
+```
+GET https://silverbullet.md/api/server/update-check?v=<version>&os=<os>&arch=<arch>&kind=<kind>
+User-Agent: SilverBullet-Server/<version>
+```
+
+**What admins see.** In the [[Dashboard]], admins see a red warning on every page when the running version has a known security issue, with the version to update to and a link to the details. It cannot be dismissed. Otherwise, a small notice appears when a newer stable release is available.
+
 # Legacy “single-space” mode options
 > **warning** Warning
 > Configuring SilverBullet in a single-space server setup with environment variables is now considered a **legacy** feature and **deprecated**.

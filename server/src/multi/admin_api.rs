@@ -39,6 +39,7 @@ pub struct AdminState {
     pub provider_store: Option<Arc<ProviderStore>>,
     pub mcp_grants: Option<Arc<GrantStore>>,
     pub mcp_availability: McpAvailability,
+    pub update_check: Option<Arc<crate::update_check::UpdateCheck>>,
 }
 
 /// Whether MCP can run at all on this server, independent of the admin
@@ -114,7 +115,16 @@ impl AdminState {
             provider_store: None,
             mcp_grants: None,
             mcp_availability: McpAvailability::Available,
+            update_check: None,
         }
+    }
+
+    pub fn with_update_check(
+        mut self,
+        update_check: Arc<crate::update_check::UpdateCheck>,
+    ) -> Self {
+        self.update_check = Some(update_check);
+        self
     }
 
     pub fn with_mcp_availability(mut self, availability: McpAvailability) -> Self {
@@ -1050,6 +1060,8 @@ async fn handle_server_info(State(state): State<Arc<AdminState>>) -> Response {
         "mcpEnabled": state.manager.mcp_enabled(),
         "primaryUrl": state.manager.primary_url(),
         "searchModel": search_model,
+        // With the check off, admins just never see a notice
+        "updateCheck": state.update_check.as_ref().map(|check| check.answer()).unwrap_or_default(),
     }))
     .into_response()
 }
