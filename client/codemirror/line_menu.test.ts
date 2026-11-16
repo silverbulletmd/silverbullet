@@ -190,8 +190,7 @@ describe("line menu", () => {
       "Heading",
       "Move section up",
       "Move section down",
-      "Demote section",
-      "Promote section",
+      "Upload file",
       "Expand",
       "",
       "Delete",
@@ -229,23 +228,25 @@ describe("line menu", () => {
       "Turn into bullet item",
       "Turn into numbered item",
       "Turn into task",
-      "Turn into quote",
       "Upload file",
       "",
       "Delete",
     ]);
-    // A blank line: the slash menu's blocks, a submenu per group (of more
-    // than one)
-    expect(labels(doc, 5)).toEqual(["Basic blocks", "Today"]);
+    // A blank line: Upload file, then the slash menu's blocks, a submenu per
+    // group (of more than one)
+    expect(labels(doc, 5)).toEqual(["Upload file", "Basic blocks", "Today"]);
     // Whitespace only counts as blank, between paragraphs too
-    expect(labels("One\n   \nTwo", 2)).toEqual(["Basic blocks", "Today"]);
+    expect(labels("One\n   \nTwo", 2)).toEqual([
+      "Upload file",
+      "Basic blocks",
+      "Today",
+    ]);
     // A heading
     expect(labels(doc, 6)).toEqual([
       "Heading",
       "Move section up",
       "Move section down",
-      "Demote section",
-      "Promote section",
+      "Upload file",
       "Collapse",
       "",
       "Delete",
@@ -256,6 +257,7 @@ describe("line menu", () => {
       "Outdent",
       "Move up",
       "Move down",
+      "Upload file",
       "Turn into task",
       "Collapse",
       "",
@@ -266,6 +268,7 @@ describe("line menu", () => {
       "Outdent",
       "Move up",
       "Move down",
+      "Upload file",
       "Turn into task",
       "",
       "Delete",
@@ -276,6 +279,8 @@ describe("line menu", () => {
       "Outdent",
       "Move up",
       "Move down",
+      "Upload file",
+      "Remove all completed tasks",
       "",
       "Delete",
     ]);
@@ -287,11 +292,11 @@ describe("line menu", () => {
       "Delete",
     ]);
     // A table with its source showing
-    expect(labels(doc, 12)).toEqual(["Format table", "", "Delete"]);
+    expect(labels(doc, 12)).toEqual(["Upload file", "", "Delete"]);
     expect(labels(doc, 14)).toEqual([
       "Move row up",
       "Move row down",
-      "Format table",
+      "Upload file",
       "",
       "Delete",
     ]);
@@ -363,12 +368,14 @@ describe("line menu", () => {
   test("a blank line's blocks come from the slash menu, in its order; picking one runs it", async () => {
     slashRun.mockClear();
     const onRun = vi.fn((run: () => void) => run());
-    const entries = lineMenuEntries(client(), at("A\n\nB"), 2, { onRun });
-    expect(rows(subEntries(entries[0]))).toEqual(["Heading 1", "Quote"]);
+    const blocks = lineMenuEntries(client(), at("A\n\nB"), 2, { onRun }).find(
+      (entry) => label(entry) === "Basic blocks",
+    )!;
+    expect(rows(subEntries(blocks))).toEqual(["Heading 1", "Quote"]);
     // Not on a line with text, nor inside code
     expect(labels("A\n\nB", 1)).not.toContain("Basic blocks");
     expect(labels("```\n\n```", 2)).toEqual([]);
-    pick(subEntries(entries[0])[1]);
+    pick(subEntries(blocks)[1]);
     expect(onRun).toHaveBeenCalledOnce();
     await vi.waitFor(() => expect(slashRun).toHaveBeenCalledWith("quote"));
   });
