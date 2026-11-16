@@ -165,8 +165,12 @@ impl Env {
     /// `help` for the space once `done` holds for its text, as change events
     /// reach the skill catalog asynchronously.
     async fn help_until(&self, done: impl Fn(&str) -> bool) -> String {
+        self.help_until_as("writer-one", done).await
+    }
+
+    async fn help_until_as(&self, user: &str, done: impl Fn(&str) -> bool) -> String {
         let started = std::time::Instant::now();
-        let caller = self.caller("writer-one");
+        let caller = self.caller(user);
         loop {
             let help = self
                 .tools
@@ -233,9 +237,10 @@ fn help_description(env: &Env) -> String {
 async fn help_with_space_groups_skills_by_source() {
     let env = env(rows(Value::Null));
     env.seed(SPACE_SKILLS).await;
-    let r = env.help(json!({"space": env.alpha})).await;
-    assert!(!is_error(&r), "{r}");
-    let t = text(&r);
+    let t = env
+        .help_until(|t| t.contains("Garden Tools") && t.contains("House Style"))
+        .await;
+    let t = t.as_str();
     let own = t.find("## In Alpha (written by its editors").expect(t);
     let lib = t.find("## From installed libraries").expect(t);
     let std = t.find("## Built in").expect(t);
@@ -271,13 +276,10 @@ async fn help_marks_overridden_std_skill() {
 async fn space_skills_need_no_runtime() {
     let env = env(rows(Value::Null));
     env.seed(SPACE_SKILLS).await;
-    let r = env
-        .call_as("runtime-off", "help", json!({"space": env.alpha}))
+    let t = env
+        .help_until_as("runtime-off", |t| t.contains("- **Garden Tools**"))
         .await;
-    assert!(!is_error(&r), "{r}");
-    let t = text(&r);
     assert!(t.contains("- **Space Lua**"), "{t}");
-    assert!(t.contains("- **Garden Tools**"), "{t}");
     assert!(env.script.calls.lock().unwrap().is_empty());
     let overview = text(&env.call_as("runtime-off", "help", json!({})).await).to_owned();
     assert!(
