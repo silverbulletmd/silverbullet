@@ -1,3 +1,4 @@
+import type { UpdateCheckAnswer } from "./update_notice.ts";
 import type {
   CatalogModel,
   SearchOverview,
@@ -96,6 +97,7 @@ export function getServerInfo(): Promise<{
   mcpEnabled: boolean;
   primaryUrl?: string | null;
   searchModel: Pick<CatalogModel, "id" | "displayName"> | null;
+  updateCheck: UpdateCheckAnswer;
 }> {
   return adminApi("GET", "server-info");
 }

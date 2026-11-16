@@ -43,6 +43,8 @@
     .sb-input { min-height: 36px; }
   }
   .sb-management-notice { flex: 1 0 100%; }
+  .sb-update-notice { margin-bottom: 1.5rem; p { margin: 0; } p + p { margin-top: 0.5rem; } }
+  .sb-update-notice-dismissible { display: flex; align-items: center; gap: 0.75rem; justify-content: space-between; }
   .sb-management-header {
     grid-column: 1 / -1;
     display: flex;

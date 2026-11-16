@@ -25,6 +25,7 @@ import { ProfileView } from "./ProfileView.tsx";
 import { SpaceEditor } from "./SpaceEditor.tsx";
 import { SpaceList } from "./SpaceList.tsx";
 import { DashboardProfileMenu } from "./DashboardProfileMenu.tsx";
+import { UpdateNotice } from "./UpdateNotice.tsx";
 import { NewUser, UserDetail, UserList } from "./UsersView.tsx";
 
 type ScreenProps = {
@@ -289,7 +290,12 @@ export function App() {
           const view = (
             <View route={route} auth={auth} onUnauthorized={onUnauthorized} />
           );
-          return <div class="sb-management-main">{view}</div>;
+          return (
+            <div class="sb-management-main">
+              {auth.admin && <UpdateNotice />}
+              {view}
+            </div>
+          );
         })()}
       </div>
     </NavigateProvider>

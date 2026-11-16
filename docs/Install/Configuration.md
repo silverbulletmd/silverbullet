@@ -37,7 +37,7 @@ GET https://silverbullet.md/api/server/update-check?v=<version>&os=<os>&arch=<ar
 User-Agent: SilverBullet-Server/<version>
 ```
 
-**What admins see.** In the [[Dashboard]], admins see a red warning on every page when the running version has a known security issue, with the version to update to and a link to the details. It cannot be dismissed. Otherwise, a small notice appears when a newer stable release is available.
+**What admins see.** In the [[Dashboard]], admins see a red warning on every page when the running version has a known security issue, with the version to update to and a link to the details. It cannot be dismissed. Otherwise, a small notice appears when a newer stable release is available (on an [edge build](https://github.com/silverbulletmd/silverbullet/releases/tag/edge): a newer edge build). Admins can hide it with its × until the next release, or on edge until the following week.
 
 # Legacy “single-space” mode options
 > **warning** Warning
