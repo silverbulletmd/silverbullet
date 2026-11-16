@@ -3,8 +3,16 @@ An attempt at documenting the changes/new features introduced in each release.
 ## Edge (3.0 edition)
 _These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
 
-* [[Space Lua#Page variables|Page variables]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}` (or hide them with `${local name = expression}`), use them in any `${...}` on the page, and read or set them from other pages with [[API/pageVars]].
-* [[Workbench]]: Think _DevTools for SilverBullet_. This is a large feature that will likely take some time to fully iron out, but you’re welcome to play with it. Currently there:
+* [[Theming]]: themes are here along with a significant visual refresh. Themes can can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select`.
+  * A theme is a `Library/` page tagged `meta/theme`: a few base colors give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].
+  * New [[API/theme]] API to list themes and pick one for this device.
+  * **Breaking for theme authors**, see [[Theming/Upgrading Existing Styles]].
+* [[^Library/Std/APIs/Markup Bar|Markup bar]]: the keyboard bar’s concepts are now also available on desktop, in two places:
+  * A **formatting bubble** over selected text.
+  * A **⋮ handle** beside the line under the mouse.
+  * Each surface has its own button list: `markupBar.mobile` (the phone bar), `markupBar.selection` (the bubble) and `markupBar.line` (the ⋮ menu, whose buttons also take `group` and `activeContexts`).
+  * Turn either off for the space with `markupBar.selectionBubble` and `markupBar.lineHandle` (also in [[Workbench/Configuration]]), or per device with `Editor: Toggle Markup Bar`. Phones keep their bar above the keyboard as before.
+* [[Workbench]]: Think _DevTools for SilverBullet_:
   * [[Workbench/Overview]]: “Fun facts” about your space (replacing the old Space Overview page that nobody found)
   * [[Workbench/Configuration]]: the [[Configuration Manager]] moved into the Workbench.
   * [[Workbench/Data]]: for each tag, **Objects** builds queries visually (exportable as [[Space Lua/Integrated Query]] to paste in your page) and **Schema** shows and edits its attributes, saved to [[^Library/Config]].
@@ -12,16 +20,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * [[Workbench/Code]]: all the [[Space Lua]] and [[Space Style]] that’s loaded, in what order.
   * [[Workbench/Libraries]]: the Libraries manager, moved from the [[Configuration Manager]], with update checks for installed libraries and repositories.
   * [[Workbench/Maintenance]]: find broken links, conflicts, and other problems in your space.
-* [[^Library/Std/APIs/Markup Bar|Markup bar]]: the keyboard bar’s buttons now also work on desktop, in two places:
-  * A **formatting bubble** over selected text.
-  * A **⋮ handle** beside the line under the mouse. It shows as soon as the mouse is over a line (never for the text cursor) and hides when the mouse leaves or you type.
-  * Turn either off for the space with `markupBar.selectionBubble` and `markupBar.lineHandle` (also in [[Workbench/Configuration]]), or per device with `Editor: Toggle Markup Bar`. Phones keep their bar above the keyboard as before.
-  * Each surface has its own button list: `markupBar.mobile` (the phone bar), `markupBar.selection` (the bubble) and `markupBar.line` (the ⋮ menu, whose buttons also take `group` and `activeContexts`).
-* [[Theming]]: themes are here, properly and can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select` and `Theme: Toggle Light/Dark`.
-  * A theme is a `Library/` page tagged `meta/theme`: a few base colors give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].
-  * New [[API/theme]] API to list themes and pick one for this device.
-  * A fresh look for **SilverBullet Light** and **SilverBullet Dark**: Inter for the interface and Lora for your pages, quieter chrome, links as underlined accent text, hashtags as pills, round task checkboxes, tables and callouts as cards, and a page title that sets the folder apart from the page name. Everything follows one accent color.
-  * **Breaking for theme authors**, see [[Theming/Upgrading Existing Styles]].
+* [[Space Lua#Page variables|Page variables]]: turns a page into a small spreadsheet. Define values inline with `${name = expression}`, use them in any `${...}` on the page, and read or set them from other pages with [[API/pageVars]].
 * **Breaking:** [[Space Lua]] and [[Space Style]] blocks now **only** run from `Library/`. A `space-lua` or `space-style` block on any other page is shown but no longer runs, and gets a lint warning. See [[ADR/012 Tooling Lives in Library]] for the reasons. As part of this:
   * The `CONFIG` page moves to `Library/Config`. The server renames an existing `CONFIG.md` to `Library/Config.md` the first time it starts. Every `space-lua` block on `Library/Config` still runs at boot.
   * “Meta pages” are now called [[Tool Page|tool pages]], and are defined by location only.
@@ -70,6 +69,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
 * [[MCP]]: SilverBullet Server can now serve an MCP endpoint at `/.mcp`, so AI assistants can directly read, write, search and query your spaces. Clients sign in with OAuth and act as the account that approved them, on the spaces chosen on a consent page. MCP is off by default: an admin turns it on in the APIs tab.
+* [[Install/Configuration#Update check|Update check]]: a multi-space Server checks about once a day for new releases and security advisories and shows them to admins in the Dashboard. Disable it with `SB_UPDATE_CHECK=0`.
 * **Potentially breaking:** the legacy `/.auth/authorize` and `/.auth/token` endpoints now only accept SilverBullet’s own clients (`silverbullet-app`, `silverbullet-cli` and `silverbullet-share`); other `client_id`s are refused.
 * Performance: typing and moving the cursor no longer slow down as a page grows. The editor now redoes its live preview (links, tasks, tables, widgets) only for the blocks you edit instead of the whole page.
 * Fix: HTTP caching, especially behind a CDN such as Cloudflare. Plugs, styles and attachments could come back from the CDN with the wrong content type, and a missing attachment or a login redirect could be cached for minutes. Changes to `SB_HEAD_HTML` and similar settings now show at the space root right away, not only after the next release. After an upgrade, a tab still running the previous client keeps working until it reloads instead of breaking on code it loads later, and a server without a service worker (plain HTTP) can no longer keep serving the previous `client.js`.
