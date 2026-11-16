@@ -32,14 +32,6 @@ ${template.each(query[[
     * [[${_.name}]]: ${_.description}
 ]==])}
 
-# Tool pages 
-The SilverBullet ships with a few generally useful tool pages (pages under `Library/`) you can use:
-
-${template.each(query[[
-  from index.tag "page"
-  where name:startsWith("Library/Std/Pages/")
-]], templates.pageItem)}
-
 # Infrastructure
 Core functionality that is implemented using Space Lua:
 ${template.each(query[[
