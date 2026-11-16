@@ -150,9 +150,11 @@ test.describe("context-aware line menus", () => {
     await expect(lineMenuItem(sbPage, "Basic blocks")).toHaveCount(0);
     await sbPage.keyboard.press("Escape");
 
+    // A blank line: Upload file, then the blocks
     await openMenuOnLine(sbPage, 4);
     const rows = lineMenus(sbPage).nth(0).getByRole("menuitem");
     await expect(rows).toHaveText([
+      "Upload file",
       "Basic blocks",
       "Lists",
       "Callouts",
@@ -161,7 +163,7 @@ test.describe("context-aware line menus", () => {
       "Dates",
       "Advanced",
     ]);
-    for (const row of await rows.all()) {
+    for (const row of (await rows.all()).slice(1)) {
       await expect(row).toHaveAttribute("aria-haspopup", "menu");
     }
     await expect(lineMenuItem(sbPage, "Insert…")).toHaveCount(0);
