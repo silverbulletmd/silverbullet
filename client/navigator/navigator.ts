@@ -4,6 +4,7 @@ import {
   datastore,
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
+import { refreshPageSlots } from "../codemirror/widgets/top_bottom_panels.ts";
 import { isNarrowScreen } from "../lib/mobile.ts";
 import { LuaTable } from "../space_lua/runtime.ts";
 import { createDockState } from "./dock_state.ts";
@@ -198,7 +199,7 @@ async function openWithFocus(
   const dock = await resolvedDock(name);
   if (dock && isPageDock(dock)) {
     await dockState.setOpen(name, true);
-    client.rebuildEditorState();
+    refreshPageSlots();
     return { opened: true, focused: await revealPageWidget(name, dock) };
   }
   if (isNarrowScreen() && (dock === "lhs" || dock === "rhs")) {
@@ -246,7 +247,7 @@ export async function moveDock(name: string, dock: string): Promise<void> {
   if (isWindowDock(before) || before === "modal") await lifecycle.hide(before);
   if (isPageDock(before) || isPageDock(dock)) {
     await dockState.setOpen(name, isPageDock(dock));
-    client.rebuildEditorState();
+    refreshPageSlots();
   }
   if (!isPageDock(dock)) await open(name);
 }
@@ -281,7 +282,7 @@ export async function showView(
 export async function closeView(name: string, slot: string): Promise<void> {
   if (isPageDock(slot)) {
     await dockState.setOpen(name, false);
-    client.rebuildEditorState();
+    refreshPageSlots();
     return;
   }
   await lifecycle.hide(slot);

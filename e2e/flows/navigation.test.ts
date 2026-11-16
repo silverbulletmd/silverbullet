@@ -318,6 +318,11 @@ test.describe("read-only navigation", () => {
     spaceFiles: {
       "index.md": "# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n",
       "Destination.md": "# Destination\n\nFirst line.\n\nBack to [[index]].\n",
+      "Tasks.md": "# Tasks\n\n* [ ] Open task\n",
+      "Long.md": Array.from(
+        { length: 200 },
+        (_, i) => `Line ${i + 1} of the long page.`,
+      ).join("\n\n"),
     },
   });
 
@@ -329,6 +334,58 @@ test.describe("read-only navigation", () => {
     await page.getByText("Intro text.").click();
     await page.locator(".sb-wiki-link", { hasText: "Destination" }).click();
     await expect(currentPage(page)).toHaveValue("Destination");
+    await expect.poll(() => selectionLine(page)).toBe(1);
+  });
+
+  test("a task checkbox is shown disabled", async ({
+    sbPage: page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "Tasks");
+    const checkbox = page.locator(".sb-checkbox input");
+    await expect(checkbox).toBeDisabled();
+    await expect(checkbox).not.toBeChecked();
+  });
+
+  test("Tab reaches a link and Enter follows it", async ({ sbPage: page }) => {
+    const link = page.locator(".sb-wiki-link", { hasText: "Destination" });
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press("Tab");
+      if (await link.evaluate((el) => el === document.activeElement)) break;
+    }
+    await expect(link).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(currentPage(page)).toHaveValue("Destination");
+  });
+
+  test("navigation keys scroll the page like a website", async ({
+    sbPage: page,
+    sbServer,
+  }) => {
+    await gotoSilverBulletPage(page, sbServer, "Long");
+    const scrollTop = () =>
+      page.evaluate(
+        () => (globalThis as any).client.editorView.scrollDOM.scrollTop,
+      );
+    await page.getByText("Line 1 of the long page.").click();
+
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(scrollTop).toBeGreaterThan(0);
+    const afterArrow = await scrollTop();
+    await page.keyboard.press("PageDown");
+    await expect.poll(scrollTop).toBeGreaterThan(afterArrow + 100);
+    const afterPage = await scrollTop();
+    await page.keyboard.press("Space");
+    await expect.poll(scrollTop).toBeGreaterThan(afterPage + 100);
+    await page.keyboard.press("Home");
+    await expect.poll(scrollTop).toBe(0);
+    await page.keyboard.press("End");
+    await expect.poll(scrollTop).toBeGreaterThan(afterPage + 100);
+    await page.keyboard.press("ArrowUp");
+    const afterUp = await scrollTop();
+    await page.keyboard.press("PageUp");
+    await expect.poll(scrollTop).toBeLessThan(afterUp);
+    // The page is unchanged, and no cursor was moved into it
     await expect.poll(() => selectionLine(page)).toBe(1);
   });
 });

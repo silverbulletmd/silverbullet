@@ -130,6 +130,10 @@ export class MainUI {
             return;
           }
         }
+        if (client.isReadOnlyMode() && scrollReadOnlyPage(client, ev)) {
+          ev.preventDefault();
+          return;
+        }
         if (runScopeHandlers(client.editorView, ev, "editor")) {
           ev.preventDefault();
         }
@@ -763,5 +767,58 @@ export class MainUI {
   render(container: Element) {
     container.innerHTML = "";
     preactRender(h(this.ViewComponent.bind(this), {}), container);
+  }
+}
+
+/**
+ * Read-only pages behave like a website: navigation keys scroll the page
+ * rather than move an (invisible) editor cursor. Returns whether the key was
+ * handled.
+ */
+function scrollReadOnlyPage(client: Client, ev: KeyboardEvent): boolean {
+  if (ev.metaKey || ev.ctrlKey || ev.altKey) return false;
+  if (ev.shiftKey && ev.key !== " ") return false;
+  // Space activates a focused button or link, as on any website
+  if (
+    ev.key === " " &&
+    ev.target instanceof Element &&
+    ev.target.closest("button, a, summary, [role='button'], [tabindex]")
+  ) {
+    return false;
+  }
+  const scroller = client.editorView.scrollDOM;
+  const page = scroller.clientHeight * 0.9;
+  const line = 40;
+  switch (ev.key) {
+    case "ArrowDown":
+      scroller.scrollBy({ top: line, behavior: "smooth" });
+      return true;
+    case "ArrowUp":
+      scroller.scrollBy({ top: -line, behavior: "smooth" });
+      return true;
+    case "PageDown":
+      scroller.scrollBy({ top: page, behavior: "smooth" });
+      return true;
+    case "PageUp":
+      scroller.scrollBy({ top: -page, behavior: "smooth" });
+      return true;
+    case " ":
+      scroller.scrollBy({
+        top: ev.shiftKey ? -page : page,
+        behavior: "smooth",
+      });
+      return true;
+    case "Home":
+      scroller.scrollTo({ top: 0, behavior: "smooth" });
+      return true;
+    case "End":
+      scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+      return true;
+    case "ArrowLeft":
+    case "ArrowRight":
+      // Nothing to scroll sideways, but don't move the cursor either
+      return true;
+    default:
+      return false;
   }
 }

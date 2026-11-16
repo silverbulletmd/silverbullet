@@ -18,6 +18,8 @@ class CheckboxWidget extends WidgetType {
 
   constructor(
     public checked: boolean,
+    // Read-only pages show the checkbox, but it can't be toggled
+    readonly disabled: boolean,
     readonly fallbackPos: number,
     readonly clickCallback: (pos: number) => void,
     readonly getView: () => EditorView | null,
@@ -31,6 +33,12 @@ class CheckboxWidget extends WidgetType {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.checked = this.checked;
+    wrap.appendChild(checkbox);
+    this.dom = wrap;
+    if (this.disabled) {
+      checkbox.disabled = true;
+      return wrap;
+    }
     checkbox.addEventListener("click", (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -71,8 +79,6 @@ class CheckboxWidget extends WidgetType {
       }
       touchCount = 0;
     });
-    wrap.appendChild(checkbox);
-    this.dom = wrap;
     return wrap;
   }
 }
@@ -209,6 +215,7 @@ export function taskListPlugin({
           const dec = Decoration.replace({
             widget: new CheckboxWidget(
               checkboxStatus,
+              state.readOnly,
               from + nfrom + 1,
               onCheckboxClick,
               getView,

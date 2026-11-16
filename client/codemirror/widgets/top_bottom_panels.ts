@@ -187,6 +187,15 @@ export class NavPageSlotWidget extends WidgetType implements DomWidget {
     if (this.ready) this.mount(div);
   }
 
+  /** Redraws in place from the current open/dock state. */
+  refresh(): void {
+    const host = this.host;
+    if (this.destroyed || !host?.isConnected) return;
+    // `revealPageWidget` takes a settled slot without the view as "not here"
+    delete host.dataset.settled;
+    this.mount(host);
+  }
+
   private mount(host: HTMLElement): void {
     this.host = host;
     trackRender(pageSlotViews(this.slot))
@@ -236,6 +245,17 @@ export class NavPageSlotWidget extends WidgetType implements DomWidget {
       other.cacheKey === this.cacheKey &&
       other.ready === this.ready
     );
+  }
+}
+
+/**
+ * Redraws the page slots after a view opened, closed or moved there. The
+ * editor reconfigures in place, so rebuilding it keeps these widgets' DOM
+ * (`eq`) without re-reading which views are open.
+ */
+export function refreshPageSlots(): void {
+  for (const widget of activeWidgets) {
+    if (widget instanceof NavPageSlotWidget) widget.refresh();
   }
 }
 
