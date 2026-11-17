@@ -111,13 +111,25 @@ async function indexFile(path: string, alreadyCleared: boolean) {
   }
 }
 
+// Routine indexing (an edit, a synced change) is checked lazily so short bursts
+// never flash a progress indicator. Until the first full index completes,
+// checks are quick: that is the wait a user actually notices.
 const uiUpdateInterval = 5000;
+const initialIndexUpdateInterval = 250;
+let initialIndexDone = false;
 
 // There is no reliable way to know the total number of queue items, so we'll keep track of the maximum observed queue size
 // and use that to calculate the progress percentage.
 let maximumObservedQueueSize = 0;
 
-setTimeout(updateIndexProgressInUI, uiUpdateInterval);
+setTimeout(updateIndexProgressInUI, initialIndexUpdateInterval);
+
+async function isInitialIndex(): Promise<boolean> {
+  if (!initialIndexDone) {
+    initialIndexDone = await index.isAvailable();
+  }
+  return !initialIndexDone;
+}
 
 async function totalItemsQueued() {
   const queueStats = await mq.getQueueStats();
@@ -131,6 +143,7 @@ async function totalItemsQueued() {
 }
 
 async function updateIndexProgressInUI() {
+  const initial = await isInitialIndex().catch(() => false);
   let totalQueued = await totalItemsQueued();
   let lastProgress = -1;
   let lastProgressAt = 0;
@@ -139,7 +152,10 @@ async function updateIndexProgressInUI() {
       ((maximumObservedQueueSize - totalQueued) / maximumObservedQueueSize) *
         100,
     );
-    if (percentage > 0 && percentage <= 99) {
+    // 0% is hidden for routine indexing so a single queued file doesn't flash
+    // a ring; during the initial index it is the first sign of work.
+    const minimum = initial ? 0 : 1;
+    if (percentage >= minimum && percentage <= 99) {
       const now = Date.now();
       if (lastProgress !== percentage || now - lastProgressAt >= 1000) {
         lastProgress = percentage;
@@ -154,5 +170,9 @@ async function updateIndexProgressInUI() {
     totalQueued = await totalItemsQueued();
   }
   await editor.hideProgress("index");
-  setTimeout(updateIndexProgressInUI, uiUpdateInterval);
+  const stillInitial = await isInitialIndex().catch(() => false);
+  setTimeout(
+    updateIndexProgressInUI,
+    stillInitial ? initialIndexUpdateInterval : uiUpdateInterval,
+  );
 }
