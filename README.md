@@ -5,23 +5,8 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/silverbulletmd/silverbullet)
 
 # SilverBullet
-SilverBullet is a Programmable, Private, Browser-based, Open Source, Self Hosted, Personal Knowledge Database — a fancy term for a "notes app on steroids".
+SilverBullet is a knowledge base that scales from keeping just a few personal notes, to maintaining a product’s full documentation, to your hyper customized team’s wiki with custom workflows. It supports both single-user and multi-player editing. And builds all this on top of a folder with _markdown_ files, turbo charged with (Space) Lua, fully under your (versioned) control.
 
-_Yowza!_ That surely is a lot of adjectives to describe a browser-based Markdown editor programmable with Lua.
-
-Let’s get more specific.
-
-SilverBullet combines a clean live-preview editor with wiki-style linking, a built-in database and query language, and a fully integrated Space Lua scripting environment, turning your notes into a programmable system that grows with you.
-
-In SilverBullet you keep your content as a collection of Markdown Pages (called a Space). You navigate your space using the Page Picker like a traditional notes app, or through Links like a wiki (except they are bi-directional).
-
-If you are the **writer** type, you’ll appreciate SilverBullet as a clean Markdown editor with Live Preview. If you have more of an **outliner** personality, SilverBullet has Outlining tools for you. Productivity freak? Have a look at Tasks. More of a **database** person? You will appreciate Objects and Queries (SLIQ). 
-
-And if you are comfortable **programming** a little bit — now we’re really talking. You will love _dynamically generating content_ with Space Lua (SilverBullet’s Lua dialect), or to use it to create custom Commands, Page Templates or Widgets.
-
-You were told there’s no such thing as a silver bullet. You were told wrong.
-
-[Much more detail can be found on silverbullet.md](https://silverbullet.md)
 
 ## Installing SilverBullet
 Check out the [instructions](https://docs.silverbullet.md/Install).
@@ -29,7 +14,7 @@ Check out the [instructions](https://docs.silverbullet.md/Install).
 ## Developing SilverBullet
 SilverBullet's frontend ("client") is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com). [ESBuild](https://esbuild.github.io) is used to build the frontend.
 
-The server backend is written in [Rust](https://www.rust-lang.org/) (a Cargo workspace). It serves the pre-built client bundle, the file/space HTTP API, authentication, and a headless-Chrome runtime for server-side Lua.
+The server backend is written in [Rust](https://www.rust-lang.org/). It serves the pre-built client bundle, the file/space HTTP API, authentication, and a headless-Chrome runtime for server-side Lua.
 
 ## Code structure
 * `bin/silverbullet/`: The standalone `silverbullet` server binary (Rust) (this is the one you generally run)
