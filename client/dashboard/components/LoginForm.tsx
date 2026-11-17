@@ -11,7 +11,9 @@ import { useState } from "preact/hooks";
 export type LoginValues = {
   username: string;
   password: string;
-  rememberMe: boolean;
+  /** "Shared computer": the session ends with the browser and nothing is
+   * kept on the device. */
+  sharedComputer: boolean;
   clientEncryption: boolean;
 };
 
@@ -19,7 +21,7 @@ export function LoginForm({
   title,
   error,
   busy,
-  rememberMeDays,
+  showSharedComputer = false,
   clientEncryption = false,
   clientEncryptionHint,
   initialClientEncryption = false,
@@ -31,8 +33,8 @@ export function LoginForm({
   title: preact.ComponentChildren;
   error?: string;
   busy?: boolean;
-  /** Show "Remember me (N days)" when set. */
-  rememberMeDays?: number;
+  /** Show the "Shared computer" option. */
+  showSharedComputer?: boolean;
   /** Show the client-encryption opt-in. */
   clientEncryption?: boolean;
   /** Explanatory line under the client-encryption option, when it needs one. */
@@ -46,8 +48,10 @@ export function LoginForm({
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [sharedComputer, setSharedComputer] = useState(false);
   const [encrypt, setEncrypt] = useState(initialClientEncryption);
+  // A shared computer keeps no local data, so there is nothing to encrypt.
+  const offerEncryption = clientEncryption && !sharedComputer;
 
   return (
     <form
@@ -58,8 +62,8 @@ export function LoginForm({
         onSubmit({
           username,
           password,
-          rememberMe,
-          clientEncryption: clientEncryption && encrypt,
+          sharedComputer,
+          clientEncryption: offerEncryption && encrypt,
         });
       }}
     >
@@ -74,8 +78,8 @@ export function LoginForm({
               onProvider({
                 username: "",
                 password: "",
-                rememberMe,
-                clientEncryption: clientEncryption && encrypt,
+                sharedComputer,
+                clientEncryption: offerEncryption && encrypt,
               })
             }
           >
@@ -106,15 +110,15 @@ export function LoginForm({
           onInput={(event) => setPassword(event.currentTarget.value)}
         />
       </Field>
-      {rememberMeDays !== undefined && (
+      {showSharedComputer && (
         <CheckboxField
-          id="rememberMe"
-          label={`Remember me (${rememberMeDays} days)`}
-          checked={rememberMe}
-          onChange={(event) => setRememberMe(event.currentTarget.checked)}
+          id="sharedComputer"
+          label="Shared computer (sign out when the browser closes)"
+          checked={sharedComputer}
+          onChange={(event) => setSharedComputer(event.currentTarget.checked)}
         />
       )}
-      {clientEncryption && (
+      {offerEncryption && (
         <CheckboxField
           id="clientEncryption"
           label="Encrypt local data on this device"

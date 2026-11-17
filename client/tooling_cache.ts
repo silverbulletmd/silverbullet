@@ -46,12 +46,18 @@ export function cacheStorageToolingCache(
   };
 }
 
-/** Boot's cache: none with client encryption, as it holds plain page text. */
+/**
+ * Where boot keeps its copy of the tooling payload. None with client
+ * encryption (the payload is plain page text) or in a "Shared computer"
+ * session (nothing may stay on the device).
+ */
 export function bootToolingCache(
-  enableClientEncryption: boolean,
+  config: { enableClientEncryption?: boolean; ephemeralStorage?: boolean },
   baseURI: string,
 ): ToolingCache | undefined {
-  return enableClientEncryption ? undefined : cacheStorageToolingCache(baseURI);
+  return config.enableClientEncryption || config.ephemeralStorage
+    ? undefined
+    : cacheStorageToolingCache(baseURI);
 }
 
 /** Removes every space's cached tool pages: they hold plain page text. */

@@ -126,7 +126,7 @@ safeRun(async () => {
     bootConfig = JSON.parse(configText);
     tooling = await resolveBootTooling(
       await toolingFetch,
-      bootToolingCache(!!bootConfig!.enableClientEncryption, document.baseURI),
+      bootToolingCache(bootConfig!, document.baseURI),
     );
     if (!navigator.serviceWorker) bootConfig!.disableServiceWorker = true;
     if (!globalThis.isSecureContext) bootConfig!.enableClientEncryption = false;

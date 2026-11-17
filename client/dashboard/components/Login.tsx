@@ -8,11 +8,9 @@ import { LoginForm } from "./LoginForm.tsx";
 export function Login({
   onDone,
   title = "SilverBullet",
-  rememberMeDays = 7,
 }: {
   onDone: (username: string) => void;
   title?: string;
-  rememberMeDays?: number;
 }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -44,26 +42,29 @@ export function Login({
             title={title}
             error={error}
             busy={busy}
-            rememberMeDays={rememberMeDays}
+            showSharedComputer
             clientEncryption={globalThis.isSecureContext}
             clientEncryptionHint="Applied when you open a space, you will be requested to reauthenticate (for secure key exchange)."
             initialClientEncryption={!!localStorage.getItem("enableEncryption")}
             onSubmit={({
               username,
               password,
-              rememberMe,
+              sharedComputer,
               clientEncryption,
             }) => {
               setBusy(true);
               setError("");
               // Recorded before the request so the preference survives even if the
-              // login fails and the user retries elsewhere.
-              if (clientEncryption) {
-                localStorage.setItem("enableEncryption", "true");
-              } else {
-                localStorage.removeItem("enableEncryption");
+              // login fails and the user retries elsewhere. A shared computer
+              // leaves this browser's setting (maybe another user's) alone.
+              if (!sharedComputer) {
+                if (clientEncryption) {
+                  localStorage.setItem("enableEncryption", "true");
+                } else {
+                  localStorage.removeItem("enableEncryption");
+                }
               }
-              api("POST", "api/login", { username, password, rememberMe })
+              api("POST", "api/login", { username, password, sharedComputer })
                 .then((result) => {
                   if (result.status === "ok") onDone(username);
                   else {

@@ -223,6 +223,9 @@ export type BootConfig = {
   enableClientEncryption: boolean;
   accountManaged?: boolean;
   disableServiceWorker?: boolean;
+  /** Keep the datastore in memory: a "Shared computer" session leaves
+   * nothing on the device. */
+  ephemeralStorage?: boolean;
   syncProtocolVersion?: number;
   revisions?: "managed" | "unmanaged" | "disabled";
   /** Every other space root on this origin, e.g. ["/private", "/work"]. */

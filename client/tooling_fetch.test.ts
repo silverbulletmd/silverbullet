@@ -121,11 +121,29 @@ function stubCaches(names: string[] = []) {
   return { opened, names: () => [...store.keys()] };
 }
 
+test("a shared-computer session neither writes nor reads the cache", async () => {
+  const { opened } = stubCaches(["silverbullet.https://s/.tooling"]);
+  try {
+    const cache = bootToolingCache(
+      { enableClientEncryption: false, ephemeralStorage: true },
+      "https://s/",
+    );
+    await resolveBootTooling(fetched(fixture), cache);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(opened).toEqual([]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});
+
 test("with client encryption, boot neither writes nor reads the cache", async () => {
   const { opened } = stubCaches(["silverbullet.https://s/.tooling"]);
   const error = vi.spyOn(console, "error").mockImplementation(() => {});
   try {
-    const cache = bootToolingCache(true, "https://s/");
+    const cache = bootToolingCache(
+      { enableClientEncryption: true },
+      "https://s/",
+    );
 
     expect((await resolveBootTooling(fetched(fixture), cache))?.files).toEqual(
       fixture,
@@ -136,7 +154,7 @@ test("with client encryption, boot neither writes nor reads the cache", async ()
 
     await resolveBootTooling(
       fetched(fixture),
-      bootToolingCache(false, "https://s/"),
+      bootToolingCache({ enableClientEncryption: false }, "https://s/"),
     );
     await new Promise((r) => setTimeout(r, 0));
     expect(opened).toEqual(["silverbullet.https://s/.tooling"]);

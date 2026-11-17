@@ -8,12 +8,12 @@ import {
   publishEncryptionKey,
 } from "../encryption.ts";
 import { LoginForm, type LoginValues } from "./LoginForm.tsx";
+import { forgetServiceWorker } from "../shared_login.ts";
 
 /** Values the server templates into the login shell (see auth.html). */
 export type AuthConfig = {
   spaceName: string;
   encryptionSalt: string;
-  rememberMeDays: number;
   accountManaged: boolean;
 };
 
@@ -62,7 +62,7 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
     const params = new URLSearchParams();
     params.append("username", values.username);
     params.append("password", values.password);
-    if (values.rememberMe) params.append("rememberMe", "true");
+    if (values.sharedComputer) params.append("sharedComputer", "true");
     const from = new URLSearchParams(location.search).get("from");
     if (from) params.append("from", from);
 
@@ -77,6 +77,15 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
       if (body.status === "error") {
         setError(body.error ?? "Login failed");
         setBusy(false);
+        return;
+      }
+
+      // A shared computer keeps nothing: drop the worker this page just
+      // installed, and leave this browser's local-data settings (possibly
+      // another user's) untouched.
+      if (values.sharedComputer) {
+        await forgetServiceWorker(new URL(".", document.baseURI).href);
+        location.href = body.redirect;
         return;
       }
 
@@ -184,7 +193,7 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
             title={config.spaceName}
             error={error}
             busy={busy}
-            rememberMeDays={config.rememberMeDays}
+            showSharedComputer
             clientEncryption={globalThis.isSecureContext}
             initialClientEncryption={
               new URLSearchParams(location.search).get("encrypt") === "true" ||

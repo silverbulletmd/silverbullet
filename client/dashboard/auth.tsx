@@ -10,7 +10,6 @@ export function readAuthConfig(root: HTMLElement): AuthConfig {
   return {
     spaceName: root.dataset.spaceName ?? "",
     encryptionSalt: root.dataset.encryptionSalt ?? "",
-    rememberMeDays: Number(root.dataset.rememberMeDays ?? 0),
     accountManaged: root.dataset.accountManaged === "true",
   };
 }

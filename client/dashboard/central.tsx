@@ -30,7 +30,6 @@ async function request(path: string, body?: unknown) {
 type Context = {
   csrf: string;
   encrypt: boolean;
-  rememberMeDays: number;
   provider: { buttonLabel: string } | null;
   test: boolean;
   destination: string;
@@ -65,7 +64,7 @@ function CentralLogin({ attempt }: { attempt: string }) {
             attempt,
             csrf: value.csrf,
             testProof: event.data.proof,
-            rememberMe: false,
+            sharedComputer: false,
             clientEncryption: false,
           })
             .then((result) => location.replace(result.redirect))
@@ -214,7 +213,7 @@ function CentralLogin({ attempt }: { attempt: string }) {
       title={serverName}
       error={error}
       busy={busy}
-      rememberMeDays={context.rememberMeDays}
+      showSharedComputer
       clientEncryption
       initialClientEncryption={context.encrypt}
       clientEncryptionHint={

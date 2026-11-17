@@ -20,6 +20,8 @@ type ResumeContext = {
   destination: string;
   scope: string;
   encrypt: boolean;
+  /** "Shared computer": nothing local to unlock or set up. */
+  shared?: boolean;
   username: string;
   loginMethod: "local" | "sso";
   encryptionSalt: string;
@@ -135,6 +137,10 @@ export function CentralUnlock({ resume }: { resume: string }) {
         if (new URL(data.centralOrigin).origin !== data.centralOrigin)
           throw new Error("Invalid central login origin");
         if (canceled) return;
+        if (data.shared) {
+          location.replace(data.destination);
+          return;
+        }
         if (dashboard) {
           if (data.encrypt) localStorage.setItem("enableEncryption", "true");
           location.replace(data.destination);

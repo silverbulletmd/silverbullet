@@ -50,7 +50,7 @@ import { ContentManager } from "./content_manager.ts";
 import { Augmenter } from "./data/data_augmenter.ts";
 import { DataStore } from "./data/datastore.ts";
 import { EncryptedKvPrimitives } from "./data/encrypted_kv_primitives.ts";
-import { IndexedDBKvPrimitives } from "./data/indexeddb_kv_primitives.ts";
+import { openClientKv } from "./data/client_kv.ts";
 import type { KvPrimitives } from "./data/kv_primitives.ts";
 import { DataStoreMQ } from "./data/mq.datastore.ts";
 import { ObjectIndex } from "./data/object_index.ts";
@@ -319,11 +319,9 @@ export class Client {
       document.baseURI.replace(/\/$/, ""),
       encryptionKey,
     );
-    const idbKvPrimitives = new IndexedDBKvPrimitives(dbName);
-    await timedSpan("idb-open", () => idbKvPrimitives.init());
-    let kvPrimitives: KvPrimitives = idbKvPrimitives;
-
-    console.log("Using IndexedDB database", dbName);
+    let kvPrimitives: KvPrimitives = await timedSpan("idb-open", () =>
+      openClientKv(this.bootConfig, dbName),
+    );
 
     if (encryptionKey) {
       kvPrimitives = new EncryptedKvPrimitives(kvPrimitives, encryptionKey);
