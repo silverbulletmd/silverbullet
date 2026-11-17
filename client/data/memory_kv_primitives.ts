@@ -1,19 +1,21 @@
 import { readFile, writeFile } from "node:fs/promises";
-import type { KvPrimitives, KvQueryOptions } from "./kv_primitives.ts";
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
+import { InMemoryKvPrimitives } from "./in_memory_kv_primitives.ts";
 
 import type { KV, KvKey } from "@silverbulletmd/silverbullet/type/datastore";
 
-const memoryKeySeparator = "\0";
-
-export class MemoryKvPrimitives implements KvPrimitives {
-  protected store = new Map<string, any>();
+/**
+ * An in-memory key-value store that can persist to a JSON file (Node only;
+ * the browser uses `InMemoryKvPrimitives`).
+ */
+export class MemoryKvPrimitives extends InMemoryKvPrimitives {
   private throttledPersist?: () => void;
 
   constructor(
     protected filePath?: string,
     options: { throttleMs?: number } = {},
   ) {
+    super();
     if (this.filePath) {
       const throttleMs =
         options.throttleMs !== undefined ? options.throttleMs : 1000;
@@ -48,15 +50,10 @@ export class MemoryKvPrimitives implements KvPrimitives {
     return instance;
   }
 
-  clear(): Promise<void> {
-    this.store.clear();
-    return Promise.resolve();
-  }
-
   /**
    * Initialize the store by loading data from disk if a file path was provided
    */
-  async init(): Promise<void> {
+  override async init(): Promise<void> {
     if (!this.filePath) return;
 
     try {
@@ -79,16 +76,8 @@ export class MemoryKvPrimitives implements KvPrimitives {
     }
   }
 
-  batchGet(keys: KvKey[]): Promise<any[]> {
-    return Promise.resolve(
-      keys.map((key) => this.store.get(key.join(memoryKeySeparator))),
-    );
-  }
-
-  async batchSet(entries: KV[]): Promise<void> {
-    for (const { key, value } of entries) {
-      this.store.set(key.join(memoryKeySeparator), value);
-    }
+  override async batchSet(entries: KV[]): Promise<void> {
+    await super.batchSet(entries);
 
     if (this.throttledPersist) {
       this.throttledPersist();
@@ -99,10 +88,8 @@ export class MemoryKvPrimitives implements KvPrimitives {
     return Promise.resolve();
   }
 
-  async batchDelete(keys: KvKey[]): Promise<void> {
-    for (const key of keys) {
-      this.store.delete(key.join(memoryKeySeparator));
-    }
+  override async batchDelete(keys: KvKey[]): Promise<void> {
+    await super.batchDelete(keys);
 
     if (this.throttledPersist) {
       this.throttledPersist();
@@ -113,37 +100,7 @@ export class MemoryKvPrimitives implements KvPrimitives {
     return Promise.resolve();
   }
 
-  toJSON(): Record<string, any> {
-    const result: Record<string, any> = {};
-    for (const [key, value] of this.store) {
-      result[key] = value;
-    }
-    return result;
-  }
-
-  async *query(options: KvQueryOptions): AsyncIterableIterator<KV> {
-    const prefix = options.prefix?.join(memoryKeySeparator);
-    const sortedKeys = [...this.store.keys()].sort();
-    for (const key of sortedKeys) {
-      if (prefix && !key.startsWith(prefix)) {
-        continue;
-      }
-      yield {
-        key: key.split(memoryKeySeparator),
-        value: this.store.get(key),
-      };
-    }
-  }
-
-  countQuery({ prefix }: KvQueryOptions): Promise<number> {
-    const prefixStr = prefix ? prefix.join(memoryKeySeparator) : undefined;
-    const keys = [...this.store.keys()];
-    return Promise.resolve(
-      keys.filter((key) => !prefixStr || key.startsWith(prefixStr)).length,
-    );
-  }
-
-  async close(): Promise<void> {
+  override async close(): Promise<void> {
     if (this.filePath) {
       await this.persistToDisk();
     }
