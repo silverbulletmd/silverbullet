@@ -1,0 +1,13 @@
+# The publish image: serves a folder read-only and public with `silverbullet publish`.
+# Layered on the slim image, so it needs no Chromium and writes nothing.
+#
+# Mount your content at /site. Published by `.github/workflows/ci.yml`.
+ARG BASE_IMAGE=zefhemel/silverbullet:edge-slim
+FROM ${BASE_IMAGE}
+
+# The entrypoint skips docker-entrypoint.sh: it would pass $SB_FOLDER, which `publish` takes as its own argument.
+RUN mkdir -p /site
+USER 65534:65534
+HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT/.instance" || exit 1
+ENTRYPOINT ["/sbin/tini", "--", "/silverbullet", "publish"]
+CMD ["/site"]
