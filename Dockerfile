@@ -23,8 +23,7 @@ HEALTHCHECK CMD curl --fail "http://localhost:$SB_PORT/.instance" || exit 1
 # Remove stock accounts so arbitrary PUID/PGID values cannot collide.
 RUN echo "" > /etc/group && echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd
 
-# Drops privileges to PUID/PGID (defaulting to the owner of $SB_FOLDER) and
-# runs $SB_FOLDER/CONTAINER_BOOT.md if present.
+# Drops privileges to PUID/PGID (defaulting to the owner of $SB_FOLDER).
 ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 
 COPY silverbullet-${TARGETARCH} /silverbullet

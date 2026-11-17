@@ -19,12 +19,6 @@ fi
 export SB_FOLDER
 mkdir -p "$SB_FOLDER"
 
-# If a CONTAINER_BOOT.md file exists in the data folder, execute it as a bash script upon boot
-if [ -f "$SB_FOLDER/CONTAINER_BOOT.md" ]; then
-    echo "Executing CONTAINER_BOOT.md script"
-    bash "$SB_FOLDER/CONTAINER_BOOT.md" &
-fi
-
 # Check if UID and GID are passed as environment variables, if not, extract from the data folder owner
 if [ -z "$PUID" ] && [ "$UID" == "0" ] ; then
     # Get the UID of the folder owner
