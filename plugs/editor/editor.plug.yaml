@@ -386,6 +386,7 @@ functions:
     path: ./system.ts:wipeAndLogoutCommand
     command:
       name: "Client: Logout"
+      requireAccountManaged: true
 
   versionCommand:
     path: ./help.ts:versionCommand

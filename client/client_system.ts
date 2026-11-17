@@ -210,6 +210,7 @@ export class ClientSystem {
       this.readOnlyMode,
       this.scriptCommands,
       !!this.client.bootConfig.disableServiceWorker,
+      !!this.client.bootConfig.accountManaged,
     );
     registerEditorCommands(client, this.commandHook);
     const { builder } = registerWorkbenchCommands(client, this.commandHook);

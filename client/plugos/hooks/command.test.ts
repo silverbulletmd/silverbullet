@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import yaml from "js-yaml";
 import type { CommandHookT } from "@silverbulletmd/silverbullet/type/manifest";
 import { expect, test, vi } from "vitest";
 import type { Command } from "../../types/command.ts";
@@ -8,6 +11,7 @@ function hook(
   opts: {
     readOnly?: boolean;
     disableServiceWorker?: boolean;
+    accountManaged?: boolean;
     extra?: Map<string, Command>;
   } = {},
 ): CommandHook {
@@ -15,6 +19,7 @@ function hook(
     opts.readOnly ?? false,
     opts.extra ?? new Map(),
     opts.disableServiceWorker ?? false,
+    opts.accountManaged ?? true,
   );
 }
 
@@ -43,6 +48,58 @@ test("requireServiceWorker commands stay registered when the service worker is o
   });
 
   expect(names(commands.buildAllCommands())).toEqual(["Sync: Space"]);
+});
+
+test("requireAccountManaged commands are omitted on a server without accounts", () => {
+  const commands = hook({ accountManaged: false });
+  commands.registerCommand({ name: "Keep Me", run: async () => {} });
+  commands.registerCommand({
+    name: "Client: Logout",
+    requireAccountManaged: true,
+    run: async () => {},
+  });
+  commands.system = {
+    loadedPlugs: new Map([
+      [
+        "editor",
+        {
+          manifest: {
+            functions: {
+              logout: {
+                command: { name: "Plug: Logout", requireAccountManaged: true },
+              },
+            },
+          },
+        },
+      ],
+    ]),
+  } as unknown as System<CommandHookT>;
+
+  expect(names(commands.buildAllCommands())).toEqual(["Keep Me"]);
+});
+
+test("requireAccountManaged commands stay registered on an account-managed server", () => {
+  const commands = hook({ accountManaged: true });
+  commands.registerCommand({
+    name: "Client: Logout",
+    requireAccountManaged: true,
+    run: async () => {},
+  });
+
+  expect(names(commands.buildAllCommands())).toEqual(["Client: Logout"]);
+});
+
+test("Client: Logout requires an account-managed server", () => {
+  const manifest = yaml.load(
+    readFileSync(
+      join(import.meta.dirname, "../../../plugs/editor/editor.plug.yaml"),
+      "utf8",
+    ),
+  ) as { functions: Record<string, { command?: Command }> };
+  const logout = Object.values(manifest.functions).find(
+    (fn) => fn.command?.name === "Client: Logout",
+  );
+  expect(logout?.command?.requireAccountManaged).toBe(true);
 });
 
 // From silverbulletmd/silverbullet#2188: what the Configuration tab writes for

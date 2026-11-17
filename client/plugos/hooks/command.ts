@@ -20,6 +20,7 @@ export class CommandHook
     private readOnly: boolean,
     private additionalCommands: Map<string, Command>,
     private disableServiceWorker = false,
+    private accountManaged = true,
   ) {
     super();
   }
@@ -69,6 +70,9 @@ export class CommandHook
       if (cmd.requireServiceWorker && this.disableServiceWorker) {
         continue;
       }
+      if (cmd.requireAccountManaged && !this.accountManaged) {
+        continue;
+      }
       commands.set(name, cmd);
     }
     if (!this.system) {
@@ -86,6 +90,9 @@ export class CommandHook
           continue;
         }
         if (cmd.requireServiceWorker && this.disableServiceWorker) {
+          continue;
+        }
+        if (cmd.requireAccountManaged && !this.accountManaged) {
           continue;
         }
         this.mergeCommand(commands, cmd.name, {

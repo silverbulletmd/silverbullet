@@ -84,6 +84,12 @@ export type CommandDef = {
    * in a read-only space.
    */
   requireServiceWorker?: boolean;
+  /**
+   * When true, the command is omitted while `bootConfig.accountManaged` is
+   * false: the server has no accounts, so there is nothing to sign in to or
+   * out of.
+   */
+  requireAccountManaged?: boolean;
 
   /**
    * The command opens a picker or another text input. Run from a tap (an

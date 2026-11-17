@@ -93,6 +93,7 @@ export function systemSyscalls(
             requireMode: def.requireMode,
             requireEditor: def.requireEditor,
             requireServiceWorker: def.requireServiceWorker,
+            requireAccountManaged: def.requireAccountManaged,
             menu: def.menu,
             menuMac: def.menuMac,
             menuWindows: def.menuWindows,
