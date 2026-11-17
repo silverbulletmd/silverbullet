@@ -2,12 +2,43 @@
 references:
 - bin/silverbullet/src/config.rs
 - bin/silverbullet/src/server.rs
+- server/src/multi/config.rs
+- server/src/multi/server_config.rs
+- bin/silverbullet/src/multi.rs
 ---
-While most of SilverBullet’s configuration happens through the [[Dashboard]] these days, a few options remain configurable via environment variables.
+While most of SilverBullet’s configuration happens through the [[Dashboard]], a few options remain configurable via environment variables.
+
+# General
+* `SB_FOLDER`: The data folder, e.g. `SB_FOLDER=/home/user/silverbullet`, when it isn’t passed as an argument. It holds the server configuration and, by default, the spaces. See [[#Data folder]]. For `silverbullet publish`, it is the folder to publish instead, see [[Publishing#Publish a folder as a website]].
+* `SB_DISABLE_SERVICE_WORKER`: Set to any value to disable the client-side service worker for all clients. In this mode, [[Sync]] is disabled (so your space is not copied into the browser) and the app will not function when offline. All loads and saves will go directly to the server.
+* `SB_FS_WATCH`: Controls how the server detects files changed on disk by other programs, for the whole server instance. `auto` (default) watches the space folder natively and pushes changes to open clients, so an externally edited page updates in the editor within moments. `poll` scans for changes instead — use it when the space lives on a network mount (NFS/SMB) where writes from *other* machines produce no native file-system events. `off` disables watching entirely: clients fall back to checking for changes periodically, as they did before this existed.
+* `SB_FS_POLL_INTERVAL`: How often `SB_FS_WATCH=poll` scans, in whole seconds (default `30`). Only consulted in poll mode. Each scan re-checks every file in the space, so a short interval is expensive on a large space or a network mount. Lower it only if you need external edits picked up faster than the default. Values that are not a positive whole number are ignored with a warning.
+
+# Data folder
+The data folder holds the server’s configuration and, by default, its spaces:
+
+* `spaces.json`: every space, with its address, folder, access, members and settings.
+* `users.json`: the accounts. A file containing just `{}` makes a server without accounts, see [[Dashboard#Servers without accounts]].
+* `server.json`: server-wide settings from the administrator’s screens in the [[Dashboard]], such as the [[Runtime API]], [[MCP]] and the semantic [[Search]] model.
+* `spaces/`: the space folders created in the Dashboard. A space can also point to a folder elsewhere.
+* `search/`: the [[Search]] indexes.
+* `.chrome-data`: the [[Runtime API]]’s browser profiles.
+
+When the server starts with an empty data folder, it runs the setup wizard, see [[Dashboard#Setup wizard]]. Keep the data folder on persistent storage, and back it up as a whole.
+
+Configure spaces in the [[Dashboard]]. Settings it doesn’t show, such as a space’s description, head HTML, theme colour, ignore patterns and log push, go in the space’s entry in `spaces.json`. Edit it while the server is stopped.
 
 # Network
-* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.1`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker)
+* `SB_HOSTNAME`: Set to the hostname to bind to (defaults to `127.0.0.1`, set to `0.0.0.0` to accept outside connections for the local setup, defaults to `0.0.0.0` for docker and for `silverbullet publish`, see [[Publishing#Publish a folder as a website]])
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
+* `SB_UNIX_SOCKET`: Instead of listening to a TCP port, listen to a Unix socket at the specified path, e.g. `SB_UNIX_SOCKET=/tmp/silverbullet.sock`. This applies to the setup wizard and the running server. When this is set, `SB_HOSTNAME` and `SB_PORT` are ignored.
+
+# Authentication
+These apply to every space and the [[Dashboard]]. Accounts and [[Authentication#API|API tokens]] are managed in the Dashboard.
+
+* `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
+* `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
+* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when “Remember me” is checked during login, defaults to 7 days. Sessions where “Remember me” was left unchecked always last one week.
 
 # Docker
 Configuration only relevant to docker deployments:
@@ -26,7 +57,7 @@ SilverBullet offers a few basic Prometheus metrics, these can be configured with
 * `SB_METRICS_PORT`: HTTP port to expose metrics (under the default `/metrics` endpoint) on
 
 # Update check
-A multi-space Server checks about once a day whether a newer SilverBullet release exists and whether the version you run has a known security issue. Single-space mode and [[Desktop]] don't run this check.
+Server checks about once a day whether a newer SilverBullet release exists and whether the version you run has a known security issue. [[Desktop]] doesn’t run this check.
 
 * `SB_UPDATE_CHECK`: Set to `0` (or `false` or `off`) to turn the update check off. It is on by default.
 
@@ -38,42 +69,3 @@ User-Agent: SilverBullet-Server/<version>
 ```
 
 **What admins see.** In the [[Dashboard]], admins see a red warning on every page when the running version has a known security issue, with the version to update to and a link to the details. It cannot be dismissed. Otherwise, a small notice appears when a newer stable release is available (on an [edge build](https://github.com/silverbulletmd/silverbullet/releases/tag/edge): a newer edge build). Admins can hide it with its × until the next release, or on edge until the following week.
-
-# Legacy “single-space” mode options
-> **warning** Warning
-> Configuring SilverBullet in a single-space server setup with environment variables is now considered a **legacy** feature and **deprecated**.
->
-
-The environment variables below configure a **single-space** server. A fresh install will run SilverBullet in multi-space mode and let you configure most options via the [[Dashboard]].
-
-## General configuration
-* `SB_FOLDER`: The data folder to serve, e.g. `SB_FOLDER=/home/user/silverbullet`. In single-space mode this folder is your space, in multi-space mode it holds the server configuration and (by default) the spaces, see [[Dashboard]].
-* `SB_INDEX_PAGE` *(legacy)*: Sets the default page to load, defaults to `index`. Prefer the per-space **Index page** setting in the [[Dashboard]] (**Space settings → General**).
-* `SB_SPACE_IGNORE`: Hide paths from SilverBullet using gitignore-style patterns, e.g. `SB_SPACE_IGNORE="IgnoreMe/*"`. The space folder’s actual `.gitignore` file is not read.
-* `SB_SEARCH_DIR`: A writable folder outside the space where search keeps its full-text index (so it is not rebuilt at every start) and, with `SB_SEARCH_MODEL`, the model and the semantic index. The space folder may stay read-only. Unset (the default), the index is kept in memory. Use one folder per server. See [[Search]].
-* `SB_SEARCH_MODEL`: Adds semantic search with this model: `granite-embedding-97m-multilingual-r2` (recommended, about 220 MB) or `multilingual-e5-small` (about 488 MB). Requires `SB_SEARCH_DIR`. The model is downloaded on first start. See [[Search]].
-* `SB_HTTP_LOGGING`: Set to any value to enable HTTP logging
-* `SB_LOG_PUSH`: Set to any value to ask clients to push their logs to the server (for debugging purposes)
-* `SB_DISABLE_SERVICE_WORKER`: Set to any value to disable the client-side service worker for all clients. In this mode, [[Sync]] is disabled (so your space is not copied into the browser) and the app will not function when offline. All loads and saves will go directly to the server.
-* `SB_FS_WATCH`: Controls how the server detects files changed on disk by other programs, for the whole server instance. `auto` (default) watches the space folder natively and pushes changes to open clients, so an externally edited page updates in the editor within moments. `poll` scans for changes instead — use it when the space lives on a network mount (NFS/SMB) where writes from *other* machines produce no native file-system events. `off` disables watching entirely: clients fall back to checking for changes periodically, as they did before this existed.
-* `SB_FS_POLL_INTERVAL`: How often `SB_FS_WATCH=poll` scans, in whole seconds (default `30`). Only consulted in poll mode. Each scan re-checks every file in the space, so a short interval is expensive on a large space or a network mount. Lower it only if you need external edits picked up faster than the default. Values that are not a positive whole number are ignored with a warning.
-
-## Network
-* `SB_UNIX_SOCKET`: Instead of listening to a TCP port, listen to a Unix socket at the specified path, e.g. `SB_UNIX_SOCKET=/tmp/silverbullet.sock`. Note: when this is set, `SB_HOSTNAME` and `SB_PORT` are ignored.
-* `SB_URL_PREFIX`: Host SilverBullet on a particular URL prefix, e.g. `SB_URL_PREFIX=/notes`
-
-## Authentication
-* `SB_USER` (single-space only): Sets single-user credentials, in `username:password` form. Use a long password and protect the process configuration.
-* `SB_AUTH_TOKEN` (single-space only): Enables `Authorization: Bearer <token>` style authentication on the [[HTTP API]]. In multi-space mode this is replaced by per-account [[Authentication#API|API tokens]].
-* `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
-* `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
-* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when “Remember me” is checked during login, defaults to 7 days. Sessions where “Remember me” was left unchecked always last one week.
-
-## Run mode
-* `SB_READ_ONLY` *(legacy)*: If you want to run the SilverBullet client and server in read-only mode (you get the full SilverBullet client, but all edit functionality and commands are disabled), you can do this by setting this environment variable to a non-empty value. Upon the server start a full space index will happen, after which all write operations will be disabled. Prefer the per-space settings in the [[Dashboard]]: give the public read access to publish a space (see [[Publishing]]), or **Freeze this space** to stop all writes.
-
-## Web app manifest
-Configure aspects of web app appearance as well as the authentication page:
-
-* `SB_NAME`: Sets `name` and `short_name` members of web app manifest to whatever specified in `SB_NAME`
-* `SB_DESCRIPTION`: Sets `description` member of web app manifest to whatever specified in `SB_DESCRIPTION`

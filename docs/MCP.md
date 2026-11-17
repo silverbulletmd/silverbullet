@@ -6,7 +6,7 @@ references:
 ---
 SilverBullet can act as an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server, so AI assistants can read, write, query and pimp up your spaces.
 
-MCP is available in [[Dashboard|multi-space mode]] and in [[Desktop]]. The endpoint is `/.mcp` on your server, for example `https://notes.example.com/.mcp`. A single-space server does not serve it. On a server it is off by default: an admin turns it on in the APIs tab of the [[Dashboard]].
+MCP is available on SilverBullet Server and in [[Desktop]]. The endpoint is `/.mcp` on your server, for example `https://notes.example.com/.mcp`. On a server it is off by default: an admin turns it on in the APIs tab of the [[Dashboard]].
 
 # Tools
 Every client sees the same tools on every space:

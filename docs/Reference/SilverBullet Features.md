@@ -40,7 +40,7 @@ Look up the editing interface, visual tools and feature behavior.
 * [[Meta Space]] — shared configuration and libraries across Desktop spaces.
 * [[Zero Tracking]] — Server’s telemetry policy.
 * [[Dashboard]] — spaces, accounts and access settings.
-* [[Desktop]], [[Install/Server Modes]] and [[Install/Configuration]] — product and runtime configuration.
+* [[Desktop]] and [[Install/Configuration]] — product and runtime configuration.
 * [[Account]], [[Authentication]], [[Authentication Proxy]], [[Single Sign-On]] and [[Authelia]] — accounts and sign-in.
 * [[Security]], [[Security Profiles]], [[TLS]] and [[Client Encryption]] — trust, transport and encryption.
 * [[Licensing]] — usage and licensing terms.

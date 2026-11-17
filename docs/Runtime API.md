@@ -22,7 +22,7 @@ If Chrome is not auto-detected, for some reason, set the path explicitly:
 SB_CHROME_PATH=/usr/bin/chromium
 ```
 
-In single-instance mode, set `SB_RUNTIME_API=0` to disable the Runtime API, and `SB_RUNTIME_IDLE_TIMEOUT` to change when an idle runtime stops (see [[#Idle stop]]). In multi-space mode these variables are ignored: use the **Enable runtime API** toggle in the administrator’s **APIs** tab. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
+To disable the Runtime API, use the **Enable runtime API** toggle in the administrator’s **APIs** tab of the [[Dashboard]]. Each writer has an independent **Runtime API** permission in the space’s access grid. Existing writers default to enabled unless explicitly opted out.
 
 # Endpoints
 ## Evaluate a Lua expression
@@ -154,7 +154,7 @@ Status codes used across the Runtime API:
 * **400** — Empty request body: `{"error": "Request body is required"}`. Invalid screenshot selector syntax: `{"error": "...", "code": "invalid_selector"}`.
 * **404** — No visible element matches the screenshot selector: `{"error": "...", "code": "selector_not_found"}`.
 * **500** — Lua/JS execution error (the evaluated code threw, e.g. a Lua error): `{"error": "<error message>", "code": "script_error"}`. The message is the concise client error (e.g. `attempt to call a nil value`). The full stack is available in the runtime console log.
-* **503** — Runtime API not enabled: `{"error": "Runtime API is not enabled"}`. This also holds when it is switched off for the running server (by an administrator or `SB_RUNTIME_API=0`), Chrome is missing, or the runtime pool failed to start. A headless browser that is not ready yet answers `{"error": "...", "code": "bridge_unavailable"}`; retry shortly.
+* **503** — Runtime API not enabled: `{"error": "Runtime API is not enabled"}`. This also holds when it is switched off for the running server (by an administrator), Chrome is missing, or the runtime pool failed to start. A headless browser that is not ready yet answers `{"error": "...", "code": "bridge_unavailable"}`; retry shortly.
 * **504** — Timeout exceeded: `{"error": "...", "code": "timeout"}`.
 
 # How it works
@@ -169,9 +169,7 @@ A runtime that has received no requests for 30 minutes is stopped: its Chrome ex
 
 While a runtime is stopped, nothing runs in its client, including Space Lua event listeners such as `cron:secondPassed`.
 
-To change the timeout, in minutes (`0` keeps runtimes running):
-* In single-space mode, set `SB_RUNTIME_IDLE_TIMEOUT`, for example `SB_RUNTIME_IDLE_TIMEOUT=120`.
-* In multi-space mode, use **Stop idle runtimes after** in the administrator's **APIs** tab, stored as `runtimeIdleTimeout` in `server.json`.
+To change the timeout, in minutes (`0` keeps runtimes running), use **Stop idle runtimes after** in the administrator’s **APIs** tab, stored as `runtimeIdleTimeout` in `server.json`.
 
 ## Profiles
 Each user of a space has one Chrome profile, holding the client's index and browser storage. It is kept when the runtime stops (whether idle, by an administrator's **Stop**, or at server shutdown) and reused next time.

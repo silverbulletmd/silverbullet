@@ -13,7 +13,7 @@ To reach the Server from another device, follow [[Install/Network and Internet]]
 Open the address from the other device and verify that the intended account can access the intended space. For a team, [[Collaboration]] covers shared editing and access. To let visitors read a space without editing it, use [[Publishing]].
 
 # Configure the Server
-Manage spaces and accounts through the [[Dashboard]]. Use [[Install/Configuration]] for process settings such as the listening address and port. [[Install/Server Modes]] distinguishes current multi-space setup from legacy single-space deployments.
+Manage spaces and accounts through the [[Dashboard]]. Use [[Install/Configuration]] for process settings such as the listening address and port. [[Install/Configuration#Data folder]] describes what the data folder holds.
 
 Editor preferences and space behavior are configured separately through [[Workbench/Configuration]]. Server administrators should also understand [[Security]] before granting write access or enabling capabilities for a space.
 

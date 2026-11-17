@@ -18,6 +18,11 @@ When a server boots with an empty data folder it will run in setup mode. Setup m
 1. **Account creation**: creates the first administrator account.
 2. **Space creation**: creates your first space.
 
+When the data folder has a `spaces.json` but no `users.json`, the setup wizard runs to create an administrator and keeps the existing spaces. See [[Install/Configuration#Data folder]] for what the data folder holds.
+
+# Servers without accounts
+A server whose `users.json` contains just `{}` has no accounts, so nobody can sign in. Its spaces are reachable only according to their [[#Access|access]] setting, and the Dashboard shows a “No accounts” notice instead of a login. You configure such a server by editing `spaces.json` while it is stopped. A missing `users.json` is different: it means setup, and the server runs the setup wizard to create an administrator.
+
 # Accounts
 ![[Account]]
 # Spaces
@@ -44,3 +49,5 @@ The effective level for a request is the **maximum** of three independent source
 * **admin:** always `write` on every space.
 # Dashboard access
 When no space is bound to the server root (`/`), opening `/` redirects to `/.dashboard` instead of opening a space. Any account can log in there. Ordinary accounts see spaces with anonymous [[#Access|access]] and spaces where they are members, administrators see every space, plus the admin screens.
+
+The Dashboard lives at the root of the server, under `/.dashboard` and `/.instance`. If a reverse proxy forwards only a space’s path, also forward these paths to reach the Dashboard.

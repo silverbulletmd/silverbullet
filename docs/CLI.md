@@ -48,7 +48,7 @@ sb space add
 This interactive wizard will prompt for:
 1. A **name** for the space (alphanumeric and hyphens)
 2. The **URL** of your SilverBullet server
-3. **Authentication** method ([[Install/Configuration#Authentication|token]], username/password, or none)
+3. **Authentication** method ([[Authentication#API|token]], username/password, or none)
 
 The name defaults to the URL’s last path segment, or else the first part of its host: both `https://sb.example.com/notes` and `https://notes.example.com` become `notes`. To skip the prompts, pass the URL and flags:
 ```bash
@@ -323,8 +323,8 @@ sb help Querying
 # Authentication
 The CLI supports three authentication methods, configured per-space during `space add`:
 
-* **Token** — sends an `Authorization: Bearer <token>` header. Use this with `SB_AUTH_TOKEN` on a [[Install/Server Modes#Single-space mode|single-space]] server, or with a per-account [[Authentication#API|API token]] on an accounts-based server.
-* **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with `SB_USER` on a single-space server, or with an account username/password on a space you’re a member of.
+* **Token** — sends an `Authorization: Bearer <token>` header. Use this with a per-account [[Authentication#API|API token]].
+* **Password** — authenticates via `POST /.auth` (username/password), then uses the returned session cookie. Use this with an account username/password on a space you’re a member of.
 * **None** — no authentication (for local or trusted-network setups, or public spaces).
 
 Credentials are encrypted at rest using AES-256-GCM with PBKDF2 key derivation.

@@ -11,7 +11,7 @@ The Server owns file access and exposes the [[HTTP API]]. It serves the browser 
 * [[Search]] maintains a server-side full-text index and, when configured, a semantic index.
 * [[Revisions]] maintains or reads Git history and can synchronize a managed repository with a remote.
 * The [[Runtime API]] can run space operations through a managed headless client when configured and authorized.
-* Multi-space deployments manage accounts, space membership and administration through the [[Dashboard]].
+* Accounts, space membership and administration are managed through the [[Dashboard]].
 
 # Client responsibilities
 The [[Architecture/Client]] builds the [[Object Index]] used by structured queries, runs Space Lua and plugs, and renders the editor. Browser [[Sync]] maintains configured content in local storage for offline work. This structured index is distinct from the Server’s search index.

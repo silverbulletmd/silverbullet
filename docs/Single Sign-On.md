@@ -1,4 +1,4 @@
-SilverBullet (in multi-space mode) supports SSO via OpenID Connect (OIDC). Administrators provision accounts individually and assign them to spaces. Local username/password accounts remain available alongside SSO accounts.
+SilverBullet Server supports SSO via OpenID Connect (OIDC). Administrators provision accounts individually and assign them to spaces. Local username/password accounts remain available alongside SSO accounts.
 
 ## Connect a provider
 1. Sign in as a local administrator and open **Admin → Authentication** in the Dashboard.

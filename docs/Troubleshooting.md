@@ -31,7 +31,7 @@ If the problem is in the browser’s local cache, adding `?resetClient=1` to the
 > Check that the Server is accessible and preserve any edits that have not reached it before resetting the browser. This clears the browser’s copy, not the Server’s files.
 
 ## Server-side debugging
-* `SB_HTTP_LOGGING`: enable HTTP request logging.
-* `SB_LOG_PUSH`: ask clients to push their logs to the Server.
+* `RUST_LOG`: set the Server’s log filter. For more detail from SilverBullet itself without the noise of its libraries, use `RUST_LOG=info,chromiumoxide=error,tantivy=warn,silverbullet=debug`: the default filter plus debug output from every SilverBullet crate. The Server doesn’t log individual HTTP requests.
+* `logPush`: set `"logPush": true` on a space in `spaces.json` (while the Server is stopped) to ask its clients to push their logs to the Server.
 
 See [[Install/Configuration]] for configuration options and [[Revisions]] for restoring earlier page versions.

@@ -18,10 +18,10 @@ When authentication is enabled, most endpoints require a valid session cookie (J
 * `GET /.auth`: Serves the login page. Returns 403 if authentication is not enabled.
 * `POST /.auth`: Authenticates a user. Expects form fields: `username`, `password`, `rememberMe` (optional), `from` (optional redirect path). Returns JSON `{"status":"ok","redirect":"..."}` on success or `{"status":"error","error":"..."}` on failure. Implements lockout after repeated failed attempts.
 * `GET /.logout`: Clears authentication cookies and redirects to `/.auth`.
-* **Bearer token**: When [[Install/Configuration#Authentication|SB_AUTH_TOKEN]] is set, requests can authenticate via the `Authorization: Bearer <token>` header instead of cookies.
+* **Bearer token**: Requests can authenticate with an account’s [[Authentication#API|API token]] via the `Authorization: Bearer <token>` header instead of cookies.
 
-# Accounts (multi-space mode)
-In [[Dashboard|multi-space mode]] every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.dashboard` prefix and require the session cookie described in [[Dashboard#Dashboard access]].
+# Accounts
+Every account carries a profile — a display name and email, used for attribution — alongside its login credentials. These live under the `/.dashboard` prefix and require the session cookie described in [[Dashboard#Dashboard access]].
 
 * `GET /.dashboard/api/profile`: The caller’s own profile: `{"username", "admin", "fullName", "email"}`. `fullName`/`email` are `null` until set. `401` without a session.
 * `PUT /.dashboard/api/profile`: Sets the caller’s own profile. Body: `{"fullName": string, "email": string}`. The username always comes from the session — there is no way to address another account through this endpoint. An empty string clears a field. `400` with `{"errors":[{"field", "message"}]}` if a value contains `<`, `>`, a line break, or (for `email`) whitespace.
@@ -88,10 +88,10 @@ Some functionality is exposed as RPC-style calls
   * The `x-proxy-status-code` header contains the actual upstream HTTP status code. The proxy response itself always returns 200 to avoid interference.
 
 ## Runtime API
-Enabled when Chrome/Chromium is available and runtime access is permitted. In single-space mode, `SB_RUNTIME_API=0` disables it. In multi-space mode, use the administrator’s APIs controls and per-writer Runtime API permission. See [[Runtime API]] for full documentation, setup instructions, and examples.
+Enabled when Chrome/Chromium is available and runtime access is permitted: use the administrator’s APIs controls and per-writer Runtime API permission in the [[Dashboard]]. See [[Runtime API]] for full documentation, setup instructions, and examples.
 
 ## MCP
-In [[Dashboard|multi-space mode]], `POST /.mcp` is a stateless [[MCP]] (Model Context Protocol) endpoint that authenticates with an OAuth access token (`Authorization: Bearer <token>`, issued to a connected app); API tokens are refused with `401` and a `WWW-Authenticate` challenge pointing at the resource metadata. These endpoints are served on the main router only in multi-space mode, answer `404` unless an admin has turned MCP on (it is off by default) and when `SB_MCP=0` (except `/.auth/revoke`), and are not served in single-space mode:
+`POST /.mcp` is a stateless [[MCP]] (Model Context Protocol) endpoint that authenticates with an OAuth access token (`Authorization: Bearer <token>`, issued to a connected app); API tokens are refused with `401` and a `WWW-Authenticate` challenge pointing at the resource metadata. These endpoints answer `404` unless an admin has turned MCP on (it is off by default) and when `SB_MCP=0` (except `/.auth/revoke`):
 
 * `GET /.well-known/oauth-protected-resource/.mcp` (also at `/.well-known/oauth-protected-resource`): RFC 9728 resource metadata.
 * `GET /.well-known/oauth-authorization-server`: RFC 8414 authorization server metadata.

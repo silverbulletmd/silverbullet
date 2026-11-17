@@ -33,7 +33,7 @@ Run the server, pointing it at that folder:
 ./silverbullet data
 ```
 
-Since `data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Dashboard]]. Point the server at a folder that already holds pages instead, and it’s served immediately as a classic single space.
+Since `data` is empty, this opens a first-run setup wizard for accounts and your first space — see [[Dashboard]].
 
 The server listens on `http://localhost:3000` by default. To pick a different port, use `-p`:
 ```bash
@@ -46,6 +46,14 @@ And to bind on an address other than `127.0.0.1` (e.g. to make it reachable on y
 ```
 
 Now, open `http://localhost:3000` in your browser and you’ll be guided through the initial [[Dashboard]], once that’s all done, head to [[Getting Started]] to learn the basics.
+
+# Publishing a folder
+To serve a folder of pages as a public, read-only website instead, without accounts or a data folder:
+```bash
+./silverbullet publish ./docs
+```
+
+`publish` listens on all interfaces (`0.0.0.0`) by default, since the site is public; `-L` and `-p` work here too. See [[Publishing#Publish a folder as a website]].
 
 # Upgrading
 You can upgrade your SilverBullet install based on the version you’d like to run.

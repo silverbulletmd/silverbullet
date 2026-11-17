@@ -80,7 +80,7 @@ wordCount:
     requireServiceWorker: true  # hide when SB_DISABLE_SERVICE_WORKER is set
 ```
 
-All command fields: `name` (required), `key` / `mac`, `priority`, `contexts`, `requireMode`, `requireEditor`, `requireServiceWorker`, `hide`, `disableInVim`.
+All command fields: `name` (required), `key` / `mac`, `priority`, `contexts`, `requireMode`, `requireEditor`, `requireServiceWorker`, `requireAccountManaged` (hide on a server without accounts), `hide`, `disableInVim`.
 
 ```typescript
 import { editor } from "@silverbulletmd/silverbullet/syscalls";

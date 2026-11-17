@@ -2,19 +2,13 @@
 description: "Accounts and login options for SilverBullet Server."
 tags: administration
 references:
-- bin/silverbullet/src/config.rs
-- bin/silverbullet/src/server.rs
 - server/src/multi/users.rs
 - server/src/multi/access.rs
 ---
-How you authenticate depends on how the server is running:
-
-* **Multi-space mode (the default).** A fresh install manages accounts and controls who can reach each space. This is the recommended setup — see [[#Accounts]].
-* **Single-space mode.** One folder served as one space, authenticated by a single set of environment-variable credentials — see [[#Single-space mode]].
-* **No authentication.** A single-space server with no credentials set is open to anyone who can reach it.
+SilverBullet Server authenticates people with accounts, managed in the [[Dashboard]]. Each space decides what visitors without an account may do.
 
 # Accounts
-When the server runs in the default [[Dashboard|multi-space]] mode, authentication is account-based:
+Authentication is account-based:
 
 * Each member has an [[Account]], provisioned by an administrator with local credentials or [[Single Sign-On]].
 * Each [[Space]] has an [[Dashboard#Access|access level]] — `none`, `read`, or `write` — for visitors with no account, plus per-member `read`/`write` roles. Admins can reach every space and the admin UI.
@@ -24,31 +18,13 @@ When the server runs in the default [[Dashboard|multi-space]] mode, authenticati
 # Single sign-on
 Account-managed servers can connect Google Workspace, Pocket ID, or another OpenID Connect provider alongside local accounts. See [[Single Sign-On]] for web setup, user provisioning and central login.
 
-# Single-space mode
-Single-space mode serves one folder as one space, authenticated the “classic” way: a single set of credentials set via the `SB_USER` environment variable in `username:password` form.
-
-> **warning** Warning
-> Single-space is considered legacy, please migrate to multi-space mode
-
-## Enabling authentication
-Set `SB_USER` when starting the server. For the [[Install/Server Binary]]:
-
-```shell
-SB_USER='sam:replace-with-a-long-password' ./silverbullet my-space
-```
-
-For [[Install/Docker]]:
-
-```shell
-docker run -e SB_USER='sam:replace-with-a-long-password' ...
-```
-
-Replace the example password before running the command. This configures one login named `sam`. When authentication is enabled, SilverBullet shows a login page on first access.
+# Servers without accounts
+A server whose `users.json` contains just `{}` has no accounts, so nobody can sign in, and its spaces are reachable only according to their access setting. See [[Dashboard#Servers without accounts]].
 
 # API
-For programmatic access via the [[HTTP API]], you can use bearer token authentication. In single-space mode, this token is configured with an environment variable, see [[Install/Configuration]]. In multi-space mode, new API tokens can be issued via the [[Dashboard]] UI.
+For programmatic access via the [[HTTP API]], you can use bearer token authentication with an API token issued in the [[Dashboard]].
 
 # Authentication proxies
-Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy’s built-in auth). This is common in more complex self-hosted setups. In accounts mode, pair a proxy with **public** spaces so the proxy owns identity. In single-space mode, put the proxy in front of an open server.
+Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy’s built-in auth). This is common in more complex self-hosted setups. Pair a proxy with **public** spaces so the proxy owns identity.
 
 For all authentication-related configuration options, see [[Install/Configuration#Authentication]].

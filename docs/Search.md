@@ -40,12 +40,12 @@ Search covers the Markdown pages in your space, up to 1 MiB each. Built-in libra
 The server keeps a full-text index of the space and updates it as pages change, usually within a second. After the server starts, it builds or catches up the index in the background. Until that finishes, results come with a “Search index building” notice and may be incomplete.
 
 Where the index lives:
-* On a server with several spaces, under `search/indexes/` in the server’s data folder, so restarts reuse it.
-* On a single-space server, in memory and rebuilt at every start, or in `SB_SEARCH_DIR` when it is set (see [[#Single-space servers]]).
+* On a server, under `search/indexes/` in the server’s data folder, so restarts reuse it.
 * In SilverBullet Desktop, in the app’s data folder.
+* On a site served with `silverbullet publish`, in memory only, rebuilt each time the server starts. Such a site has no semantic search. See [[Publishing#Search]].
 
 # Semantic search
-When enabled (default off), SilverBullet offers semantic search — search based on meaning. It runs an embedding model on the server itself (in Desktop, on your computer). Beyond downloading the model, no data leaves your server/desktop. On a server with several spaces, an administrator turns it on in the dashboard. Single-space servers and Desktop are covered under [[#Single-space servers]] and [[#SilverBullet Desktop]].
+When enabled (default off), SilverBullet offers semantic search — search based on meaning. It runs an embedding model on the server itself (in Desktop, on your computer). Beyond downloading the model, no data leaves your server/desktop. On a server, an administrator turns it on in the dashboard. Desktop is covered under [[#SilverBullet Desktop]].
 
 1. In the dashboard, open **Admin** → **Search** and choose a model.
 2. To keep a space on full-text search only, open its settings, go to **Search** and uncheck **Semantic search**.
@@ -60,9 +60,6 @@ Once the semantic index is ready, a **Related Pages** panel becomes available (t
 Granite Embedding 97M Multilingual R2 (IBM, Apache-2.0) is the recommended model and comes first in the list. It finds paraphrases and pages in other languages better. Multilingual E5 Small (MIT) stays available, and a server, space or Desktop already set to it keeps using it. Switching to another model builds new semantic indexes.
 
 Semantic search is good at paraphrases, questions and other languages. For names, codes and exact wording, **All words** and **Exact phrase** stay the better choice.
-
-## Single-space servers
-Set `SB_SEARCH_DIR` to a writable folder outside your space to persist search indexes. Without it, full-text search runs in memory and rebuilds on startup. To enable semantic search, also set `SB_SEARCH_MODEL` to one of the model IDs above. Model files are stored in the search directory. Restart the server after changing these environment variables. See [[Install/Configuration]].
 
 ## Space size
 Once a model is configured, spaces with up to 5,000 Markdown pages are eligible for semantic search by default. Larger spaces require explicit opt-in. A space that grows past this threshold keeps its existing semantic search and shows a warning about relevance. 5,000 is a default policy threshold, not a hard page limit. Full-text search remains available.

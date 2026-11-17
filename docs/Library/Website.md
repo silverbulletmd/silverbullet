@@ -190,7 +190,6 @@ docsNav.sections = {
         { ref = "Dashboard" },
         { ref = "Desktop" },
         { ref = "Meta Space" },
-        { ref = "Install/Server Modes" },
         { ref = "Install/Configuration" },
         { ref = "Account" },
         { ref = "Authentication Proxy" },
