@@ -149,6 +149,12 @@ pub async fn handle_fs_get(
         };
     }
 
+    let force_octet_stream = headers
+        .get("accept")
+        .and_then(|v| v.to_str().ok())
+        .map(|v| v.contains("application/octet-stream"))
+        .unwrap_or(false);
+
     // RFC 9110 §13.1.3: If-None-Match takes precedence and If-Modified-Since
     // is then ignored. That matters here: Last-Modified has one-second
     // resolution, so a write later in the same second still matches it.
@@ -166,8 +172,8 @@ pub async fn handle_fs_get(
         })
         .await
         {
-            if etag_list_matches(inm, &hash) {
-                return not_modified_by_etag(&hash, &meta);
+            if etag_list_matches(inm, &hash, force_octet_stream) {
+                return not_modified_by_etag(&hash, &meta, force_octet_stream);
             }
         }
     }
@@ -198,12 +204,6 @@ pub async fn handle_fs_get(
         }
     }
 
-    let force_octet_stream = headers
-        .get("accept")
-        .and_then(|v| v.to_str().ok())
-        .map(|v| v.contains("application/octet-stream"))
-        .unwrap_or(false);
-
     if headers.get(axum::http::header::RANGE).is_some() {
         match range_response(&state, &path, &headers, force_octet_stream).await {
             Ok(Some(response)) => return response,
@@ -233,9 +233,9 @@ pub async fn handle_fs_get(
         Ok((_, meta, hash))
             if if_none_match
                 .as_deref()
-                .is_some_and(|inm| etag_list_matches(inm, &hash)) =>
+                .is_some_and(|inm| etag_list_matches(inm, &hash, force_octet_stream)) =>
         {
-            not_modified_by_etag(&hash, &meta)
+            not_modified_by_etag(&hash, &meta, force_octet_stream)
         }
         Ok((data, mut meta, hash)) => {
             let real_content_type = meta.content_type.clone();
@@ -257,15 +257,32 @@ pub async fn handle_fs_get(
     }
 }
 
-/// Whether an `If-None-Match` list names the representation with `hash`.
-fn etag_list_matches(if_none_match: &str, hash: &str) -> bool {
-    crate::handlers::if_none_match_hits(if_none_match, &etag_for_hash(hash))
+/// The `ETag` of one representation of a file's content. Sync reads
+/// (`Accept: application/octet-stream`) carry the content revision itself,
+/// which writes are conditioned on. Browser loads, served with the real
+/// content type, get their own tag: browsers revalidate a cached copy even
+/// across a `Vary: Accept` mismatch and keep its stored headers on a 304, so
+/// a shared tag would hand a module worker the octet-stream copy.
+fn representation_etag(hash: &str, octet_stream: bool) -> String {
+    if octet_stream {
+        etag_for_hash(hash)
+    } else {
+        format!("\"sha256-typed:{hash}\"")
+    }
 }
 
-fn not_modified_by_etag(hash: &str, meta: &FileMeta) -> Response {
+/// Whether an `If-None-Match` list names this representation of `hash`.
+fn etag_list_matches(if_none_match: &str, hash: &str, octet_stream: bool) -> bool {
+    crate::handlers::if_none_match_hits(if_none_match, &representation_etag(hash, octet_stream))
+}
+
+fn not_modified_by_etag(hash: &str, meta: &FileMeta, octet_stream: bool) -> Response {
     set_revalidated_meta_headers(Response::builder().status(StatusCode::NOT_MODIFIED), meta)
         .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
-        .header(axum::http::header::ETAG, etag_for_hash(hash))
+        .header(
+            axum::http::header::ETAG,
+            representation_etag(hash, octet_stream),
+        )
         .header(axum::http::header::CACHE_CONTROL, FILE_CACHE_CONTROL)
         .header(axum::http::header::VARY, "Accept")
         .body(Body::empty())
@@ -327,7 +344,12 @@ async fn range_response(
             return Ok(None);
         }
         let cached_hash = state.fs_guard.cached_hash(path, &meta);
-        if !if_range_matches(if_range.as_ref(), &meta, cached_hash.as_deref()) {
+        if !if_range_matches(
+            if_range.as_ref(),
+            &meta,
+            cached_hash.as_deref(),
+            force_octet_stream,
+        ) {
             return Ok(None);
         }
         let RequestedRange::Partial { start, end } = requested else {
@@ -364,7 +386,12 @@ async fn range_response(
                 return Err(inconsistent_range_error());
             }
             let hash = state.fs_guard.cached_hash(path, &returned_meta);
-            if !if_range_matches(if_range.as_ref(), &returned_meta, hash.as_deref()) {
+            if !if_range_matches(
+                if_range.as_ref(),
+                &returned_meta,
+                hash.as_deref(),
+                force_octet_stream,
+            ) {
                 return Ok(None);
             }
             return Ok(Some(partial_response(
@@ -401,7 +428,12 @@ fn inconsistent_range_error() -> SpaceError {
     ))
 }
 
-fn if_range_matches(value: Option<&HeaderValue>, meta: &FileMeta, hash: Option<&str>) -> bool {
+fn if_range_matches(
+    value: Option<&HeaderValue>,
+    meta: &FileMeta,
+    hash: Option<&str>,
+    octet_stream: bool,
+) -> bool {
     let Some(value) = value else {
         return true;
     };
@@ -409,7 +441,7 @@ fn if_range_matches(value: Option<&HeaderValue>, meta: &FileMeta, hash: Option<&
         return false;
     };
     if value.starts_with('"') {
-        return hash.is_some_and(|hash| value == etag_for_hash(hash));
+        return hash.is_some_and(|hash| value == representation_etag(hash, octet_stream));
     }
     let last_modified = http_date(meta.last_modified);
     !last_modified.is_empty() && value == last_modified
@@ -482,7 +514,10 @@ fn file_response_builder(
     if let Some(hash) = hash {
         builder = builder
             .header(CONTENT_REVISION_HEADER, etag_for_hash(hash))
-            .header(axum::http::header::ETAG, etag_for_hash(hash));
+            .header(
+                axum::http::header::ETAG,
+                representation_etag(hash, force_octet_stream),
+            );
     }
     let last_modified = http_date(meta.last_modified);
     if !last_modified.is_empty() {
@@ -1645,7 +1680,7 @@ mod tests {
                 Request::builder()
                     .uri("/.fs/clip.bin")
                     .header("Range", "bytes=2-5")
-                    .header("If-Range", etag_for_hash("cached-hash"))
+                    .header("If-Range", super::representation_etag("cached-hash", false))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -1912,6 +1947,70 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(&body[..], b"payload");
+    }
+
+    /// Sync reads (`Accept: application/octet-stream`) and browser loads of
+    /// one file are different representations. A browser revalidates its
+    /// cached copy even when `Vary: Accept` doesn't match and reuses the
+    /// stored headers on a 304, so a shared ETag let a module worker get the
+    /// octet-stream copy of a plug ("non-JavaScript MIME type").
+    #[tokio::test]
+    async fn a_cached_octet_stream_copy_is_not_revalidated_for_a_browser_load() {
+        let state = Arc::new(test_state());
+        state
+            .space
+            .write_file("p.plug.js", b"export {}", None)
+            .unwrap();
+        let get = |accept: Option<&'static str>, inm: Option<String>| {
+            let state = state.clone();
+            async move {
+                let mut req = Request::builder().uri("/.fs/p.plug.js");
+                if let Some(accept) = accept {
+                    req = req.header("accept", accept);
+                }
+                if let Some(inm) = inm {
+                    req = req.header("if-none-match", inm);
+                }
+                crate::build_router(state)
+                    .oneshot(req.body(Body::empty()).unwrap())
+                    .await
+                    .unwrap()
+            }
+        };
+        let etag = |r: &axum::response::Response| r.headers()["etag"].to_str().unwrap().to_string();
+        let ct = |r: &axum::response::Response| {
+            r.headers()["content-type"].to_str().unwrap().to_string()
+        };
+        let octet = Some("application/octet-stream");
+
+        let sync = get(octet, None).await;
+        assert_eq!(ct(&sync), "application/octet-stream");
+        let sync_etag = etag(&sync);
+
+        // The browser holds the sync copy and revalidates it for a worker.
+        let browser = get(None, Some(sync_etag.clone())).await;
+        assert_eq!(browser.status(), StatusCode::OK);
+        assert_eq!(ct(&browser), "text/javascript");
+        let browser_etag = etag(&browser);
+        assert_ne!(browser_etag, sync_etag);
+
+        // Each representation still revalidates against its own tag.
+        assert_eq!(
+            get(octet, Some(sync_etag.clone())).await.status(),
+            StatusCode::NOT_MODIFIED
+        );
+        let again = get(None, Some(browser_etag.clone())).await;
+        assert_eq!(again.status(), StatusCode::NOT_MODIFIED);
+        assert_eq!(etag(&again), browser_etag);
+        assert_eq!(
+            get(octet, Some(browser_etag)).await.status(),
+            StatusCode::OK
+        );
+        // Sync keeps reading the content revision it writes against.
+        assert_eq!(
+            browser.headers()["X-SilverBullet-Revision"],
+            sync_etag.as_str()
+        );
     }
 
     #[tokio::test]
@@ -2314,9 +2413,14 @@ mod tests {
             )
             .await
             .unwrap();
+        // A browser load tags its own representation; the content revision
+        // stays in the dedicated header.
         assert_eq!(
             get.headers().get("etag").unwrap().to_str().unwrap(),
-            expected
+            super::representation_etag(
+                &silverbullet_server_common::revision::sha256_hex(b"hello"),
+                false
+            )
         );
         assert_eq!(
             get.headers().get("X-SilverBullet-Revision").unwrap(),
