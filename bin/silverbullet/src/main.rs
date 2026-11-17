@@ -58,6 +58,17 @@ enum Command {
         #[arg(long, default_value = "")]
         space_folder: String,
     },
+    /// Serve one folder as a public, read-only site without accounts; writes nothing to disk
+    Publish {
+        /// The folder to publish (env: SB_FOLDER; default: the current directory)
+        folder: Option<String>,
+        /// Host or address to listen on (env: SB_HOSTNAME)
+        #[arg(short = 'L', long)]
+        hostname: Option<String>,
+        /// Port to listen on (env: SB_PORT)
+        #[arg(short = 'p', long)]
+        port: Option<u16>,
+    },
 }
 
 fn main() -> std::process::ExitCode {
@@ -79,9 +90,29 @@ fn main() -> std::process::ExitCode {
     let cli = Cli::parse();
 
     // Upgrade uses reqwest::blocking, which panics inside a Tokio runtime.
-    if let Some(command) = cli.command {
-        return run_subcommand(command);
-    }
+    // Publish is a server, so it runs inside the runtime below.
+    let publish = match cli.command {
+        Some(Command::Publish {
+            folder,
+            hostname,
+            port,
+        }) => {
+            if let Some(stray) = &cli.folder {
+                eprintln!(
+                    "Error: the folder goes after the subcommand: \
+                     `silverbullet publish <FOLDER>` (got {stray} before it)"
+                );
+                return std::process::ExitCode::FAILURE;
+            }
+            if cli.single {
+                eprintln!("Error: --single does not apply to `silverbullet publish`");
+                return std::process::ExitCode::FAILURE;
+            }
+            Some((folder, hostname.or(cli.hostname.clone()), port.or(cli.port)))
+        }
+        Some(command) => return run_subcommand(command),
+        None => None,
+    };
 
     let runtime = match tokio::runtime::Builder::new_multi_thread()
         .enable_all()
@@ -95,7 +126,11 @@ fn main() -> std::process::ExitCode {
     };
 
     runtime.block_on(async {
-        match server::run(cli.hostname, cli.port, cli.folder, cli.single).await {
+        let result = match publish {
+            Some((folder, hostname, port)) => server::run_publish(hostname, port, folder).await,
+            None => server::run(cli.hostname, cli.port, cli.folder, cli.single).await,
+        };
+        match result {
             Ok(()) => std::process::ExitCode::SUCCESS,
             Err(e) => {
                 // The tracing subscriber writes to stdout; fatal CLI errors also need stderr.
@@ -122,6 +157,7 @@ fn run_subcommand(command: Command) -> std::process::ExitCode {
             at,
             space_folder,
         } => return run_setup_subcommand(folder, admin, space, at, space_folder),
+        Command::Publish { .. } => unreachable!("publish runs inside the Tokio runtime"),
         Command::Upgrade => {
             println!("Upgrading silverbullet...");
             STABLE_URL_PREFIX

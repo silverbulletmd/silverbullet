@@ -28,6 +28,60 @@ pub(crate) fn detect_case_insensitive(root: &Path) -> bool {
     insensitive
 }
 
+/// Detect a case-insensitive filesystem without writing anything: an
+/// existing name with its ASCII letters' case flipped reaches the same file
+/// only there. Tries `root`'s entries, then `root`'s own name in its parent
+/// (which may sit on another filesystem when `root` is a mount point). With
+/// no lettered name in either, reports false, like a failed probe.
+pub(crate) fn detect_case_insensitive_by_reading(root: &Path) -> bool {
+    let entries = std::fs::read_dir(root)
+        .into_iter()
+        .flatten()
+        .flatten()
+        .map(|entry| entry.path());
+    entries
+        .chain(std::iter::once(root.to_path_buf()))
+        .find_map(|path| same_file_with_flipped_case(&path))
+        .unwrap_or(false)
+}
+
+/// Whether `path` with its name's ASCII case flipped is the same file;
+/// `None` when the name has no letters or a lookup fails.
+fn same_file_with_flipped_case(path: &Path) -> Option<bool> {
+    let name = path.file_name()?.to_str()?;
+    if !name.chars().any(|c| c.is_ascii_alphabetic()) {
+        return None;
+    }
+    let flipped: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_lowercase() {
+                c.to_ascii_uppercase()
+            } else {
+                c.to_ascii_lowercase()
+            }
+        })
+        .collect();
+    let original = std::fs::symlink_metadata(path).ok()?;
+    match std::fs::symlink_metadata(path.with_file_name(flipped)) {
+        Ok(other) => Some(same_file(&original, &other)),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Some(false),
+        Err(_) => None,
+    }
+}
+
+#[cfg(unix)]
+fn same_file(a: &std::fs::Metadata, b: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    (a.dev(), a.ino()) == (b.dev(), b.ino())
+}
+
+/// Without a portable file id, a flipped name that resolves at all counts.
+#[cfg(not(unix))]
+fn same_file(_: &std::fs::Metadata, _: &std::fs::Metadata) -> bool {
+    true
+}
+
 /// Plan the renames turning the on-disk casing (`actual_rel`) into the
 /// requested one (`desired_rel`), both relative to `root`.
 ///
@@ -279,6 +333,63 @@ mod tests {
         // Never created — writing into it fails, which must degrade to false
         // rather than panicking.
         assert!(!detect_case_insensitive(&sub));
+    }
+
+    fn filesystem_is_case_insensitive(dir: &Path) -> bool {
+        std::fs::write(dir.join("CaseProbeControl.md"), b"x").unwrap();
+        let control = std::fs::symlink_metadata(dir.join("caseprobecontrol.md")).is_ok();
+        std::fs::remove_file(dir.join("CaseProbeControl.md")).unwrap();
+        control
+    }
+
+    #[test]
+    fn reading_probe_matches_filesystem_behavior_and_writes_nothing() {
+        let dir = tempdir().unwrap();
+        let expected = filesystem_is_case_insensitive(dir.path());
+        std::fs::create_dir(dir.path().join("Notes")).unwrap();
+        std::fs::write(dir.path().join("Notes/Page.md"), b"x").unwrap();
+        let before = std::fs::metadata(dir.path()).unwrap().modified().unwrap();
+
+        assert_eq!(detect_case_insensitive_by_reading(dir.path()), expected);
+        assert_eq!(
+            detect_case_insensitive_by_reading(&dir.path().join("Notes")),
+            expected
+        );
+        assert_eq!(
+            std::fs::metadata(dir.path()).unwrap().modified().unwrap(),
+            before
+        );
+    }
+
+    /// Without an entry to look up, the folder's own name in its parent decides.
+    #[test]
+    fn reading_probe_falls_back_to_the_folders_own_name() {
+        let dir = tempdir().unwrap();
+        let expected = filesystem_is_case_insensitive(dir.path());
+        let empty = dir.path().join("Empty");
+        std::fs::create_dir(&empty).unwrap();
+        assert_eq!(detect_case_insensitive_by_reading(&empty), expected);
+    }
+
+    /// A differently cased twin on a case-sensitive filesystem is another file.
+    #[test]
+    fn reading_probe_tells_a_cased_twin_from_the_same_file() {
+        let dir = tempdir().unwrap();
+        if filesystem_is_case_insensitive(dir.path()) {
+            return;
+        }
+        std::fs::write(dir.path().join("a.md"), b"x").unwrap();
+        std::fs::write(dir.path().join("A.md"), b"y").unwrap();
+        assert!(!detect_case_insensitive_by_reading(dir.path()));
+    }
+
+    #[test]
+    fn reading_probe_without_letters_anywhere_reports_case_sensitive() {
+        let dir = tempdir().unwrap();
+        let root = dir.path().join("123");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("42"), b"x").unwrap();
+        assert!(!detect_case_insensitive_by_reading(&root));
     }
 
     fn plan(root: &str, actual: &str, desired: &str) -> Vec<(String, String)> {

@@ -19,15 +19,12 @@ pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response 
     };
 
     // A login form that can never succeed would only mislead.
-    if state.identity.has_no_accounts() {
+    if let Some(notice) = state.identity.no_accounts_notice() {
         use crate::handlers::notice_page::{NoticeMessage, NoticePage};
         return NoticePage {
             assets: &format!("{}/.client/", login.host_url_prefix()),
             title: "No accounts",
-            message: NoticeMessage::Text(
-                "This server has no accounts, so there is nothing to log in to. \
-                 It is configured by editing spaces.json.",
-            ),
+            message: NoticeMessage::Text(notice),
             action: None,
         }
         .into_response(StatusCode::OK);

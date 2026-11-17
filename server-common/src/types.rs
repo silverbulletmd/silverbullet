@@ -25,7 +25,8 @@ pub struct BootConfig {
     pub enable_client_encryption: bool,
     /// True when one account/session and encryption salt span every prefix on
     /// this server. Clients may then transfer in-memory encryption keys across
-    /// same-origin service-worker scopes.
+    /// same-origin service-worker scopes. False on a server without accounts,
+    /// so the client offers no account UI there.
     #[serde(default)]
     pub account_managed: bool,
     pub shell_backend: String,

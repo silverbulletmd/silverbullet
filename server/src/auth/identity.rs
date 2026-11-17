@@ -25,9 +25,10 @@ pub trait IdentityResolver: Send + Sync {
         None
     }
 
-    /// True when the deployment has no accounts at all, so nobody can log in.
-    fn has_no_accounts(&self) -> bool {
-        false
+    /// What the sign-in page says instead of a form when the deployment has
+    /// no accounts at all, so nobody can log in; `None` when it has accounts.
+    fn no_accounts_notice(&self) -> Option<&'static str> {
+        None
     }
 }
 

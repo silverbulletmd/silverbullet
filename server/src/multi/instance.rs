@@ -47,7 +47,9 @@ pub type RuntimeFactory =
 
 /// Shared inputs for building every space instance.
 pub struct InstanceDeps {
-    pub root: PathBuf,
+    /// The data folder. `None` for an in-memory server: every space folder is
+    /// absolute, and nothing is written into it.
+    pub root: Option<PathBuf>,
     pub assets: AssetFactories,
     pub runtime: RuntimeFactory,
     pub runtime_enabled: Arc<std::sync::atomic::AtomicBool>,
@@ -110,8 +112,10 @@ impl crate::auth::IdentityResolver for AccountIdentity {
         }
     }
 
-    fn has_no_accounts(&self) -> bool {
-        self.store.is_empty()
+    fn no_accounts_notice(&self) -> Option<&'static str> {
+        self.store
+            .is_empty()
+            .then(|| self.store.no_accounts_notice())
     }
 
     fn accounts(&self) -> Option<Vec<crate::auth::UserProfile>> {
@@ -291,25 +295,39 @@ fn try_build_parts(
     prefix: &str,
     deps: &InstanceDeps,
 ) -> Result<(ServerState, crate::search::PageSource), String> {
-    if let Some(reason) = folder_conflict(&deps.root, id, &config.folder) {
+    let root = deps.root.as_deref();
+    if let Some(reason) = root.and_then(|root| folder_conflict(root, id, &config.folder)) {
         return Err(reason);
     }
-    let folder = resolve_folder(&deps.root, id, &config.folder);
+    let folder = match root {
+        Some(root) => resolve_folder(root, id, &config.folder),
+        None => PathBuf::from(&config.folder),
+    };
     if !folder.is_dir() {
         return Err(format!("space folder does not exist: {}", folder.display()));
     }
     let folder_str = folder.to_string_lossy().to_string();
-    // Read-only spaces migrate too: their configuration would otherwise stop
-    // loading, since CONFIG is no longer a Tool Page
-    silverbullet_server_common::space::migrate_config_page(&folder, &config.space_ignore);
-    silverbullet_server_common::space::remove_legacy_repository_pages(&folder);
+    if root.is_some() {
+        // Read-only spaces migrate too: their configuration would otherwise stop
+        // loading, since CONFIG is no longer a Tool Page
+        silverbullet_server_common::space::migrate_config_page(&folder, &config.space_ignore);
+        silverbullet_server_common::space::remove_legacy_repository_pages(&folder);
+    }
 
-    let disk = DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
-        .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;
+    // An in-memory server writes nothing, not even a case probe. Read-only
+    // spaces on a data root keep the write probe and watcher they always had.
+    let only_read = root.is_none();
+    let disk = if only_read {
+        DiskSpacePrimitives::for_reading(&folder_str, &config.space_ignore)
+    } else {
+        DiskSpacePrimitives::new(&folder_str, &config.space_ignore)
+    }
+    .map_err(|e| format!("failed to open space folder {folder_str}: {e}"))?;
     let search_ignore = disk.gitignore_matcher();
     let listing = Arc::new(crate::ListingCachedSpace::new(disk));
     let mut disk: Box<dyn SpacePrimitives> = Box::new(listing.clone());
-    let folder_is_server_root = folder.canonicalize().ok() == deps.root.canonicalize().ok();
+    let folder_is_server_root =
+        root.is_some_and(|root| folder.canonicalize().ok() == root.canonicalize().ok());
     // A space rooted at the data root itself: the server's own files and
     // directories stay out of its sight, its watcher's and its index's.
     let data_root_space = folder_is_server_root;
@@ -449,7 +467,12 @@ fn try_build_parts(
     } else {
         config.space_ignore.clone()
     };
-    let fs_events = crate::start_watcher(
+    let start_watcher = if only_read {
+        crate::start_watcher_for_reading
+    } else {
+        crate::start_watcher
+    };
+    let fs_events = start_watcher(
         &folder,
         &watch_ignore,
         crate::watcher::instance_watch_mode(),
@@ -464,36 +487,38 @@ fn try_build_parts(
         "space watcher started"
     );
     let started = std::time::Instant::now();
-    let sync_settings = {
-        let gs = config.git_sync();
-        if !gs.mode.is_off()
-            && config.revisions == silverbullet_server_common::RevisionsMode::Managed
+    let sync_settings = match root {
+        Some(root)
+            if !config.git_sync().mode.is_off()
+                && config.revisions == silverbullet_server_common::RevisionsMode::Managed =>
         {
+            let gs = config.git_sync();
             Some(crate::revisions::SyncSettings {
-                server_root: deps.root.clone(),
+                server_root: root.to_path_buf(),
                 space_id: id.to_string(),
                 mode: gs.mode,
                 paused: gs.paused
                     || config.read_only
-                    || deps
-                        .root
+                    || root
                         .canonicalize()
                         .ok()
                         .zip(folder.canonicalize().ok())
                         .is_some_and(|(root, folder)| root.starts_with(folder)),
                 pull_interval: gs.effective_pull_interval(),
             })
-        } else {
-            None
         }
+        _ => None,
     };
     let (quiet, max_interval) = config.revisions_commit().effective();
-    let store = crate::revisions::RevisionStore::open(&folder, config.revisions).filter(|store| {
-        !store
-            .repo_root()
-            .and_then(|repo| repo.canonicalize().ok())
-            .zip(deps.root.canonicalize().ok())
-            .is_some_and(|(repo, root)| root.starts_with(repo))
+    // Revisions write into the space folder, which an in-memory server never does.
+    let store = root.and_then(|root| {
+        crate::revisions::RevisionStore::open(&folder, config.revisions).filter(|store| {
+            !store
+                .repo_root()
+                .and_then(|repo| repo.canonicalize().ok())
+                .zip(root.canonicalize().ok())
+                .is_some_and(|(repo, root)| root.starts_with(repo))
+        })
     });
     let revisions_mode = if store.is_some() {
         config.revisions
@@ -547,7 +572,10 @@ fn try_build_parts(
             read_only: config.read_only,
             log_push: config.log_push,
             enable_client_encryption,
-            account_managed: true,
+            // Accounts never appear on a running accountless server: the
+            // admin API needs an admin, setup refuses an existing
+            // `users.json`, and the store is not reloaded from disk.
+            account_managed: !account_store.is_empty(),
             shell_backend: if shell_enabled {
                 "local".into()
             } else {
@@ -605,7 +633,7 @@ mod tests {
 
     fn test_deps(root: &std::path::Path) -> InstanceDeps {
         InstanceDeps {
-            root: root.to_path_buf(),
+            root: Some(root.to_path_buf()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
@@ -1160,6 +1188,60 @@ mod tests {
         );
         let state = try_build_state("s", &cfg, "/s", &deps).unwrap();
         (dir, state)
+    }
+
+    /// The client offers account UI (profile, Logout) only when the server
+    /// has accounts to sign in to; an accountless store, on disk or in
+    /// memory as `publish` keeps it, has none.
+    #[tokio::test]
+    async fn config_reports_account_managed_only_when_accounts_exist() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let on_disk = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        let with_accounts = tempfile::tempdir().unwrap();
+        let populated = crate::multi::users::UserStore::create_empty(with_accounts.path()).unwrap();
+        populated
+            .create_user("admin", "adminpw1", true, Profile::default())
+            .unwrap();
+        let cases = [
+            (on_disk, false),
+            (crate::multi::users::UserStore::empty_in_memory(), false),
+            (populated, true),
+        ];
+        for (store, expected) in cases {
+            let mut deps = test_deps(dir.path());
+            deps.auth = InstanceAuth::Accounts {
+                users: store,
+                authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+                session: SessionPolicy::default(),
+            };
+            let folder = dir.path().join("space");
+            std::fs::create_dir_all(&folder).unwrap();
+            let cfg = space_users_model(
+                Binding::Prefix {
+                    prefix: "/s".into(),
+                },
+                SpaceAccess::Read,
+                Default::default(),
+                folder.to_str().unwrap(),
+            );
+            let state = try_build_state("s", &cfg, "/s", &deps).unwrap();
+            let response = crate::build_router(Arc::new(state))
+                .oneshot(
+                    Request::builder()
+                        .uri("/.config")
+                        .body(Body::empty())
+                        .unwrap(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(response.status(), StatusCode::OK);
+            let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                .await
+                .unwrap();
+            let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            assert_eq!(body["accountManaged"], expected, "{body}");
+        }
     }
 
     fn read_public_state() -> (tempfile::TempDir, Arc<ServerState>) {

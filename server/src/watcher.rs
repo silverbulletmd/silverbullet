@@ -276,6 +276,31 @@ pub fn start_watcher(
     mode: WatchMode,
     fs_guard: Arc<FsGuard>,
 ) -> Option<broadcast::Sender<FsEvent>> {
+    start(root, gitignore, mode, fs_guard, |root, ignore| {
+        DiskSpacePrimitives::new(root, ignore)
+    })
+}
+
+/// [`start_watcher`] for a space that is only read: its validator detects case
+/// sensitivity without writing into the folder.
+pub fn start_watcher_for_reading(
+    root: &Path,
+    gitignore: &str,
+    mode: WatchMode,
+    fs_guard: Arc<FsGuard>,
+) -> Option<broadcast::Sender<FsEvent>> {
+    start(root, gitignore, mode, fs_guard, |root, ignore| {
+        DiskSpacePrimitives::for_reading(root, ignore)
+    })
+}
+
+fn start(
+    root: &Path,
+    gitignore: &str,
+    mode: WatchMode,
+    fs_guard: Arc<FsGuard>,
+    open: fn(&Path, &str) -> Result<DiskSpacePrimitives, SpaceError>,
+) -> Option<broadcast::Sender<FsEvent>> {
     if mode == WatchMode::Off {
         return None;
     }
@@ -289,7 +314,7 @@ pub fn start_watcher(
             return None;
         }
     };
-    let validator = match DiskSpacePrimitives::new(&root, gitignore) {
+    let validator = match open(&root, gitignore) {
         Ok(v) => v,
         Err(e) => {
             tracing::warn!("Not starting fs watcher, disk primitives failed: {e}");

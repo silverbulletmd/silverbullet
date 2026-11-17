@@ -589,16 +589,23 @@ fn accountless_server_serves_public_space() {
     assert_eq!(page.status().as_u16(), 200);
     assert_eq!(page.text().unwrap(), "# Public");
 
+    // No accounts, so the client offers no account UI.
+    let config = client.get(format!("{base}/.config")).send().unwrap();
+    let config: serde_json::Value = serde_json::from_str(&config.text().unwrap()).unwrap();
+    assert_eq!(config["accountManaged"], false, "{config}");
+
     let dashboard = client.get(format!("{base}/.dashboard/")).send().unwrap();
     assert_eq!(dashboard.status().as_u16(), 200);
     let html = dashboard.text().unwrap();
     assert!(html.contains("no accounts"), "{html}");
+    assert!(html.contains("editing spaces.json"), "{html}");
 
     // The space's own sign-in page says the same instead of offering a form.
     let auth = client.get(format!("{base}/.auth")).send().unwrap();
     assert_eq!(auth.status().as_u16(), 200);
     let html = auth.text().unwrap();
     assert!(html.contains("no accounts"), "{html}");
+    assert!(html.contains("editing spaces.json"), "{html}");
     assert!(!html.contains("password"), "{html}");
     assert!(!html.contains("<form"), "{html}");
 

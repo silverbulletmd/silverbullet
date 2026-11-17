@@ -295,7 +295,7 @@ impl Fixture {
         );
         let grants = Arc::new(GrantStore::load(dir.path()).unwrap());
         let deps = InstanceDeps {
-            root: dir.path().into(),
+            root: Some(dir.path().into()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(move || {

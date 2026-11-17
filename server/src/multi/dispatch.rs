@@ -12,7 +12,7 @@ use axum::response::{IntoResponse, Redirect, Response};
 use axum::Router;
 use tower::ServiceExt;
 
-use crate::multi::instance::{InstanceStatus, SpaceInstance};
+use crate::multi::instance::SpaceInstance;
 use crate::multi::manager::MultiManager;
 
 #[derive(Clone)]
@@ -305,15 +305,9 @@ async fn forward_to_space(inst: &SpaceInstance, prefix: &str, req: Request) -> R
     }
 
     let Some(router) = inst.router.clone() else {
-        let reason = match &inst.status {
-            InstanceStatus::Errored(r) => r.clone(),
-            _ => "space unavailable".to_string(),
-        };
-        return (
-            StatusCode::SERVICE_UNAVAILABLE,
-            format!("Space unavailable: {reason}"),
-        )
-            .into_response();
+        // The reason can name host paths, so it stays in the log (written when
+        // the instance was built) and out of the anonymous response.
+        return (StatusCode::SERVICE_UNAVAILABLE, "Space unavailable").into_response();
     };
 
     let req = if prefix.is_empty() {
@@ -361,7 +355,7 @@ mod tests {
 
     fn deps(root: &std::path::Path) -> InstanceDeps {
         InstanceDeps {
-            root: root.to_path_buf(),
+            root: Some(root.to_path_buf()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),
@@ -440,6 +434,36 @@ mod tests {
             )
             .await
             .unwrap()
+    }
+
+    #[tokio::test]
+    async fn an_errored_space_answers_anonymous_visitors_without_the_host_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = MultiManager::boot(
+            dir.path().to_path_buf(),
+            deps(dir.path()),
+            std::collections::BTreeSet::new(),
+        )
+        .unwrap();
+        let cfg = payload(
+            "Work",
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+        );
+        let id = m.create(cfg.clone(), true).unwrap();
+        std::fs::remove_dir_all(dir.path().join("spaces").join(&id)).unwrap();
+        m.update(&id, cfg).unwrap();
+        let router = build_main_router(m, None, "test".to_string());
+
+        let response = get(&router, "localhost", "/work/").await;
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let body = String::from_utf8_lossy(&bytes);
+        assert!(!body.contains(dir.path().to_str().unwrap()), "{body}");
+        assert!(body.contains("Space unavailable"), "{body}");
     }
 
     #[tokio::test]

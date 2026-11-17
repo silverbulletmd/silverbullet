@@ -113,7 +113,7 @@ impl Fixture {
         let children = Arc::new(Mutex::new(Vec::new()));
         let captured = children.clone();
         let deps = InstanceDeps {
-            root: dir.path().into(),
+            root: Some(dir.path().into()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),

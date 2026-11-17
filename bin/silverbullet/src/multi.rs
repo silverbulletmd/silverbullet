@@ -1,7 +1,7 @@
 //! Multi-space mode wiring: env validation, embedded-asset and Chrome-runtime
 //! factories, unified /.dashboard surface construction, and the serve loop.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use silverbullet_server::auth::mcp::cimd::CimdFetcher;
@@ -16,6 +16,7 @@ use silverbullet_server::handlers::mcp_oauth::{self, SessionConsent};
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::access::SessionPolicy;
 use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState, McpAvailability};
+use silverbullet_server::multi::config::MultiConfig;
 use silverbullet_server::multi::dashboard::{
     build_accountless_dashboard_router, build_dashboard_router, DashboardState,
 };
@@ -24,6 +25,7 @@ use silverbullet_server::multi::instance::{
     AssetFactories, InstanceAuth, InstanceDeps, RuntimeFactory, RuntimeRequest,
 };
 use silverbullet_server::multi::manager::MultiManager;
+use silverbullet_server::multi::server_config::ServerConfig;
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
 use silverbullet_server::update_check::UpdateCheck;
@@ -57,67 +59,56 @@ pub(crate) const IGNORED_IN_MULTI: &[&str] = &[
     "SB_RUNTIME_API",
 ];
 
-/// Build the full multi-space serving stack from a provisioned root.
+/// Where the multi-space stack's configuration and state come from.
+pub enum StackSource {
+    /// A provisioned data folder: `spaces.json`, `users.json`, `server.json`
+    /// and the server's own state (sessions, search indexes, MCP grants).
+    DataRoot(PathBuf),
+    /// Configuration held in memory. The server has no accounts, no MCP and no
+    /// update check, refuses every configuration change, and writes no files.
+    InMemory(InMemoryStack),
+}
+
+/// The configuration of an in-memory stack. Space folders must be absolute.
+pub struct InMemoryStack {
+    pub spaces: MultiConfig,
+    pub server: ServerConfig,
+}
+
+/// Build the full multi-space serving stack from `source`.
 /// `shutdown_rx` is cloned into every space's `ServerState::shutdown`; `None`
 /// (e.g. from a test) means those spaces' `/.events` streams never see a
 /// shutdown signal, matching pre-signal behavior.
 pub async fn build_multi_stack(
     config: &Config,
+    source: StackSource,
     shutdown_rx: Option<tokio::sync::watch::Receiver<()>>,
 ) -> Result<(axum::Router, String), String> {
-    for var in IGNORED_IN_MULTI {
-        if std::env::var(var).map(|v| !v.is_empty()).unwrap_or(false) {
-            tracing::warn!(
-                "{var} is ignored: a multi-space server is configured through the Dashboard \
-                 (spaces.json, users.json and server.json)"
-            );
+    let root = match &source {
+        StackSource::DataRoot(root) => {
+            warn_ignored_env();
+            Some(root.clone())
         }
-    }
-
-    let root = PathBuf::from(&config.data_folder);
-    std::fs::create_dir_all(&root).map_err(|e| format!("could not create data folder: {e}"))?;
-    warn_if_world_readable(&root.join("spaces.json"));
-    warn_if_world_readable(&root.join("users.json"));
-    warn_if_world_readable(&root.join(MULTI_AUTH_FILE_NAME));
-
-    let started = std::time::Instant::now();
-    let store = UserStore::open(&root)?.ok_or_else(|| {
-        "no users.json found: this folder is not fully provisioned, complete setup first"
-            .to_string()
-    })?;
-    tracing::debug!(
-        elapsed_ms = started.elapsed().as_millis(),
-        "multi-space users loaded"
-    );
-    // `users.json` holding `{}` is an accountless server: its spaces are
-    // served as configured, and there is no Dashboard to log in to.
+        StackSource::InMemory(_) => None,
+    };
+    let (store, authenticator) = match &root {
+        Some(root) => open_accounts(root)?,
+        None => (
+            UserStore::empty_in_memory(),
+            Arc::new(Authenticator::in_memory()),
+        ),
+    };
     let accountless = store.is_empty();
-    if accountless {
-        tracing::info!("users.json has no accounts: serving spaces without a Dashboard login");
-    }
-    let started = std::time::Instant::now();
-    let authenticator = Arc::new(
-        Authenticator::load_or_init_with_stamp_named(
-            &root,
-            "account-managed-session-v1",
-            MULTI_AUTH_FILE_NAME,
-        )
-        .map_err(|e| format!("could not initialize server authentication: {e}"))?
-        .with_browser_sessions(Arc::new(
-            BrowserSessions::load(&root).map_err(|e| e.to_string())?,
-        )),
-    );
 
-    tracing::debug!(
-        elapsed_ms = started.elapsed().as_millis(),
-        "multi-space authentication loaded"
-    );
-    let mcp_env_enabled = !env_off("SB_MCP");
-    if !mcp_env_enabled {
+    let mcp_env_enabled = root.is_some() && !env_off("SB_MCP");
+    if root.is_some() && !mcp_env_enabled {
         tracing::info!("MCP disabled by SB_MCP=0");
     }
-    let mcp_stores = load_mcp_stores(&root);
-    let mcp_availability = if !mcp_env_enabled {
+    let mcp_stores = match &root {
+        Some(root) => load_mcp_stores(root),
+        None => Err("an in-memory server has no MCP".to_string()),
+    };
+    let mcp_availability = if root.is_some() && !mcp_env_enabled {
         McpAvailability::DisabledByEnv
     } else if let Err(message) = &mcp_stores {
         McpAvailability::Failed {
@@ -135,7 +126,10 @@ pub async fn build_multi_stack(
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
     let started = std::time::Instant::now();
-    let (runtime, runtime_availability) = space_runtime_factory(&root);
+    let (runtime, runtime_availability) = match &root {
+        Some(root) => space_runtime_factory(root),
+        None => no_runtime(),
+    };
     tracing::debug!(
         elapsed_ms = started.elapsed().as_millis(),
         "multi-space runtime configured"
@@ -167,22 +161,32 @@ pub async fn build_multi_stack(
         shell_disabled: config.shell_disabled,
         index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx.clone(),
-        search: silverbullet_server::search::SpaceSearch::in_root(
-            silverbullet_server::search::search_root(&root),
-        ),
+        search: match &root {
+            Some(root) => silverbullet_server::search::SpaceSearch::in_root(
+                silverbullet_server::search::search_root(root),
+            ),
+            None => silverbullet_server::search::SpaceSearch::in_memory(),
+        },
     };
 
     let known_users = store.usernames();
     let started = std::time::Instant::now();
-    let manager = MultiManager::boot(root.clone(), deps, known_users)?;
+    let manager = match source {
+        StackSource::DataRoot(root) => MultiManager::boot(root, deps, known_users)?,
+        StackSource::InMemory(stack) => {
+            MultiManager::boot_in_memory(stack.spaces, stack.server, deps, known_users)?
+        }
+    };
     tracing::debug!(
         elapsed_ms = started.elapsed().as_millis(),
         "multi-dashboard booted"
     );
-    tracing::info!(
-        "SilverBullet multi-space mode: {} space(s) configured",
-        manager.registry().current().instances.len()
-    );
+    if root.is_some() {
+        tracing::info!(
+            "SilverBullet multi-space mode: {} space(s) configured",
+            manager.registry().current().instances.len()
+        );
+    }
     if config.shell_disabled {
         // Warn only when the environment overrides the space configuration.
         let overridden = manager
@@ -226,9 +230,10 @@ pub async fn build_multi_stack(
         });
     }
 
-    let providers = Arc::new(silverbullet_server::auth::oidc::store::ProviderStore::open(
-        &root,
-    )?);
+    let providers = Arc::new(match &root {
+        Some(root) => silverbullet_server::auth::oidc::store::ProviderStore::open(root)?,
+        None => silverbullet_server::auth::oidc::store::ProviderStore::empty_in_memory(),
+    });
     let mut admin_state = AdminState::new(
         manager.clone(),
         store.clone(),
@@ -236,7 +241,10 @@ pub async fn build_multi_stack(
         runtime_availability,
     )
     .with_provider_store(providers.clone());
-    if let Some(update_check) = UpdateCheck::from_env(&root, crate::VERSION) {
+    if let Some(update_check) = root
+        .as_deref()
+        .and_then(|root| UpdateCheck::from_env(root, crate::VERSION))
+    {
         tracing::info!("Update check enabled (daily, anonymous; set SB_UPDATE_CHECK=0 to disable)");
         // Without a shutdown signal (tests) the state is still reported but
         // no background task is started.
@@ -352,11 +360,79 @@ pub async fn build_multi_stack(
         });
         router = router.merge(mcp_oauth::router(state, mcp_enabled));
     }
-    let log = format!(
-        "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",
-        crate::server::listen_address(config)
-    );
+    let log = if root.is_some() {
+        format!(
+            "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",
+            crate::server::listen_address(config)
+        )
+    } else {
+        // `run_publish` announces itself
+        String::new()
+    };
     Ok((router, log))
+}
+
+fn warn_ignored_env() {
+    for var in IGNORED_IN_MULTI {
+        if std::env::var(var).map(|v| !v.is_empty()).unwrap_or(false) {
+            tracing::warn!(
+                "{var} is ignored: a multi-space server is configured through the Dashboard \
+                 (spaces.json, users.json and server.json)"
+            );
+        }
+    }
+}
+
+/// The accounts and session secret of the data folder `root`.
+fn open_accounts(root: &Path) -> Result<(Arc<UserStore>, Arc<Authenticator>), String> {
+    std::fs::create_dir_all(root).map_err(|e| format!("could not create data folder: {e}"))?;
+    warn_if_world_readable(&root.join("spaces.json"));
+    warn_if_world_readable(&root.join("users.json"));
+    warn_if_world_readable(&root.join(MULTI_AUTH_FILE_NAME));
+
+    let started = std::time::Instant::now();
+    let store = UserStore::open(root)?.ok_or_else(|| {
+        "no users.json found: this folder is not fully provisioned, complete setup first"
+            .to_string()
+    })?;
+    tracing::debug!(
+        elapsed_ms = started.elapsed().as_millis(),
+        "multi-space users loaded"
+    );
+    // `users.json` holding `{}` is an accountless server: its spaces are
+    // served as configured, and there is no Dashboard to log in to.
+    if store.is_empty() {
+        tracing::info!("users.json has no accounts: serving spaces without a Dashboard login");
+    }
+    let started = std::time::Instant::now();
+    let authenticator = Arc::new(
+        Authenticator::load_or_init_with_stamp_named(
+            root,
+            "account-managed-session-v1",
+            MULTI_AUTH_FILE_NAME,
+        )
+        .map_err(|e| format!("could not initialize server authentication: {e}"))?
+        .with_browser_sessions(Arc::new(
+            BrowserSessions::load(root).map_err(|e| e.to_string())?,
+        )),
+    );
+
+    tracing::debug!(
+        elapsed_ms = started.elapsed().as_millis(),
+        "multi-space authentication loaded"
+    );
+    Ok((store, authenticator))
+}
+
+/// No browser for any space: an in-memory server never starts Chrome, whose
+/// profiles live on disk.
+fn no_runtime() -> (RuntimeFactory, RuntimeAvailability) {
+    (
+        Arc::new(|_: &RuntimeRequest| None),
+        RuntimeAvailability::Failed {
+            message: "the Runtime API is not available on this server".into(),
+        },
+    )
 }
 
 /// `0` or `false` turns an `SB_MCP*` switch off; anything else leaves it on.
@@ -436,7 +512,8 @@ pub(crate) async fn run_multi(
     config: Config,
     shutdown: crate::server::Shutdown,
 ) -> Result<(), String> {
-    let (router, log) = build_multi_stack(&config, Some(shutdown.rx.clone())).await?;
+    let source = StackSource::DataRoot(PathBuf::from(&config.data_folder));
+    let (router, log) = build_multi_stack(&config, source, Some(shutdown.rx.clone())).await?;
     tracing::info!("{log}");
     crate::server::serve(&config, router, shutdown).await
 }

@@ -192,7 +192,7 @@ pub fn validate(
     root: &Path,
     known_users: &BTreeSet<String>,
 ) -> Vec<FieldError> {
-    validate_for_primary(config, root, known_users, None)
+    validate_for_primary(config, Some(root), known_users, None)
 }
 
 /// [`validate`] for a server whose primary URL has host `primary_host`.
@@ -202,13 +202,18 @@ pub fn validate(
 /// `..` would otherwise contain every space. This function does not report
 /// the conflict itself; callers run `data_root::folder_conflicts` and report it.
 /// Every other check, binding overlap included, still counts it.
+///
+/// Without a data `root` (an in-memory server) every folder must be absolute,
+/// and revisions and git sync are refused: both write state to disk.
 pub fn validate_for_primary(
     config: &MultiConfig,
-    root: &Path,
+    root: Option<&Path>,
     known_users: &BTreeSet<String>,
     primary_host: Option<&str>,
 ) -> Vec<FieldError> {
-    let skipped = crate::multi::data_root::folder_conflicts(root, config);
+    let skipped = root
+        .map(|root| crate::multi::data_root::folder_conflicts(root, config))
+        .unwrap_or_default();
     let mut errors = Vec::new();
     let mut seen_bindings: Vec<(&String, Option<String>, String)> = Vec::new();
     let mut spaces: Vec<_> = config.spaces.iter().collect();
@@ -301,6 +306,29 @@ pub fn validate_for_primary(
                 );
             }
         }
+        if root.is_none() {
+            if !Path::new(&space.folder).is_absolute() {
+                err(
+                    &mut errors,
+                    format!("{id}.folder"),
+                    "folder must be an absolute path",
+                );
+            }
+            if space.revisions != silverbullet_server_common::RevisionsMode::Disabled {
+                err(
+                    &mut errors,
+                    format!("{id}.revisions"),
+                    "revisions need a data folder; this server has none",
+                );
+            }
+            if !space.git_sync().mode.is_off() {
+                err(
+                    &mut errors,
+                    format!("{id}.gitSync"),
+                    "git sync needs a data folder; this server has none",
+                );
+            }
+        }
         if !space.git_sync().mode.is_off()
             && space.revisions != silverbullet_server_common::RevisionsMode::Managed
         {
@@ -320,10 +348,11 @@ pub fn validate_for_primary(
         .iter()
         .filter(|(id, _)| !skipped.contains_key(*id))
         .map(|(id, s)| {
-            (
-                id.clone(),
-                crate::multi::instance::resolve_folder(root, id, &s.folder),
-            )
+            let folder = match root {
+                Some(root) => crate::multi::instance::resolve_folder(root, id, &s.folder),
+                None => PathBuf::from(&s.folder),
+            };
+            (id.clone(), folder)
         })
         .collect();
     for (i, (id_a, a)) in resolved.iter().enumerate() {
@@ -978,6 +1007,57 @@ mod tests {
         assert!(
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn without_a_data_root_folders_must_be_absolute_and_must_not_nest() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = |path: &std::path::Path, prefix: &str| {
+            let mut s = space(
+                "S",
+                Binding::Prefix {
+                    prefix: prefix.into(),
+                },
+            );
+            s.folder = path.to_string_lossy().into_owned();
+            s
+        };
+        let fine = cfg(vec![("a", folder(dir.path(), "/"))]);
+        assert!(validate_for_primary(&fine, None, &users(&[]), None).is_empty());
+
+        let relative = cfg(vec![("a", folder(std::path::Path::new("site"), "/"))]);
+        let errs = validate_for_primary(&relative, None, &users(&[]), None);
+        assert!(errs.iter().any(|e| e.field == "a.folder"), "{errs:?}");
+
+        let nested = cfg(vec![
+            ("a", folder(dir.path(), "/a")),
+            ("b", folder(&dir.path().join("b"), "/b")),
+        ]);
+        let errs = validate_for_primary(&nested, None, &users(&[]), None);
+        assert!(
+            errs.iter().any(|e| e.message.contains("may not nest")),
+            "{errs:?}"
+        );
+    }
+
+    #[test]
+    fn without_a_data_root_revisions_and_git_sync_are_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut s = space("S", Binding::Prefix { prefix: "/".into() });
+        s.folder = dir.path().to_string_lossy().into_owned();
+        s.revisions = silverbullet_server_common::RevisionsMode::Managed;
+        s.git_sync = Some(crate::multi::config::GitSyncConfig {
+            mode: crate::multi::config::GitSyncMode::Key,
+            ..Default::default()
+        });
+        let errs = validate_for_primary(&cfg(vec![("a", s.clone())]), None, &users(&[]), None);
+        assert!(errs.iter().any(|e| e.field == "a.revisions"), "{errs:?}");
+        assert!(errs.iter().any(|e| e.field == "a.gitSync"), "{errs:?}");
+        assert!(
+            validate_for_primary(&cfg(vec![("a", s)]), Some(dir.path()), &users(&[]), None)
+                .iter()
+                .all(|e| e.field != "a.revisions")
         );
     }
 

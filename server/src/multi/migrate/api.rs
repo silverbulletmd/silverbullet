@@ -382,7 +382,10 @@ async fn handle_run(State(api): State<Arc<Api>>, headers: HeaderMap, body: Bytes
 /// navigations are pointed at the flow, writes are refused so clients keep
 /// their unsynced edits.
 async fn handle_fallback(State(api): State<Arc<Api>>, req: Request) -> Response {
-    let message = "This server is being upgraded, check back soon.";
+    let message = format!(
+        "This SilverBullet server needs a one-time upgrade. Open {} in a browser to continue.",
+        api.flow_path
+    );
     if req.method() != Method::GET && req.method() != Method::HEAD {
         return (StatusCode::UNAUTHORIZED, message).into_response();
     }

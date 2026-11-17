@@ -75,7 +75,9 @@ pub(crate) async fn run_setup_server(
     let swap_shutdown_rx = shutdown.rx.clone();
     tokio::spawn(async move {
         ready.notified().await;
-        match crate::multi::build_multi_stack(&swap_config, Some(swap_shutdown_rx)).await {
+        let source =
+            crate::multi::StackSource::DataRoot(std::path::PathBuf::from(&swap_config.data_folder));
+        match crate::multi::build_multi_stack(&swap_config, source, Some(swap_shutdown_rx)).await {
             Ok((router, log)) => {
                 handle.swap(router);
                 tracing::info!("setup complete: now serving multi-space: {log}");
@@ -134,11 +136,15 @@ pub(crate) async fn run_migrate_server(
             let (swap, config, shutdown_rx) =
                 (swap.clone(), swap_config.clone(), swap_shutdown_rx.clone());
             Box::pin(async move {
-                let (router, log) = crate::multi::build_multi_stack(&config, Some(shutdown_rx))
-                    .await
-                    .inspect_err(|e| {
-                        tracing::error!("bringing up the multi-space stack failed: {e}")
-                    })?;
+                let source = crate::multi::StackSource::DataRoot(std::path::PathBuf::from(
+                    &config.data_folder,
+                ));
+                let (router, log) =
+                    crate::multi::build_multi_stack(&config, source, Some(shutdown_rx))
+                        .await
+                        .inspect_err(|e| {
+                            tracing::error!("bringing up the multi-space stack failed: {e}")
+                        })?;
                 swap.swap(router);
                 tracing::info!("migration complete: now serving multi-space: {log}");
                 Ok(())

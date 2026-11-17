@@ -15,7 +15,8 @@ struct Settings {
 }
 
 pub struct ProviderStore {
-    path: PathBuf,
+    /// `None`: no sign-in provider, and none can be configured.
+    path: Option<PathBuf>,
     state: Mutex<Settings>,
 }
 impl ProviderStore {
@@ -33,9 +34,16 @@ impl ProviderStore {
             config.validate()?;
         }
         Ok(Self {
-            path,
+            path: Some(path),
             state: Mutex::new(state),
         })
+    }
+
+    pub fn empty_in_memory() -> Self {
+        Self {
+            path: None,
+            state: Mutex::new(Settings::default()),
+        }
     }
 
     fn mutate<T>(
@@ -43,12 +51,14 @@ impl ProviderStore {
         change: impl FnOnce(&mut Settings) -> Result<T, String>,
     ) -> Result<T, String> {
         use std::io::Write;
+        let path = self
+            .path
+            .as_deref()
+            .ok_or("this server cannot configure a sign-in provider")?;
         let mut state = self.state.lock().unwrap();
         let mut next = state.clone();
         let value = change(&mut next)?;
-        let temp = self
-            .path
-            .with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
+        let temp = path.with_extension(format!("{}.tmp", uuid::Uuid::new_v4()));
         let mut options = std::fs::OpenOptions::new();
         options.write(true).create_new(true);
         #[cfg(unix)]
@@ -60,7 +70,7 @@ impl ProviderStore {
             let mut file = options.open(&temp)?;
             file.write_all(&serde_json::to_vec_pretty(&next)?)?;
             file.sync_all()?;
-            std::fs::rename(&temp, &self.path)
+            std::fs::rename(&temp, path)
         })();
         if let Err(e) = result {
             let _ = std::fs::remove_file(temp);
@@ -196,5 +206,17 @@ impl ProviderStore {
             "active": state.active.as_ref().map(ProviderConfig::public_json),
             "draft": state.draft.as_ref().map(ProviderConfig::public_json),
             "tested": state.tested_revision == Some(state.revision) })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn an_in_memory_store_has_no_provider_and_refuses_changes() {
+        let store = ProviderStore::empty_in_memory();
+        assert!(store.configured().is_none());
+        assert!(store.disable().is_err());
     }
 }

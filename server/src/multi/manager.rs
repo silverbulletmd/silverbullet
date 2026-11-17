@@ -56,9 +56,10 @@ pub struct ManagedRuntime {
 }
 
 pub struct MultiManager {
-    root: PathBuf,
+    /// The data folder `spaces.json` and `server.json` live in. `None` for an
+    /// in-memory server, whose configuration is fixed when it starts.
+    root: Option<PathBuf>,
     pub(super) git_connections: Mutex<()>,
-    config_path: PathBuf,
     deps: InstanceDeps,
     /// Current persisted config + built instances, mutated under one lock so
     /// concurrent admin calls serialize.
@@ -108,26 +109,75 @@ impl MultiManager {
         let config_exists = config_path.exists();
         let mut config = MultiConfig::load(&config_path)?;
         super::git_connection::recover(&root, &mut config)?;
-        let mut server_config = ServerConfig::load(&root.join("server.json"))?;
+        let server_config = ServerConfig::load(&root.join("server.json"))?;
+        Self::start(
+            Some(root),
+            config,
+            server_config,
+            config_exists,
+            deps,
+            known_users,
+        )
+    }
+
+    /// A manager over `spaces` and `server` as given, with no data folder:
+    /// nothing is read from or written to disk besides the space folders,
+    /// which must be absolute, and every configuration change is refused.
+    /// `deps` must have no `root` either.
+    pub fn boot_in_memory(
+        mut spaces: MultiConfig,
+        server: ServerConfig,
+        deps: InstanceDeps,
+        known_users: BTreeSet<String>,
+    ) -> Result<Arc<Self>, String> {
+        if deps.root.is_some() {
+            return Err("an in-memory server has no data folder".into());
+        }
+        for space in spaces.spaces.values_mut() {
+            space.normalize();
+        }
+        Self::start(None, spaces, server, false, deps, known_users)
+    }
+
+    fn start(
+        root: Option<PathBuf>,
+        config: MultiConfig,
+        mut server_config: ServerConfig,
+        sweep_search: bool,
+        deps: InstanceDeps,
+        known_users: BTreeSet<String>,
+    ) -> Result<Arc<Self>, String> {
         server_config
             .validate(&config)
             .map_err(|errors| format!("invalid server.json: {errors:?}"))?;
         // A space whose folder can't be served safely (it overlaps the data
         // folder's reserved directories, which hold every space's search index
         // and the git keys) is skipped, not fatal: it comes up errored, with
-        // the reason in `/api/spaces` and on the space's own 503 page, while
+        // the reason in `/api/spaces` and the log (the space's own 503 page stays generic), while
         // the other spaces start. Admin changes still refuse such a folder.
-        for (id, reason) in super::data_root::folder_conflicts(&root, &config) {
-            tracing::error!(space_id = id.as_str(), "space {id} is skipped: {reason}");
+        if let Some(root) = &root {
+            for (id, reason) in super::data_root::folder_conflicts(root, &config) {
+                tracing::error!(space_id = id.as_str(), "space {id} is skipped: {reason}");
+            }
         }
         let primary_host = server_config.primary_host();
-        let errors = validate_for_primary(&config, &root, &known_users, primary_host.as_deref());
+        let errors = validate_for_primary(
+            &config,
+            root.as_deref(),
+            &known_users,
+            primary_host.as_deref(),
+        );
         if !errors.is_empty() {
             let msgs: Vec<String> = errors
                 .iter()
                 .map(|e| format!("{}: {}", e.field, e.message))
                 .collect();
-            return Err(format!("invalid spaces.json: {}", msgs.join("; ")));
+            let source = if root.is_some() {
+                "spaces.json"
+            } else {
+                "space configuration"
+            };
+            return Err(format!("invalid {source}: {}", msgs.join("; ")));
         }
         for warning in root_prefix_conflict_warnings_for_primary(&config, primary_host.as_deref())
             .into_values()
@@ -145,7 +195,7 @@ impl MultiManager {
         );
         // Before any instance opens its index (see `search_policy::boot`).
         let deps = InstanceDeps {
-            search: search_policy::boot(deps.search, &server_config, &config, config_exists),
+            search: search_policy::boot(deps.search, &server_config, &config, sweep_search),
             ..deps
         };
         let instances: HashMap<String, Arc<SpaceInstance>> = config
@@ -158,7 +208,6 @@ impl MultiManager {
         Ok(Arc::new(Self {
             root,
             git_connections: Mutex::new(()),
-            config_path,
             deps,
             state: Mutex::new(Inner {
                 server_config,
@@ -168,6 +217,14 @@ impl MultiManager {
             registry: Registry::new(table),
             known_users: RwLock::new(known_users),
         }))
+    }
+
+    /// The data folder every configuration change is saved in; an in-memory
+    /// server refuses the change.
+    pub(super) fn data_root(&self) -> Result<&Path, ApiError> {
+        self.root.as_deref().ok_or_else(|| {
+            ApiError::Conflict("this server's configuration is fixed when it starts".into())
+        })
     }
 
     pub fn primary_url(&self) -> Option<String> {
@@ -212,6 +269,7 @@ impl MultiManager {
     /// Applies every field of `patch` together: all of it is checked before
     /// `server.json` is saved once, so a rejected field changes nothing.
     pub fn set_server_config(&self, patch: ServerConfigPatch) -> Result<(), ApiError> {
+        let root = self.data_root()?;
         let mut inner = self.state.lock().unwrap();
         let mut config = inner.server_config.clone();
         if let Some(value) = patch.primary_url {
@@ -246,7 +304,7 @@ impl MultiManager {
         let known_users = self.known_users.read().unwrap().clone();
         let errors = validate_for_primary(
             &inner.config,
-            &self.root,
+            Some(root),
             &known_users,
             proposed_primary.as_deref(),
         );
@@ -263,7 +321,7 @@ impl MultiManager {
             return Err(ApiError::Validation(errors));
         }
         config
-            .save(&self.root.join("server.json"))
+            .save(&root.join("server.json"))
             .map_err(ApiError::Internal)?;
         self.deps
             .runtime_enabled
@@ -360,10 +418,6 @@ impl MultiManager {
         &self.registry
     }
 
-    pub fn root(&self) -> &Path {
-        &self.root
-    }
-
     /// The live built instance for `id`, if any — the admin git-sync routes
     /// use this to reach a running space's `RevisionEngine` and resolved
     /// folder, since they are not nested inside that space's own router.
@@ -406,6 +460,7 @@ impl MultiManager {
         username: &str,
         new_known_users: BTreeSet<String>,
     ) -> Result<(), ApiError> {
+        self.data_root()?;
         let mut retired = Retired::default();
         let mut inner = self.state.lock().unwrap();
         *self.known_users.write().unwrap() = new_known_users;
@@ -433,12 +488,13 @@ impl MultiManager {
         journal_id: Option<&str>,
         preserve_sync_history: bool,
     ) -> Result<(), ApiError> {
+        let root = self.data_root()?;
         inner
             .server_config
             .clone()
             .validate(&new_config)
             .map_err(ApiError::Validation)?;
-        let errors = introduced_folder_conflicts(&self.root, &inner.config, &new_config);
+        let errors = introduced_folder_conflicts(root, &inner.config, &new_config);
         if !errors.is_empty() {
             return Err(ApiError::Validation(errors));
         }
@@ -469,7 +525,7 @@ impl MultiManager {
         let primary_host = inner.server_config.primary_host();
         let errors = validate_for_primary(
             &new_config,
-            &self.root,
+            Some(root),
             &known_users,
             primary_host.as_deref(),
         );
@@ -485,7 +541,7 @@ impl MultiManager {
             return Err(ApiError::Validation(errors));
         }
         new_config
-            .save(&self.config_path)
+            .save(&root.join("spaces.json"))
             .map_err(ApiError::Internal)?;
         for (id, instance) in &inner.instances {
             if new_config.spaces.get(id) != Some(&instance.config) {
@@ -499,7 +555,7 @@ impl MultiManager {
             }
         }
         if let Some(id) = journal_id {
-            super::git_connection::finish_change(&self.root, id).map_err(ApiError::Internal)?;
+            super::git_connection::finish_change(root, id).map_err(ApiError::Internal)?;
         }
         let rebuild = |id: &str, cfg: &SpaceConfig, existing: &SpaceInstance| {
             &existing.config != cfg || (journal_id == Some(id) && !preserve_sync_history)
@@ -515,6 +571,7 @@ impl MultiManager {
         preserve_sync_history: bool,
         change: impl FnOnce(&SpaceInstance, &mut SpaceConfig) -> Result<(), String>,
     ) -> Result<(), ApiError> {
+        let root = self.data_root()?;
         let mut retired = Retired::default();
         let mut inner = self.state.lock().unwrap();
         let instance = inner.instances.get(id).cloned().ok_or(ApiError::NotFound)?;
@@ -528,13 +585,8 @@ impl MultiManager {
         }
         let mut new_config = inner.config.clone();
         let result = (|| {
-            super::git_connection::begin_change(
-                &self.root,
-                id,
-                &repo,
-                instance.config.git_sync.clone(),
-            )
-            .map_err(ApiError::Internal)?;
+            super::git_connection::begin_change(root, id, &repo, instance.config.git_sync.clone())
+                .map_err(ApiError::Internal)?;
             change(&instance, new_config.spaces.get_mut(id).unwrap())
                 .map_err(ApiError::Internal)?;
             super::git_connection::sync_git_config(&repo).map_err(ApiError::Internal)?;
@@ -547,8 +599,7 @@ impl MultiManager {
             )
         })();
         if result.is_err() {
-            super::git_connection::recover(&self.root, &mut inner.config)
-                .map_err(ApiError::Internal)?;
+            super::git_connection::recover(root, &mut inner.config).map_err(ApiError::Internal)?;
             if let Some(engine) = &instance.revisions {
                 engine.set_sync_paused(instance.config.git_sync().paused);
             }
@@ -561,6 +612,7 @@ impl MultiManager {
     }
 
     pub fn create(&self, mut cfg: SpaceConfig, should_seed: bool) -> Result<String, ApiError> {
+        let root = self.data_root()?;
         cfg.normalize();
         let mut retired = Retired::default();
         let mut inner = self.state.lock().unwrap();
@@ -568,7 +620,7 @@ impl MultiManager {
         if cfg.folder.is_empty() {
             cfg.folder = format!("spaces/{id}");
         }
-        let folder = resolve_folder(&self.root, &id, &cfg.folder);
+        let folder = resolve_folder(root, &id, &cfg.folder);
         std::fs::create_dir_all(&folder).map_err(|e| {
             ApiError::Validation(vec![FieldError {
                 field: "folder".into(),
@@ -826,11 +878,12 @@ mod tests {
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use silverbullet_server_common::space::MemorySpacePrimitives;
 
+    mod in_memory;
     mod search;
 
     fn deps(root: &std::path::Path) -> InstanceDeps {
         InstanceDeps {
-            root: root.to_path_buf(),
+            root: Some(root.to_path_buf()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),

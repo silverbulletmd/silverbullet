@@ -75,6 +75,17 @@ impl Authenticator {
         }
     }
 
+    /// A fresh random secret and salt, written nowhere, with in-memory browser
+    /// sessions: every session ends when the process does.
+    pub fn in_memory() -> Self {
+        Self::from_parts(
+            random_bytes(32),
+            base64::engine::general_purpose::STANDARD.encode(random_bytes(16)),
+            String::new(),
+        )
+        .with_browser_sessions(Arc::new(BrowserSessions::in_memory()))
+    }
+
     pub fn with_browser_sessions(mut self, sessions: Arc<BrowserSessions>) -> Self {
         self.browser_sessions = Some(sessions);
         self
@@ -665,6 +676,17 @@ mod tests {
         assert!(a.verify_jwt(&first).is_err());
         assert!(a.verify_browser_jwt(&other).is_ok());
         assert!(a.verify_jwt(&device).is_ok());
+    }
+
+    #[test]
+    fn in_memory_authenticators_each_get_their_own_random_secret_and_salt() {
+        let a = Authenticator::in_memory();
+        let b = Authenticator::in_memory();
+        let token = a.issue_browser_jwt("river", None, None, 3600).unwrap();
+        assert!(a.verify_browser_jwt(&token).is_ok());
+        assert!(b.verify_jwt(&token).is_err());
+        assert!(!a.salt().is_empty());
+        assert_ne!(a.salt(), b.salt());
     }
 
     #[test]

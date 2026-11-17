@@ -588,7 +588,10 @@ async fn handle_git_status(
     let Some(repo) = syncable_repo(&instance) else {
         return not_syncable();
     };
-    let root = state.manager.root().to_path_buf();
+    let root = match state.manager.data_root() {
+        Ok(root) => root.to_path_buf(),
+        Err(e) => return api_error(e),
+    };
     let engine = instance.revisions.clone();
     let id_for_keys = id.clone();
     let mode = instance.config.git_sync().mode;
@@ -1007,7 +1010,10 @@ async fn handle_fs_dirs(
     State(state): State<Arc<AdminState>>,
     axum::extract::Query(q): axum::extract::Query<DirsQuery>,
 ) -> Response {
-    let root = state.manager.root().to_path_buf();
+    let root = match state.manager.data_root() {
+        Ok(root) => root.to_path_buf(),
+        Err(e) => return api_error(e),
+    };
     let result = run_blocking(move || Ok(dir_completion(&root, &q.path))).await;
     match result {
         Ok(v) => Json(v).into_response(),
@@ -1236,7 +1242,7 @@ pub(crate) mod tests {
         authenticator: Arc<Authenticator>,
     ) -> InstanceDeps {
         InstanceDeps {
-            root: root.to_path_buf(),
+            root: Some(root.to_path_buf()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),

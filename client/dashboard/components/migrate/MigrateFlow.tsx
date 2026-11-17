@@ -25,19 +25,19 @@ import {
   type MigrationPlan,
   type MigrationReport,
   type Move,
-  moveLabel,
   migrateDisabledReason,
+  moveLabel,
   needsPrefixNote,
+  type PlanAnswer,
   type PlanEdits,
   PREFIX_NOTE,
   parseFailure,
   reportSpaceUrl,
   splitFieldErrors,
   stillMigrating,
-  type PlanAnswer,
   type Touched,
-  touchedBy,
   toRequest,
+  touchedBy,
   urlWarning,
   view,
   visibleFieldErrors,
@@ -126,7 +126,9 @@ export function MigrateFlow() {
     case "gate":
       return (
         <GatePage
-          notice={current.notice}
+          heading={current.heading}
+          intro={current.intro}
+          note={current.note}
           fields={current.fields}
           onSignedIn={() => void load()}
         />
@@ -161,11 +163,15 @@ export function MigrateFlow() {
 }
 
 function GatePage({
-  notice,
+  heading,
+  intro,
+  note,
   fields,
   onSignedIn,
 }: {
-  notice: string;
+  heading: string;
+  intro: string;
+  note: string;
   fields: GateField[];
   onSignedIn: () => void;
 }) {
@@ -192,7 +198,8 @@ function GatePage({
         void submit();
       }}
     >
-      <h1>{notice}</h1>
+      <h1>{heading}</h1>
+      <p>{intro}</p>
       <FieldErrors errors={errors} />
       {fields.map((field) => (
         <Field label={field.label} key={field.name}>
@@ -225,6 +232,7 @@ function GatePage({
           Continue
         </Button>
       </div>
+      <p class="sb-help-text">{note}</p>
     </form>
   );
 }

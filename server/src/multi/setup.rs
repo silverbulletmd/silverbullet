@@ -241,8 +241,12 @@ pub fn run_setup(
     server_config.validate(&spaces)?;
     let known_users: BTreeSet<String> = users.users.keys().cloned().collect();
     let primary_host = server_config.primary_host();
-    let errors =
-        super::validate::validate_for_primary(&spaces, root, &known_users, primary_host.as_deref());
+    let errors = super::validate::validate_for_primary(
+        &spaces,
+        Some(root),
+        &known_users,
+        primary_host.as_deref(),
+    );
     if !errors.is_empty() {
         return Err(errors);
     }

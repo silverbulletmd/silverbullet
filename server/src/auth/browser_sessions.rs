@@ -19,7 +19,8 @@ struct BrowserSession {
 }
 
 pub struct BrowserSessions {
-    path: PathBuf,
+    /// `None`: kept in memory only, lost on restart.
+    path: Option<PathBuf>,
     sessions: Mutex<Option<BTreeMap<String, BrowserSession>>>,
 }
 
@@ -37,9 +38,16 @@ impl BrowserSessions {
         }
         persist(&path, &sessions)?;
         Ok(Self {
-            path,
+            path: Some(path),
             sessions: Mutex::new(Some(sessions)),
         })
+    }
+
+    pub fn in_memory() -> Self {
+        Self {
+            path: None,
+            sessions: Mutex::new(Some(BTreeMap::new())),
+        }
     }
 
     pub fn issue(
@@ -112,9 +120,11 @@ impl BrowserSessions {
             .clone();
         updated.retain(|_, session| session.expires_at > now_secs());
         change(&mut updated)?;
-        if let Err(error) = persist(&self.path, &updated) {
-            *guard = None;
-            return Err(error);
+        if let Some(path) = &self.path {
+            if let Err(error) = persist(path, &updated) {
+                *guard = None;
+                return Err(error);
+            }
         }
         *guard = Some(updated);
         Ok(())
@@ -312,6 +322,15 @@ mod tests {
         let sessions = BrowserSessions::load(dir.path()).unwrap();
         assert!(sessions.issue("river", None, future()).is_err());
         assert!(sessions.is_active("0", "river"));
+    }
+
+    #[test]
+    fn an_in_memory_store_issues_and_revokes_without_files() {
+        let sessions = BrowserSessions::in_memory();
+        let id = sessions.issue("river", None, future()).unwrap();
+        assert!(sessions.is_active(&id, "river"));
+        sessions.revoke(&id).unwrap();
+        assert!(!sessions.is_active(&id, "river"));
     }
 
     #[test]

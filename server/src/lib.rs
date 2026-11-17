@@ -27,7 +27,7 @@ pub use fs_guard::FsGuard;
 pub use listing_cache::ListingCachedSpace;
 pub use router::{build_router, metrics_router};
 pub use state::{ServerState, ServerVersion};
-pub use watcher::{start_watcher, FsAction, FsEvent, WatchMode};
+pub use watcher::{start_watcher, start_watcher_for_reading, FsAction, FsEvent, WatchMode};
 
 #[cfg(test)]
 mod test_support {

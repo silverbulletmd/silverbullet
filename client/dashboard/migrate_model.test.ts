@@ -1,26 +1,29 @@
 import { describe, expect, test } from "vitest";
 import {
   adminIncomplete,
-  ANON_NOTICE,
   apiUrl,
   blockerMessage,
   canMigrate,
   carriedSettings,
   filesWritten,
   formFromDefaults,
+  GATE_HEADING,
+  GATE_INTRO_CODE,
+  GATE_INTRO_CREDENTIALS,
+  GATE_VISITOR_NOTE,
   gateFields,
   INTERRUPTED_NOTICE,
   type MigrateForm,
   type MigrationPlan,
+  migrateDisabledReason,
   moveLabel,
   needsPrefixNote,
-  migrateDisabledReason,
   parseFailure,
   reportSpaceUrl,
   splitFieldErrors,
   stillMigrating,
-  touchedBy,
   toRequest,
+  touchedBy,
   URL_WARNING,
   urlWarning,
   view,
@@ -153,16 +156,30 @@ describe("gate", () => {
     expect(code.map((f) => f.name)).toEqual(["code"]);
   });
 
-  test("anonymous callers see only the notice and the gate", () => {
+  test("anonymous callers see only the upgrade gate, addressed to the owner", () => {
     for (const interrupted of [false, true]) {
       const v = view({ gate: "code", signedIn: false, interrupted });
       expect(v).toEqual({
         kind: "gate",
-        notice: "This server is being upgraded, check back soon.",
+        heading: GATE_HEADING,
+        intro: GATE_INTRO_CODE,
+        note: GATE_VISITOR_NOTE,
         fields: gateFields({ gate: "code", signedIn: false, interrupted }),
       });
     }
-    expect(ANON_NOTICE).toBe("This server is being upgraded, check back soon.");
+    const creds = view({
+      gate: "credentials",
+      signedIn: false,
+      interrupted: false,
+    });
+    expect(creds.kind === "gate" && creds.intro).toBe(GATE_INTRO_CREDENTIALS);
+    expect(GATE_HEADING).toBe("Upgrade this SilverBullet server");
+    expect(GATE_INTRO_CREDENTIALS).toContain(
+      "Sign in with the username and password from SB_USER",
+    );
+    expect(GATE_INTRO_CODE).toContain(
+      "Enter the setup code printed in the server log",
+    );
   });
 
   test("signed in: the plan, or the interrupted migration", () => {

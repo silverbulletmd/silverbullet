@@ -10,6 +10,7 @@ pub mod config;
 pub mod embed;
 mod legacy_env;
 pub mod multi;
+pub(crate) mod publish;
 pub mod server;
 
 /// The product version, injected at build time from `version.ts`.

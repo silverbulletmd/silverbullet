@@ -5,7 +5,14 @@
  */
 import type { FieldError, RevisionsMode, SpaceAccess } from "./types.ts";
 
-export const ANON_NOTICE = "This server is being upgraded, check back soon.";
+/** The sign-in page: almost always seen by the person who runs the server. */
+export const GATE_HEADING = "Upgrade this SilverBullet server";
+export const GATE_INTRO_CREDENTIALS =
+  "SilverBullet now runs every server as a multi-space server, and this folder still uses the old single-space layout. Sign in with the username and password from SB_USER to review the upgrade. Nothing changes until you confirm.";
+export const GATE_INTRO_CODE =
+  "SilverBullet now runs every server as a multi-space server, and this folder still uses the old single-space layout. Enter the setup code printed in the server log to review the upgrade. Nothing changes until you confirm.";
+export const GATE_VISITOR_NOTE =
+  "Not running this server? It will be back once its owner finishes the upgrade.";
 export const INTERRUPTED_NOTICE = "A migration was interrupted";
 export const URL_WARNING =
   "Devices will need to sign in and download the space again. Edits made offline and not yet synced will not carry over.";
@@ -128,7 +135,13 @@ export type GateField = {
 };
 
 export type View =
-  | { kind: "gate"; notice: string; fields: GateField[] }
+  | {
+      kind: "gate";
+      heading: string;
+      intro: string;
+      note: string;
+      fields: GateField[];
+    }
   | { kind: "running" }
   | { kind: "switchFailed"; report: MigrationReport; error: string | null }
   | { kind: "swapped"; report: MigrationReport }
@@ -309,7 +322,16 @@ export function gateFields(status: MigrateStatus): GateField[] {
 /** Which screen `status` calls for. Anonymous callers learn nothing else. */
 export function view(status: MigrateStatus): View {
   if (!status.signedIn) {
-    return { kind: "gate", notice: ANON_NOTICE, fields: gateFields(status) };
+    return {
+      kind: "gate",
+      heading: GATE_HEADING,
+      intro:
+        status.gate === "credentials"
+          ? GATE_INTRO_CREDENTIALS
+          : GATE_INTRO_CODE,
+      note: GATE_VISITOR_NOTE,
+      fields: gateFields(status),
+    };
   }
   // A running migration has a journal too; it isn't interrupted.
   if (status.running) return { kind: "running" };

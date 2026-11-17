@@ -11,6 +11,7 @@ use silverbullet_server::multi::config::SpaceAccess;
 use silverbullet_server::multi::users::{Profile, UserStore};
 
 /// Ports already handed out in this process.
+#[allow(dead_code)]
 static ISSUED: Mutex<Option<HashSet<u16>>> = Mutex::new(None);
 
 /// An unused TCP port for a server under test.
@@ -28,6 +29,7 @@ static ISSUED: Mutex<Option<HashSet<u16>>> = Mutex::new(None);
 /// won't offer it. What remains is a narrow window (probe close → child bind)
 /// against a *different* test binary picking that exact port; retrying keeps
 /// that from being fatal here, and it is orders of magnitude rarer.
+#[allow(dead_code)]
 pub fn free_port() -> u16 {
     for _ in 0..100 {
         let port = TcpListener::bind("127.0.0.1:0")
@@ -288,4 +290,39 @@ pub fn mint_token(data_root: &Path, user: &str, name: &str) -> String {
         .expect("users.json exists")
         .create_token(user, name)
         .expect("create an API token")
+}
+
+/// `dir` itself (as the empty path) and every entry under it, with its size
+/// and modification time: two snapshots differ when anything was written,
+/// even a file created and deleted again (the folder's own mtime moves).
+#[allow(dead_code)]
+pub fn snapshot(
+    dir: &Path,
+) -> std::collections::BTreeMap<std::path::PathBuf, (u64, std::time::SystemTime)> {
+    let meta = std::fs::metadata(dir).unwrap();
+    let mut out = std::collections::BTreeMap::from([(
+        std::path::PathBuf::new(),
+        (meta.len(), meta.modified().unwrap()),
+    )]);
+    let mut stack = vec![dir.to_path_buf()];
+    while let Some(next) = stack.pop() {
+        for entry in std::fs::read_dir(&next).unwrap() {
+            let entry = entry.unwrap();
+            let meta = entry.metadata().unwrap();
+            if meta.is_dir() {
+                stack.push(entry.path());
+            }
+            out.insert(
+                entry.path().strip_prefix(dir).unwrap().to_path_buf(),
+                (meta.len(), meta.modified().unwrap()),
+            );
+        }
+    }
+    out
+}
+
+/// Whether `dir` has no entries.
+#[allow(dead_code)]
+pub fn is_empty(dir: &Path) -> bool {
+    std::fs::read_dir(dir).unwrap().next().is_none()
 }

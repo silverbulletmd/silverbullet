@@ -75,7 +75,26 @@ pub struct DiskSpacePrimitives {
 
 impl DiskSpacePrimitives {
     pub fn new(root_path: impl AsRef<Path>, gitignore: &str) -> Result<Self, SpaceError> {
-        let root = root_path.as_ref().canonicalize().map_err(|e| {
+        Self::open(root_path.as_ref(), gitignore, case::detect_case_insensitive)
+    }
+
+    /// For a space that is only read: detects case sensitivity without
+    /// writing a probe file into the folder (see
+    /// `case::detect_case_insensitive_by_reading` for when it falls back).
+    pub fn for_reading(root_path: impl AsRef<Path>, gitignore: &str) -> Result<Self, SpaceError> {
+        Self::open(
+            root_path.as_ref(),
+            gitignore,
+            case::detect_case_insensitive_by_reading,
+        )
+    }
+
+    fn open(
+        root_path: &Path,
+        gitignore: &str,
+        detect_case_insensitive: fn(&Path) -> bool,
+    ) -> Result<Self, SpaceError> {
+        let root = root_path.canonicalize().map_err(|e| {
             SpaceError::Io(std::io::Error::new(
                 std::io::ErrorKind::NotFound,
                 format!("failed to resolve root path: {e}"),
@@ -90,7 +109,7 @@ impl DiskSpacePrimitives {
         }
 
         Ok(Self {
-            case_insensitive: case::detect_case_insensitive(&root),
+            case_insensitive: detect_case_insensitive(&root),
             root_path: root,
             gitignore_patterns: gitignore.to_string(),
         })
@@ -522,6 +541,22 @@ mod plan_tests {
     use super::*;
     use crate::types::SpacePrimitives;
     use tempfile::tempdir;
+
+    #[test]
+    fn for_reading_agrees_with_the_probe_and_leaves_the_folder_untouched() {
+        let dir = tempdir().unwrap();
+        std::fs::write(dir.path().join("Index.md"), b"x").unwrap();
+        let written = DiskSpacePrimitives::new(dir.path(), "")
+            .unwrap()
+            .is_case_insensitive();
+        let before = std::fs::metadata(dir.path()).unwrap().modified().unwrap();
+        let read = DiskSpacePrimitives::for_reading(dir.path(), "").unwrap();
+        assert_eq!(read.is_case_insensitive(), written);
+        assert_eq!(
+            std::fs::metadata(dir.path()).unwrap().modified().unwrap(),
+            before
+        );
+    }
 
     #[test]
     fn write_read_list_delete_roundtrip() {

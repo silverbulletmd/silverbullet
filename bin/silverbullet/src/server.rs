@@ -38,6 +38,38 @@ pub async fn run(
     }
 }
 
+/// `silverbullet publish`: serve one folder as a public, read-only site from an
+/// in-memory configuration. Never looks at the folder as a data root, so
+/// migration and setup can't trigger, and writes nothing to disk.
+pub async fn run_publish(
+    hostname: Option<String>,
+    port: Option<u16>,
+    folder: Option<String>,
+) -> Result<(), String> {
+    let env = |k: &str| std::env::var(k).ok();
+    let settings = crate::publish::publish_settings(folder, &env)?;
+    let config = Config::from_env(
+        Some(crate::publish::publish_bind_host(hostname, &env)),
+        port,
+        Some(settings.folder.to_string_lossy().into_owned()),
+    )?;
+    tracing::info!("SilverBullet {}", crate::VERSION);
+
+    let shutdown = Shutdown::install();
+    let source = crate::multi::StackSource::InMemory(crate::publish::publish_source(&settings));
+    let (router, _) =
+        crate::multi::build_multi_stack(&config, source, Some(shutdown.rx.clone())).await?;
+    let url = match &config.unix_socket {
+        Some(_) => listen_address(&config),
+        None => format!("{}{}/", listen_address(&config), settings.url_prefix),
+    };
+    let announce = format!(
+        "publishing {} at {url} (read-only, public)",
+        settings.folder.display()
+    );
+    serve_announcing(&config, router, shutdown, Some(&announce)).await
+}
+
 /// Shares one OS shutdown signal with the server and its SSE streams.
 /// Streams must finish so graceful shutdown can drain their connections.
 /// A watch channel retains the signal for receivers that subscribe later.
@@ -82,9 +114,20 @@ pub(crate) async fn serve(
     router: axum::Router,
     shutdown: Shutdown,
 ) -> Result<(), String> {
+    serve_announcing(config, router, shutdown, None).await
+}
+
+/// [`serve`], logging `announce` instead of the usual running line once the
+/// listener is bound.
+pub(crate) async fn serve_announcing(
+    config: &Config,
+    router: axum::Router,
+    shutdown: Shutdown,
+    announce: Option<&str>,
+) -> Result<(), String> {
     match &config.unix_socket {
-        Some(socket) => serve_unix(socket, router, shutdown).await,
-        None => serve_tcp(&config.bind_host, config.port, router, shutdown).await,
+        Some(socket) => serve_unix(socket, router, shutdown, announce).await,
+        None => serve_tcp(&config.bind_host, config.port, router, shutdown, announce).await,
     }
 }
 
@@ -93,13 +136,16 @@ pub(crate) async fn serve_tcp(
     port: u16,
     router: axum::Router,
     shutdown: Shutdown,
+    announce: Option<&str>,
 ) -> Result<(), String> {
     let addr = format!("{host}:{port}");
     let listener = tokio::net::TcpListener::bind(&addr)
         .await
         .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
-    let shown = startup_url(host, port);
-    tracing::info!("SilverBullet is now running: {shown}");
+    match announce {
+        Some(line) => tracing::info!("{line}"),
+        None => tracing::info!("SilverBullet is now running: {}", startup_url(host, port)),
+    }
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown.future)
         .await
@@ -111,11 +157,15 @@ pub(crate) async fn serve_unix(
     path: &str,
     router: axum::Router,
     shutdown: Shutdown,
+    announce: Option<&str>,
 ) -> Result<(), String> {
     let _ = std::fs::remove_file(path); // clear a stale socket
     let listener = tokio::net::UnixListener::bind(path)
         .map_err(|e| format!("failed to bind unix socket {path}: {e}"))?;
-    tracing::info!("SilverBullet is now running: unix://{path}");
+    match announce {
+        Some(line) => tracing::info!("{line}"),
+        None => tracing::info!("SilverBullet is now running: unix://{path}"),
+    }
     axum::serve(listener, router)
         .with_graceful_shutdown(shutdown.future)
         .await
@@ -127,6 +177,7 @@ pub(crate) async fn serve_unix(
     _path: &str,
     _router: axum::Router,
     _shutdown: Shutdown,
+    _announce: Option<&str>,
 ) -> Result<(), String> {
     Err("unix sockets are not supported on this platform".to_string())
 }

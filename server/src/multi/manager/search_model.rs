@@ -31,12 +31,13 @@ impl MultiManager {
                 }])
             })?),
         };
+        let root = self.data_root()?;
         let mut retired = Retired::default();
         let mut inner = self.state.lock().unwrap();
         let mut server_config = inner.server_config.clone();
         server_config.search.model = spec.map(|spec| spec.id.to_string());
         server_config
-            .save(&self.root.join("server.json"))
+            .save(&root.join("server.json"))
             .map_err(ApiError::Internal)?;
         inner.server_config = server_config;
         if !self.deps.search.set_model(spec) {

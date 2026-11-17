@@ -376,14 +376,11 @@ pub fn build_accountless_dashboard_router(state: Arc<DashboardState>) -> Router 
     use crate::handlers::notice_page::{NoticeMessage, NoticePage};
     Router::new()
         .route("/assets/{file}", get(handle_asset))
-        .fallback(|| async {
+        .fallback(|State(state): State<Arc<DashboardState>>| async move {
             NoticePage {
                 assets: &format!("{DASHBOARD_PREFIX}/assets/"),
                 title: "No accounts",
-                message: NoticeMessage::Text(
-                    "This server has no accounts, so there is nothing to log in to. \
-                     It is configured by editing spaces.json.",
-                ),
+                message: NoticeMessage::Text(state.users.no_accounts_notice()),
                 action: None,
             }
             .into_response(StatusCode::OK)
@@ -482,7 +479,7 @@ mod tests {
             ),
         );
         let deps = InstanceDeps {
-            root: dir.path().to_path_buf(),
+            root: Some(dir.path().to_path_buf()),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| Box::new(MemorySpacePrimitives::new())),

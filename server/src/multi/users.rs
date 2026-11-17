@@ -255,7 +255,8 @@ impl UserEntry {
 /// Live, mutable, persisted account store. Every mutation validates, persists
 /// atomically, then updates the in-memory state (mirrors `MultiManager`).
 pub struct UserStore {
-    path: PathBuf,
+    /// `None`: an in-memory store, which refuses every change.
+    path: Option<PathBuf>,
     state: RwLock<UsersConfig>,
 }
 
@@ -313,7 +314,7 @@ impl UserStore {
         let path = root.join(USERS_FILE);
         Ok(UsersConfig::load(&path)?.map(|config| {
             Arc::new(Self {
-                path,
+                path: Some(path),
                 state: RwLock::new(config),
             })
         }))
@@ -327,9 +328,23 @@ impl UserStore {
         let config = UsersConfig::default();
         config.save(&path)?;
         Ok(Arc::new(Self {
-            path,
+            path: Some(path),
             state: RwLock::new(config),
         }))
+    }
+
+    /// A store with no accounts that never gains one, and is never saved.
+    pub fn empty_in_memory() -> Arc<Self> {
+        Arc::new(Self {
+            path: None,
+            state: RwLock::new(UsersConfig::default()),
+        })
+    }
+
+    fn path(&self) -> Result<&Path, String> {
+        self.path
+            .as_deref()
+            .ok_or_else(|| "this server has no accounts and cannot add any".to_string())
     }
 
     fn read(&self) -> std::sync::RwLockReadGuard<'_, UsersConfig> {
@@ -339,10 +354,11 @@ impl UserStore {
     /// Mutate-validate-persist under the write lock; on persist failure the
     /// in-memory state is left untouched.
     fn mutate(&self, f: impl FnOnce(&mut UsersConfig) -> Result<(), String>) -> Result<(), String> {
+        let path = self.path()?;
         let mut guard = self.state.write().expect("user store lock poisoned");
         let mut next = guard.clone();
         f(&mut next)?;
-        next.save(&self.path)?;
+        next.save(path)?;
         *guard = next;
         Ok(())
     }
@@ -391,6 +407,18 @@ impl UserStore {
     /// True when `users.json` holds no accounts at all: an accountless server.
     pub fn is_empty(&self) -> bool {
         self.read().users.is_empty()
+    }
+
+    /// What sign-in pages say when there are no accounts. Only a published
+    /// site (`silverbullet publish`) keeps its store in memory; anywhere else
+    /// the operator adds accounts through `users.json`.
+    pub fn no_accounts_notice(&self) -> &'static str {
+        if self.path.is_none() {
+            "This site is published read-only, so there is nothing to log in to."
+        } else {
+            "This server has no accounts, so there is nothing to log in to. \
+             It is configured by editing spaces.json."
+        }
     }
 
     pub fn user_exists(&self, username: &str) -> bool {
@@ -605,7 +633,8 @@ impl UserStore {
             issuer: identity.issuer.clone(),
             subject: identity.subject.clone(),
         });
-        next.save(&self.path).map_err(SsoAdmissionError::Store)?;
+        next.save(self.path().map_err(SsoAdmissionError::Store)?)
+            .map_err(SsoAdmissionError::Store)?;
         *guard = next;
         Ok(username)
     }
@@ -835,6 +864,17 @@ mod tests {
         s.create_user("ada", "hunter22", true, Profile::default())
             .unwrap();
         s
+    }
+
+    #[test]
+    fn an_empty_in_memory_store_has_no_accounts_and_refuses_every_change() {
+        let users = UserStore::empty_in_memory();
+        assert!(users.is_empty());
+        assert!(users
+            .create_user("ada", "hunter22", true, Profile::default())
+            .is_err());
+        assert!(users.record_login("ada").is_err());
+        assert!(users.is_empty());
     }
 
     #[test]

@@ -1058,8 +1058,7 @@ fn instance(
     }
     let repo =
         syncable_repo(&instance).ok_or("this space has no managed Git repository of its own")?;
-    if manager
-        .root()
+    if data_root(manager)?
         .canonicalize()
         .map_err(|e| e.to_string())?
         .starts_with(repo.canonicalize().map_err(|e| e.to_string())?)
@@ -1072,7 +1071,7 @@ async fn create(State(state): State<Arc<AdminState>>, AxumPath(id): AxumPath<Str
     operation(state, id, |manager, id| {
         let (instance, repo) = instance(manager, id)?;
         serde_json::to_value(create_draft(
-            manager.root(),
+            data_root(manager)?,
             id,
             &repo,
             instance.config.git_sync(),
@@ -1088,7 +1087,7 @@ async fn update(
 ) -> Response {
     operation(state, id, move |manager, id| {
         let (_, repo) = instance(manager, id)?;
-        let mut draft = load_draft(manager.root(), id, &draft_id, body.version)?;
+        let mut draft = load_draft(data_root(manager)?, id, &draft_id, body.version)?;
         if body.mode.is_off() || body.url.trim().is_empty() || keys::is_unsafe_url(&body.url) {
             return Err("choose a repository and authentication method".into());
         }
@@ -1109,7 +1108,7 @@ async fn update(
         }
         draft.test = None;
         draft.version += 1;
-        save_draft(manager.root(), id, &draft)?;
+        save_draft(data_root(manager)?, id, &draft)?;
         serde_json::to_value(draft).map_err(|e| e.to_string())
     })
     .await
@@ -1120,7 +1119,7 @@ async fn cancel(
 ) -> Response {
     operation(state, id, move |manager, id| {
         instance(manager, id)?;
-        let folder = draft_dir(manager.root(), id, &draft_id)?;
+        let folder = draft_dir(data_root(manager)?, id, &draft_id)?;
         if folder.exists() {
             std::fs::remove_dir_all(folder).map_err(|e| e.to_string())?;
         }
@@ -1135,13 +1134,13 @@ async fn generate_key(
 ) -> Response {
     operation(state, id, move |manager, id| {
         instance(manager, id)?;
-        let mut draft = load_draft(manager.root(), id, &draft_id, body.version)?;
-        let folder = draft_dir(manager.root(), id, &draft_id)?;
+        let mut draft = load_draft(data_root(manager)?, id, &draft_id, body.version)?;
+        let folder = draft_dir(data_root(manager)?, id, &draft_id)?;
         draft.public_key = Some(keys::generate(&folder, "key")?);
         draft.fingerprint = keys::fingerprint(&folder, "key");
         draft.version += 1;
         draft.test = None;
-        save_draft(manager.root(), id, &draft)?;
+        save_draft(data_root(manager)?, id, &draft)?;
         serde_json::to_value(draft).map_err(|e| e.to_string())
     })
     .await
@@ -1153,13 +1152,16 @@ async fn test(
 ) -> Response {
     operation(state, id, move |manager, id| {
         let (_, repo) = instance(manager, id)?;
-        let mut draft = load_draft(manager.root(), id, &draft_id, body.version)?;
-        check_draft(manager.root(), id, &repo, &mut draft)?;
+        let mut draft = load_draft(data_root(manager)?, id, &draft_id, body.version)?;
+        check_draft(data_root(manager)?, id, &repo, &mut draft)?;
         draft.version += 1;
-        save_draft(manager.root(), id, &draft)?;
+        save_draft(data_root(manager)?, id, &draft)?;
         serde_json::to_value(draft).map_err(|e| e.to_string())
     })
     .await
+}
+fn data_root(manager: &super::manager::MultiManager) -> Result<&Path, String> {
+    manager.data_root().map_err(manager_error)
 }
 fn manager_error(error: super::manager::ApiError) -> String {
     match error {
@@ -1201,14 +1203,14 @@ async fn apply(
 ) -> Response {
     operation(state,id,move |manager,id| {
         let (_,repo) = instance(manager,id)?;
-        let draft = load_draft(manager.root(),id,&draft_id,body.version)?;
-        if draft.base_connection_revision != live_connection_revision(manager.root(),id,&repo,&draft.remote_name)? { return Err("staleDraft".into()); }
+        let draft = load_draft(data_root(manager)?,id,&draft_id,body.version)?;
+        if draft.base_connection_revision != live_connection_revision(data_root(manager)?,id,&repo,&draft.remote_name)? { return Err("staleDraft".into()); }
         let checked = draft.test.as_ref().ok_or("check this connection before enabling sync")?;
         if checked["reachable"] != true || !matches!(checked["kind"].as_str(),Some("ok"|"behind"|"emptyRepo")) { return Err("the connection check must succeed before enabling sync".into()); }
         if checked["checkedAt"].as_u64().is_none_or(|time| now().saturating_sub(time) > 600_000) { return Err("staleDraft".into()); }
         if checked["unrelated"] == true && !body.allow_unrelated { return Err("review and confirm combining these unrelated histories".into()); }
         validate_checked_history(&repo, checked)?;
-        let root = manager.root();
+        let root = data_root(manager)?;
         manager.change_git(id,false,|instance,config| {
             let repo = syncable_repo(instance).ok_or("this space cannot sync")?;
             if git::run(&repo,&["symbolic-ref","--short","HEAD"],&[])?.trim() != draft.branch { return Err("staleDraft".into()); }
@@ -1246,8 +1248,7 @@ async fn policy(state: Arc<AdminState>, id: String, paused: Option<bool>) -> Res
                     config.git_sync = Some(policy);
                 } else {
                     config.git_sync = None;
-                    let identity = manager
-                        .root()
+                    let identity = data_root(manager)?
                         .join("git-connections")
                         .join(format!("{id}.identity"));
                     if identity.exists() {
@@ -1255,8 +1256,7 @@ async fn policy(state: Arc<AdminState>, id: String, paused: Option<bool>) -> Res
                     }
                 }
                 atomic_write(
-                    &manager
-                        .root()
+                    &data_root(manager)?
                         .join("git-connections")
                         .join(format!("{id}.generation")),
                     uuid::Uuid::new_v4().to_string().as_bytes(),
