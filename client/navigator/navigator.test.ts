@@ -604,10 +604,41 @@ test("only views the space configured open reach boot restore", async () => {
     b: { open: false },
     c: { width: 300 },
   });
-  await nav.restoreDocks();
+  const previousClient = (globalThis as any).client;
+  (globalThis as any).client = { fullIndexCompleted: true };
+  try {
+    await nav.restoreDocks();
+  } finally {
+    (globalThis as any).client = previousClient;
+  }
 
   const shown = slots.showSlot.mock.calls.map((call: any[]) => call[2].view);
   expect(shown).toEqual(["a"]);
+});
+
+// A cold load would otherwise show index-backed views empty until indexing
+// finishes; `afterIndexCompleted` restores docks again once it has.
+test("configured opens wait for the initial index", async () => {
+  const nav = await freshNavigator();
+  registry.allViewNames.mockReturnValue(["a"]);
+  registry.resolveMeta.mockReturnValue({ dock: "lhs", refreshOn: [] });
+  datastore.get.mockResolvedValue(undefined);
+  nav.setViewDefaults({ a: { open: true } });
+
+  const previousClient = (globalThis as any).client;
+  const mockClient = { fullIndexCompleted: false };
+  (globalThis as any).client = mockClient;
+  try {
+    await nav.restoreDocks();
+    expect(slots.showSlot).not.toHaveBeenCalled();
+
+    mockClient.fullIndexCompleted = true;
+    await nav.restoreDocks();
+    const shown = slots.showSlot.mock.calls.map((call: any[]) => call[2].view);
+    expect(shown).toEqual(["a"]);
+  } finally {
+    (globalThis as any).client = previousClient;
+  }
 });
 
 test("read members get Git status and conflict commands without history", async () => {

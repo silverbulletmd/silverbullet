@@ -85,8 +85,13 @@ const lifecycle = createPanelLifecycle({
   resolveDock: (name, meta) => dockState.resolveDock(name, meta),
   defaultWidth: (name) => viewDefaults[name]?.width,
   defaultHeight: (name) => viewDefaults[name]?.height,
+  // Held back until the initial index completes: views are typically
+  // index-backed and would sit empty ("No results") on a cold load.
+  // `afterIndexCompleted` runs `restoreDocks` again, which opens them.
   getDefaultOpens: () =>
-    allViewNames().filter((name) => viewDefaults[name]?.open === true),
+    client.fullIndexCompleted
+      ? allViewNames().filter((name) => viewDefaults[name]?.open === true)
+      : [],
   sidebarDefaultOpen: (name) => dockState.sidebarDefaultOpen(name),
 });
 
