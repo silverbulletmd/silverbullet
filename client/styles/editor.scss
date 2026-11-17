@@ -517,8 +517,11 @@ $comment-border: 1px;
       padding-left: 0.62em;
       margin-left: 0.06em;
       background-color: color-mix(in srgb, var(--ui-accent-text-color) 45%, var(--root-background-color));
-      -webkit-mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat;
-      mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat;
+      // WebKit leaves the inline background outside a lone mask tile visible.
+      $mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat,
+        linear-gradient(transparent, transparent);
+      -webkit-mask: $mask;
+      mask: $mask;
     }
   }
 

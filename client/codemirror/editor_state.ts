@@ -76,6 +76,7 @@ import { externalPresence } from "./external_presence.ts";
 import { plugLinter } from "./lint.ts";
 import { parseAhead } from "./parse_ahead.ts";
 import { selectedWidgets } from "./selected_widgets.ts";
+import { selectionEdges } from "./selection_edges.ts";
 import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
@@ -237,6 +238,7 @@ export function buildSharedEditorExtensions(
     drawSelection(
       globalThis.sbRuntime?.headless ? { cursorBlinkRate: 0 } : undefined,
     ),
+    selectionEdges,
     selectedWidgets,
     sentenceCasePhrases,
     regularKeyBindings,
