@@ -145,23 +145,31 @@ export class EventedSpacePrimitives implements SpacePrimitives {
 
       const deletedFiles = new Set<string>(Object.keys(this.spaceSnapshot));
       const changedFiles: ChangedFile[] = [];
+      const changeEvents: Promise<unknown>[] = [];
       for (const meta of newFileList) {
         const oldHash = this.spaceSnapshot[meta.name];
         const newHash = meta.lastModified;
         this.updateInSnapshot(meta.name, newHash);
 
         if (oldHash === undefined || oldHash !== newHash) {
-          console.log(
-            "Detected file change during listing",
-            meta.name,
-            oldHash,
-            newHash,
+          // Dispatched together rather than one by one: on a first listing
+          // every file is new, and awaiting each event's plug round trip in
+          // turn held up indexing by seconds.
+          changeEvents.push(
+            this.dispatchEvent("file:changed", meta.name, oldHash, newHash),
           );
-          await this.dispatchEvent("file:changed", meta.name, oldHash, newHash);
           changedFiles.push({ name: meta.name, isNew: oldHash === undefined });
         }
         deletedFiles.delete(meta.name);
       }
+      if (changedFiles.length > 0) {
+        console.log(
+          "Detected",
+          changedFiles.length,
+          "file change(s) during listing",
+        );
+      }
+      await Promise.all(changeEvents);
 
       for (const deletedFile of deletedFiles) {
         this.deleteFromSnapshot(deletedFile);
