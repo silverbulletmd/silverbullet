@@ -43,7 +43,5 @@
   --button-hover-background-color: color-mix(in srgb, var(--root-background-color), var(--ui-surface-border-color) 70%);
   // On dark the accent is a light tint, so its strong fill darkens further.
   --ui-accent-strong-color: color-mix(in srgb, var(--ui-accent-color), black 40%);
-  // Dark top-bar icons sit between text and subtle, as before.
-  --action-button-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 60%);
   --editor-frontmatter-marker-color: var(--root-color);
 }

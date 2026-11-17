@@ -125,7 +125,7 @@
   --progress-index-color: var(--ui-accent-color);
 
   --action-button-background-color: transparent;
-  --action-button-color: color-mix(in srgb, var(--root-color), var(--subtle-color) 35%);
+  --action-button-color: color-mix(in srgb, var(--subtle-color), var(--root-background-color) 30%);
   --action-button-hover-color: var(--ui-accent-text-color);
 
   // Panels
