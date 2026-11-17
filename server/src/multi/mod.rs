@@ -17,6 +17,7 @@ pub mod registry;
 pub(crate) mod search_admin;
 pub mod search_policy;
 pub mod server_config;
+pub mod session_renewal;
 pub mod setup;
 pub mod setup_api;
 pub mod users;

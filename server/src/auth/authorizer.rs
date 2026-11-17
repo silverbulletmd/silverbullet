@@ -19,6 +19,9 @@ pub struct AuthOutcome {
     pub username: Option<String>,
     pub credential_version: Option<String>,
     pub grant: Option<AccessLevel>,
+    /// Signed in with "Shared computer" through a browser cookie: the client
+    /// must keep nothing on the device.
+    pub shared_session: bool,
 }
 
 impl AuthOutcome {
@@ -27,11 +30,17 @@ impl AuthOutcome {
             username: Some(username),
             credential_version: None,
             grant: None,
+            shared_session: false,
         }
     }
 
     pub fn with_version(mut self, version: Option<String>) -> Self {
         self.credential_version = version;
+        self
+    }
+
+    pub fn with_shared_session(mut self, shared: bool) -> Self {
+        self.shared_session = shared;
         self
     }
 
@@ -44,6 +53,7 @@ impl AuthOutcome {
             username: None,
             credential_version: None,
             grant: Some(AccessLevel::Write),
+            shared_session: false,
         }
     }
 }

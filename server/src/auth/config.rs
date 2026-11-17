@@ -1,6 +1,10 @@
 pub const DEFAULT_LOCKOUT_LIMIT: u32 = 10;
 pub const DEFAULT_LOCKOUT_TIME_SECS: u64 = 60;
 pub const DEFAULT_REMEMBER_ME_HOURS: u64 = 168;
+/// How long a browser session survives without being used.
+pub const DEFAULT_SESSION_IDLE_SECS: u64 = 30 * 24 * 3600;
+/// Idle window of a "Shared computer" session. Not configurable.
+pub const SHARED_SESSION_IDLE_SECS: u64 = 12 * 3600;
 
 /// Authentication configuration, derived from environment variables. The
 /// absence of a username means authentication is disabled (open server).

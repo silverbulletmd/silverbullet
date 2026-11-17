@@ -32,11 +32,21 @@ pub(crate) async fn handle_config(
     State(state): State<Arc<ServerState>>,
     axum::Extension(actor): axum::Extension<crate::auth::Actor>,
     revision_access: Option<axum::Extension<crate::router::RevisionAccess>>,
+    shared_session: Option<axum::Extension<crate::router::SharedSession>>,
 ) -> impl IntoResponse {
     let writable = actor.level >= crate::auth::AccessLevel::Write;
     let mut boot_config = state.boot_config.clone();
     if revision_access.is_some_and(|access| !access.0 .0) {
         boot_config.revisions = silverbullet_server_common::RevisionsMode::Disabled;
+    }
+    // A shared computer keeps nothing: no worker, no offline copy, no
+    // IndexedDB, no encrypted local store.
+    if shared_session.is_some_and(|shared| shared.0 .0) {
+        boot_config.disable_service_worker = true;
+        boot_config.ephemeral_storage = true;
+        // Nothing local to encrypt, and an earlier user's encryption setting
+        // in this browser must not send boot looking for a key.
+        boot_config.enable_client_encryption = false;
     }
     if !writable {
         boot_config.read_only = true;
@@ -224,6 +234,7 @@ mod tests {
                 axum::extract::State(Arc::new(state)),
                 axum::Extension(actor),
                 Some(axum::Extension(crate::router::RevisionAccess(is_member))),
+                None,
             )
             .await
             .into_response();
@@ -241,9 +252,14 @@ mod tests {
             level,
             ..Default::default()
         };
-        let resp = super::handle_config(axum::extract::State(state), axum::Extension(actor), None)
-            .await
-            .into_response();
+        let resp = super::handle_config(
+            axum::extract::State(state),
+            axum::Extension(actor),
+            None,
+            None,
+        )
+        .await
+        .into_response();
         let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
             .await
             .unwrap();
@@ -275,6 +291,7 @@ mod tests {
         let resp = super::handle_config(
             axum::extract::State(Arc::new(state)),
             axum::Extension(actor),
+            None,
             None,
         )
         .await

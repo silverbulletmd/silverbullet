@@ -541,7 +541,7 @@ impl Fixture {
     pub fn browser_cookie(&self, user: &str) -> String {
         let jwt = self
             .authenticator
-            .issue_browser_jwt(user, self.users.credential_version(user), None, 3600)
+            .issue_browser_jwt(user, self.users.credential_version(user), None, 3600, false)
             .unwrap();
         format!(
             "{}={jwt}",

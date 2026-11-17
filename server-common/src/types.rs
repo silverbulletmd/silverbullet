@@ -31,6 +31,10 @@ pub struct BootConfig {
     pub account_managed: bool,
     pub shell_backend: String,
     pub disable_service_worker: bool,
+    /// Keep the client's datastore in memory instead of IndexedDB, so nothing
+    /// is left on the device. Set per request for "Shared computer" sessions.
+    #[serde(default)]
+    pub ephemeral_storage: bool,
     /// Highest sync wire protocol version this server understands. A running
     /// v2 server always advertises 2; the serde default of 1 exists only for
     /// deserializing configs produced by older servers.

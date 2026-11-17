@@ -67,6 +67,7 @@ mod test_support {
                 account_managed: false,
                 shell_backend: "local".into(),
                 disable_service_worker: true,
+                ephemeral_storage: false,
                 sync_protocol_version: 2,
                 revisions: RevisionsMode::Disabled,
             },

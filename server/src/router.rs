@@ -138,6 +138,10 @@ pub(crate) fn cross_origin_refused(
 #[derive(Clone)]
 pub(crate) struct RevisionAccess(pub bool);
 
+/// The request came from a "Shared computer" browser session.
+#[derive(Clone)]
+pub(crate) struct SharedSession(pub bool);
+
 async fn require_authorization(
     axum::extract::State(state): axum::extract::State<Arc<ServerState>>,
     mut req: Request,
@@ -163,6 +167,7 @@ async fn require_authorization(
         username,
         grant,
         credential_version,
+        shared_session,
     }) = outcome
     else {
         return refuse(&state, false);
@@ -187,6 +192,7 @@ async fn require_authorization(
     }
 
     req.extensions_mut().insert(RevisionAccess(is_account));
+    req.extensions_mut().insert(SharedSession(shared_session));
     let profile = state.identity.resolve(username.as_deref());
     let mut actor = actor_from(profile, level);
     actor.credential_version = credential_version;

@@ -44,7 +44,6 @@ pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response 
         login.host_url_prefix(),
         &state.boot_config.space_name,
         login.salt(),
-        login.remember_me_days(),
         state.boot_config.account_managed,
     );
     ([(axum::http::header::CONTENT_TYPE, "text/html")], body).into_response()
@@ -58,7 +57,6 @@ fn render_auth_page(
     host_prefix: &str,
     space_name: &str,
     encryption_salt: &str,
-    remember_me_days: u64,
     account_managed: bool,
 ) -> Vec<u8> {
     let shell = String::from_utf8_lossy(shell);
@@ -68,7 +66,6 @@ fn render_auth_page(
         host_prefix => host_prefix,
         space_name => space_name,
         encryption_salt => encryption_salt,
-        remember_me_days => remember_me_days,
         account_managed => account_managed.to_string(),
     };
     match env.render_str(&shell, ctx) {
@@ -85,8 +82,10 @@ fn render_auth_page(
 pub struct LoginForm {
     username: String,
     password: String,
-    #[serde(rename = "rememberMe")]
-    remember_me: String,
+    /// "Shared computer": any non-empty value ends the session with the
+    /// browser.
+    #[serde(rename = "sharedComputer")]
+    shared_computer: String,
     from: String,
 }
 
@@ -114,8 +113,8 @@ pub async fn handle_auth_post(
         return json_error("Invalid username and/or password");
     }
 
-    let remember = !form.remember_me.is_empty();
-    let (jwt, secs) = match login.issue_session(&form.username, remember) {
+    let shared = !form.shared_computer.is_empty();
+    let jwt = match login.issue_session(&form.username, shared) {
         Ok(v) => v,
         Err(e) => {
             tracing::error!("failed to mint session JWT: {e}");
@@ -128,7 +127,7 @@ pub async fn handle_auth_post(
     let path = format!("{}/", login.session_url_prefix());
     let opts = CookieOptions {
         path,
-        max_age_secs: Some(secs as i64),
+        max_age_secs: login.cookie_max_age(&jwt).map(|secs| secs as i64),
         http_only: true,
         secure,
         same_site: "Lax",
@@ -143,9 +142,6 @@ pub async fn handle_auth_post(
     let mut resp = Json(json!({ "status": "ok", "redirect": redirect })).into_response();
     let cookie_name = crate::auth::scoped_auth_cookie_name(&host, login.session_url_prefix());
     append_cookie(&mut resp, &cookie_name, &jwt, &opts);
-    if remember {
-        append_cookie(&mut resp, "refreshLogin", "true", &opts);
-    }
     resp
 }
 
@@ -220,6 +216,7 @@ pub async fn handle_logout(State(state): State<Arc<ServerState>>, headers: Heade
         "",
         &del,
     );
+    // Older servers set it alongside "remember me"; clear it on the way out.
     append_cookie(&mut resp, "refreshLogin", "", &del);
     resp
 }
@@ -242,7 +239,7 @@ mod tests {
             "/../client_bundle/client/.client/auth.html"
         );
         let shell = std::fs::read(path).expect("shipped auth.html must exist");
-        let out = super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", 7, false);
+        let out = super::render_auth_page(&shell, "/prefix", "My Space", "c2FsdA==", false);
         let html = String::from_utf8(out).unwrap();
         assert!(!html.contains("{{"), "leftover placeholder: {html}");
         assert!(html.contains(r#"<base href="/prefix/""#), "{html}");
@@ -255,10 +252,6 @@ mod tests {
         assert!(
             html.contains(r#"data-encryption-salt="c2FsdA==""#),
             "salt attribute: {html}"
-        );
-        assert!(
-            html.contains(r#"data-remember-me-days="7""#),
-            "remember-me attribute: {html}"
         );
         assert!(
             html.contains(r#"data-account-managed="false""#),
@@ -276,7 +269,7 @@ mod tests {
         );
         let shell = std::fs::read(path).expect("shipped auth.html must exist");
         let nasty = r#"</div><img src=x onerror=alert(1)>"quoted""#;
-        let out = super::render_auth_page(&shell, "", nasty, "c2FsdA==", 7, true);
+        let out = super::render_auth_page(&shell, "", nasty, "c2FsdA==", true);
         let html = String::from_utf8(out).unwrap();
 
         assert!(
@@ -295,20 +288,18 @@ mod tests {
     }
 
     fn auth_state(user_pass: &str) -> Arc<ServerState> {
-        let authenticator = Arc::new(Authenticator::from_parts(
-            vec![4u8; 32],
-            "c2FsdA==".into(),
-            "h".into(),
-        ));
+        let authenticator = Arc::new(
+            Authenticator::from_parts(vec![4u8; 32], "c2FsdA==".into(), "h".into())
+                .with_browser_sessions(Arc::new(crate::auth::BrowserSessions::in_memory())),
+        );
         let config = AuthConfig::try_parse(Some(user_pass), None, None, None, None)
             .unwrap()
             .unwrap();
         let lockout = LockoutTimer::from_config(config.lockout_time_secs, config.lockout_limit);
-        let remember_me_hours = config.remember_me_hours;
         let login = Arc::new(LoginManager::new(
             authenticator.clone(),
             Arc::new(config),
-            remember_me_hours,
+            crate::auth::config::DEFAULT_SESSION_IDLE_SECS,
             lockout,
             String::new(),
         ));
@@ -412,23 +403,42 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn remember_me_also_sets_refresh_cookie() {
-        let resp = post_login(
-            auth_state("alice:s3cret"),
-            "username=alice&password=s3cret&rememberMe=true",
-        )
-        .await;
-        let cookies: Vec<_> = resp
-            .headers()
+    fn set_cookies(resp: &axum::response::Response) -> Vec<String> {
+        resp.headers()
             .get_all(axum::http::header::SET_COOKIE)
             .iter()
             .map(|v| v.to_str().unwrap().to_string())
-            .collect();
-        assert!(cookies
-            .iter()
-            .any(|c| c.starts_with("auth_localhost_3000=")));
-        assert!(cookies.iter().any(|c| c.starts_with("refreshLogin=true")));
+            .collect()
+    }
+
+    fn max_age(cookie: &str) -> Option<u64> {
+        cookie
+            .split(';')
+            .find_map(|part| part.trim().strip_prefix("Max-Age="))
+            .map(|v| v.parse().unwrap())
+    }
+
+    #[tokio::test]
+    async fn login_sets_a_thirty_day_cookie_and_no_refresh_login() {
+        let resp = post_login(auth_state("alice:s3cret"), "username=alice&password=s3cret").await;
+        let cookies = set_cookies(&resp);
+        assert_eq!(cookies.len(), 1, "{cookies:?}");
+        assert!(cookies[0].starts_with("auth_localhost_3000="));
+        let age = max_age(&cookies[0]).unwrap();
+        assert!(age.abs_diff(2_592_000) <= 2, "{age}");
+    }
+
+    #[tokio::test]
+    async fn shared_computer_login_sets_a_session_cookie() {
+        let resp = post_login(
+            auth_state("alice:s3cret"),
+            "username=alice&password=s3cret&sharedComputer=true",
+        )
+        .await;
+        let cookies = set_cookies(&resp);
+        assert_eq!(cookies.len(), 1, "{cookies:?}");
+        assert!(cookies[0].starts_with("auth_localhost_3000="));
+        assert_eq!(max_age(&cookies[0]), None, "{}", cookies[0]);
     }
 
     #[tokio::test]
@@ -457,6 +467,89 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(r.status(), StatusCode::OK);
+    }
+
+    fn first_cookie(resp: &axum::response::Response) -> String {
+        resp.headers()
+            .get(axum::http::header::SET_COOKIE)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_string()
+    }
+
+    /// `test_state` disables the worker and client encryption; these tests
+    /// need a space that offers both.
+    fn worker_state() -> Arc<ServerState> {
+        let mut state = Arc::try_unwrap(auth_state("alice:s3cret")).ok().unwrap();
+        state.boot_config.disable_service_worker = false;
+        state.boot_config.enable_client_encryption = true;
+        Arc::new(state)
+    }
+
+    async fn config_with(state: Arc<ServerState>, header: (&str, String)) -> serde_json::Value {
+        let r = crate::build_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/.config")
+                    .header("host", "localhost:3000")
+                    .header(header.0, header.1)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(r.status(), StatusCode::OK);
+        let bytes = axum::body::to_bytes(r.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn config_for_a_shared_session_disables_the_worker_and_local_storage() {
+        let state = worker_state();
+        let resp = post_login(
+            state.clone(),
+            "username=alice&password=s3cret&sharedComputer=true",
+        )
+        .await;
+        let config = config_with(state, ("cookie", first_cookie(&resp))).await;
+        assert_eq!(config["disableServiceWorker"], true, "{config}");
+        assert_eq!(config["ephemeralStorage"], true, "{config}");
+        // No local data, so nothing to encrypt; an earlier user's
+        // encryption setting must not send this boot looking for a key.
+        assert_eq!(config["enableClientEncryption"], false, "{config}");
+    }
+
+    #[tokio::test]
+    async fn config_for_an_ordinary_session_is_unchanged() {
+        let state = worker_state();
+        let resp = post_login(state.clone(), "username=alice&password=s3cret").await;
+        let config = config_with(state, ("cookie", first_cookie(&resp))).await;
+        assert_eq!(config["disableServiceWorker"], false, "{config}");
+        assert_eq!(config["ephemeralStorage"], false, "{config}");
+        assert_eq!(config["enableClientEncryption"], true, "{config}");
+    }
+
+    /// Only the browser that signed in with "Shared computer" holds a
+    /// browser-session cookie; the same JWT presented as a bearer token comes
+    /// from a client that keeps its own storage.
+    #[tokio::test]
+    async fn bearer_tokens_are_never_shared_sessions() {
+        let state = worker_state();
+        let resp = post_login(
+            state.clone(),
+            "username=alice&password=s3cret&sharedComputer=true",
+        )
+        .await;
+        let jwt = first_cookie(&resp).split_once('=').unwrap().1.to_string();
+        let config = config_with(state, ("authorization", format!("Bearer {jwt}"))).await;
+        assert_eq!(config["ephemeralStorage"], false, "{config}");
+        assert_eq!(config["disableServiceWorker"], false, "{config}");
     }
 
     #[tokio::test]

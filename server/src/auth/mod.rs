@@ -23,9 +23,9 @@ pub mod oidc;
 pub mod password;
 
 pub use access::{AccessLevel, AccessPolicy, AnonymousFallbackAuthorizer, AuthorizedPolicy};
-pub use authenticator::{Authenticator, AUTH_FILE_NAME, MULTI_AUTH_FILE_NAME};
+pub use authenticator::{Authenticator, RenewedSession, AUTH_FILE_NAME, MULTI_AUTH_FILE_NAME};
 pub use authorizer::{Actor, AuthContext, AuthOutcome, RequestAuthorizer};
-pub use browser_sessions::BrowserSessions;
+pub use browser_sessions::{BrowserSessions, SessionInfo};
 pub use config::AuthConfig;
 pub use cookie::{
     auth_cookie_name, cookie_value, is_secure_request, request_host, request_origin,

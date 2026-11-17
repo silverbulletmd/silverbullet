@@ -26,7 +26,7 @@ pub struct Attempt {
     pub binding: String,
     pub central_binding: Option<String>,
     pub csrf: String,
-    pub remember: bool,
+    pub shared: bool,
     pub encrypt: bool,
     pub provider: Option<ProviderAttempt>,
     pub test: Option<TestAttempt>,

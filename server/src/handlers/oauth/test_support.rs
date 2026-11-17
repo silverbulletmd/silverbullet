@@ -102,7 +102,7 @@ pub(super) fn login_state_with_prefix(prefix: &str) -> (Arc<ServerState>, String
     let login = Arc::new(LoginManager::new(
         authenticator.clone(),
         Arc::new(config),
-        48,
+        30 * 86_400,
         lockout,
         prefix.into(),
     ));

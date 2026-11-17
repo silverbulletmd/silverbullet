@@ -60,7 +60,7 @@ impl DashboardState {
                 Arc::new(AnyUserAuth {
                     store: users.clone(),
                 }),
-                session.remember_me_hours,
+                session.session_idle_secs,
                 lockout,
                 String::new(),
             )
@@ -87,10 +87,9 @@ impl DashboardState {
 struct LoginBody {
     username: String,
     password: String,
-    /// Opt into the longer `SessionPolicy::remember_me_hours` session. Absent
-    /// in older clients, so it defaults to a short session, not a sticky one.
+    /// "Shared computer": a session that ends with the browser.
     #[serde(default)]
-    remember_me: bool,
+    shared_computer: bool,
 }
 
 async fn handle_login(
@@ -109,7 +108,10 @@ async fn handle_login(
         return Json(json!({ "status": "error", "error": "Invalid username and/or password" }))
             .into_response();
     }
-    let (jwt, secs) = match state.login.issue_session(&body.username, body.remember_me) {
+    let jwt = match state
+        .login
+        .issue_session(&body.username, body.shared_computer)
+    {
         Ok(value) => value,
         Err(error) => {
             tracing::error!("failed to mint dashboard session JWT: {error}");
@@ -118,7 +120,7 @@ async fn handle_login(
     };
     let options = CookieOptions {
         path: "/".to_string(),
-        max_age_secs: Some(secs as i64),
+        max_age_secs: state.login.cookie_max_age(&jwt).map(|secs| secs as i64),
         http_only: true,
         secure: is_secure_request(&headers),
         same_site: "Lax",
@@ -806,16 +808,15 @@ mod tests {
         assert!(raw.contains("HttpOnly"), "{raw}");
     }
 
-    /// The surface's remember-me window comes from the `SessionPolicy` it was
-    /// built with, not a compiled-in constant: an unchecked "remember me" gets
-    /// the fixed one-week session, checking it gets the configured window.
+    /// An ordinary session's cookie lasts the policy's idle window; a
+    /// "Shared computer" one ends with the browser.
     #[tokio::test]
-    async fn remember_me_window_follows_the_session_policy() {
+    async fn the_session_cookie_follows_the_policy_and_shared_computer() {
         let (_dir, router) = setup_with(SessionPolicy {
-            remember_me_hours: 2,
+            session_idle_secs: 7200,
             ..SessionPolicy::default()
         });
-        let max_age = |remember: bool| {
+        let max_age = |shared: bool| {
             let router = router.clone();
             async move {
                 let response = send(
@@ -829,30 +830,30 @@ mod tests {
                             json!({
                                 "username": "admin",
                                 "password": "adminpw",
-                                "rememberMe": remember
+                                "sharedComputer": shared
                             })
                             .to_string(),
                         ))
                         .unwrap(),
                 )
                 .await;
-                let raw = response.headers()[header::SET_COOKIE]
-                    .to_str()
-                    .unwrap()
-                    .to_string();
-                raw.split(';')
+                let cookies: Vec<_> = response
+                    .headers()
+                    .get_all(header::SET_COOKIE)
+                    .iter()
+                    .map(|v| v.to_str().unwrap().to_string())
+                    .collect();
+                assert_eq!(cookies.len(), 1, "{cookies:?}");
+                cookies[0]
+                    .split(';')
                     .map(str::trim)
                     .find_map(|part| part.strip_prefix("Max-Age="))
-                    .unwrap_or_default()
-                    .to_string()
+                    .map(|v| v.parse::<u64>().unwrap())
             }
         };
-        assert_eq!(max_age(true).await, "7200");
-        assert_eq!(
-            max_age(false).await,
-            crate::auth::login::SESSION_EXPIRY_SECS.to_string(),
-            "an ordinary session is unaffected by the remember-me window"
-        );
+        let ordinary = max_age(false).await.unwrap();
+        assert!(ordinary.abs_diff(7200) <= 2, "{ordinary}");
+        assert_eq!(max_age(true).await, None);
     }
 
     /// Same for the lockout thresholds: a limit of one locks the surface after

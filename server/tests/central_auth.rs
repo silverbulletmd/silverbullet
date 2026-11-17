@@ -26,7 +26,7 @@ async fn provider_configuration_is_admin_only() {
         Arc::new(AnyUserAuth {
             store: users.clone(),
         }),
-        168,
+        30 * 86_400,
         LockoutTimer::from_config(10, 10),
         String::new(),
     ));
@@ -164,7 +164,7 @@ async fn local_handoff(primary_without_sso: bool, destination: &str) {
             Arc::new(AnyUserAuth {
                 store: users.clone(),
             }),
-            168,
+            30 * 86_400,
             LockoutTimer::from_config(10, 10),
             String::new(),
         )
@@ -311,7 +311,7 @@ async fn primary_origin_enables_local_central_login_and_restricts_central_routes
         Arc::new(AnyUserAuth {
             store: users.clone(),
         }),
-        168,
+        30 * 86_400,
         LockoutTimer::from_config(10, 10),
         String::new(),
     ));
@@ -411,7 +411,7 @@ async fn central_start_accepts_mcp_authorize_destination() {
         Arc::new(AnyUserAuth {
             store: users.clone(),
         }),
-        168,
+        30 * 86_400,
         LockoutTimer::from_config(10, 10),
         String::new(),
     ));

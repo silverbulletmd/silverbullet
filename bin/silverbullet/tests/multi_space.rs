@@ -423,7 +423,6 @@ fn create_spaces_and_verify_routing_and_auth_isolation() {
         .form(&[
             ("username", ADMIN_USER),
             ("password", ADMIN_PASSWORD),
-            ("rememberMe", ""),
             ("from", ""),
         ])
         .send()
@@ -849,7 +848,6 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
         .form(&[
             ("username", "alice"),
             ("password", "alicepw1"),
-            ("rememberMe", ""),
             ("from", ""),
         ])
         .send()
@@ -902,13 +900,12 @@ fn login_in_one_prefix_is_shared_and_password_change_revokes_only_that_user() {
     );
 }
 
-/// The session-policy environment variables are documented for both modes, and
-/// multi-space sessions are server-wide, so `SB_REMEMBER_ME_HOURS` must size
-/// the remember-me window on both account-managed login surfaces: the unified
-/// `/.dashboard` JSON login and a space's own `/.auth` form post.
+/// Multi-space sessions are server-wide, so `SB_SESSION_DAYS` must size the
+/// session on both account-managed login surfaces: the unified `/.dashboard`
+/// JSON login and a space's own `/.auth` form post.
 #[test]
-fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
-    let (_srv, _root, base) = start_multi(&[("SB_REMEMBER_ME_HOURS", "2")]);
+fn session_days_applies_to_both_multi_space_login_surfaces() {
+    let (_srv, _root, base) = start_multi(&[("SB_SESSION_DAYS", "2")]);
 
     let admin = reqwest::blocking::Client::builder()
         .cookie_store(true)
@@ -918,15 +915,14 @@ fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
         .post(format!("{base}/.dashboard/api/login"))
         .json(&serde_json::json!({
             "username": ADMIN_USER,
-            "password": ADMIN_PASSWORD,
-            "rememberMe": true
+            "password": ADMIN_PASSWORD
         }))
         .send()
         .unwrap();
     assert!(login.status().is_success());
     assert!(
-        max_ages(&login).iter().all(|age| age == "7200"),
-        "/.dashboard session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
+        max_ages(&login).iter().all(|age| near_two_days(age)),
+        "/.dashboard session must last SB_SESSION_DAYS=2, got {:?}",
         max_ages(&login)
     );
 
@@ -948,17 +944,23 @@ fn remember_me_hours_applies_to_both_multi_space_login_surfaces() {
         .form(&[
             ("username", ADMIN_USER),
             ("password", ADMIN_PASSWORD),
-            ("rememberMe", "on"),
             ("from", ""),
         ])
         .send()
         .unwrap();
     assert!(via_space.status().is_success());
     assert!(
-        max_ages(&via_space).iter().all(|age| age == "7200"),
-        "space session must last SB_REMEMBER_ME_HOURS=2, got {:?}",
+        max_ages(&via_space).iter().all(|age| near_two_days(age)),
+        "space session must last SB_SESSION_DAYS=2, got {:?}",
         max_ages(&via_space)
     );
+}
+
+/// The cookie's lifetime is computed from the session's expiry, so it may be
+/// a second short of the full window.
+fn near_two_days(age: &str) -> bool {
+    age.parse::<u64>()
+        .is_ok_and(|age| age.abs_diff(2 * 86_400) <= 2)
 }
 
 /// Same contract for the lockout pair: with a limit of one, the very first bad
@@ -992,9 +994,7 @@ fn lockout_env_vars_apply_in_multi_space_mode() {
     );
 }
 
-/// Every `Max-Age` on the response's `Set-Cookie` headers. Login sets the
-/// session cookie and (on remember-me, single-space style) a `refreshLogin`
-/// marker; both are scoped to the same window.
+/// Every `Max-Age` on the response's `Set-Cookie` headers.
 fn max_ages(response: &reqwest::blocking::Response) -> Vec<String> {
     let ages: Vec<String> = response
         .headers()

@@ -26,6 +26,13 @@ pub struct Claims {
     pub exp: usize,
 }
 
+/// A browser JWT reissued by [`Authenticator::renew_browser_jwt`], with the
+/// cookie lifetime to send it with (`None` for shared sessions).
+pub struct RenewedSession {
+    pub jwt: String,
+    pub max_age_secs: Option<u64>,
+}
+
 /// Issues and verifies HS256 session tokens with a persisted signing secret.
 pub struct Authenticator {
     secret: Vec<u8>,
@@ -106,24 +113,32 @@ impl Authenticator {
         Ok(claims)
     }
 
+    /// Starts a browser session that slides by `idle_secs` and returns its
+    /// first JWT. A `shared` session gets a cookie that ends with the browser
+    /// and keeps nothing on the device.
     pub fn issue_browser_jwt(
         &self,
         username: &str,
         credential_version: Option<String>,
         provider: Option<&str>,
-        expiry_secs: u64,
+        idle_secs: u64,
+        shared: bool,
     ) -> Result<String, jsonwebtoken::errors::Error> {
-        let exp = now_secs().saturating_add(expiry_secs);
         let Some(sessions) = &self.browser_sessions else {
+            let exp = now_secs().saturating_add(idle_secs);
             return self.issue_jwt_with_version_and_exp(username, credential_version, exp as usize);
         };
-        let id = sessions.issue(username, provider, exp).map_err(|error| {
-            tracing::error!("could not persist browser session: {error}");
-            jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken)
-        })?;
-        self.issue_browser_jwt_for_session(username, credential_version, &id, expiry_secs)
+        let id = sessions
+            .issue(username, provider, idle_secs, shared)
+            .map_err(|error| {
+                tracing::error!("could not persist browser session: {error}");
+                jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken)
+            })?;
+        self.issue_browser_jwt_for_session(username, credential_version, &id, u64::MAX)
     }
 
+    /// A JWT for an existing browser session, expiring with the session but
+    /// no later than `expiry_secs` from now.
     pub fn issue_browser_jwt_for_session(
         &self,
         username: &str,
@@ -134,8 +149,9 @@ impl Authenticator {
         let expires_at = self
             .browser_sessions
             .as_ref()
-            .and_then(|sessions| sessions.expires_at(session_id, username))
-            .ok_or(jsonwebtoken::errors::ErrorKind::InvalidToken)?;
+            .and_then(|sessions| sessions.info(session_id, username))
+            .ok_or(jsonwebtoken::errors::ErrorKind::InvalidToken)?
+            .expires_at;
         let claims = Claims {
             username: username.into(),
             credential_version,
@@ -150,6 +166,69 @@ impl Authenticator {
             &claims,
             &EncodingKey::from_secret(&self.secret),
         )
+    }
+
+    /// Slides the browser session behind `token` and mints a JWT with the new
+    /// expiry, keeping its username, credential version and session id.
+    /// `None` when the token isn't a live browser session or no renewal is
+    /// due yet.
+    pub fn renew_browser_jwt(&self, token: &str, default_idle_secs: u64) -> Option<RenewedSession> {
+        let claims = self.verify_browser_jwt(token).ok()?;
+        let id = claims.session_id.as_deref()?;
+        let sessions = self.browser_sessions.as_ref()?;
+        let info = match sessions.renew(id, &claims.username, default_idle_secs) {
+            Ok(Some(info)) => info,
+            // Not due for the record, but this JWT may trail it: another
+            // hostname holding the same session renewed it, or the renewal
+            // cookie never arrived. Catch this JWT up without a store write.
+            Ok(None) => {
+                let info = sessions.info(id, &claims.username)?;
+                let idle = if info.idle_secs == 0 {
+                    default_idle_secs
+                } else {
+                    info.idle_secs
+                };
+                let lag = info.expires_at.saturating_sub(claims.exp as u64);
+                if idle == 0 || lag < crate::auth::browser_sessions::renewal_interval(idle) {
+                    return None;
+                }
+                info
+            }
+            Err(error) => {
+                tracing::warn!("could not renew browser session: {error}");
+                return None;
+            }
+        };
+        let jwt = self
+            .issue_browser_jwt_for_session(
+                &claims.username,
+                claims.credential_version,
+                id,
+                u64::MAX,
+            )
+            .ok()?;
+        Some(RenewedSession {
+            jwt,
+            max_age_secs: (!info.shared).then(|| info.expires_at.saturating_sub(now_secs())),
+        })
+    }
+
+    /// How long the cookie carrying this browser JWT should live: `None` (a
+    /// cookie that ends with the browser) for shared sessions, else until the
+    /// JWT expires.
+    pub fn browser_cookie_max_age(&self, claims: &Claims) -> Option<u64> {
+        (!self.is_shared_session(claims)).then(|| (claims.exp as u64).saturating_sub(now_secs()))
+    }
+
+    /// Whether these claims belong to a session started with "Shared
+    /// computer". Tokens without a browser session never are.
+    pub fn is_shared_session(&self, claims: &Claims) -> bool {
+        let (Some(id), Some(sessions)) = (&claims.session_id, &self.browser_sessions) else {
+            return false;
+        };
+        sessions
+            .info(id, &claims.username)
+            .is_some_and(|info| info.shared)
     }
 
     pub fn revoke_browser_jwt(&self, token: &str) -> std::io::Result<()> {
@@ -663,10 +742,10 @@ mod tests {
         let sessions = Arc::new(BrowserSessions::load(dir.path()).unwrap());
         let a = fresh().with_browser_sessions(sessions);
         let first = a
-            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600)
+            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600, false)
             .unwrap();
         let other = a
-            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600)
+            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600, false)
             .unwrap();
         let device = a
             .issue_token("river", Some("epoch-1".into()), None, Some("space-a"), 3600)
@@ -678,11 +757,123 @@ mod tests {
         assert!(a.verify_jwt(&device).is_ok());
     }
 
+    const DAY: u64 = 86_400;
+
+    fn session_id(a: &Authenticator, token: &str) -> String {
+        a.verify_browser_jwt(token).unwrap().session_id.unwrap()
+    }
+
+    #[test]
+    fn renewal_reissues_a_jwt_whose_exp_moves_forward() {
+        let a = Authenticator::in_memory();
+        let first = a
+            .issue_browser_jwt("river", Some("v1".into()), None, 30 * DAY, false)
+            .unwrap();
+        let id = session_id(&a, &first);
+        // As if the session started two days ago: its JWT expires with it.
+        a.browser_sessions()
+            .unwrap()
+            .backdate_for_test(&id, 2 * DAY);
+        let old = a
+            .issue_browser_jwt_for_session("river", Some("v1".into()), &id, u64::MAX)
+            .unwrap();
+        let old_claims = a.verify_browser_jwt(&old).unwrap();
+        let renewed = a.renew_browser_jwt(&old, 30 * DAY).unwrap();
+        let claims = a.verify_browser_jwt(&renewed.jwt).unwrap();
+        assert!(claims.exp > old_claims.exp);
+        assert_eq!(claims.session_id.as_deref(), Some(id.as_str()));
+        assert_eq!(claims.credential_version.as_deref(), Some("v1"));
+        assert_eq!(claims.username, "river");
+        let max_age = renewed.max_age_secs.unwrap();
+        assert!(max_age.abs_diff(30 * DAY) <= 2, "{max_age}");
+    }
+
+    /// Central handoff gives each hostname its own JWT for one session. A
+    /// host whose JWT trails the record (another host renewed it, or the
+    /// renewal cookie was lost) must catch up, not wait for the next
+    /// store renewal.
+    #[test]
+    fn a_jwt_that_trails_its_session_is_refreshed_without_a_store_renewal() {
+        let a = Authenticator::in_memory();
+        let first = a
+            .issue_browser_jwt("river", Some("v1".into()), None, 30 * DAY, false)
+            .unwrap();
+        let id = session_id(&a, &first);
+        a.browser_sessions()
+            .unwrap()
+            .backdate_for_test(&id, 2 * DAY);
+        let host_a = a
+            .issue_browser_jwt_for_session("river", Some("v1".into()), &id, u64::MAX)
+            .unwrap();
+        let host_b = host_a.clone();
+        let renewed = a.renew_browser_jwt(&host_a, 30 * DAY).unwrap();
+        let caught_up = a.renew_browser_jwt(&host_b, 30 * DAY).unwrap();
+        let fresh = a.verify_browser_jwt(&renewed.jwt).unwrap().exp;
+        assert_eq!(a.verify_browser_jwt(&caught_up.jwt).unwrap().exp, fresh);
+        assert!(caught_up.max_age_secs.is_some());
+        // Now current: nothing more to do for either host.
+        assert!(a.renew_browser_jwt(&renewed.jwt, 30 * DAY).is_none());
+    }
+
+    #[test]
+    fn renewal_is_none_within_the_throttle_interval() {
+        let a = Authenticator::in_memory();
+        let token = a
+            .issue_browser_jwt("river", None, None, 30 * DAY, false)
+            .unwrap();
+        assert!(a.renew_browser_jwt(&token, 30 * DAY).is_none());
+    }
+
+    #[test]
+    fn shared_sessions_renew_without_max_age() {
+        let a = Authenticator::in_memory();
+        let token = a
+            .issue_browser_jwt("river", None, None, 12 * 3600, true)
+            .unwrap();
+        let claims = a.verify_browser_jwt(&token).unwrap();
+        assert!(a.is_shared_session(&claims));
+        assert_eq!(a.browser_cookie_max_age(&claims), None);
+        a.browser_sessions()
+            .unwrap()
+            .backdate_for_test(&session_id(&a, &token), 2 * 3600);
+        let renewed = a.renew_browser_jwt(&token, 30 * DAY).unwrap();
+        assert_eq!(renewed.max_age_secs, None);
+    }
+
+    #[test]
+    fn ordinary_sessions_get_a_cookie_lifetime_and_are_not_shared() {
+        let a = Authenticator::in_memory();
+        let token = a
+            .issue_browser_jwt("river", None, None, 30 * DAY, false)
+            .unwrap();
+        let claims = a.verify_browser_jwt(&token).unwrap();
+        assert!(!a.is_shared_session(&claims));
+        let max_age = a.browser_cookie_max_age(&claims).unwrap();
+        assert!(max_age.abs_diff(30 * DAY) <= 2, "{max_age}");
+    }
+
+    #[test]
+    fn renewal_rejects_device_and_mcp_tokens() {
+        let a = Authenticator::in_memory();
+        let device = a
+            .issue_token("river", None, None, Some("space-a"), 3600)
+            .unwrap();
+        let mcp = a
+            .issue_token("river", None, Some("mcp_access"), None, 3600)
+            .unwrap();
+        assert!(a.renew_browser_jwt(&device, 30 * DAY).is_none());
+        assert!(a.renew_browser_jwt(&mcp, 30 * DAY).is_none());
+        let device_claims = a.verify_jwt(&device).unwrap();
+        assert!(!a.is_shared_session(&device_claims));
+    }
+
     #[test]
     fn in_memory_authenticators_each_get_their_own_random_secret_and_salt() {
         let a = Authenticator::in_memory();
         let b = Authenticator::in_memory();
-        let token = a.issue_browser_jwt("river", None, None, 3600).unwrap();
+        let token = a
+            .issue_browser_jwt("river", None, None, 3600, false)
+            .unwrap();
         assert!(a.verify_browser_jwt(&token).is_ok());
         assert!(b.verify_jwt(&token).is_err());
         assert!(!a.salt().is_empty());

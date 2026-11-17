@@ -78,10 +78,10 @@ impl RequestAuthorizer for JwtAuthorizer {
             }
         }
         let cookie_name = scoped_auth_cookie_name(&request_host(ctx.headers), &self.url_prefix);
-        let claims = if let Some(cookie) = cookie_value(ctx.headers, &cookie_name) {
-            self.authenticator.verify_browser_jwt(&cookie).ok()?
+        let (claims, from_cookie) = if let Some(cookie) = cookie_value(ctx.headers, &cookie_name) {
+            (self.authenticator.verify_browser_jwt(&cookie).ok()?, true)
         } else {
-            self.authenticator.verify_jwt(&bearer?).ok()?
+            (self.authenticator.verify_jwt(&bearer?).ok()?, false)
         };
         if claims.token_use.is_some() {
             return None;
@@ -96,7 +96,14 @@ impl RequestAuthorizer for JwtAuthorizer {
                 return None;
             }
         }
-        Some(AuthOutcome::user(claims.username).with_version(claims.credential_version))
+        // Only a browser cookie is a shared-computer session; a client
+        // presenting a bearer token manages its own storage.
+        let shared = from_cookie && self.authenticator.is_shared_session(&claims);
+        Some(
+            AuthOutcome::user(claims.username)
+                .with_version(claims.credential_version)
+                .with_shared_session(shared),
+        )
     }
 }
 
@@ -411,7 +418,7 @@ mod tests {
             ),
         );
         let first = auth
-            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600)
+            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600, false)
             .unwrap();
         let id = auth.verify_browser_jwt(&first).unwrap().session_id.unwrap();
         let second_host = auth
@@ -419,7 +426,7 @@ mod tests {
             .unwrap();
         assert!(auth.verify_jwt(&second_host).unwrap().exp <= auth.verify_jwt(&first).unwrap().exp);
         let other_browser = auth
-            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600)
+            .issue_browser_jwt("river", Some("epoch-1".into()), None, 3600, false)
             .unwrap();
         let device = auth
             .issue_token("river", Some("epoch-1".into()), None, Some("notes"), 3600)

@@ -8,7 +8,7 @@ pub struct Handoff {
     pub username: String,
     pub credential_version: Option<String>,
     pub session_id: String,
-    pub remember: bool,
+    pub shared: bool,
     pub encrypt: bool,
 }
 

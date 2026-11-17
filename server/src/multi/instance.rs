@@ -397,7 +397,7 @@ fn try_build_parts(
         LoginManager::new(
             authenticator.clone(),
             verifier,
-            session.remember_me_hours,
+            session.session_idle_secs,
             session.lockout(),
             prefix.to_string(),
         )
@@ -582,6 +582,7 @@ fn try_build_parts(
                 "noop".into()
             },
             disable_service_worker: deps.disable_service_worker,
+            ephemeral_storage: false,
             sync_protocol_version: 2,
             revisions: revisions_mode,
         },

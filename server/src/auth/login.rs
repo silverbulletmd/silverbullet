@@ -7,12 +7,9 @@ use std::sync::Arc;
 
 use crate::auth::authenticator::Authenticator;
 use crate::auth::client_id::ClientId;
+use crate::auth::config::SHARED_SESSION_IDLE_SECS;
 use crate::auth::lockout::LockoutTimer;
 use crate::auth::Credentials;
-
-/// Normal (non-"remember me") session lifetime: one week, matching the legacy
-/// server's `authenticationExpirySeconds`.
-pub const SESSION_EXPIRY_SECS: u64 = 60 * 60 * 24 * 7;
 
 type CredentialVersionProvider = Arc<dyn Fn(&str) -> String + Send + Sync>;
 
@@ -41,7 +38,7 @@ pub struct LoginManager {
     authenticator: Arc<Authenticator>,
     verifier: Arc<dyn Credentials>,
     credential_version: Option<CredentialVersionProvider>,
-    remember_me_hours: u64,
+    session_idle_secs: u64,
     lockout: LockoutTimer,
     host_url_prefix: String,
     session_url_prefix: String,
@@ -56,7 +53,7 @@ impl LoginManager {
     pub fn new(
         authenticator: Arc<Authenticator>,
         verifier: Arc<dyn Credentials>,
-        remember_me_hours: u64,
+        session_idle_secs: u64,
         lockout: LockoutTimer,
         host_url_prefix: String,
     ) -> Self {
@@ -64,7 +61,7 @@ impl LoginManager {
             authenticator,
             verifier,
             credential_version: None,
-            remember_me_hours,
+            session_idle_secs,
             lockout,
             session_url_prefix: host_url_prefix.clone(),
             host_url_prefix,
@@ -100,9 +97,13 @@ impl LoginManager {
         self.authenticator.salt()
     }
 
-    /// "Remember me" duration expressed in whole days, for the page label.
-    pub fn remember_me_days(&self) -> u64 {
-        self.remember_me_hours / 24
+    /// How long an ordinary browser session survives without being used.
+    pub fn session_idle_secs(&self) -> u64 {
+        self.session_idle_secs
+    }
+
+    pub fn authenticator(&self) -> &Arc<Authenticator> {
+        &self.authenticator
     }
 
     pub fn host_url_prefix(&self) -> &str {
@@ -133,35 +134,43 @@ impl LoginManager {
         self.verifier.verify(user, pass)
     }
 
-    /// Mint a session JWT for `username`. Returns the token and its lifetime in
-    /// seconds (so the caller can match the cookie's `Max-Age`).
+    /// Start a browser session for `username` and mint its JWT. A `shared`
+    /// session ("Shared computer") gets the short idle window; the cookie
+    /// lifetime comes from [`Self::cookie_max_age`].
     pub fn issue_session(
         &self,
         username: &str,
-        remember: bool,
-    ) -> Result<(String, u64), jsonwebtoken::errors::Error> {
-        self.issue_session_with_provider(username, remember, None)
+        shared: bool,
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        self.issue_session_with_provider(username, shared, None)
     }
 
     pub fn issue_provider_session(
         &self,
         username: &str,
-        remember: bool,
+        shared: bool,
         provider: &str,
-    ) -> Result<(String, u64), jsonwebtoken::errors::Error> {
-        self.issue_session_with_provider(username, remember, Some(provider))
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        self.issue_session_with_provider(username, shared, Some(provider))
+    }
+
+    /// `Max-Age` for the cookie carrying a browser JWT this manager issued:
+    /// `None` (ends with the browser) for shared sessions.
+    pub fn cookie_max_age(&self, jwt: &str) -> Option<u64> {
+        let claims = self.authenticator.verify_browser_jwt(jwt).ok()?;
+        self.authenticator.browser_cookie_max_age(&claims)
     }
 
     fn issue_session_with_provider(
         &self,
         username: &str,
-        remember: bool,
+        shared: bool,
         provider: Option<&str>,
-    ) -> Result<(String, u64), jsonwebtoken::errors::Error> {
-        let secs = if remember {
-            self.remember_me_hours.saturating_mul(3600)
+    ) -> Result<String, jsonwebtoken::errors::Error> {
+        let secs = if shared {
+            SHARED_SESSION_IDLE_SECS
         } else {
-            SESSION_EXPIRY_SECS
+            self.session_idle_secs
         };
         let version = self
             .credential_version
@@ -169,11 +178,11 @@ impl LoginManager {
             .map(|provider| provider(username));
         let jwt = self
             .authenticator
-            .issue_browser_jwt(username, version, provider, secs)?;
+            .issue_browser_jwt(username, version, provider, secs, shared)?;
         if let Err(error) = self.verifier.record_login(username) {
             tracing::warn!("Could not persist last login: {error}");
         }
-        Ok((jwt, secs))
+        Ok(jwt)
     }
 
     pub fn revoke_browser_session(&self, token: &str) -> std::io::Result<()> {
@@ -315,14 +324,7 @@ mod tests {
                 .unwrap()
                 .unwrap();
         let lockout = LockoutTimer::from_config(config.lockout_time_secs, config.lockout_limit);
-        let remember_me_hours = config.remember_me_hours;
-        LoginManager::new(
-            auth,
-            Arc::new(config),
-            remember_me_hours,
-            lockout,
-            String::new(),
-        )
+        LoginManager::new(auth, Arc::new(config), 30 * 86_400, lockout, String::new())
     }
 
     #[test]
@@ -334,19 +336,36 @@ mod tests {
     }
 
     #[test]
-    fn remember_me_days_derived_from_hours() {
-        assert_eq!(manager().remember_me_days(), 2);
+    fn ordinary_sessions_use_the_idle_window_and_shared_ones_twelve_hours() {
+        let m = manager_with_sessions();
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let jwt = m.issue_session("alice", false).unwrap();
+        let claims = m.authenticator.verify_browser_jwt(&jwt).unwrap();
+        assert_eq!(claims.username, "alice");
+        assert!((claims.exp as u64).abs_diff(now + 10 * 86_400) <= 2);
+        assert!(!m.authenticator.is_shared_session(&claims));
+
+        let shared = m.issue_session("alice", true).unwrap();
+        let claims = m.authenticator.verify_browser_jwt(&shared).unwrap();
+        assert!((claims.exp as u64).abs_diff(now + 12 * 3600) <= 2);
+        assert!(m.authenticator.is_shared_session(&claims));
+        assert_eq!(m.session_idle_secs(), 10 * 86_400);
     }
 
-    #[test]
-    fn issued_session_verifies_and_respects_remember_me() {
-        let m = manager();
-        let (jwt, secs) = m.issue_session("alice", false).unwrap();
-        assert_eq!(secs, SESSION_EXPIRY_SECS);
-        assert_eq!(m.authenticator.verify_jwt(&jwt).unwrap().username, "alice");
-
-        let (_jwt2, secs2) = m.issue_session("alice", true).unwrap();
-        assert_eq!(secs2, 48 * 3600);
+    fn manager_with_sessions() -> LoginManager {
+        let config = AuthConfig::try_parse(Some("alice:s3cret"), None, None, None, None)
+            .unwrap()
+            .unwrap();
+        LoginManager::new(
+            Arc::new(Authenticator::in_memory()),
+            Arc::new(config),
+            10 * 86_400,
+            LockoutTimer::from_config(60, 10),
+            String::new(),
+        )
     }
 
     /// The consent screen names one space; the tokens it produces must say so,
@@ -403,13 +422,12 @@ mod tests {
         let m = LoginManager::new(
             auth,
             Arc::new(FixedCreds),
-            48,
+            30 * 86_400,
             LockoutTimer::from_config(60, 10),
             String::new(),
         );
         assert!(m.authorize("member", "pw"));
         assert!(!m.authorize("member", "no"));
-        assert_eq!(m.remember_me_days(), 2);
     }
 
     #[test]

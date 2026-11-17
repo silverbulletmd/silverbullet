@@ -900,14 +900,14 @@ mod tests {
             Arc::new(AnyUserAuth {
                 store: users.clone(),
             }),
-            24,
+            30 * 86_400,
             LockoutTimer::from_config(60, 5),
             String::new(),
         );
         assert!(users.list()["ada"]["lastLogin"].is_null());
         assert!(!login.authorize("ada", "incorrect"));
         assert!(users.list()["ada"]["lastLogin"].is_null());
-        let (jwt, _) = login.issue_session("ada", false).unwrap();
+        let jwt = login.issue_session("ada", false).unwrap();
         let timestamp = users.list()["ada"]["lastLogin"].clone();
         assert!(timestamp.as_str().is_some_and(|value| value.ends_with('Z')));
         assert!(login.verify_browser_session(&jwt).is_some());

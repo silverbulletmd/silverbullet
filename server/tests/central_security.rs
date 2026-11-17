@@ -51,7 +51,7 @@ impl Fixture {
                 Arc::new(AnyUserAuth {
                     store: users.clone(),
                 }),
-                30 * 24,
+                30 * 86_400,
                 LockoutTimer::from_config(10, 10),
                 String::new(),
             )
@@ -86,7 +86,7 @@ impl Fixture {
             auth,
         }
     }
-    async fn login_handoff(&self, remember: bool) -> (String, String, String) {
+    async fn login_handoff(&self, shared: bool) -> (String, String, String) {
         let started = self
             .app
             .clone()
@@ -135,9 +135,16 @@ impl Fixture {
                 .unwrap(),
         )
         .await;
-        let signed=self.app.clone().oneshot(request("POST","login.test","/.auth/central/local",&binding,Some(json!({"attempt":attempt,"csrf":ctx["csrf"],"username":"river","password":"secret","rememberMe":remember})))).await.unwrap();
+        let signed=self.app.clone().oneshot(request("POST","login.test","/.auth/central/local",&binding,Some(json!({"attempt":attempt,"csrf":ctx["csrf"],"username":"river","password":"secret","sharedComputer":shared})))).await.unwrap();
         assert_eq!(signed.status(), StatusCode::OK);
-        let central = cookies(&signed);
+        // Raw, with attributes: callers check Max-Age and parse the value.
+        let central = signed
+            .headers()
+            .get_all("set-cookie")
+            .iter()
+            .map(|v| v.to_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
         let body = json_body(signed).await;
         let url = reqwest::Url::parse(body["redirect"].as_str().unwrap()).unwrap();
         (
@@ -213,9 +220,9 @@ async fn handoff_does_not_restore_an_account_revoked_after_login() {
     assert!(response.headers().get("set-cookie").is_none());
 }
 #[tokio::test]
-async fn remembered_session_keeps_its_expiry_on_another_hostname() {
+async fn a_session_keeps_its_expiry_on_another_hostname() {
     let f = Fixture::new();
-    let (path, cookie, central) = f.login_handoff(true).await;
+    let (path, cookie, central) = f.login_handoff(false).await;
     let original = f
         .auth
         .verify_browser_jwt(
@@ -240,6 +247,47 @@ async fn remembered_session_keeps_its_expiry_on_another_hostname() {
         .verify_browser_jwt(cookie.split(';').next().unwrap().split_once('=').unwrap().1)
         .unwrap();
     assert_eq!(returned.exp, original.exp);
+}
+
+/// "Shared computer" must reach every hostname as a cookie that ends with
+/// the browser, not just the sign-in host.
+#[tokio::test]
+async fn a_shared_sign_in_sets_browser_session_cookies_on_both_hosts() {
+    let f = Fixture::new();
+    let (path, cookie, central) = f.login_handoff(true).await;
+    assert!(central.contains("auth_"), "{central}");
+    assert!(!central.contains("Max-Age"), "{central}");
+    let response = f
+        .app
+        .clone()
+        .oneshot(request("GET", "notes.test", &path, &cookie, None))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SEE_OTHER);
+    let auth = response
+        .headers()
+        .get_all("set-cookie")
+        .iter()
+        .map(|v| v.to_str().unwrap().to_string())
+        .find(|c| c.starts_with("auth_"))
+        .unwrap();
+    assert!(!auth.contains("Max-Age"), "{auth}");
+    // The unlock page learns it is a shared session, so it skips any local
+    // encryption an earlier user set up in this browser.
+    let resume = response.headers()["location"]
+        .to_str()
+        .unwrap()
+        .replace("/.auth/central/unlock", "/.auth/central/resume");
+    let host_cookie = auth.split(';').next().unwrap().to_string();
+    let context = json_body(
+        f.app
+            .clone()
+            .oneshot(request("GET", "notes.test", &resume, &host_cookie, None))
+            .await
+            .unwrap(),
+    )
+    .await;
+    assert_eq!(context["shared"], true, "{context}");
 }
 
 #[test]
@@ -287,7 +335,13 @@ async fn a_stolen_test_url_cannot_start_provider_authentication_without_admin_pr
     let f = Fixture::new();
     let token = f
         .auth
-        .issue_browser_jwt("river", f.users.credential_version("river"), None, 3600)
+        .issue_browser_jwt(
+            "river",
+            f.users.credential_version("river"),
+            None,
+            3600,
+            false,
+        )
         .unwrap();
     let admin_cookie = format!("auth_login_test={token}");
     let created = f
@@ -402,7 +456,13 @@ async fn encrypted_local_login_requires_credentials_even_with_a_central_session(
     let f = Fixture::new();
     let token = f
         .auth
-        .issue_browser_jwt("river", f.users.credential_version("river"), None, 3600)
+        .issue_browser_jwt(
+            "river",
+            f.users.credential_version("river"),
+            None,
+            3600,
+            false,
+        )
         .unwrap();
     let cookie = format!("auth_login_test={token}");
     for (encrypt, status) in [(false, StatusCode::SEE_OTHER), (true, StatusCode::OK)] {

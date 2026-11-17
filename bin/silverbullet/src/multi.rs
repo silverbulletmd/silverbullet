@@ -26,6 +26,7 @@ use silverbullet_server::multi::instance::{
 };
 use silverbullet_server::multi::manager::MultiManager;
 use silverbullet_server::multi::server_config::ServerConfig;
+use silverbullet_server::multi::session_renewal::{with_session_renewal, SessionRenewal};
 use silverbullet_server::multi::users::UserStore;
 use silverbullet_server::runtime::RuntimeAvailability;
 use silverbullet_server::update_check::UpdateCheck;
@@ -266,7 +267,7 @@ pub async fn build_multi_stack(
             Arc::new(silverbullet_server::multi::access::AnyUserAuth {
                 store: store.clone(),
             }),
-            session.remember_me_hours,
+            session.session_idle_secs,
             session.lockout(),
             String::new(),
         )
@@ -340,6 +341,11 @@ pub async fn build_multi_stack(
         .as_ref()
         .map(|(_, grants)| (authenticator.clone(), grants.clone()));
     let (mcp, mcp_host) = mcp_router(&manager, &users, oauth, mcp_enabled.clone());
+    let renewal = Arc::new(SessionRenewal {
+        authenticator: authenticator.clone(),
+        users: users.clone(),
+        default_idle_secs: session.session_idle_secs,
+    });
     let mut router = build_main_router(manager, Some(dashboard), crate::VERSION.to_string())
         .merge(silverbullet_server::handlers::central_auth::router(central))
         .merge(mcp);
@@ -360,6 +366,9 @@ pub async fn build_multi_stack(
         });
         router = router.merge(mcp_oauth::router(state, mcp_enabled));
     }
+    // Outermost, so every surface (spaces, Dashboard, central sign-in) slides
+    // the session it was called with.
+    let router = with_session_renewal(router, renewal);
     let log = if root.is_some() {
         format!(
             "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",

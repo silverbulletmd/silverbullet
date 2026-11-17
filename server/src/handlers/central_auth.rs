@@ -186,7 +186,7 @@ impl CentralAuth {
                 username: username.into(),
                 credential_version: claims.credential_version,
                 session_id: sid,
-                remember: attempt.remember,
+                shared: attempt.shared,
                 encrypt: attempt.encrypt,
             },
             now(),
@@ -462,7 +462,7 @@ async fn local_logout(State(state): State<Arc<CentralAuth>>, headers: HeaderMap)
         }
     }
     let mut response = StatusCode::NO_CONTENT.into_response();
-    auth_cookie(&mut response, &headers, "", 0);
+    auth_cookie(&mut response, &headers, "", Some(0));
     response
 }
 
@@ -489,9 +489,19 @@ fn origin(headers: &HeaderMap) -> String {
     crate::auth::cookie::request_origin(headers)
 }
 fn cookie(response: &mut Response, headers: &HeaderMap, name: &str, value: &str, seconds: u64) {
+    cookie_with_max_age(response, headers, name, value, Some(seconds));
+}
+/// `max_age` `None` sets a cookie that ends with the browser.
+fn cookie_with_max_age(
+    response: &mut Response,
+    headers: &HeaderMap,
+    name: &str,
+    value: &str,
+    max_age: Option<u64>,
+) {
     let options = crate::auth::CookieOptions {
         path: "/".into(),
-        max_age_secs: Some(seconds as i64),
+        max_age_secs: max_age.map(|secs| secs as i64),
         http_only: true,
         secure: crate::auth::is_secure_request(headers),
         same_site: "Lax",
@@ -502,13 +512,13 @@ fn cookie(response: &mut Response, headers: &HeaderMap, name: &str, value: &str,
             .append(axum::http::header::SET_COOKIE, value);
     }
 }
-fn auth_cookie(response: &mut Response, headers: &HeaderMap, jwt: &str, seconds: u64) {
-    cookie(
+fn auth_cookie(response: &mut Response, headers: &HeaderMap, jwt: &str, max_age: Option<u64>) {
+    cookie_with_max_age(
         response,
         headers,
         &crate::auth::scoped_auth_cookie_name(&crate::auth::request_host(headers), ""),
         jwt,
-        seconds,
+        max_age,
     );
 }
 async fn public_config(State(state): State<Arc<CentralAuth>>, headers: HeaderMap) -> Response {
@@ -565,7 +575,7 @@ async fn start(
             binding: crate::auth::oauth::challenge_for(&binding),
             central_binding: None,
             csrf: random_secret(),
-            remember: false,
+            shared: false,
             encrypt: query.encrypt,
             provider: None,
             test: None,
@@ -689,7 +699,7 @@ async fn context(
     } else {
         state.active_provider()
     };
-    Json(json!({"csrf":attempt.csrf,"encrypt":attempt.encrypt,"rememberMeDays":state.login.remember_me_days(),"provider":provider.map(|c|json!({"buttonLabel":c.button_label})),"test":attempt.test.is_some(),"destination":attempt.destination,"encryptionSalt":state.login.salt()})).into_response()
+    Json(json!({"csrf":attempt.csrf,"encrypt":attempt.encrypt,"provider":provider.map(|c|json!({"buttonLabel":c.button_label})),"test":attempt.test.is_some(),"destination":attempt.destination,"encryptionSalt":state.login.salt()})).into_response()
 }
 #[derive(Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -698,7 +708,7 @@ struct LoginBody {
     csrf: String,
     username: String,
     password: String,
-    remember_me: bool,
+    shared_computer: bool,
     client_encryption: bool,
     test_proof: String,
 }
@@ -748,10 +758,13 @@ async fn local_login(
         if attempt.test.is_some() {
             return error(StatusCode::BAD_REQUEST, "Use the provider to test SSO");
         }
-        attempt.remember = body.remember_me;
+        attempt.shared = body.shared_computer;
         attempt.encrypt = body.client_encryption;
     }
-    let (jwt, secs) = match state.login.issue_session(&body.username, body.remember_me) {
+    let jwt = match state
+        .login
+        .issue_session(&body.username, body.shared_computer)
+    {
         Ok(v) => v,
         Err(_) => {
             return error(
@@ -763,7 +776,12 @@ async fn local_login(
     match state.complete(&body.attempt, &body.username, &jwt) {
         Ok(redirect) => {
             let mut response = Json(json!({"redirect":redirect})).into_response();
-            auth_cookie(&mut response, &headers, &jwt, secs);
+            auth_cookie(
+                &mut response,
+                &headers,
+                &jwt,
+                state.login.cookie_max_age(&jwt),
+            );
             response
         }
         Err(e) => error(StatusCode::BAD_REQUEST, &e),
@@ -819,7 +837,7 @@ async fn provider_login(
     if !state.central_binding_valid(&body.attempt, attempt, &headers) {
         return error(StatusCode::BAD_REQUEST, "Sign-in expired");
     }
-    attempt.remember = body.remember_me;
+    attempt.shared = body.shared_computer;
     attempt.encrypt = body.client_encryption;
     attempt.provider = Some(ProviderAttempt {
         state: authorization.state,
@@ -869,9 +887,9 @@ async fn provider_callback(
         if provider.config.central_origin != origin(&headers) {
             return browser_error(StatusCode::BAD_REQUEST, "Wrong callback hostname");
         }
-        (id, provider, attempt.test.clone(), attempt.remember)
+        (id, provider, attempt.test.clone(), attempt.shared)
     };
-    let (id, provider, testing, remember) = taken;
+    let (id, provider, testing, shared) = taken;
     let identity = if !query.error.is_empty() {
         Err("Sign-in was canceled or refused by the provider".into())
     } else {
@@ -927,17 +945,22 @@ async fn provider_callback(
     };
     let issued=state.providers.with_active_config(&provider.config,|| {
         let username=state.users.resolve_or_bind_sso(&provider.config.provider_id,&identity).map_err(|_| "Your account hasn't been added to this server or is disabled. Contact your administrator.".to_string())?;
-        let (jwt,secs)=state.login.issue_provider_session(&username,remember,&provider.config.provider_id).map_err(|_| "Could not start a session".to_string())?;
-        Ok((username,jwt,secs))
+        let jwt=state.login.issue_provider_session(&username,shared,&provider.config.provider_id).map_err(|_| "Could not start a session".to_string())?;
+        Ok((username,jwt))
     });
-    let (username, jwt, secs) = match issued {
+    let (username, jwt) = match issued {
         Ok(value) => value,
         Err(error) => return browser_error(StatusCode::FORBIDDEN, &error),
     };
     match state.complete(&id, &username, &jwt) {
         Ok(url) => {
             let mut response = Redirect::to(&url).into_response();
-            auth_cookie(&mut response, &headers, &jwt, secs);
+            auth_cookie(
+                &mut response,
+                &headers,
+                &jwt,
+                state.login.cookie_max_age(&jwt),
+            );
             response
         }
         Err(e) => browser_error(StatusCode::BAD_REQUEST, &e),
@@ -1009,12 +1032,12 @@ async fn return_to_host(
     }
     let mut response =
         Redirect::to(&format!("/.auth/central/unlock?resume={resume_id}")).into_response();
-    let secs = state
+    let max_age = state
         .authenticator
         .verify_browser_jwt(&jwt)
-        .map(|c| (c.exp as u64).saturating_sub(now()))
-        .unwrap_or(0);
-    auth_cookie(&mut response, &headers, &jwt, secs);
+        .map(|claims| state.authenticator.browser_cookie_max_age(&claims))
+        .unwrap_or(Some(0));
+    auth_cookie(&mut response, &headers, &jwt, max_age);
     cookie(
         &mut response,
         &headers,
@@ -1064,7 +1087,8 @@ async fn resume_context(
     {
         return error(StatusCode::FORBIDDEN, "Wrong destination hostname");
     }
-    Json(json!({"attempt":resume.attempt_id,"destination":resume.destination,"scope":resume.scope,"encrypt":resume.encrypt,"username":resume.username,"loginMethod":state.users.login_method(&resume.username),"encryptionSalt":state.login.salt(),"centralOrigin":state.central_origin()})).into_response()
+    let shared = state.authenticator.is_shared_session(&claims);
+    Json(json!({"attempt":resume.attempt_id,"destination":resume.destination,"scope":resume.scope,"encrypt":resume.encrypt,"shared":shared,"username":resume.username,"loginMethod":state.users.login_method(&resume.username),"encryptionSalt":state.login.salt(),"centralOrigin":state.central_origin()})).into_response()
 }
 async fn test_provider(
     State(state): State<Arc<CentralAuth>>,
@@ -1120,7 +1144,7 @@ async fn test_provider(
             binding: random_secret(),
             central_binding: None,
             csrf: random_secret(),
-            remember: false,
+            shared: false,
             encrypt: false,
             provider: None,
             test: Some(TestAttempt {

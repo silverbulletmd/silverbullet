@@ -7,7 +7,7 @@ fn grant() -> Handoff {
         username: "morgan".into(),
         credential_version: Some("epoch-1".into()),
         session_id: "session-a".into(),
-        remember: false,
+        shared: false,
         encrypt: false,
     }
 }

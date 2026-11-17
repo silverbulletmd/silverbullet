@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use crate::auth::config::{
-    DEFAULT_LOCKOUT_LIMIT, DEFAULT_LOCKOUT_TIME_SECS, DEFAULT_REMEMBER_ME_HOURS,
+    DEFAULT_LOCKOUT_LIMIT, DEFAULT_LOCKOUT_TIME_SECS, DEFAULT_SESSION_IDLE_SECS,
 };
 use axum::http::HeaderMap;
 
@@ -15,7 +15,8 @@ use crate::multi::users::UserStore;
 /// Session policy shared by the `users.json`-backed surfaces
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SessionPolicy {
-    pub remember_me_hours: u64,
+    /// How long a browser session survives without being used.
+    pub session_idle_secs: u64,
     pub lockout_time_secs: u64,
     pub lockout_limit: u32,
 }
@@ -23,7 +24,7 @@ pub struct SessionPolicy {
 impl Default for SessionPolicy {
     fn default() -> Self {
         Self {
-            remember_me_hours: DEFAULT_REMEMBER_ME_HOURS,
+            session_idle_secs: DEFAULT_SESSION_IDLE_SECS,
             lockout_time_secs: DEFAULT_LOCKOUT_TIME_SECS,
             lockout_limit: DEFAULT_LOCKOUT_LIMIT,
         }
@@ -31,11 +32,12 @@ impl Default for SessionPolicy {
 }
 
 impl SessionPolicy {
-    /// Read `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME` and `SB_LOCKOUT_LIMIT`
-    /// from the process environment, mirroring `AuthConfig::from_env`.
+    /// Read `SB_SESSION_DAYS` (or the deprecated `SB_REMEMBER_ME_HOURS`),
+    /// `SB_LOCKOUT_TIME` and `SB_LOCKOUT_LIMIT` from the process environment.
     pub fn from_env() -> Self {
         let get = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
         Self::parse(
+            get("SB_SESSION_DAYS").as_deref(),
             get("SB_REMEMBER_ME_HOURS").as_deref(),
             get("SB_LOCKOUT_TIME").as_deref(),
             get("SB_LOCKOUT_LIMIT").as_deref(),
@@ -45,16 +47,25 @@ impl SessionPolicy {
     /// Parse raw values, falling back to the default for anything absent or
     /// unparseable — same lenient handling as single-space mode, where a typo
     /// leaves the documented default in place instead of refusing to boot.
+    /// `SB_REMEMBER_ME_HOURS` only counts when `SB_SESSION_DAYS` is unset.
     pub fn parse(
+        session_days: Option<&str>,
         remember_me_hours: Option<&str>,
         lockout_time_secs: Option<&str>,
         lockout_limit: Option<&str>,
     ) -> Self {
         let default = Self::default();
+        let positive = |v: &str| v.trim().parse::<u64>().ok().filter(|n| *n > 0);
+        let session_idle_secs = match (session_days, remember_me_hours) {
+            (Some(days), _) => positive(days).map(|d| d.saturating_mul(86_400)),
+            (None, Some(hours)) => {
+                tracing::warn!("SB_REMEMBER_ME_HOURS is deprecated; use SB_SESSION_DAYS");
+                positive(hours).map(|h| h.saturating_mul(3600))
+            }
+            (None, None) => None,
+        };
         Self {
-            remember_me_hours: remember_me_hours
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(default.remember_me_hours),
+            session_idle_secs: session_idle_secs.unwrap_or(default.session_idle_secs),
             lockout_time_secs: lockout_time_secs
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(default.lockout_time_secs),
@@ -172,33 +183,43 @@ mod tests {
     use axum::http::{HeaderMap, HeaderValue, Method};
 
     #[test]
-    fn session_policy_defaults_match_single_space_mode() {
-        let policy = SessionPolicy::parse(None, None, None);
+    fn session_policy_defaults() {
+        let policy = SessionPolicy::parse(None, None, None, None);
         assert_eq!(policy, SessionPolicy::default());
-        assert_eq!(policy.remember_me_hours, 168);
+        assert_eq!(policy.session_idle_secs, 30 * 86_400);
         assert_eq!(policy.lockout_time_secs, 60);
         assert_eq!(policy.lockout_limit, 10);
-        let env_style = crate::auth::AuthConfig::try_parse(Some("u:p"), None, None, None, None)
-            .unwrap()
-            .unwrap();
-        assert_eq!(policy.remember_me_hours, env_style.remember_me_hours);
-        assert_eq!(policy.lockout_time_secs, env_style.lockout_time_secs);
-        assert_eq!(policy.lockout_limit, env_style.lockout_limit);
     }
 
     #[test]
     fn session_policy_parses_overrides() {
-        let policy = SessionPolicy::parse(Some("48"), Some("30"), Some("5"));
-        assert_eq!(policy.remember_me_hours, 48);
+        let policy = SessionPolicy::parse(Some("10"), None, Some("30"), Some("5"));
+        assert_eq!(policy.session_idle_secs, 10 * 86_400);
         assert_eq!(policy.lockout_time_secs, 30);
         assert_eq!(policy.lockout_limit, 5);
+    }
+
+    #[test]
+    fn session_days_wins_over_remember_me_hours() {
+        let policy = SessionPolicy::parse(Some("10"), Some("48"), None, None);
+        assert_eq!(policy.session_idle_secs, 10 * 86_400);
+    }
+
+    #[test]
+    fn remember_me_hours_is_a_fallback() {
+        let policy = SessionPolicy::parse(None, Some("48"), None, None);
+        assert_eq!(policy.session_idle_secs, 48 * 3600);
     }
 
     /// A typo must not change the policy (and must not refuse to boot) —
     /// matching how `AuthConfig` treats an unparseable value.
     #[test]
     fn session_policy_ignores_unparseable_values() {
-        let policy = SessionPolicy::parse(Some("forever"), Some(""), Some("-1"));
+        let policy = SessionPolicy::parse(Some("forever"), None, Some(""), Some("-1"));
+        assert_eq!(policy, SessionPolicy::default());
+        let policy = SessionPolicy::parse(Some("0"), Some("0"), None, None);
+        assert_eq!(policy, SessionPolicy::default());
+        let policy = SessionPolicy::parse(None, Some("soon"), None, None);
         assert_eq!(policy, SessionPolicy::default());
     }
 
