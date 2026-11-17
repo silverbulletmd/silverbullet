@@ -174,5 +174,13 @@ bench:
 generate:
 	npx @lezer/generator@1.5.1 client/space_lua/lua.grammar -o client/space_lua/parse-lua.js
 
+# Edit docs/ in a browser: one writable space at the root, no accounts. The data
+# root lives under the git-ignored tmp/ and is rewritten each run, so it always
+# points at this checkout's docs/.
+EDIT_DOCS_ROOT := tmp/edit-docs
 edit-docs: build-rs
-	SB_INDEX_PAGE=SilverBullet SB_DISABLE_SERVICE_WORKER=1 ./target/release/silverbullet -p 3001 docs
+	@mkdir -p $(EDIT_DOCS_ROOT)
+	@printf '{"docs":{"name":"SilverBullet","folder":"%s","binding":{"prefix":"/"},"access":"write","indexPage":"SilverBullet"}}\n' "$(CURDIR)/docs" > $(EDIT_DOCS_ROOT)/spaces.json
+	@printf '{}\n' > $(EDIT_DOCS_ROOT)/users.json
+	@chmod 600 $(EDIT_DOCS_ROOT)/spaces.json $(EDIT_DOCS_ROOT)/users.json
+	SB_DISABLE_SERVICE_WORKER=1 ./target/release/silverbullet -p 3001 $(EDIT_DOCS_ROOT)
