@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "vitest";
-import { syncFileCommand, syncSpaceCommand } from "./sync.ts";
+import { syncFileCommand, syncSpaceCommand, updateSyncStatus } from "./sync.ts";
 
 const originalSyscall = globalThis.syscall;
 const calls: string[] = [];
@@ -87,3 +87,24 @@ test("Sync: File still syncs and reports Done when the service worker is on", as
   expect(flashes).toEqual(["Syncing file...", "Done."]);
   expect(calls).toContain("sync.performFileSync");
 });
+
+// `editor.hideProgress` is `editor.showProgress` without a percentage.
+test.each([
+  [false, 30],
+  [true, undefined],
+])(
+  "sync progress shows a ring only during the initial sync (completed: %s)",
+  async (initialSyncCompleted, expected) => {
+    const shown: Array<number | undefined> = [];
+    mockSyscalls({
+      "sync.hasInitialSyncCompleted": () => initialSyncCompleted,
+      "editor.showProgress": (_type: string, percentage?: number) => {
+        shown.push(percentage);
+      },
+    });
+
+    await updateSyncStatus({ status: { filesProcessed: 3, totalFiles: 10 } });
+
+    expect(shown).toEqual([expected]);
+  },
+);

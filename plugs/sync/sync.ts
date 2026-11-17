@@ -64,7 +64,10 @@ export async function updateSyncStatus(event: {
   const percentage = Math.round(
     (event.status.filesProcessed / event.status.totalFiles) * 100,
   );
-  if (percentage >= 99) {
+  // Only the first sync after a load is worth a progress ring. Later periodic
+  // syncs pick up a change or two, and their "percentage" is just where those
+  // files sit in the scan order.
+  if (percentage >= 99 || (await sync.hasInitialSyncCompleted())) {
     await editor.hideProgress("sync");
     lastProgressAt = 0;
   } else {
