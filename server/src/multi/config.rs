@@ -331,6 +331,16 @@ pub struct SpaceConfig {
     pub git_sync: Option<GitSyncConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub revisions_commit: Option<CommitTiming>,
+    /// The space folder path clients name their local database after, when it
+    /// differs from the real folder (a migrated space keeps its old path so
+    /// devices keep their data). Written only by migration, never by the admin API.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub client_identity_path: Option<String>,
+    /// URL prefixes this space used to answer on; requests under one redirect
+    /// to the current prefix, unless a live space claims them. Root is `/`.
+    /// Written only by migration, never by the admin API.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub former_prefixes: Vec<String>,
     /// Fields written by newer versions, preserved verbatim.
     #[serde(flatten)]
     pub extra: serde_json::Map<String, serde_json::Value>,
@@ -359,6 +369,17 @@ impl SpaceConfig {
         }
         self.legacy_public = None;
         self.extra.remove("runtimeApi");
+        let mut former: Vec<String> = Vec::new();
+        for raw in &self.former_prefixes {
+            let prefix = match crate::multi::validate::normalize_prefix(raw) {
+                p if p.is_empty() => "/".to_string(),
+                p => p,
+            };
+            if !former.contains(&prefix) {
+                former.push(prefix);
+            }
+        }
+        self.former_prefixes = former;
     }
 }
 
@@ -387,6 +408,8 @@ impl SpaceConfig {
             revisions: Default::default(),
             git_sync: None,
             revisions_commit: None,
+            client_identity_path: None,
+            former_prefixes: Vec::new(),
             extra: Default::default(),
         }
     }
@@ -965,5 +988,27 @@ mod tests {
                 .get("semanticSearch")
                 .is_none());
         }
+    }
+
+    #[test]
+    fn client_identity_path_round_trips() {
+        let space: SpaceConfig = serde_json::from_value(serde_json::json!({
+            "name": "Notes", "binding": {"prefix": "/notes"}, "clientIdentityPath": "/data"
+        }))
+        .unwrap();
+        assert_eq!(space.client_identity_path.as_deref(), Some("/data"));
+        assert_eq!(
+            serde_json::to_value(&space).unwrap()["clientIdentityPath"],
+            "/data"
+        );
+        let absent: SpaceConfig = serde_json::from_value(
+            serde_json::json!({ "name": "Notes", "binding": {"prefix": "/notes"} }),
+        )
+        .unwrap();
+        assert_eq!(absent.client_identity_path, None);
+        assert!(serde_json::to_value(&absent)
+            .unwrap()
+            .get("clientIdentityPath")
+            .is_none());
     }
 }

@@ -18,6 +18,21 @@ pub async fn handle_auth_get(State(state): State<Arc<ServerState>>) -> Response 
         return (StatusCode::FORBIDDEN, "Authentication not enabled").into_response();
     };
 
+    // A login form that can never succeed would only mislead.
+    if state.identity.has_no_accounts() {
+        use crate::handlers::notice_page::{NoticeMessage, NoticePage};
+        return NoticePage {
+            assets: &format!("{}/.client/", login.host_url_prefix()),
+            title: "No accounts",
+            message: NoticeMessage::Text(
+                "This server has no accounts, so there is nothing to log in to. \
+                 It is configured by editing spaces.json.",
+            ),
+            action: None,
+        }
+        .into_response(StatusCode::OK);
+    }
+
     let s = state.clone();
     let shell = run_blocking(move || s.client_bundle.read_file(".client/auth.html")).await;
     let shell = match shell {

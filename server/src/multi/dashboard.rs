@@ -369,6 +369,28 @@ async fn handle_asset(
     }
 }
 
+/// The Dashboard of a server with no accounts: nobody can log in, so every
+/// path explains that, in the Dashboard's look (its stylesheet comes from the
+/// same asset route).
+pub fn build_accountless_dashboard_router(state: Arc<DashboardState>) -> Router {
+    use crate::handlers::notice_page::{NoticeMessage, NoticePage};
+    Router::new()
+        .route("/assets/{file}", get(handle_asset))
+        .fallback(|| async {
+            NoticePage {
+                assets: &format!("{DASHBOARD_PREFIX}/assets/"),
+                title: "No accounts",
+                message: NoticeMessage::Text(
+                    "This server has no accounts, so there is nothing to log in to. \
+                     It is configured by editing spaces.json.",
+                ),
+                action: None,
+            }
+            .into_response(StatusCode::OK)
+        })
+        .with_state(state)
+}
+
 /// The single logged-in surface. Shell routes are open (the shell is a static
 /// bundle); every screen it renders is driven by data behind `/api/*`, which
 /// authorizes per request. `admin_api` arrives already gated — see

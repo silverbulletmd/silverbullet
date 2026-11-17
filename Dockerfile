@@ -30,5 +30,5 @@ ADD ./docker-entrypoint.sh /docker-entrypoint.sh
 COPY silverbullet-${TARGETARCH} /silverbullet
 RUN chmod +x /silverbullet /docker-entrypoint.sh
 
-# Extra args (e.g. `--single`) are passed to the server. The data folder can only be set via SB_FOLDER.
+# Extra args are passed to the server. The data folder can only be set via SB_FOLDER.
 ENTRYPOINT ["/sbin/tini", "--", "/docker-entrypoint.sh"]

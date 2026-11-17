@@ -62,9 +62,10 @@ impl Drop for Server {
 
 mod common;
 use common::{
-    free_port, kill_browsers, kill_group, leftover_browsers, own_process_group, stop_server,
-    terminate, test_chrome_or_skip,
+    free_port, kill_browsers, kill_group, leftover_browsers, own_process_group,
+    provision_data_root_with_runtime, stop_server, terminate, test_chrome_or_skip,
 };
+use silverbullet_server::multi::config::SpaceAccess;
 
 /// Poll `cond` until it returns true or the deadline passes. On timeout, dump the
 /// server's captured stdout/stderr and panic with `msg`.
@@ -115,16 +116,16 @@ fn runtime_api_evaluates_lua_against_headless_chrome() {
     let space = tempfile::tempdir().unwrap();
     let long_page: String = (1..=200).map(|i| format!("Line {i}\n\n")).collect();
     std::fs::write(space.path().join("index.md"), long_page).unwrap();
-    let chrome_data = space.path().join(".chrome-data");
+    let root = provision_data_root_with_runtime(space.path(), SpaceAccess::Write, None);
+    let chrome_data = root.path().join(".chrome-data");
     let port = free_port();
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
-    cmd.arg(space.path())
+    cmd.arg(root.path())
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
-        .arg("--single")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .env("SB_CHROME_DATA_DIR", &chrome_data);
     let mut server = Server::spawn(&mut cmd, &chrome);
@@ -285,15 +286,15 @@ fn runtime_api_survives_the_client_reloading_its_ui() {
 
     let space = tempfile::tempdir().unwrap();
     std::fs::write(space.path().join("index.md"), "hello\n").unwrap();
-    let chrome_data = space.path().join(".chrome-data");
+    let root = provision_data_root_with_runtime(space.path(), SpaceAccess::Write, None);
+    let chrome_data = root.path().join(".chrome-data");
     let port = free_port();
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
-    cmd.arg(space.path())
+    cmd.arg(root.path())
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
-        .arg("--single")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .env("SB_CHROME_DATA_DIR", &chrome_data);
     let mut server = Server::spawn(&mut cmd, &chrome);

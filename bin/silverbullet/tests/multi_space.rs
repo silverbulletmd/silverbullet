@@ -1,14 +1,14 @@
 //! Black-box tests for multi-space mode: login on the unified `/.dashboard`
 //! surface, space CRUD over the admin API nested at `/.dashboard/api/admin`,
-//! shared sessions, per-space authorization, and the boot-detection error
-//! cases around a provisioned (`spaces.json`) root.
+//! shared sessions, per-space authorization, and boot detection around a
+//! provisioned (`spaces.json`) root.
 //!
 //! Each test provisions a temp root by spawning the compiled `silverbullet`
 //! binary's `setup` subcommand (the same code path the setup wizard uses
 //! under the hood, but exercised here through the real CLI surface) and then
 //! spawns the binary again as a subprocess against the provisioned root,
 //! driving its HTTP surface with `reqwest::blocking`. The runtime API is
-//! disabled (`SB_RUNTIME_API=0`) so no headless Chrome launches.
+//! off in each root's `server.json`, so no headless Chrome launches.
 //!
 //! Readiness is probed via `/.dashboard/api/admin/spaces` returning 401 (server
 //! up, the Dashboard router mounted, gating active), keeping the assertions
@@ -62,6 +62,18 @@ fn provision(root: &std::path::Path, space: Option<FirstSpace>) {
         "silverbullet setup failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    runtime_off(root);
+}
+
+/// Turn the runtime API off in `root`'s `server.json`, keeping its other
+/// settings, so the server never launches a headless Chrome.
+fn runtime_off(root: &std::path::Path) {
+    let path = root.join("server.json");
+    let mut config: serde_json::Value = std::fs::read(&path)
+        .map(|bytes| serde_json::from_slice(&bytes).unwrap())
+        .unwrap_or_else(|_| serde_json::json!({}));
+    config["runtimeApi"] = serde_json::Value::Bool(false);
+    std::fs::write(&path, config.to_string()).unwrap();
 }
 
 /// `silverbullet setup` on a fresh temp dir provisions it (exit 0, both
@@ -122,7 +134,6 @@ fn start_multi_with_service_worker(
         .env_remove("SB_MULTI_SPACE")
         .env_remove("SB_USER")
         .env_remove("SB_DISABLE_SERVICE_WORKER")
-        .env("SB_RUNTIME_API", "0")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
     if !service_worker_enabled {
@@ -237,46 +248,23 @@ fn boots_empty_root_with_authenticated_dashboard() {
         .is_success());
 }
 
-/// `boot::detect` errors when a provisioned root (`spaces.json` present) is
-/// booted with the legacy `SB_USER` credential env var set — accounts now
-/// live in `users.json`, so this must exit non-zero rather than silently
-/// ignoring the account data already on disk. The same gate refuses the
-/// legacy `SB_AUTH_TOKEN` (API tokens now live in `users.json` and are managed
-/// through the admin UI) and `--single` (a folder with `spaces.json` cannot
-/// also be forced into single-space mode).
+/// Leftover single-space settings (`SB_USER`, `SB_AUTH_TOKEN`,
+/// `SB_RUNTIME_API`) next to a provisioned root are logged as ignored: the
+/// server boots from `users.json` and `server.json` as usual.
 #[test]
-fn spaces_json_with_sb_user_refuses_to_boot() {
-    let root = tempfile::tempdir().unwrap();
-    provision(root.path(), None);
-    let boot = |configure: &dyn Fn(&mut Command)| {
-        let mut command = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
-        command
-            .arg(root.path())
-            .arg("-p")
-            .arg(free_port().to_string())
-            .env_remove("SB_USER")
-            .env_remove("SB_AUTH_TOKEN");
-        configure(&mut command);
-        let out = command.output().unwrap();
-        assert!(!out.status.success());
-        String::from_utf8_lossy(&out.stderr).into_owned()
-    };
-
-    let stderr = boot(&|c| {
-        c.env("SB_USER", "admin:adminpw1");
-    });
-    assert!(stderr.contains("users.json"), "{stderr}");
-    assert!(stderr.contains("SB_USER"), "{stderr}");
-
-    let stderr = boot(&|c| {
-        c.env("SB_AUTH_TOKEN", "sometoken");
-    });
-    assert!(stderr.contains("SB_AUTH_TOKEN"), "{stderr}");
-
-    let stderr = boot(&|c| {
-        c.arg("--single");
-    });
-    assert!(stderr.contains("--single"), "{stderr}");
+fn spaces_json_with_legacy_settings_boots_and_warns() {
+    let (mut server, _root, _base) = start_multi(&[
+        ("SB_USER", "admin:adminpw1"),
+        ("SB_AUTH_TOKEN", "sometoken"),
+        ("SB_RUNTIME_API", "0"),
+    ]);
+    let _ = server.0.kill();
+    let _ = server.0.wait();
+    let mut stdout = String::new();
+    std::io::Read::read_to_string(&mut server.0.stdout.take().unwrap(), &mut stdout).unwrap();
+    assert!(stdout.contains("SB_USER is ignored"), "{stdout}");
+    assert!(stdout.contains("SB_AUTH_TOKEN is ignored"), "{stdout}");
+    assert!(stdout.contains("SB_RUNTIME_API is ignored"), "{stdout}");
 }
 
 #[test]
@@ -291,7 +279,6 @@ fn fresh_folder_serves_setup_and_hot_swaps_into_multi() {
         .arg("127.0.0.1")
         .env_remove("SB_MULTI_SPACE")
         .env_remove("SB_USER")
-        .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -555,6 +542,83 @@ fn custom_hostname_prefixes_route_without_cross_host_fallback() {
     }
 }
 
+/// A server whose `users.json` is `{}` has no accounts: its public spaces are
+/// served, and the Dashboard only explains there is nothing to log in to.
+#[test]
+fn accountless_server_serves_public_space() {
+    let root = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(root.path().join("spaces/root")).unwrap();
+    std::fs::create_dir_all(root.path().join("spaces/hidden")).unwrap();
+    std::fs::write(root.path().join("spaces/root/index.md"), "# Public").unwrap();
+    std::fs::write(
+        root.path().join("spaces.json"),
+        serde_json::json!({
+            "root": { "name": "Root", "binding": { "prefix": "" }, "access": "read" },
+            "hidden": { "name": "Hidden", "binding": { "prefix": "/hidden" }, "access": "none" }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    std::fs::write(root.path().join("users.json"), "{}").unwrap();
+    runtime_off(root.path());
+
+    let port = free_port();
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(root.path())
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .env_remove("SB_USER")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let _server = Server(cmd.spawn().unwrap());
+    let base = format!("http://127.0.0.1:{port}");
+    let client = reqwest::blocking::Client::new();
+    let deadline = Instant::now() + Duration::from_secs(20);
+    loop {
+        if client.get(format!("{base}/.instance")).send().is_ok() {
+            break;
+        }
+        assert!(Instant::now() < deadline, "server did not boot in time");
+        std::thread::sleep(Duration::from_millis(200));
+    }
+
+    let page = client.get(format!("{base}/.fs/index.md")).send().unwrap();
+    assert_eq!(page.status().as_u16(), 200);
+    assert_eq!(page.text().unwrap(), "# Public");
+
+    let dashboard = client.get(format!("{base}/.dashboard/")).send().unwrap();
+    assert_eq!(dashboard.status().as_u16(), 200);
+    let html = dashboard.text().unwrap();
+    assert!(html.contains("no accounts"), "{html}");
+
+    // The space's own sign-in page says the same instead of offering a form.
+    let auth = client.get(format!("{base}/.auth")).send().unwrap();
+    assert_eq!(auth.status().as_u16(), 200);
+    let html = auth.text().unwrap();
+    assert!(html.contains("no accounts"), "{html}");
+    assert!(!html.contains("password"), "{html}");
+    assert!(!html.contains("<form"), "{html}");
+
+    // A space with no visitor access shows it too, and its stylesheet loads
+    // for an anonymous visitor.
+    let auth = client.get(format!("{base}/hidden/.auth")).send().unwrap();
+    assert_eq!(auth.status().as_u16(), 200);
+    let html = auth.text().unwrap();
+    assert!(html.contains("no accounts"), "{html}");
+    assert!(
+        html.contains("&#x2f;hidden&#x2f;.client&#x2f;app.css"),
+        "{html}"
+    );
+    let css = client
+        .get(format!("{base}/hidden/.client/app.css"))
+        .send()
+        .unwrap();
+    assert_eq!(css.status().as_u16(), 200);
+}
+
 #[test]
 fn primary_hostname_bindings_share_routing_and_service_worker_scope_with_prefix_bindings() {
     let root = tempfile::tempdir().unwrap();
@@ -565,7 +629,11 @@ fn primary_hostname_bindings_share_routing_and_service_worker_scope_with_prefix_
     }
     std::fs::write(
         root.path().join("server.json"),
-        serde_json::json!({ "primaryUrl": format!("http://manager.localhost:{port}") }).to_string(),
+        serde_json::json!({
+            "primaryUrl": format!("http://manager.localhost:{port}"),
+            "runtimeApi": false,
+        })
+        .to_string(),
     )
     .unwrap();
     std::fs::write(
@@ -582,7 +650,6 @@ fn primary_hostname_bindings_share_routing_and_service_worker_scope_with_prefix_
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
-        .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -647,7 +714,6 @@ fn grandfathered_root_prefix_scope_warns_and_allows_only_conflict_reduction() {
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
-        .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -938,4 +1004,92 @@ fn max_ages(response: &reqwest::blocking::Response) -> Vec<String> {
         .collect();
     assert!(!ages.is_empty(), "login set no Max-Age cookie");
     ages
+}
+
+/// `SB_UNIX_SOCKET` makes the multi-space listener a Unix socket instead of a
+/// TCP port; `GET /.instance` over it answers 200.
+#[cfg(unix)]
+#[test]
+fn multi_serves_on_unix_socket() {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+
+    let root = tempfile::tempdir().unwrap();
+    std::fs::write(
+        root.path().join("spaces.json"),
+        serde_json::json!({
+            "root": { "name": "Root", "binding": { "prefix": "" }, "access": "read" }
+        })
+        .to_string(),
+    )
+    .unwrap();
+    std::fs::write(root.path().join("users.json"), "{}").unwrap();
+    runtime_off(root.path());
+    let sock_dir = tempfile::tempdir().unwrap();
+    let socket = sock_dir.path().join("sb.sock");
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(root.path())
+        .env_remove("SB_USER")
+        .env("SB_UNIX_SOCKET", &socket)
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let _server = Server(cmd.spawn().unwrap());
+
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let response = loop {
+        if let Ok(mut stream) = UnixStream::connect(&socket) {
+            stream
+                .write_all(
+                    b"GET /.instance HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+                )
+                .unwrap();
+            let mut out = String::new();
+            stream.read_to_string(&mut out).unwrap();
+            break out;
+        }
+        assert!(Instant::now() < deadline, "server did not boot in time");
+        std::thread::sleep(Duration::from_millis(200));
+    };
+    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
+}
+
+/// An empty data folder with `SB_UNIX_SOCKET` boots the setup wizard on the
+/// socket, not single-space mode.
+#[cfg(unix)]
+#[test]
+fn setup_serves_on_unix_socket() {
+    use std::io::{Read, Write};
+    use std::os::unix::net::UnixStream;
+
+    let root = tempfile::tempdir().unwrap();
+    let sock_dir = tempfile::tempdir().unwrap();
+    let socket = sock_dir.path().join("sb.sock");
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
+    cmd.arg(root.path())
+        .env_remove("SB_USER")
+        .env("SB_UNIX_SOCKET", &socket)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let _server = Server(cmd.spawn().unwrap());
+
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let response = loop {
+        if let Ok(mut stream) = UnixStream::connect(&socket) {
+            stream
+                .set_read_timeout(Some(Duration::from_secs(10)))
+                .unwrap();
+            stream
+                .write_all(b"GET /.setup/ HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+                .unwrap();
+            let mut out = String::new();
+            stream.read_to_string(&mut out).unwrap();
+            break out;
+        }
+        assert!(Instant::now() < deadline, "server did not boot in time");
+        std::thread::sleep(Duration::from_millis(200));
+    };
+    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
 }

@@ -234,6 +234,19 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
         return Redirect::temporary(crate::multi::dashboard::DASHBOARD_PREFIX).into_response();
     }
     let Some((inst, prefix)) = table.resolve_main(&host, &path) else {
+        if let Some(target) = table.resolve_former_migration_page(&host, &path) {
+            return (StatusCode::FOUND, [(header::LOCATION, target)]).into_response();
+        }
+        if let Some(target) = table
+            .resolve_former(&host, &path)
+            .filter(|_| !server_wide_path(&path))
+        {
+            let target = match req.uri().query() {
+                Some(q) => format!("{target}?{q}"),
+                None => target,
+            };
+            return Redirect::permanent(&target).into_response();
+        }
         if path == "/" {
             if state.dashboard_mounted && !table.claims_host(&host) {
                 return Redirect::temporary(crate::multi::dashboard::DASHBOARD_PREFIX)
@@ -245,6 +258,20 @@ async fn dispatch(State(state): State<MainState>, mut req: Request) -> Response 
     };
 
     forward_to_space(&inst, &prefix, req).await
+}
+
+/// Server-wide surfaces that a former root prefix must never capture.
+fn server_wide_path(path: &str) -> bool {
+    [
+        "/.dashboard",
+        "/.instance",
+        "/.setup",
+        "/.mcp",
+        "/.well-known",
+        "/.auth",
+    ]
+    .iter()
+    .any(|root| path == *root || path.starts_with(&format!("{root}/")))
 }
 
 /// The 404 for an address no space claims, in the Dashboard's look: its
@@ -322,6 +349,8 @@ fn strip_prefix(mut req: Request, prefix: &str) -> Request<Body> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::Authenticator;
+    use crate::multi::access::SessionPolicy;
     use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
     use crate::multi::instance::{AssetFactories, InstanceAuth, InstanceDeps};
     use crate::multi::manager::MultiManager;
@@ -342,7 +371,11 @@ mod tests {
             runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
-            auth: InstanceAuth::Single(None),
+            auth: InstanceAuth::Accounts {
+                users: crate::multi::users::UserStore::create_empty(root).unwrap(),
+                authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+                session: SessionPolicy::default(),
+            },
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
@@ -355,7 +388,7 @@ mod tests {
 
     fn payload(name: &str, binding: Binding) -> SpaceConfig {
         SpaceConfig {
-            access: Some(SpaceAccess::None),
+            access: Some(SpaceAccess::Write),
             ..SpaceConfig::test(name, binding)
         }
     }
@@ -418,6 +451,111 @@ mod tests {
             assert_eq!(response.status(), StatusCode::TEMPORARY_REDIRECT, "{uri}");
             assert_eq!(response.headers()[header::LOCATION], "/.dashboard", "{uri}");
         }
+    }
+
+    fn former_router(
+        dir: &tempfile::TempDir,
+        former: &[&str],
+        other: Option<&str>,
+    ) -> axum::Router {
+        let m =
+            MultiManager::boot(dir.path().into(), deps(dir.path()), Default::default()).unwrap();
+        let mut notes = payload(
+            "Notes",
+            Binding::Prefix {
+                prefix: "/notes".into(),
+            },
+        );
+        notes.former_prefixes = former.iter().map(|p| p.to_string()).collect();
+        m.create(notes, true).unwrap();
+        if let Some(prefix) = other {
+            let binding = Binding::Prefix {
+                prefix: prefix.into(),
+            };
+            m.create(payload("Other", binding), true).unwrap();
+        }
+        let dashboard = Router::new().fallback(|| async { StatusCode::from_u16(299).unwrap() });
+        build_main_router(m, Some(dashboard), "test".into())
+    }
+
+    async fn redirect_of(router: &axum::Router, uri: &str) -> (StatusCode, String) {
+        let response = get(router, "localhost", uri).await;
+        let location = response
+            .headers()
+            .get(header::LOCATION)
+            .map(|v| v.to_str().unwrap().to_string())
+            .unwrap_or_default();
+        (response.status(), location)
+    }
+
+    #[tokio::test]
+    async fn former_prefix_redirects_to_current() {
+        let dir = tempfile::tempdir().unwrap();
+        let router = former_router(&dir, &["/"], None);
+        for (from, to) in [
+            ("/Some%20Page?x=1", "/notes/Some%20Page?x=1"),
+            ("/.fs/a.md", "/notes/.fs/a.md"),
+            ("/", "/notes/"),
+        ] {
+            let (status, location) = redirect_of(&router, from).await;
+            assert_eq!(status, StatusCode::PERMANENT_REDIRECT, "{from}");
+            assert_eq!(location, to, "{from}");
+        }
+        for uri in [
+            "/.setup/migrate/",
+            "/.setup/migrate",
+            "/.setup/migrate/api/status",
+        ] {
+            let (status, location) = redirect_of(&router, uri).await;
+            assert_eq!(status, StatusCode::FOUND, "{uri}");
+            assert_eq!(location, "/notes/", "{uri}");
+        }
+        for uri in [
+            "/.dashboard/users",
+            "/.instance",
+            "/.setup/",
+            "/.setup/migrated",
+            "/.mcp",
+            "/.well-known/oauth-protected-resource",
+            "/.auth/login",
+        ] {
+            let (status, _) = redirect_of(&router, uri).await;
+            assert_ne!(status, StatusCode::PERMANENT_REDIRECT, "{uri}");
+        }
+    }
+
+    #[tokio::test]
+    async fn former_prefix_never_shadows_a_space() {
+        let dir = tempfile::tempdir().unwrap();
+        let router = former_router(&dir, &["/", "/other"], Some("/other"));
+        for uri in ["/other", "/other/page"] {
+            let (status, location) = redirect_of(&router, uri).await;
+            assert_ne!(status, StatusCode::PERMANENT_REDIRECT, "{uri}");
+            assert!(!location.starts_with("/notes"), "{uri}: {location}");
+        }
+        let (status, location) = redirect_of(&router, "/page").await;
+        assert_eq!(status, StatusCode::PERMANENT_REDIRECT);
+        assert_eq!(location, "/notes/page");
+    }
+
+    #[tokio::test]
+    async fn former_prefix_wiki() {
+        let dir = tempfile::tempdir().unwrap();
+        let router = former_router(&dir, &["wiki/"], None);
+        let (status, location) = redirect_of(&router, "/wiki/x").await;
+        assert_eq!(status, StatusCode::PERMANENT_REDIRECT);
+        assert_eq!(location, "/notes/x");
+        let (_, location) = redirect_of(&router, "/wiki").await;
+        assert_eq!(location, "/notes");
+        let (status, _) = redirect_of(&router, "/wikipedia").await;
+        assert_ne!(status, StatusCode::PERMANENT_REDIRECT);
+        for uri in ["/wiki/.setup/migrate/", "/wiki/.setup/migrate/api/status"] {
+            let (status, location) = redirect_of(&router, uri).await;
+            assert_eq!(status, StatusCode::FOUND, "{uri}");
+            assert_eq!(location, "/notes/", "{uri}");
+        }
+        let (status, _) = redirect_of(&router, "/.setup/migrate/").await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]
@@ -540,26 +678,28 @@ mod tests {
                 .unwrap();
             Box::new(bundle)
         });
-        dependencies.auth = InstanceAuth::Single(Some(
-            crate::auth::AuthConfig::try_parse(
-                Some("keeper:fixture-password"),
-                Some("fixture-token"),
-                None,
-                None,
-                None,
-            )
-            .unwrap()
-            .unwrap(),
-        ));
+        let users = crate::multi::users::UserStore::create_empty(dir.path()).unwrap();
+        users
+            .create_user("keeper", "fixture-password", true, Default::default())
+            .unwrap();
+        let token = users.create_token("keeper", "fixture").unwrap();
+        dependencies.auth = InstanceAuth::Accounts {
+            users,
+            authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+            session: SessionPolicy::default(),
+        };
         let m = MultiManager::boot(dir.path().into(), dependencies, Default::default()).unwrap();
         m.create(
-            payload(
-                "Work",
-                Binding::Host {
-                    host: "notes.example.test".into(),
-                    prefix: "/work".into(),
-                },
-            ),
+            SpaceConfig {
+                access: Some(SpaceAccess::None),
+                ..payload(
+                    "Work",
+                    Binding::Host {
+                        host: "notes.example.test".into(),
+                        prefix: "/work".into(),
+                    },
+                )
+            },
             true,
         )
         .unwrap();
@@ -576,7 +716,7 @@ mod tests {
                 Request::builder()
                     .uri("/work/")
                     .header("host", "notes.example.test")
-                    .header("authorization", "Bearer fixture-token")
+                    .header("authorization", format!("Bearer {token}"))
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -593,7 +733,7 @@ mod tests {
                 Request::builder()
                     .uri("/work/.client/manifest.json")
                     .header("host", "notes.example.test")
-                    .header("authorization", "Bearer fixture-token")
+                    .header("authorization", format!("Bearer {token}"))
                     .body(Body::empty())
                     .unwrap(),
             )

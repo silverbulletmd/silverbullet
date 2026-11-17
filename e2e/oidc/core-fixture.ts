@@ -187,7 +187,6 @@ export async function startCoreOidcFixture(
       { stdio: "pipe" },
     );
     process = spawnServerProcess(root, port, {
-      singleSpace: false,
       disableServiceWorker: options.disableServiceWorker,
       env: {
         HTTPS_PROXY: oidc.outboundProxy,

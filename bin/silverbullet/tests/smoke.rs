@@ -2,21 +2,28 @@
 //! (The exhaustive endpoint matrix lands in a follow-up plan.)
 
 mod common;
-use common::free_port;
+use common::{free_port, provision_data_root};
+use silverbullet_server::multi::config::SpaceAccess;
 
 #[tokio::test]
 async fn boots_and_serves_ping_config_and_bundle() {
-    let dir = tempfile::tempdir().unwrap();
+    let space = tempfile::tempdir().unwrap();
+    std::fs::write(
+        space.path().join("index.md"),
+        silverbullet::DEFAULT_INDEX_MD,
+    )
+    .unwrap();
+    // Visitors may write, but `/.help` is for signed-in accounts.
+    let dir = provision_data_root(space.path(), SpaceAccess::Write, Some(("pat", "secret")));
     let port = free_port();
 
     let folder = dir.path().to_str().unwrap().to_string();
     std::env::set_var("SB_FOLDER", &folder);
-    // Disable the headless-Chrome runtime so the test never launches a browser.
-    std::env::set_var("SB_RUNTIME_API", "0");
     let handle = tokio::spawn(async move {
         // `run` blocks until shutdown; the test process exiting tears it down.
-        let _ = silverbullet::server::run(Some("127.0.0.1".into()), Some(port), Some(folder), true)
-            .await;
+        let _ =
+            silverbullet::server::run(Some("127.0.0.1".into()), Some(port), Some(folder), false)
+                .await;
     });
 
     let base = format!("http://127.0.0.1:{port}");
@@ -30,45 +37,6 @@ async fn boots_and_serves_ping_config_and_bundle() {
         tokio::time::sleep(std::time::Duration::from_millis(50)).await;
     }
     assert!(up, "server did not start");
-
-    // MCP exists only in multi-space mode.
-    let mcp = client.get(format!("{base}/.mcp")).send().await.unwrap();
-    assert_eq!(mcp.status().as_u16(), 404);
-    let mcp = client
-        .post(format!("{base}/.mcp"))
-        .json(&serde_json::json!({"jsonrpc": "2.0", "id": 1, "method": "ping"}))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(mcp.status().as_u16(), 404);
-    let mut statuses = Vec::new();
-    for path in [
-        "/.well-known/oauth-protected-resource/.mcp",
-        "/.well-known/oauth-protected-resource",
-        "/.well-known/oauth-authorization-server",
-        "/.auth/mcp/authorize",
-    ] {
-        let resp = client.get(format!("{base}{path}")).send().await.unwrap();
-        statuses.push((format!("GET {path}"), resp.status().as_u16()));
-    }
-    for path in [
-        "/.auth/mcp/authorize",
-        "/.auth/mcp/token",
-        "/.auth/register",
-        "/.auth/revoke",
-    ] {
-        let resp = client
-            .post(format!("{base}{path}"))
-            .form(&[("token", "unknown")])
-            .send()
-            .await
-            .unwrap();
-        statuses.push((format!("POST {path}"), resp.status().as_u16()));
-    }
-    assert!(
-        statuses.iter().all(|(_, status)| *status == 404),
-        "{statuses:?}"
-    );
 
     let cfg: serde_json::Value = client
         .get(format!("{base}/.config"))
@@ -95,7 +63,6 @@ async fn boots_and_serves_ping_config_and_bundle() {
     );
     assert!(!html.contains("{{"), "unresolved placeholder in shell");
 
-    // An empty space receives the rich index template.
     let index = client
         .get(format!("{base}/.fs/index.md"))
         .send()
@@ -108,6 +75,17 @@ async fn boots_and_serves_ping_config_and_bundle() {
         "got: {index_body}"
     );
 
+    let client = reqwest::Client::builder()
+        .cookie_store(true)
+        .build()
+        .unwrap();
+    let login = client
+        .post(format!("{base}/.auth"))
+        .form(&[("username", "pat"), ("password", "secret")])
+        .send()
+        .await
+        .unwrap();
+    assert!(login.status().is_success());
     get_help_answers_json(&client, &base).await;
 
     handle.abort();

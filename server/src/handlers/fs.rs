@@ -90,7 +90,7 @@ pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoR
             Response::builder()
                 .status(StatusCode::OK)
                 .header("Content-Type", "application/json")
-                .header("X-Space-Path", &state.space_folder_path)
+                .header("X-Space-Path", &state.client_space_path)
                 .header("Cache-Control", FILE_CACHE_CONTROL)
                 .body(Body::from(json))
                 .unwrap()

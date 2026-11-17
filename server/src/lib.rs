@@ -73,6 +73,7 @@ mod test_support {
             space_prefixes: Default::default(),
             bundled_repositories: Vec::new(),
             space_folder_path: "/tmp".into(),
+            client_space_path: "/tmp".into(),
             version: "test-version".into(),
             host_url_prefix: String::new(),
             additional_head_html: String::new(),

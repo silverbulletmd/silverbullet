@@ -8,8 +8,10 @@ import {
   waitForPersistedContent,
 } from "../fixtures/core.ts";
 
+// Revision commands are hidden from anonymous visitors, so the space needs an account.
 test.use({
-  serverEnv: { SB_REVISIONS: "managed" },
+  spaceAccount: { username: "river", password: "harbor-password" },
+  spaceRevisions: "managed",
   spaceFiles: { "index.md": "First version.\n" },
 });
 
@@ -30,11 +32,21 @@ test("an editor snapshots a change, previews history and restores a saved revisi
   };
   await expect.poll(head).not.toBe("");
   const initial = head();
+  await page.goto(sbServer.url);
+  await page.getByLabel("Username", { exact: true }).fill("river");
+  await page.getByLabel("Password", { exact: true }).fill("harbor-password");
+  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await expect(page.locator(".cm-editor")).toBeVisible();
   await gotoSilverBulletPage(page, sbServer);
   await page.locator(".cm-content").click();
   await page.keyboard.press(`${mod}+a`);
   await page.keyboard.insertText("Second version.\n");
-  await waitForPersistedContent(sbServer, "index.md", "Second version.\n");
+  await waitForPersistedContent(
+    sbServer,
+    "index.md",
+    "Second version.\n",
+    page.request,
+  );
   await runCommandViaPalette(page, "Revision: Create snapshot");
   await expect.poll(head).not.toBe(initial);
   await runCommandViaPalette(page, "Revision: Page History");
@@ -57,7 +69,12 @@ test("an editor snapshots a change, previews history and restores a saved revisi
   await modalHistory.locator(".sb-nav-row").last().click();
   await preview.getByRole("button", { name: "Restore", exact: true }).click();
   await expect(preview).toBeHidden();
-  await waitForPersistedContent(sbServer, "index.md", "First version.\n");
+  await waitForPersistedContent(
+    sbServer,
+    "index.md",
+    "First version.\n",
+    page.request,
+  );
   await gotoSilverBulletPage(page, sbServer);
   await expect(page.locator(".cm-content")).toHaveText("First version.");
 });

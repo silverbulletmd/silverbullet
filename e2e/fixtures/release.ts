@@ -2,7 +2,12 @@ import { type ChildProcess, spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getFreePort, waitForServer } from "./core.ts";
+import {
+  getFreePort,
+  provisionDataRoot,
+  seedWelcomePage,
+  waitForServer,
+} from "./core.ts";
 
 /** A running release-binary server instance. */
 export type ReleaseServer = {
@@ -15,7 +20,7 @@ export type ReleaseServer = {
 
 // The release binary must serve embedded assets; the debug fixture reads them from disk.
 export async function startReleaseServer(
-  extraEnv: Record<string, string> = {},
+  opts: { admin?: { username: string; password: string } } = {},
 ): Promise<ReleaseServer> {
   const spaceDir = await mkdtemp(join(tmpdir(), "sb-e2e-release-"));
   const port = await getFreePort();
@@ -23,20 +28,23 @@ export async function startReleaseServer(
   const repoRoot = join(import.meta.dirname, "../..");
   const binaryPath = join(repoRoot, "target", "release", "silverbullet");
 
-  // A fresh empty temp dir boots into the first-run setup wizard unless we
-  // force single-space mode; both release-embedded scenarios want a single
-  // servable space (the login-flow one additionally sets SB_USER for auth).
+  // Both release-embedded scenarios want one servable space (the login-flow
+  // one with an admin account, so anonymous visitors get no access).
+  const dataRoot = provisionDataRoot(
+    spaceDir,
+    { access: opts.admin ? "none" : "write", admin: opts.admin },
+    binaryPath,
+  );
+  await seedWelcomePage(spaceDir);
   const proc: ChildProcess = spawn(
     binaryPath,
-    [spaceDir, "-p", String(port), "-L", "127.0.0.1", "--single"],
+    [dataRoot, "-p", String(port), "-L", "127.0.0.1"],
     {
       cwd: repoRoot,
       stdio: ["ignore", "pipe", "pipe"],
       env: {
         ...process.env,
         SB_DISABLE_SERVICE_WORKER: "1",
-        SB_RUNTIME_API: "0",
-        ...extraEnv,
       },
     },
   );
@@ -65,7 +73,10 @@ export async function startReleaseServer(
         resolve();
       });
       proc.kill("SIGTERM");
-    }).then(() => rm(spaceDir, { recursive: true, force: true }));
+    }).then(async () => {
+      await rm(spaceDir, { recursive: true, force: true });
+      await rm(dataRoot, { recursive: true, force: true });
+    });
   };
 
   try {

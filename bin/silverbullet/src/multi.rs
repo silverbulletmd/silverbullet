@@ -16,7 +16,9 @@ use silverbullet_server::handlers::mcp_oauth::{self, SessionConsent};
 use silverbullet_server::metrics::Metrics;
 use silverbullet_server::multi::access::SessionPolicy;
 use silverbullet_server::multi::admin_api::{build_admin_api_router, AdminState, McpAvailability};
-use silverbullet_server::multi::dashboard::{build_dashboard_router, DashboardState};
+use silverbullet_server::multi::dashboard::{
+    build_accountless_dashboard_router, build_dashboard_router, DashboardState,
+};
 use silverbullet_server::multi::dispatch::build_main_router;
 use silverbullet_server::multi::instance::{
     AssetFactories, InstanceAuth, InstanceDeps, RuntimeFactory, RuntimeRequest,
@@ -32,9 +34,10 @@ use silverbullet_server_mcp::{MultiHost, Tools};
 use crate::config::Config;
 use crate::embed::{BaseFsAssets, ClientAssets, EmbeddedSpace};
 
-/// Env vars that are per-space JSON config in multi-space mode; warned about if
-/// set (they are configured per space in spaces.json, not process-globally).
-const IGNORED_IN_MULTI: &[&str] = &[
+/// Single-space env vars a multi-space server ignores, with a warning: their
+/// settings live in spaces.json, users.json and server.json. A migration
+/// carries them over and lists the set ones as no longer needed.
+pub(crate) const IGNORED_IN_MULTI: &[&str] = &[
     "SB_READ_ONLY",
     "SB_NAME",
     "SB_INDEX_PAGE",
@@ -46,7 +49,12 @@ const IGNORED_IN_MULTI: &[&str] = &[
     "SB_URL_PREFIX",
     "SB_SHELL_WHITELIST",
     "SB_USER",
+    "SB_AUTH_TOKEN",
     "SB_REVISIONS",
+    "SB_SEARCH_DIR",
+    "SB_SEARCH_MODEL",
+    "SB_RUNTIME_IDLE_TIMEOUT",
+    "SB_RUNTIME_API",
 ];
 
 /// Build the full multi-space serving stack from a provisioned root.
@@ -57,13 +65,11 @@ pub async fn build_multi_stack(
     config: &Config,
     shutdown_rx: Option<tokio::sync::watch::Receiver<()>>,
 ) -> Result<(axum::Router, String), String> {
-    if config.unix_socket.is_some() {
-        return Err("SB_UNIX_SOCKET is not supported in multi-space mode".into());
-    }
     for var in IGNORED_IN_MULTI {
         if std::env::var(var).map(|v| !v.is_empty()).unwrap_or(false) {
             tracing::warn!(
-                "{var} is ignored in multi-space mode — configure this per space in spaces.json"
+                "{var} is ignored: a multi-space server is configured through the Dashboard \
+                 (spaces.json, users.json and server.json)"
             );
         }
     }
@@ -83,6 +89,12 @@ pub async fn build_multi_stack(
         elapsed_ms = started.elapsed().as_millis(),
         "multi-space users loaded"
     );
+    // `users.json` holding `{}` is an accountless server: its spaces are
+    // served as configured, and there is no Dashboard to log in to.
+    let accountless = store.is_empty();
+    if accountless {
+        tracing::info!("users.json has no accounts: serving spaces without a Dashboard login");
+    }
     let started = std::time::Instant::now();
     let authenticator = Arc::new(
         Authenticator::load_or_init_with_stamp_named(
@@ -123,7 +135,7 @@ pub async fn build_multi_stack(
 
     let metrics = config.metrics_port.map(|_| Arc::new(Metrics::new()));
     let started = std::time::Instant::now();
-    let (runtime, runtime_availability) = space_runtime_factory(&root, false);
+    let (runtime, runtime_availability) = space_runtime_factory(&root);
     tracing::debug!(
         elapsed_ms = started.elapsed().as_millis(),
         "multi-space runtime configured"
@@ -307,6 +319,11 @@ pub async fn build_multi_stack(
         dashboard_state = dashboard_state.with_mcp_grants(grants.clone());
     }
     let dashboard_state = Arc::new(dashboard_state);
+    let dashboard = if accountless {
+        build_accountless_dashboard_router(dashboard_state)
+    } else {
+        build_dashboard_router(dashboard_state, build_admin_api_router(admin_state))
+    };
     let mcp_stores_loaded = mcp_stores.is_some();
     let gate = manager.clone();
     let mcp_enabled: Arc<dyn Fn() -> bool + Send + Sync> =
@@ -315,16 +332,9 @@ pub async fn build_multi_stack(
         .as_ref()
         .map(|(_, grants)| (authenticator.clone(), grants.clone()));
     let (mcp, mcp_host) = mcp_router(&manager, &users, oauth, mcp_enabled.clone());
-    let mut router = build_main_router(
-        manager,
-        Some(build_dashboard_router(
-            dashboard_state,
-            build_admin_api_router(admin_state),
-        )),
-        crate::VERSION.to_string(),
-    )
-    .merge(silverbullet_server::handlers::central_auth::router(central))
-    .merge(mcp);
+    let mut router = build_main_router(manager, Some(dashboard), crate::VERSION.to_string())
+        .merge(silverbullet_server::handlers::central_auth::router(central))
+        .merge(mcp);
     if let Some((clients, grants)) = mcp_stores {
         spawn_client_gc(clients.clone(), grants.clone());
         let state = Arc::new(McpOAuthState {
@@ -344,7 +354,7 @@ pub async fn build_multi_stack(
     }
     let log = format!(
         "SilverBullet multi-space server running: {} (Dashboard at /.dashboard)",
-        crate::server::startup_url(&config.bind_host, config.port)
+        crate::server::listen_address(config)
     );
     Ok((router, log))
 }
@@ -426,61 +436,35 @@ pub(crate) async fn run_multi(
     config: Config,
     shutdown: crate::server::Shutdown,
 ) -> Result<(), String> {
-    for (var, value) in [
-        ("SB_SEARCH_DIR", &config.search_dir),
-        ("SB_SEARCH_MODEL", &config.search_model),
-    ] {
-        if value.is_some() {
-            tracing::warn!("{var} applies to single-space mode only and is ignored; a multi-space server keeps search under search/ in its data folder and names its model in server.json");
-        }
-    }
-    if config.runtime_idle_timeout.is_some() {
-        tracing::warn!("SB_RUNTIME_IDLE_TIMEOUT applies to single-space mode only and is ignored; a multi-space server sets runtimeIdleTimeout in server.json (Admin → APIs)");
-    }
     let (router, log) = build_multi_stack(&config, Some(shutdown.rx.clone())).await?;
-    let addr = format!("{}:{}", config.bind_host, config.port);
-    let listener = tokio::net::TcpListener::bind(&addr)
-        .await
-        .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
     tracing::info!("{log}");
-    axum::serve(listener, router)
-        .with_graceful_shutdown(shutdown.future)
-        .await
-        .map_err(|e| format!("server error: {e}"))
+    crate::server::serve(&config, router, shutdown).await
 }
 
 pub(crate) fn space_runtime_factory(
     server_root: &std::path::Path,
-    single_instance: bool,
 ) -> (RuntimeFactory, RuntimeAvailability) {
     use silverbullet_server_runtime_chrome::RuntimeUnavailable;
 
-    let (pool, availability) = match if single_instance {
-        silverbullet_server_runtime_chrome::ChromeConfig::from_env(server_root)
-    } else {
-        silverbullet_server_runtime_chrome::ChromeConfig::from_env_for_multi(server_root)
-    } {
-        Ok(config) => match silverbullet_server_runtime_chrome::ChromePool::new(config) {
-            Ok(pool) => (Some(pool), RuntimeAvailability::Available),
-            Err(e) => {
-                tracing::warn!("runtime API disabled: could not create the Chrome pool: {e}");
-                (
-                    None,
-                    RuntimeAvailability::Failed {
-                        message: e.to_string(),
-                    },
-                )
+    let (pool, availability) =
+        match silverbullet_server_runtime_chrome::ChromeConfig::from_env_for_multi(server_root) {
+            Ok(config) => match silverbullet_server_runtime_chrome::ChromePool::new(config) {
+                Ok(pool) => (Some(pool), RuntimeAvailability::Available),
+                Err(e) => {
+                    tracing::warn!("runtime API disabled: could not create the Chrome pool: {e}");
+                    (
+                        None,
+                        RuntimeAvailability::Failed {
+                            message: e.to_string(),
+                        },
+                    )
+                }
+            },
+            Err(RuntimeUnavailable::NoChrome) => {
+                tracing::info!("runtime API disabled: no Chrome or Chromium found");
+                (None, RuntimeAvailability::NoChrome)
             }
-        },
-        Err(RuntimeUnavailable::DisabledByEnv) => {
-            tracing::info!("runtime API disabled by SB_RUNTIME_API=0");
-            (None, RuntimeAvailability::DisabledByEnv)
-        }
-        Err(RuntimeUnavailable::NoChrome) => {
-            tracing::info!("runtime API disabled: no Chrome or Chromium found");
-            (None, RuntimeAvailability::NoChrome)
-        }
-    };
+        };
     let profile_root = std::fs::canonicalize(server_root).unwrap_or_else(|_| server_root.into());
     let factory: RuntimeFactory = Arc::new(move |req: &RuntimeRequest| {
         let pool = pool.as_ref()?;

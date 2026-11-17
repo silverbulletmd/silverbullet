@@ -1,7 +1,7 @@
 //! Console-log ring buffer shared between a `ClientTransport` (which pushes
 //! captured console output) and the `ClientRuntime` (which serves it via
-//! `/.runtime/logs`). The standalone server hosts a single space, so this is a
-//! single bounded buffer (no per-space keying — that lives in the App).
+//! `/.runtime/logs`). Each runtime gets its own buffer, so there is no
+//! per-space keying here.
 
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};

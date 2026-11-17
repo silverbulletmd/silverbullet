@@ -41,52 +41,6 @@ async fn wait_ready(state: &ServerState) {
     }
 }
 
-/// `/.search/*` through a single-user space's real authorizer chain and
-/// full-text index, with `Fern.md` in it. `bearer` is sent as
-/// `Authorization: Bearer`.
-async fn single_user_search(
-    auth: Option<crate::auth::AuthConfig>,
-    read_only: bool,
-    bearer: Option<&str>,
-) -> Vec<(&'static str, StatusCode, serde_json::Value)> {
-    let dir = tempfile::tempdir().unwrap();
-    let mut deps = test_deps(dir.path());
-    deps.auth = InstanceAuth::Single(auth);
-    let folder = dir.path().join("space");
-    std::fs::create_dir_all(&folder).unwrap();
-    std::fs::write(folder.join("Fern.md"), "fern fronds\n").unwrap();
-    let mut cfg = space(
-        Binding::Prefix {
-            prefix: "/o".into(),
-        },
-        folder.to_str().unwrap(),
-    );
-    cfg.read_only = read_only;
-    let state = Arc::new(try_build_state("o", &cfg, "/o", &deps).unwrap());
-    wait_ready(&state).await;
-    let headers: Vec<_> = bearer
-        .map(|token| ("authorization", format!("Bearer {token}")))
-        .into_iter()
-        .collect();
-    let mut out = vec![];
-    for (path, body) in [
-        ("/.search/status", ""),
-        ("/.search/query", r#"{"query":"fern"}"#),
-        (
-            "/.search/query",
-            r#"{"query":"fern fronds","mode":"phrase"}"#,
-        ),
-        ("/.search/query", r#"{"query":"fern","mode":"regex"}"#),
-        ("/.search/related", r#"{"page":"Fern"}"#),
-    ] {
-        let method = if body.is_empty() { "GET" } else { "POST" };
-        let router = crate::build_router(state.clone());
-        let (status, json) = request(router, method, path, body, &headers).await;
-        out.push((path, status, json));
-    }
-    out
-}
-
 const PUBLIC: &str = "Search isn't available to public visitors";
 
 /// A signed-in or trusted caller: every mode the index has, Fern found,
@@ -143,33 +97,6 @@ fn assert_public_searches(results: &[(&str, StatusCode, serde_json::Value)]) {
                 );
             }
         }
-    }
-}
-
-/// `SB_READ_ONLY` without auth: the docs-site shape (Review Focus 5).
-#[tokio::test]
-async fn an_open_read_only_single_space_searches_publicly_in_words_and_phrases() {
-    assert_public_searches(&single_user_search(None, true, None).await);
-}
-
-#[tokio::test]
-async fn an_open_writable_single_space_searches() {
-    assert_searches(&single_user_search(None, false, None).await);
-}
-
-#[tokio::test]
-async fn a_token_caller_searches_a_read_only_single_space_with_auth() {
-    let auth = || {
-        crate::auth::AuthConfig::try_parse(Some("admin:pw"), Some("search-token"), None, None, None)
-            .unwrap()
-    };
-    assert_searches(&single_user_search(auth(), true, Some("search-token")).await);
-    // Without the token the caller never gets past authentication.
-    for (path, status, _) in single_user_search(auth(), true, None).await {
-        assert!(
-            status == StatusCode::UNAUTHORIZED || status.is_redirection(),
-            "{path}: {status}"
-        );
     }
 }
 
@@ -380,47 +307,12 @@ async fn multi_user_indexes_live_under_the_data_root_hidden_from_a_root_folder_s
     }
 }
 
-/// Single-space mode (`SpaceSearch::in_memory()`): the index is in RAM.
-#[tokio::test]
-async fn a_single_space_writes_no_index_files() {
-    let dir = tempfile::tempdir().unwrap();
-    let mut deps = test_deps(dir.path());
-    deps.auth = InstanceAuth::Single(None);
-    std::fs::write(dir.path().join("Fern.md"), "fern fronds\n").unwrap();
-    let cfg = space(Binding::Prefix { prefix: "/".into() }, ".");
-    let state = Arc::new(try_build_state("single", &cfg, "", &deps).unwrap());
-    wait_ready(&state).await;
-    let (status, body) = request(
-        crate::build_router(state.clone()),
-        "POST",
-        "/.search/query",
-        r#"{"query":"fern"}"#,
-        &[],
-    )
-    .await;
-    assert_eq!(status, StatusCode::OK, "{body}");
-    assert_eq!(body["items"][0]["page"], "Fern");
-    let mut entries = vec![];
-    let mut stack = vec![dir.path().to_path_buf()];
-    while let Some(d) = stack.pop() {
-        for entry in std::fs::read_dir(&d).unwrap() {
-            let path = entry.unwrap().path();
-            if path.is_dir() {
-                stack.push(path.clone());
-            }
-            entries.push(path.strip_prefix(dir.path()).unwrap().to_path_buf());
-        }
-    }
-    assert_eq!(entries, [std::path::PathBuf::from("Fern.md")]);
-}
-
 /// Search covers the space's own files, not the bundled fallback layer
 /// (`Library/Std` and the like), which the space API still serves.
 #[tokio::test]
 async fn bundled_fallback_files_are_not_searched() {
     let dir = tempfile::tempdir().unwrap();
     let mut deps = test_deps(dir.path());
-    deps.auth = InstanceAuth::Single(None);
     deps.assets.base_fs = Box::new(|| {
         let bundled = MemorySpacePrimitives::new();
         bundled
@@ -431,10 +323,11 @@ async fn bundled_fallback_files_are_not_searched() {
     let folder = dir.path().join("space");
     std::fs::create_dir_all(&folder).unwrap();
     std::fs::write(folder.join("Fern.md"), "fern fronds\n").unwrap();
-    let cfg = space(
+    let mut cfg = space(
         Binding::Prefix { prefix: "/".into() },
         folder.to_str().unwrap(),
     );
+    cfg.access = Some(SpaceAccess::Write);
     let state = Arc::new(try_build_state("own", &cfg, "", &deps).unwrap());
     wait_ready(&state).await;
     let router = || crate::build_router(state.clone());

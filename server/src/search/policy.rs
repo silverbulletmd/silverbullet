@@ -2,7 +2,7 @@
 //! a model, unless the space opts out, or follows the default while it is
 //! too large and was never admitted before
 //! ([`SpaceSearch::semantic_admitted_before`]). [`SpaceSearch`] owns the
-//! rule, and every mode (multi-user, single-space, Desktop) asks it here:
+//! rule, and every mode (server, Desktop) asks it here:
 //! [`SpaceSearch::open`] decides, attaches and records the decision when a
 //! space's engine is built, [`SpaceSearch::semantic_state`] and
 //! [`SpaceSearch::engine_state`] report it, [`SpaceSearch::offer`] tells

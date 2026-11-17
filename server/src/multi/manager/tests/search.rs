@@ -52,7 +52,6 @@ async fn a_rebuilt_space_takes_over_its_index_while_searches_run() {
     .save(&root.join("spaces.json"))
     .unwrap();
     let mut deps = deps(root);
-    deps.auth = InstanceAuth::Single(None);
     deps.search = crate::search::SpaceSearch::in_root(crate::search::search_root(root));
     let m = MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap();
 
@@ -523,7 +522,6 @@ mod semantic {
         let server = serde_json::json!({ "search": { "model": "multilingual-e5-small" } });
         std::fs::write(root.join("server.json"), server.to_string()).unwrap();
         let mut deps = deps(root);
-        deps.auth = InstanceAuth::Single(None);
         deps.search = crate::search::SpaceSearch::in_root(crate::search::search_root(root))
             .with_semantic(SemanticService::with_embedder(fake.clone()));
         MultiManager::boot(root.to_path_buf(), deps, BTreeSet::new()).unwrap()

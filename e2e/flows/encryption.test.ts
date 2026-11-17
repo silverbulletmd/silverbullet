@@ -2,7 +2,7 @@ import { expect, gotoSilverBulletPage, test } from "../fixtures/core.ts";
 
 test.use({
   disableServiceWorker: false,
-  serverEnv: { SB_USER: "casey:casey-password" },
+  spaceAccount: { username: "casey", password: "casey-password" },
 });
 
 test("encrypted local data remains usable after reopening the editor", async ({

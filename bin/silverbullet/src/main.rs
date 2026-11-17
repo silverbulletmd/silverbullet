@@ -25,8 +25,8 @@ struct Cli {
     port: Option<u16>,
     /// The data folder to serve (env: SB_FOLDER)
     folder: Option<String>,
-    /// Force single-space mode (classic env-var-configured server)
-    #[arg(long)]
+    /// Removed: fails with a pointer to the migration
+    #[arg(long, hide = true)]
     single: bool,
     #[command(subcommand)]
     command: Option<Command>,
@@ -61,7 +61,7 @@ enum Command {
 }
 
 fn main() -> std::process::ExitCode {
-    // Before any runtime or thread starts (single-space mode too).
+    // Before any runtime or thread starts.
     silverbullet_server_search::semantic::inference::limit_candle_threads();
     tracing_subscriber::fmt()
         .with_env_filter(

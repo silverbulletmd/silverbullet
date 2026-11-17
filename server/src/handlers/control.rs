@@ -11,7 +11,7 @@ pub async fn handle_ping(State(state): State<Arc<ServerState>>) -> impl IntoResp
         StatusCode::OK,
         [
             ("Cache-Control", "no-cache".to_string()),
-            ("X-Space-Path", state.space_folder_path.clone()),
+            ("X-Space-Path", state.client_space_path.clone()),
             ("X-Server-Version", state.version.get()),
         ],
         "OK",
@@ -52,7 +52,7 @@ pub(crate) async fn handle_config(
             share_owner_id: silverbullet_server_common::revision::sha256_hex(
                 format!(
                     "{}\0{}",
-                    state.space_folder_path,
+                    state.client_space_path,
                     actor.username.as_deref().unwrap_or("single-user")
                 )
                 .as_bytes(),

@@ -11,9 +11,9 @@ pub struct AuthContext<'a> {
 }
 
 /// The verified result of an authorization attempt. `grant` is set only by
-/// authorizers that carry their own authority, such as single-space env
-/// credentials, where there is no username for a policy
-/// to grade. `None` means "ask the policy".
+/// authorizers that carry their own authority, such as a headless or API token,
+/// where there is no username for a policy to grade. `None` means "ask the
+/// policy".
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct AuthOutcome {
     pub username: Option<String>,

@@ -2,9 +2,10 @@
 //!
 //! Each test spawns the compiled binary as a subprocess on an ephemeral port
 //! against a fresh temp space and drives its HTTP endpoints with
-//! `reqwest::blocking`. The runtime API is disabled (`SB_RUNTIME_API=0`) so no
-//! headless Chrome is launched — these tests exercise the HTTP surface only and
-//! stay fast and Chrome-independent.
+//! `reqwest::blocking`. The runtime API is off in the data root's `server.json`
+//! (see `common::provision_data_root`), so no headless Chrome is launched —
+//! these tests exercise the HTTP surface only and stay fast and
+//! Chrome-independent.
 
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -23,26 +24,39 @@ impl Drop for Server {
 }
 
 mod common;
-use common::free_port;
+use common::{free_port, mint_token, provision_data_root};
+use silverbullet_server::multi::config::SpaceAccess;
 
-/// Spawn the binary against a fresh temp space with the given extra env, wait
-/// for `/.ping` to answer 200 (up to ~20s), and return the running server, the
-/// temp-space handle, and the base URL. On a boot timeout the child's
-/// stdout/stderr are dumped. The `TempDir` is returned (rather than dropped
-/// here) so the space outlives the server for the duration of the test.
-fn start(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String) {
+/// The directories a test server runs on: the space folder and its data root.
+/// Held for the test's duration so they outlive the server.
+type Dirs = (tempfile::TempDir, tempfile::TempDir);
+
+/// Spawn the binary on an accountless data root with one writable space and the
+/// given extra env; see [`start_on`].
+fn start(extra_env: &[(&str, &str)]) -> (Server, Dirs, String) {
     let space = tempfile::tempdir().unwrap();
+    let root = provision_data_root(space.path(), SpaceAccess::Write, None);
+    start_on(space, root, extra_env)
+}
+
+/// Spawn the binary on `root`, wait for `/.ping` to answer 200 (up to ~20s),
+/// and return the running server, the directories it runs on, and the base
+/// URL. On a boot timeout the child's stdout/stderr are dumped. The
+/// directories are returned (rather than dropped here) so they outlive the
+/// server for the duration of the test.
+fn start_on(
+    space: tempfile::TempDir,
+    root: tempfile::TempDir,
+    extra_env: &[(&str, &str)],
+) -> (Server, Dirs, String) {
     let port = free_port();
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_silverbullet"));
-    cmd.arg(space.path())
-        .arg("--single")
+    cmd.arg(root.path())
         .arg("-p")
         .arg(port.to_string())
         .arg("-L")
         .arg("127.0.0.1")
-        // Critical: never launch headless Chrome for these HTTP-only tests.
-        .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
@@ -74,7 +88,7 @@ fn start(extra_env: &[(&str, &str)]) -> (Server, tempfile::TempDir, String) {
         std::thread::sleep(Duration::from_millis(200));
     }
 
-    (server, space, base)
+    (server, (space, root), base)
 }
 
 /// Kill the child, drain its captured output, and panic with diagnostics.
@@ -300,14 +314,19 @@ fn proxy_forwards_to_a_throwaway_upstream() {
     let _ = handle.join();
 }
 
-/// Spawn a server with a single user `alice:s3cret` and a static bearer token.
-fn start_auth() -> (Server, tempfile::TempDir, String) {
-    start(&[("SB_USER", "alice:s3cret"), ("SB_AUTH_TOKEN", "tok123")])
+/// Spawn a server whose only space needs an account: `alice:s3cret`, who also
+/// has an API token. Returns the token as the last element.
+fn start_auth() -> (Server, Dirs, String, String) {
+    let space = tempfile::tempdir().unwrap();
+    let root = provision_data_root(space.path(), SpaceAccess::None, Some(("alice", "s3cret")));
+    let token = mint_token(root.path(), "alice", "test");
+    let (server, dirs, base) = start_on(space, root, &[]);
+    (server, dirs, base, token)
 }
 
 #[test]
 fn auth_unauthenticated_config_is_401_with_auth_location() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, _token) = start_auth();
     let http = no_redirect_client();
     let resp = http.get(format!("{base}/.config")).send().unwrap();
     assert_eq!(resp.status(), reqwest::StatusCode::UNAUTHORIZED);
@@ -320,11 +339,11 @@ fn auth_unauthenticated_config_is_401_with_auth_location() {
 
 #[test]
 fn auth_bearer_token_grants_config() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, token) = start_auth();
     let http = no_redirect_client();
     let resp = http
         .get(format!("{base}/.config"))
-        .header("Authorization", "Bearer tok123")
+        .header("Authorization", format!("Bearer {token}"))
         .send()
         .unwrap();
     assert!(
@@ -336,7 +355,7 @@ fn auth_bearer_token_grants_config() {
 
 #[test]
 fn auth_get_renders_login_page_as_html() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, _token) = start_auth();
     let http = no_redirect_client();
     let resp = http.get(format!("{base}/.auth")).send().unwrap();
     assert!(
@@ -354,7 +373,7 @@ fn auth_get_renders_login_page_as_html() {
 
 #[test]
 fn auth_post_good_credentials_sets_cookie_and_cookie_round_trips() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, _token) = start_auth();
     let http = no_redirect_client();
 
     let resp = http
@@ -399,7 +418,7 @@ fn auth_post_good_credentials_sets_cookie_and_cookie_round_trips() {
 
 #[test]
 fn auth_post_wrong_password_errors_with_no_cookie() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, _token) = start_auth();
     let http = no_redirect_client();
     let resp = http
         .post(format!("{base}/.auth"))
@@ -418,7 +437,7 @@ fn auth_post_wrong_password_errors_with_no_cookie() {
 
 #[test]
 fn auth_logout_redirects_to_auth() {
-    let (_srv, _space, base) = start_auth();
+    let (_srv, _space, base, _token) = start_auth();
     let http = no_redirect_client();
     let resp = http.get(format!("{base}/.logout")).send().unwrap();
     assert_eq!(resp.status(), reqwest::StatusCode::FOUND);
@@ -496,4 +515,158 @@ fn search_follows_api_writes_with_the_watcher_off() {
         b["total"] == 0
     });
     assert_eq!(body["total"], 0, "{body}");
+}
+
+/// `--single` is gone: it fails and points at the migration instead.
+#[test]
+fn single_flag_points_at_the_migration() {
+    let folder = tempfile::tempdir().unwrap();
+    std::fs::write(folder.path().join("index.md"), "# Legacy").unwrap();
+    let out = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
+        .arg(folder.path())
+        .arg("--single")
+        .arg("-p")
+        .arg(free_port().to_string())
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    let stderr = String::from_utf8_lossy(&out.stderr);
+    assert!(stderr.contains("migration"), "{stderr}");
+}
+
+/// A legacy single-space folder boots into the migration flow; once it runs,
+/// the same process serves the migrated space, where the old `SB_USER`
+/// credentials are an account, `SB_RUNTIME_API=0` keeps the Runtime API off
+/// and clients keep their identity path.
+#[test]
+fn migration_boot() {
+    let dir = tempfile::tempdir().unwrap();
+    let folder = dir.path().join("legacy");
+    std::fs::create_dir(&folder).unwrap();
+    std::fs::write(folder.join("index.md"), "# Legacy").unwrap();
+    let folder_arg = folder.to_str().unwrap().to_string();
+
+    let port = free_port();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_silverbullet"))
+        .arg(&folder_arg)
+        .arg("-p")
+        .arg(port.to_string())
+        .arg("-L")
+        .arg("127.0.0.1")
+        .env("SB_USER", "pat:secret")
+        .env("SB_RUNTIME_API", "0")
+        .env("SB_DISABLE_SERVICE_WORKER", "1")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn silverbullet");
+    let log = std::sync::Arc::new(std::sync::Mutex::new(String::new()));
+    let stdout = child.stdout.take().unwrap();
+    let sink = log.clone();
+    std::thread::spawn(move || {
+        use std::io::BufRead;
+        for line in std::io::BufReader::new(stdout)
+            .lines()
+            .map_while(Result::ok)
+        {
+            let mut log = sink.lock().unwrap();
+            log.push_str(&line);
+            log.push('\n');
+        }
+    });
+    let _server = Server(child);
+    let base = format!("http://127.0.0.1:{port}");
+    let http = no_redirect_client();
+
+    let flow_url = format!("http://localhost:{port}/.setup/migrate/");
+    let deadline = Instant::now() + Duration::from_secs(20);
+    while !log.lock().unwrap().contains(&flow_url) {
+        assert!(
+            Instant::now() < deadline,
+            "migration URL never logged:\n{}",
+            log.lock().unwrap()
+        );
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    while http.get(format!("{base}/.instance")).send().is_err() {
+        assert!(Instant::now() < deadline, "server never answered");
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    let resp = http.get(format!("{base}/.fs/")).send().unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::UNAUTHORIZED);
+    assert_eq!(resp.headers()["location"], "/.setup/migrate/");
+
+    let resp = http
+        .post(format!("{base}/.setup/migrate/api/login"))
+        .json(&serde_json::json!({ "username": "pat", "password": "secret" }))
+        .send()
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    let cookie = resp.headers()["set-cookie"]
+        .to_str()
+        .unwrap()
+        .split(';')
+        .next()
+        .unwrap()
+        .to_string();
+    let status: serde_json::Value = http
+        .get(format!("{base}/.setup/migrate/api/status"))
+        .header("Cookie", &cookie)
+        .send()
+        .unwrap()
+        .json()
+        .unwrap();
+    let resp = http
+        .post(format!("{base}/.setup/migrate/api/run"))
+        .header("Cookie", &cookie)
+        .json(&serde_json::json!({ "edits": status["defaults"], "backupConfirmed": true }))
+        .send()
+        .unwrap();
+    assert_eq!(
+        resp.status(),
+        reqwest::StatusCode::OK,
+        "{}",
+        resp.text().unwrap()
+    );
+    let server_json: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(folder.join("server.json")).unwrap()).unwrap();
+    assert_eq!(server_json["runtimeApi"], false, "{server_json}");
+
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let session = loop {
+        let resp = http
+            .post(format!("{base}/.auth"))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body("username=pat&password=secret")
+            .send()
+            .unwrap();
+        if let Some(cookie) = resp.headers().get("set-cookie") {
+            break cookie
+                .to_str()
+                .unwrap()
+                .split(';')
+                .next()
+                .unwrap()
+                .to_string();
+        }
+        assert!(Instant::now() < deadline, "never signed in after migrating");
+        std::thread::sleep(Duration::from_millis(100));
+    };
+    let resp = http
+        .get(format!("{base}/.fs/index.md"))
+        .header("Cookie", &session)
+        .send()
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    assert_eq!(resp.text().unwrap(), "# Legacy");
+    // Clients compare this to the path they synced from (only the listing
+    // and `/.ping` carry it).
+    let resp = http
+        .get(format!("{base}/.fs/"))
+        .header("Cookie", &session)
+        .send()
+        .unwrap();
+    assert_eq!(resp.status(), reqwest::StatusCode::OK);
+    assert_eq!(resp.headers()["x-space-path"].to_str().unwrap(), folder_arg);
 }

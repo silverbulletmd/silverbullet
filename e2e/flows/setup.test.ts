@@ -5,11 +5,11 @@ import { ADMIN_PASSWORD, ADMIN_USER, expect, test } from "../fixtures/core.ts";
 
 // End-to-end coverage of the first-run setup wizard. Both scenarios reuse the
 // `sbServer` fixture, which spawns the debug server on a fresh, empty temp dir.
-// The fixture defaults to `--single` (so most tests get a servable space), so
-// opt out here: with `singleSpace: false` the empty temp dir boots into
-// "setup" mode and puts up the wizard at `/.setup/`. `SB_DISABLE_SERVICE_WORKER=1`
-// and `SB_RUNTIME_API=0` are set by the fixture (see fixtures/core.ts).
-test.use({ singleSpace: false });
+// The fixture defaults to a provisioned data root (so most tests get a
+// servable space), so opt out here: with `freshInstall: true` the empty temp
+// dir boots into "setup" mode and puts up the wizard at `/.setup/`. `SB_DISABLE_SERVICE_WORKER=1`
+// is set by the fixture (see fixtures/core.ts).
+test.use({ freshInstall: true });
 
 /**
  * Fill the wizard's admin step and advance. Field ids come from

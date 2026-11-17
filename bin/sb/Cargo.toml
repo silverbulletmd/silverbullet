@@ -36,6 +36,7 @@ tokio = { workspace = true, features = ["rt", "time"] }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+silverbullet-server = { path = "../../server" }
 silverbullet-server-search = { path = "../../server-search" }
 # Only for `is_system_browser()`, which the runtime e2e test uses to refuse a
 # system Chrome (see `bin/silverbullet/tests/common/mod.rs`).

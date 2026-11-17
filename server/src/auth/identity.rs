@@ -15,7 +15,7 @@ pub struct UserProfile {
 
 /// Turns the verified username on a request into a full identity. Multi-space
 /// servers resolve against `users.json`; the App resolves against its own
-/// settings; a plain single-space server has nothing to add.
+/// settings.
 pub trait IdentityResolver: Send + Sync {
     fn resolve(&self, username: Option<&str>) -> UserProfile;
 
@@ -23,6 +23,11 @@ pub trait IdentityResolver: Send + Sync {
     /// keeps no accounts at all.
     fn accounts(&self) -> Option<Vec<UserProfile>> {
         None
+    }
+
+    /// True when the deployment has no accounts at all, so nobody can log in.
+    fn has_no_accounts(&self) -> bool {
+        false
     }
 }
 

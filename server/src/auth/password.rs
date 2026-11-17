@@ -1,6 +1,5 @@
 //! Argon2id password hashing. Account PHC strings (`$argon2id$v=19$…`) live in
-//! `users.json`; classic single-space mode derives the same representation from
-//! its configured credentials. Plaintext is never persisted.
+//! `users.json`. Plaintext is never persisted.
 
 use argon2::password_hash::{phc::PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::Argon2;

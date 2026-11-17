@@ -5,7 +5,6 @@
 export type RuntimeAvailability =
   | { status: "available" }
   | { status: "no_chrome" }
-  | { status: "disabled_by_env" }
   | { status: "failed"; message: string };
 
 /**
@@ -19,8 +18,6 @@ export function runtimeApiUnavailableReason(
   switch (availability?.status) {
     case "no_chrome":
       return "No Chrome or Chromium found on this server.";
-    case "disabled_by_env":
-      return "Disabled server-wide by SB_RUNTIME_API=0.";
     case "failed":
       return `Unavailable: ${availability.message}`;
     default:

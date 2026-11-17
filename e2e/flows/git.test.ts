@@ -42,6 +42,15 @@ test.beforeAll(async () => {
     ],
     { cwd, stdio: "pipe" },
   );
+  // The server-side headless Chrome is never needed here.
+  const serverJson = join(root, "server", "server.json");
+  await writeFile(
+    serverJson,
+    JSON.stringify({
+      ...JSON.parse(await readFile(serverJson, "utf8")),
+      runtimeApi: false,
+    }),
+  );
   const space = join(root, "notebook");
   await mkdir(space);
   git(space, "init", "-q", "-b", "main");
@@ -79,7 +88,6 @@ test.beforeAll(async () => {
       env: {
         ...process.env,
         SB_DISABLE_SERVICE_WORKER: "1",
-        SB_RUNTIME_API: "0",
       },
     },
   );

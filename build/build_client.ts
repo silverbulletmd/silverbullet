@@ -93,6 +93,19 @@ export async function buildClient(): Promise<void> {
       },
     ],
     [
+      "migration ui",
+      {
+        ...baseBuildConfig,
+        entryPoints: [
+          {
+            in: "client/dashboard/migrate.tsx",
+            out: ".client/migrate",
+          },
+        ],
+        splitting: false,
+      },
+    ],
+    [
       "auth ui",
       {
         ...baseBuildConfig,

@@ -140,12 +140,17 @@ impl UsersConfig {
         }
     }
 
-    /// Atomic persist, 0600 on unix (same pattern as `MultiConfig::save`).
+    /// Atomic, fsynced persist, 0600 on unix (same pattern as `MultiConfig::save`).
     pub fn save(&self, path: &Path) -> Result<(), String> {
         self.validate()?;
         let json = self.to_json_string()?;
         let tmp = path.with_extension("json.tmp");
-        std::fs::write(&tmp, &json)
+        std::fs::File::create(&tmp)
+            .and_then(|mut file| {
+                use std::io::Write;
+                file.write_all(json.as_bytes())?;
+                file.sync_all()
+            })
             .map_err(|e| format!("could not write {}: {e}", tmp.display()))?;
         #[cfg(unix)]
         {
@@ -157,6 +162,15 @@ impl UsersConfig {
         if let Err(e) = std::fs::rename(&tmp, path) {
             let _ = std::fs::remove_file(&tmp);
             return Err(format!("could not persist {}: {e}", path.display()));
+        }
+        // The rename has happened, so the new file is what a reader sees: a
+        // failed flush (some FUSE and network mounts refuse it) must not make
+        // callers keep the old state. The migration flushes the root itself.
+        #[cfg(unix)]
+        if let Some(parent) = path.parent().filter(|p| !p.as_os_str().is_empty()) {
+            if let Err(e) = std::fs::File::open(parent).and_then(|dir| dir.sync_all()) {
+                tracing::warn!("could not flush {}: {e}", parent.display());
+            }
         }
         Ok(())
     }
@@ -245,7 +259,7 @@ pub struct UserStore {
     state: RwLock<UsersConfig>,
 }
 
-fn hash_token(token: &str) -> String {
+pub(crate) fn hash_token(token: &str) -> String {
     let mut h = Sha256::new();
     h.update(token.as_bytes());
     hex(&h.finalize())
@@ -265,7 +279,7 @@ fn generate_token() -> String {
 /// to avoid pulling in a chrono/humantime dependency for an informational
 /// field. Follows the standard civil-from-days algorithm (Howard Hinnant's
 /// `civil_from_days`).
-fn now_rfc3339() -> String {
+pub(crate) fn now_rfc3339() -> String {
     let now = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default();
@@ -372,6 +386,11 @@ impl UserStore {
             .users
             .get(username)
             .is_some_and(|u| u.admin && !u.disabled)
+    }
+
+    /// True when `users.json` holds no accounts at all: an accountless server.
+    pub fn is_empty(&self) -> bool {
+        self.read().users.is_empty()
     }
 
     pub fn user_exists(&self, username: &str) -> bool {

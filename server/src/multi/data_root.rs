@@ -63,6 +63,16 @@ pub(crate) fn reserved(path: &str) -> bool {
     let Some(name) = components.next() else {
         return false;
     };
+    if components.next().is_none() {
+        is_reserved_top_level(name)
+    } else {
+        reserved_dir(name).is_some()
+    }
+}
+
+/// Whether `name`, one entry directly in the data root, is the server's own: a
+/// reserved directory or a control file. Compared ASCII case-insensitively.
+pub(crate) fn is_reserved_top_level(name: &str) -> bool {
     let name = name.to_ascii_lowercase();
     let name = name.as_str();
     let provider_temp = name
@@ -74,22 +84,22 @@ pub(crate) fn reserved(path: &str) -> bool {
         .and_then(|name| name.strip_suffix(".tmp"))
         .is_some_and(|name| !name.is_empty());
     reserved_dir(name).is_some()
-        || components.next().is_none()
-            && (matches!(
-                name,
-                "users.json"
-                    | "users.json.tmp"
-                    | "spaces.json"
-                    | "spaces.json.tmp"
-                    | "server.json"
-                    | "server.json.tmp"
-                    | "update-check.json"
-                    | "update-check.json.tmp"
-                    | "authentication.json"
-                    | ".silverbullet.browser-sessions.json"
-                    | crate::auth::MULTI_AUTH_FILE_NAME
-            ) || provider_temp
-                || browser_sessions_temp)
+        || matches!(
+            name,
+            "users.json"
+                | "users.json.tmp"
+                | "spaces.json"
+                | "spaces.json.tmp"
+                | "server.json"
+                | "server.json.tmp"
+                | "update-check.json"
+                | "update-check.json.tmp"
+                | "authentication.json"
+                | ".silverbullet.browser-sessions.json"
+                | crate::auth::MULTI_AUTH_FILE_NAME
+        )
+        || provider_temp
+        || browser_sessions_temp
 }
 
 /// Prevent a space deliberately rooted at the multi-space data directory from
@@ -210,32 +220,6 @@ pub(crate) fn folder_errors(conflicts: BTreeMap<String, String>) -> Vec<FieldErr
             message,
         })
         .collect()
-}
-
-/// Why `search_dir` can't hold a single-space server's search files
-/// (`SB_SEARCH_DIR`) for the space in `space_folder`: it is that folder,
-/// lies inside it (the index would index itself and write into the space)
-/// or contains it. Compared as [`folder_conflict`] compares: lexically and
-/// on canonical paths, case-insensitively.
-pub fn search_dir_conflict(space_folder: &Path, search_dir: &Path) -> Option<String> {
-    let pairs = [
-        (
-            normalize_lexically(space_folder),
-            normalize_lexically(search_dir),
-        ),
-        (
-            canonicalize_best_effort(space_folder),
-            canonicalize_best_effort(&normalize_lexically(search_dir)),
-        ),
-    ];
-    first_overlap(pairs, |overlap| {
-        let what = match overlap {
-            Overlap::Same => "is the space folder",
-            Overlap::Inside(_) => "is inside the space folder",
-            Overlap::Contains => "contains the space folder",
-        };
-        Some(format!("it {what}; choose a folder outside the space"))
-    })
 }
 
 /// How a path lies relative to a base folder.
@@ -557,39 +541,6 @@ mod tests {
             assert!(
                 folder_conflicts(&root, &spaces_with_folder(folder)).is_empty(),
                 "{folder}"
-            );
-        }
-    }
-
-    #[test]
-    fn a_search_dir_must_lie_outside_the_space_folder() {
-        let dir = tempfile::tempdir().unwrap();
-        let space = dir.path().join("Orchard");
-        std::fs::create_dir_all(&space).unwrap();
-        assert_eq!(
-            search_dir_conflict(&space, &dir.path().join("orchard-search")),
-            None
-        );
-        assert!(search_dir_conflict(&space, &space).is_some(), "same folder");
-        assert!(
-            search_dir_conflict(&space, &space.join("search")).is_some(),
-            "inside"
-        );
-        assert!(
-            search_dir_conflict(&space, dir.path()).is_some(),
-            "contains the space"
-        );
-        assert!(
-            search_dir_conflict(&space, &dir.path().join("ORCHARD/search")).is_some(),
-            "case"
-        );
-        #[cfg(unix)]
-        {
-            let link = dir.path().join("link-to-orchard");
-            std::os::unix::fs::symlink(&space, &link).unwrap();
-            assert!(
-                search_dir_conflict(&space, &link.join("idx")).is_some(),
-                "symlink"
             );
         }
     }

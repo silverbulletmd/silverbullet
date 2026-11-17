@@ -48,16 +48,6 @@ pub(crate) async fn run_setup_server(
 
     use crate::embed::{ClientAssets, EmbeddedSpace};
 
-    // The setup wizard always binds TCP (see the listener below), and the
-    // background task it schedules on completion hands off to
-    // `build_multi_stack`, which also only binds TCP.
-    if config.unix_socket.is_some() {
-        return Err(
-            "SB_UNIX_SOCKET is not supported in multi-space/setup mode — remove it or run with --single"
-                .to_string(),
-        );
-    }
-
     let root = std::path::PathBuf::from(&config.data_folder);
     std::fs::create_dir_all(&root).map_err(|e| format!("could not create data folder: {e}"))?;
 
@@ -98,102 +88,111 @@ pub(crate) async fn run_setup_server(
         }
     });
 
-    let addr = format!("{}:{}", config.bind_host, config.port);
-    let listener = tokio::net::TcpListener::bind(&addr)
-        .await
-        .map_err(|e| format!("failed to listen on {addr}: {e}"))?;
-    tracing::info!(
-        "SilverBullet setup wizard running: {}/.setup/",
-        crate::server::startup_url(&config.bind_host, config.port)
-    );
-    axum::serve(listener, outer)
-        .with_graceful_shutdown(shutdown.future)
-        .await
-        .map_err(|e| format!("server error: {e}"))
+    match &config.unix_socket {
+        Some(socket) => tracing::info!(
+            "SilverBullet setup wizard listening on unix://{socket}: open /.setup/ through your reverse proxy"
+        ),
+        None => tracing::info!(
+            "SilverBullet setup wizard: open {}/.setup/",
+            crate::server::startup_url(&config.bind_host, config.port)
+        ),
+    }
+    crate::server::serve(&config, outer, shutdown).await
 }
 
-pub const LEGACY_ENV_VARS: &[&str] = &[
-    "SB_USER",
-    "SB_AUTH_TOKEN",
-    "SB_READ_ONLY",
-    "SB_NAME",
-    "SB_INDEX_PAGE",
-    "SB_DESCRIPTION",
-    "SB_THEME_COLOR",
-    "SB_HEAD_HTML",
-    "SB_SPACE_IGNORE",
-    "SB_LOG_PUSH",
-    "SB_URL_PREFIX",
-    "SB_SHELL_WHITELIST",
-    "SB_LOCKOUT_LIMIT",
-    "SB_LOCKOUT_TIME",
-    "SB_REMEMBER_ME_HOURS",
-    "SB_UNIX_SOCKET",
-];
+/// Serve the migration flow for a legacy single-space folder on `config`'s
+/// address. Like [`run_setup_server`], the listener stays bound: once the
+/// migration finishes, the multi-space stack is swapped in place.
+pub(crate) async fn run_migrate_server(
+    config: crate::config::Config,
+    shutdown: crate::server::Shutdown,
+) -> Result<(), String> {
+    use silverbullet_server::multi::migrate::api::{build_migrate_router, Gate, MigrateState};
+
+    use crate::embed::{ClientAssets, EmbeddedSpace};
+
+    let (env, secrets, gate) = crate::legacy_env::legacy_env(&config, &|k| std::env::var(k).ok())?;
+    let flow = format!("{}/.setup/migrate/", env.url_prefix);
+    let gate_hint = match &gate {
+        Gate::Credentials(_) => "sign in with your SB_USER credentials".to_string(),
+        Gate::SetupCode(code) => format!("enter setup code {code}"),
+    };
+
+    let (handle, outer) = SwappableRouter::new(Router::new());
+    let handle = Arc::new(handle);
+    let swap = handle.clone();
+    let swap_config = config.clone();
+    let swap_shutdown_rx = shutdown.rx.clone();
+    let state = Arc::new(MigrateState {
+        root: std::path::PathBuf::from(&config.data_folder),
+        env,
+        secrets,
+        gate,
+        client_bundle: Box::new(EmbeddedSpace::<ClientAssets>::new()),
+        version: crate::VERSION.to_string(),
+        on_complete: Box::new(move || {
+            let (swap, config, shutdown_rx) =
+                (swap.clone(), swap_config.clone(), swap_shutdown_rx.clone());
+            Box::pin(async move {
+                let (router, log) = crate::multi::build_multi_stack(&config, Some(shutdown_rx))
+                    .await
+                    .inspect_err(|e| {
+                        tracing::error!("bringing up the multi-space stack failed: {e}")
+                    })?;
+                swap.swap(router);
+                tracing::info!("migration complete: now serving multi-space: {log}");
+                Ok(())
+            })
+        }),
+        run_lock: tokio::sync::Mutex::new(()),
+    });
+    handle.swap(build_migrate_router(state));
+
+    match &config.unix_socket {
+        Some(socket) => tracing::info!(
+            "This folder holds a single-space install that needs migrating. Listening on unix://{socket}: open {flow} through your reverse proxy and {gate_hint}"
+        ),
+        None => tracing::info!(
+            "This folder holds a single-space install that needs migrating. Open {}{flow} and {gate_hint}",
+            crate::server::startup_url(&config.bind_host, config.port)
+        ),
+    }
+    crate::server::serve(&config, outer, shutdown).await
+}
 
 #[derive(Debug)]
 pub enum BootMode {
     Multi,
-    Single,
+    /// A legacy single-space folder, or an interrupted migration.
+    Migrate,
     Setup,
 }
 
-pub fn detect(
-    folder: &Path,
-    single_flag: bool,
-    env: &dyn Fn(&str) -> Option<String>,
-) -> Result<BootMode, String> {
-    let has_spaces_json = folder.join("spaces.json").is_file();
-    if has_spaces_json {
-        if single_flag {
-            return Err(
-                "this folder contains spaces.json (multi-space config) but --single was passed. \
-                 Remove the flag or point --single at a different folder"
-                    .into(),
+pub fn detect(folder: &Path, env: &dyn Fn(&str) -> Option<String>) -> Result<BootMode, String> {
+    // A migration writes spaces.json last, so a crash can leave both behind.
+    // A journal that can't be read still goes to the migration page, which
+    // shows the error.
+    if !matches!(
+        silverbullet_server::multi::migrate::pending_journal(folder),
+        Ok(None)
+    ) {
+        tracing::info!("boot mode: migration (an interrupted migration's journal is present)");
+        return Ok(BootMode::Migrate);
+    }
+    if folder.join("spaces.json").is_file() {
+        // A missing users.json can be repaired by setup, preserving existing
+        // spaces. An existing one, even `{}` or without an admin, is an
+        // accountless or admin-less server and boots as is.
+        if silverbullet_server::multi::users::UsersConfig::load(&folder.join("users.json"))?
+            .is_none()
+        {
+            tracing::info!(
+                "boot mode: setup (spaces.json present, but no users.json — no admin yet)"
             );
-        }
-        if env("SB_USER").is_some() {
-            return Err(
-                "this folder contains spaces.json (multi-space config) but SB_USER is set. \
-                 Accounts now live in users.json — unset SB_USER"
-                    .into(),
-            );
-        }
-        if env("SB_AUTH_TOKEN").is_some() {
-            return Err(
-                "this folder contains spaces.json (multi-space config) but SB_AUTH_TOKEN is set. \
-                 Accounts/API tokens replace SB_AUTH_TOKEN — manage tokens in the admin UI"
-                    .into(),
-            );
-        }
-        // Missing users.json can be repaired by setup, preserving existing spaces.
-        // An existing file without an admin cannot: run_setup refuses to overwrite it.
-        match silverbullet_server::multi::users::UsersConfig::load(&folder.join("users.json"))? {
-            None => {
-                tracing::info!(
-                    "boot mode: setup (spaces.json present, but no users.json — no admin yet)"
-                );
-                return Ok(BootMode::Setup);
-            }
-            Some(cfg) if !cfg.users.values().any(|u| u.admin) => {
-                return Err(
-                    "users.json contains no admin account, so nobody could administer this \
-                     server. Set \"admin\": true on a user in users.json and restart"
-                        .into(),
-                );
-            }
-            Some(_) => {}
+            return Ok(BootMode::Setup);
         }
         tracing::info!("boot mode: multi-space (spaces.json present)");
         return Ok(BootMode::Multi);
-    }
-    if single_flag {
-        tracing::info!("boot mode: single-space (--single)");
-        return Ok(BootMode::Single);
-    }
-    if let Some(var) = LEGACY_ENV_VARS.iter().find(|v| env(v).is_some()) {
-        tracing::info!("boot mode: single-space ({var} is set)");
-        return Ok(BootMode::Single);
     }
     let non_empty = std::fs::read_dir(folder)
         .map(|rd| {
@@ -202,10 +201,17 @@ pub fn detect(
         })
         .unwrap_or(false);
     if non_empty {
-        tracing::info!("boot mode: single-space (folder is not empty)");
-        return Ok(BootMode::Single);
+        tracing::info!("boot mode: migration (folder is not empty and has no spaces.json)");
+        return Ok(BootMode::Migrate);
     }
-    tracing::info!("boot mode: unconfigured (empty folder, no flags, no legacy env)");
+    for var in crate::multi::IGNORED_IN_MULTI {
+        if env(var).is_some_and(|v| !v.is_empty()) {
+            tracing::warn!(
+                "{var} is ignored: this folder is empty, so there is nothing to migrate"
+            );
+        }
+    }
+    tracing::info!("boot mode: unconfigured (empty folder)");
     Ok(BootMode::Setup)
 }
 
@@ -238,27 +244,100 @@ mod tests {
         assert_eq!(status(&outer).await, 200);
     }
 
-    /// A minimal `Config` for tests that don't care about most fields.
-    fn test_config(data_folder: &str, unix_socket: Option<&str>) -> crate::config::Config {
-        let mut config = crate::config::Config::from_env(
-            Some("127.0.0.1".to_string()),
-            Some(0),
-            Some(data_folder.to_string()),
-        )
-        .unwrap();
-        config.unix_socket = unix_socket.map(str::to_string);
-        config
-    }
-
+    /// The swap to multi-space happens even when the client that started
+    /// the migration is gone before it finishes.
     #[tokio::test]
-    async fn run_setup_server_rejects_unix_socket() {
+    async fn a_dropped_migration_request_still_swaps_to_multi_space() {
+        use axum::body::Body;
+        use axum::http::{header, StatusCode};
+        use silverbullet_server::multi::migrate::api::{build_migrate_router, Gate, MigrateState};
+
         let dir = tempfile::tempdir().unwrap();
-        let config = test_config(dir.path().to_str().unwrap(), Some("/tmp/sb.sock"));
-        let err = run_setup_server(config, crate::server::Shutdown::install())
+        let root = dir.path().join("data");
+        std::fs::create_dir(&root).unwrap();
+        std::fs::write(root.join("index.md"), "# Legacy").unwrap();
+        let config =
+            crate::config::Config::from_env(None, Some(3000), Some(root.display().to_string()))
+                .unwrap();
+        let (env, secrets, _) = crate::legacy_env::legacy_env(&config, &|_| None).unwrap();
+        let mut edits = silverbullet_server::multi::migrate::default_edits(&env);
+        edits.admin = silverbullet_server::multi::migrate::AdminChoice::NoAccounts;
+
+        let (handle, outer) = SwappableRouter::new(Router::new());
+        let handle = Arc::new(handle);
+        let swap = handle.clone();
+        let state = Arc::new(MigrateState {
+            root: root.clone(),
+            env,
+            secrets,
+            gate: Gate::SetupCode("ABCD2345".into()),
+            client_bundle: Box::new(
+                crate::embed::EmbeddedSpace::<crate::embed::ClientAssets>::new(),
+            ),
+            version: "test".into(),
+            on_complete: Box::new(move || {
+                swap.swap(Router::new().fallback(|| async { StatusCode::NOT_FOUND }));
+                Box::pin(async { Ok(()) })
+            }),
+            run_lock: tokio::sync::Mutex::new(()),
+        });
+        handle.swap(build_migrate_router(state.clone()));
+
+        let post = |uri: &str, body: String, cookie: Option<&str>| {
+            let mut req = Request::builder()
+                .method("POST")
+                .uri(uri)
+                .header(header::CONTENT_TYPE, "application/json");
+            if let Some(cookie) = cookie {
+                req = req.header(header::COOKIE, cookie);
+            }
+            req.body(Body::from(body)).unwrap()
+        };
+        let status = |outer: &Router| {
+            outer.clone().oneshot(
+                Request::builder()
+                    .uri("/.setup/migrate/api/status")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+        };
+
+        let resp = outer
+            .clone()
+            .oneshot(post(
+                "/.setup/migrate/api/login",
+                r#"{"code":"ABCD2345"}"#.into(),
+                None,
+            ))
             .await
-            .expect_err("must reject SB_UNIX_SOCKET");
-        assert!(err.contains("SB_UNIX_SOCKET"), "{err}");
-        assert!(err.contains("--single"), "{err}");
+            .unwrap();
+        let cookie = resp.headers()[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .split(';')
+            .next()
+            .unwrap()
+            .to_string();
+        assert_eq!(status(&outer).await.unwrap().status(), StatusCode::OK);
+
+        let held = state.run_lock.lock().await;
+        let body = serde_json::json!({ "edits": edits, "backupConfirmed": true }).to_string();
+        let request = outer
+            .clone()
+            .oneshot(post("/.setup/migrate/api/run", body, Some(&cookie)));
+        let gave_up = tokio::time::timeout(std::time::Duration::from_millis(200), request).await;
+        assert!(gave_up.is_err(), "the run should wait for the lock");
+        drop(held);
+
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while status(&outer).await.unwrap().status() != StatusCode::NOT_FOUND {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "never swapped to multi-space"
+            );
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        assert!(root.join("spaces.json").exists());
     }
 
     fn env(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
@@ -272,7 +351,7 @@ mod tests {
     #[test]
     fn empty_folder_no_env_is_setup() {
         let dir = tempfile::tempdir().unwrap();
-        let m = detect(dir.path(), false, &env(&[])).unwrap();
+        let m = detect(dir.path(), &env(&[])).unwrap();
         assert!(matches!(m, BootMode::Setup));
     }
 
@@ -281,18 +360,94 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join(".DS_Store"), "x").unwrap();
         assert!(matches!(
-            detect(dir.path(), false, &env(&[])).unwrap(),
+            detect(dir.path(), &env(&[])).unwrap(),
             BootMode::Setup
         ));
     }
 
     #[test]
-    fn non_empty_folder_is_single() {
+    fn non_empty_folder_is_migrate() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("index.md"), "# hi").unwrap();
         assert!(matches!(
-            detect(dir.path(), false, &env(&[])).unwrap(),
-            BootMode::Single
+            detect(dir.path(), &env(&[])).unwrap(),
+            BootMode::Migrate
+        ));
+    }
+
+    fn write_journal(root: &Path) {
+        use silverbullet_server::multi::migrate::{
+            synthesize_space, AdminPlan, Journal, MigrationPlan, SingleSpaceSettings, JOURNAL_FILE,
+        };
+        let space = synthesize_space(
+            &SingleSpaceSettings {
+                name: "Notes".into(),
+                url_prefix: String::new(),
+                read_only: false,
+                index_page: "index".into(),
+                description: String::new(),
+                theme_color: String::new(),
+                head_html: String::new(),
+                space_ignore: String::new(),
+                log_push: false,
+                revisions: Default::default(),
+            },
+            silverbullet_server::shell::ShellConfig::from_env(false),
+        );
+        let journal = Journal {
+            plan: MigrationPlan {
+                moves: Vec::new(),
+                space_id: "notes".into(),
+                space,
+                admin: AdminPlan::NoAccounts,
+                api_token: false,
+                search_model: None,
+                runtime_api: true,
+                runtime_idle_timeout: None,
+                env_to_remove: Vec::new(),
+                url_changed: false,
+                blockers: Vec::new(),
+            },
+            users: Default::default(),
+            salt: None,
+            keep_auth_file: false,
+        };
+        std::fs::write(
+            root.join(JOURNAL_FILE),
+            serde_json::to_vec(&journal).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /// A migration writes `spaces.json` last: a crash right after leaves it
+    /// next to the journal, and the migration still has to finish.
+    #[test]
+    fn pending_journal_is_migrate() {
+        let dir = tempfile::tempdir().unwrap();
+        write_journal(dir.path());
+        std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
+        std::fs::write(dir.path().join("users.json"), "{}").unwrap();
+        assert!(matches!(
+            detect(dir.path(), &env(&[])).unwrap(),
+            BootMode::Migrate
+        ));
+    }
+
+    /// The migration page shows a damaged journal; it never reads as "no journal".
+    #[test]
+    fn damaged_journal_is_migrate() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path()
+                .join(silverbullet_server::multi::migrate::JOURNAL_FILE),
+            "{ not json",
+        )
+        .unwrap();
+        std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
+        std::fs::write(dir.path().join("users.json"), "{}").unwrap();
+        assert!(matches!(
+            detect(dir.path(), &env(&[])).unwrap(),
+            BootMode::Migrate
         ));
     }
 
@@ -301,30 +456,18 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let missing = dir.path().join("nope");
         assert!(matches!(
-            detect(&missing, false, &env(&[])).unwrap(),
+            detect(&missing, &env(&[])).unwrap(),
             BootMode::Setup
         ));
     }
 
     #[test]
-    fn legacy_env_forces_single_even_on_empty_folder() {
+    fn legacy_env_on_empty_folder_is_setup() {
         let dir = tempfile::tempdir().unwrap();
-        for var in LEGACY_ENV_VARS {
-            let m = detect(dir.path(), false, &env(&[(var, "x")])).unwrap();
-            assert!(
-                matches!(m, BootMode::Single),
-                "{var} must force single mode"
-            );
+        for var in ["SB_USER", "SB_NAME", "SB_READ_ONLY", "SB_URL_PREFIX"] {
+            let m = detect(dir.path(), &env(&[(var, "x:y")])).unwrap();
+            assert!(matches!(m, BootMode::Setup), "{var} must not select a mode");
         }
-    }
-
-    #[test]
-    fn single_flag_forces_single() {
-        let dir = tempfile::tempdir().unwrap();
-        assert!(matches!(
-            detect(dir.path(), true, &env(&[])).unwrap(),
-            BootMode::Single
-        ));
     }
 
     #[test]
@@ -332,7 +475,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
         assert!(matches!(
-            detect(dir.path(), false, &env(&[])).unwrap(),
+            detect(dir.path(), &env(&[])).unwrap(),
             BootMode::Setup
         ));
         std::fs::write(
@@ -341,27 +484,32 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(
-            detect(dir.path(), false, &env(&[])).unwrap(),
+            detect(dir.path(), &env(&[])).unwrap(),
             BootMode::Multi
         ));
     }
 
-    /// A users.json that exists but holds no admin is unserviceable and
-    /// unfixable by the wizard (`run_setup` refuses once users.json is there),
-    /// so it must be a hard error rather than a setup loop that 400s.
+    /// Accounts are optional: a users.json with no admin (or no users at all)
+    /// is an accountless server whose spaces are configured by editing
+    /// spaces.json, so it boots multi-space rather than failing.
     #[test]
-    fn spaces_json_with_adminless_users_json_is_an_error() {
+    fn spaces_json_with_adminless_users_json_is_multi() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
         std::fs::write(dir.path().join("users.json"), "{}").unwrap();
-        let err = detect(dir.path(), false, &env(&[])).expect_err("no admin must fail");
-        assert!(err.contains("no admin account"), "{err}");
+        assert!(matches!(
+            detect(dir.path(), &env(&[])).unwrap(),
+            BootMode::Multi
+        ));
         std::fs::write(
             dir.path().join("users.json"),
             r#"{"bob":{"passwordHash":"$argon2id$x","admin":false}}"#,
         )
         .unwrap();
-        assert!(detect(dir.path(), false, &env(&[])).is_err());
+        assert!(matches!(
+            detect(dir.path(), &env(&[])).unwrap(),
+            BootMode::Multi
+        ));
     }
 
     #[test]
@@ -369,16 +517,28 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
         std::fs::write(dir.path().join("users.json"), "{ not json").unwrap();
-        assert!(detect(dir.path(), false, &env(&[])).is_err());
+        assert!(detect(dir.path(), &env(&[])).is_err());
     }
 
+    /// Leftover legacy env vars next to `spaces.json` are logged as ignored
+    /// (by the multi stack), never a reason to refuse boot.
     #[test]
-    fn spaces_json_plus_single_flag_or_credential_env_is_an_error() {
+    fn spaces_json_with_sb_user_is_multi() {
         let dir = tempfile::tempdir().unwrap();
         std::fs::write(dir.path().join("spaces.json"), "{}").unwrap();
-        assert!(detect(dir.path(), true, &env(&[])).is_err());
-        assert!(detect(dir.path(), false, &env(&[("SB_USER", "a:b")])).is_err());
-        assert!(detect(dir.path(), false, &env(&[("SB_AUTH_TOKEN", "t")])).is_err());
-        assert!(detect(dir.path(), false, &env(&[("SB_READ_ONLY", "1")])).is_ok());
+        std::fs::write(dir.path().join("users.json"), "{}").unwrap();
+        for (var, value) in [
+            ("SB_USER", "a:b"),
+            ("SB_AUTH_TOKEN", "t"),
+            ("SB_READ_ONLY", "1"),
+        ] {
+            assert!(
+                matches!(
+                    detect(dir.path(), &env(&[(var, value)])).unwrap(),
+                    BootMode::Multi
+                ),
+                "{var}"
+            );
+        }
     }
 }

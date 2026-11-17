@@ -1,6 +1,7 @@
 //! A server-rendered page in the standalone shell (the login page's header,
 //! stylesheet and light/dark theme) for answers that have no client screen of
-//! their own: an address with no space, or a single-space server's Dashboard.
+//! their own: an address with no space, or the Dashboard of a server without
+//! accounts.
 
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse, Response};

@@ -314,7 +314,7 @@ test.describe("browser history", () => {
 
 test.describe("read-only navigation", () => {
   test.use({
-    serverEnv: { SB_READ_ONLY: "1" },
+    spaceAccess: "read",
     spaceFiles: {
       "index.md": "# Welcome\n\nIntro text.\n\nSee [[Destination]] here.\n",
       "Destination.md": "# Destination\n\nFirst line.\n\nBack to [[index]].\n",

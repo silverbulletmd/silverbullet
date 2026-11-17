@@ -26,7 +26,7 @@ pub struct SetupState {
     pub root: PathBuf,
     pub client_bundle: Box<dyn SpacePrimitives>,
     pub version: String,
-    /// Seeded into a first space's index page (mirrors admin/single mode).
+    /// Seeded into a first space's index page, as the admin API does for new spaces.
     pub index_template: String,
     pub on_complete: Box<dyn Fn() + Send + Sync>,
     /// Serializes `POST /.setup/api/complete`. `run_setup`'s `is_configured`
@@ -48,6 +48,17 @@ async fn handle_shell(State(state): State<Arc<SetupState>>) -> Response {
     }
 }
 
+pub(crate) fn asset_content_type(file: &str) -> &'static str {
+    match file.rsplit('.').next() {
+        Some("js") => "text/javascript",
+        Some("css") => "text/css",
+        Some("map") | Some("json") => "application/json",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        _ => "application/octet-stream",
+    }
+}
+
 async fn handle_asset(
     State(state): State<Arc<SetupState>>,
     AxumPath(file): AxumPath<String>,
@@ -59,15 +70,7 @@ async fn handle_asset(
     let path = format!(".client/{file}");
     match run_blocking(move || s.client_bundle.read_file(&path)).await {
         Ok((data, _)) => {
-            let ctype = match file.rsplit('.').next() {
-                Some("js") => "text/javascript",
-                Some("css") => "text/css",
-                Some("map") | Some("json") => "application/json",
-                Some("svg") => "image/svg+xml",
-                Some("png") => "image/png",
-                _ => "application/octet-stream",
-            };
-            ([(header::CONTENT_TYPE, ctype)], data).into_response()
+            ([(header::CONTENT_TYPE, asset_content_type(&file))], data).into_response()
         }
         Err(_) => (StatusCode::NOT_FOUND, "Not found").into_response(),
     }

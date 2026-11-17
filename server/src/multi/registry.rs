@@ -19,6 +19,9 @@ pub struct RoutingTable {
     runtime_hosts: HashMap<String, Arc<SpaceInstance>>,
     /// (normalized prefix, instance), sorted longest-first.
     prefixes: Vec<(String, Arc<SpaceInstance>)>,
+    /// Former prefix -> current prefix (both normalized, root is empty), per
+    /// host scope (`None` is the main host), sorted longest former prefix first.
+    former: HashMap<Option<String>, Vec<(String, String)>>,
 }
 
 impl RoutingTable {
@@ -33,7 +36,18 @@ impl RoutingTable {
         let mut hosts: HashMap<String, Vec<(String, Arc<SpaceInstance>)>> = HashMap::new();
         let mut runtime_hosts = HashMap::new();
         let mut prefixes = Vec::new();
+        let mut former: HashMap<Option<String>, Vec<(String, String)>> = HashMap::new();
         for inst in instances.values() {
+            let scope = inst.config.binding.effective_host_scope(primary_host);
+            for old in &inst.config.former_prefixes {
+                let old = crate::multi::validate::normalize_prefix(old);
+                if old != inst.prefix {
+                    former
+                        .entry(scope.clone())
+                        .or_default()
+                        .push((old, inst.prefix.clone()));
+                }
+            }
             if inst.config.binding.host().is_some() {
                 runtime_hosts.insert(runtime_host(&inst.id), inst.clone());
             }
@@ -50,7 +64,11 @@ impl RoutingTable {
             routes.sort_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
         }
         prefixes.sort_by_key(|(prefix, _)| std::cmp::Reverse(prefix.len()));
+        for routes in former.values_mut() {
+            routes.sort_by_key(|(old, _)| std::cmp::Reverse(old.len()));
+        }
         Self {
+            former,
             instances,
             hosts,
             runtime_hosts,
@@ -79,6 +97,44 @@ impl RoutingTable {
             }
         }
         None
+    }
+}
+
+impl RoutingTable {
+    fn former_routes(&self, host: &str) -> Option<&Vec<(String, String)>> {
+        let bare_host = normalize_request_host(host);
+        let scope = self.hosts.contains_key(&bare_host).then_some(bare_host);
+        self.former.get(&scope)
+    }
+
+    /// Where a request no space claims should go instead: the longest former
+    /// prefix that matches `path`, swapped for its space's current prefix.
+    /// Returns the new path (no query).
+    pub fn resolve_former(&self, host: &str, path: &str) -> Option<String> {
+        let (old, current) = self.former_routes(host)?.iter().find(|(old, _)| {
+            old.is_empty() || path == old || path.starts_with(&format!("{old}/"))
+        })?;
+        let rest = &path[old.len()..];
+        let target = format!("{current}{rest}");
+        Some(if target.is_empty() {
+            "/".into()
+        } else {
+            target
+        })
+    }
+}
+
+impl RoutingTable {
+    /// The new address of a space whose migration moved it, for a tab still
+    /// on the migration page under the space's former prefix.
+    pub fn resolve_former_migration_page(&self, host: &str, path: &str) -> Option<String> {
+        self.former_routes(host)?
+            .iter()
+            .find(|(old, _)| {
+                let page = format!("{old}/.setup/migrate");
+                path == page || path.starts_with(&format!("{page}/"))
+            })
+            .map(|(_, current)| format!("{current}/"))
     }
 }
 

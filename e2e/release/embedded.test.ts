@@ -63,7 +63,9 @@ test.describe("Release binary: embedded bundle", () => {
   });
 
   test("browser login flow", async ({ page }) => {
-    server = await startReleaseServer({ SB_USER: "alice:s3cret" });
+    server = await startReleaseServer({
+      admin: { username: "alice", password: "s3cret" },
+    });
 
     // An unauthenticated browser hitting a protected page is redirected to
     // the login page.

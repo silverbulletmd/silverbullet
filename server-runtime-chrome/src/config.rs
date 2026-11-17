@@ -1,12 +1,8 @@
 use std::path::Path;
 
-/// Why the headless-Chrome runtime could not be configured. The two causes are
-/// kept apart because the Dashboard shows the administrator which one it
-/// hit — "install a browser" and "you turned this off" need different answers.
+/// Why the headless-Chrome runtime could not be configured.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuntimeUnavailable {
-    /// `SB_RUNTIME_API` is `0`/`false`.
-    DisabledByEnv,
     /// No browser configured, and none found by the platform scan.
     NoChrome,
 }
@@ -37,23 +33,10 @@ pub struct ChromeConfig {
 
 impl ChromeConfig {
     /// Build from the process environment. `server_root` is the server's root
-    /// directory, used for the default profile location. The error says which
-    /// of the two ways this can fail actually happened.
-    pub fn from_env(server_root: &Path) -> Result<Self, RuntimeUnavailable> {
-        Self::from_env_mode(server_root, true)
-    }
-
+    /// directory, used for the default profile location. Whether runtimes run
+    /// at all is `runtimeApi` in `server.json`, not decided here.
     pub fn from_env_for_multi(server_root: &Path) -> Result<Self, RuntimeUnavailable> {
-        Self::from_env_mode(server_root, false)
-    }
-
-    fn from_env_mode(
-        server_root: &Path,
-        honor_runtime_env: bool,
-    ) -> Result<Self, RuntimeUnavailable> {
         let env = |k: &str| std::env::var(k).ok().filter(|v| !v.is_empty());
-        let runtime_api_enabled = !honor_runtime_env
-            || !matches!(env("SB_RUNTIME_API").as_deref(), Some("0") | Some("false"));
         Self::resolve(
             env("SB_CHROME_PATH"),
             env("CHROMIUM_PATH"),
@@ -64,7 +47,6 @@ impl ChromeConfig {
                 env("SB_CHROME_LOG_CONSOLE").as_deref(),
                 Some("0") | Some("false")
             ),
-            runtime_api_enabled,
         )
     }
 
@@ -76,16 +58,12 @@ impl ChromeConfig {
         server_root: &Path,
         show: bool,
         log_console: bool,
-        runtime_api_enabled: bool,
     ) -> Result<Self, RuntimeUnavailable> {
         let scan = if show { find_full_chrome } else { find_chrome };
         let chrome_path = chrome_path_from(sb_chrome_path, chromium_path, scan);
         match &chrome_path {
             Ok(path) => tracing::info!("runtime Chrome detected: {path}"),
             Err(_) => tracing::info!("runtime Chrome not found"),
-        }
-        if !runtime_api_enabled {
-            return Err(RuntimeUnavailable::DisabledByEnv);
         }
         let chrome_path = chrome_path?;
         let user_data_dir = chrome_data_dir
@@ -304,7 +282,7 @@ mod tests {
             let expected = expected.to_string_lossy();
             assert_eq!(find_chrome().as_deref(), Some(expected.as_ref()));
             let visible =
-                ChromeConfig::resolve(None, None, None, Path::new("/unused"), true, false, true);
+                ChromeConfig::resolve(None, None, None, Path::new("/unused"), true, false);
             if let Ok(visible) = visible {
                 assert_ne!(visible.chrome_path, expected);
             }
@@ -334,34 +312,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn multi_space_discovery_ignores_the_environment_disable() {
-        const CHILD: &str = "SB_TEST_RUNTIME_DISCOVERY_CHILD";
-        if std::env::var_os(CHILD).is_some() {
-            let root = Path::new("/unused");
-            let config = ChromeConfig::from_env_for_multi(root).unwrap();
-            assert_eq!(config.chrome_path, "/configured/chrome");
-            assert_eq!(
-                ChromeConfig::from_env(root).unwrap_err(),
-                RuntimeUnavailable::DisabledByEnv
-            );
-            return;
-        }
-        for disabled in ["0", "false"] {
-            let status = std::process::Command::new(std::env::current_exe().unwrap())
-                .args([
-                    "--exact",
-                    "config::tests::multi_space_discovery_ignores_the_environment_disable",
-                ])
-                .env(CHILD, "1")
-                .env("SB_RUNTIME_API", disabled)
-                .env("SB_CHROME_PATH", "/configured/chrome")
-                .status()
-                .unwrap();
-            assert!(status.success());
-        }
-    }
-
     fn resolve(
         root: &str,
         chrome_data_dir: Option<&str>,
@@ -372,7 +322,6 @@ mod tests {
             chrome_data_dir.map(str::to_string),
             Path::new(root),
             false,
-            true,
             true,
         )
     }
@@ -399,7 +348,6 @@ mod tests {
             Path::new("/srv/sb"),
             false,
             true,
-            true,
         )
         .expect("resolves");
         assert_eq!(cfg.user_data_dir, "/srv/sb/.chrome-data");
@@ -414,25 +362,9 @@ mod tests {
             Path::new("/srv/sb"),
             false,
             true,
-            true,
         )
         .expect("resolves");
         assert_eq!(cfg.chrome_path, "/bin/chromium");
-    }
-
-    #[test]
-    fn disabled_runtime_api_reports_the_env_opt_out() {
-        let err = ChromeConfig::resolve(
-            Some("/bin/chrome".into()),
-            None,
-            None,
-            Path::new("/srv/sb"),
-            false,
-            true,
-            false,
-        )
-        .unwrap_err();
-        assert_eq!(err, RuntimeUnavailable::DisabledByEnv);
     }
 
     // Driven through `chrome_path_from` with an injected scan rather than

@@ -51,8 +51,8 @@ struct AuthFile {
     salt: String,
 }
 
-/// Default signing-secret file, used by single-space servers and by every
-/// multi-space *space* instance (keyed off the space's own folder).
+/// Signing-secret file that single-space servers kept in their space folder.
+/// The migration reads its salt from there; `load_or_init` still uses it.
 pub const AUTH_FILE_NAME: &str = ".silverbullet.auth.json";
 
 /// Server-wide signing secret and client-encryption salt for account-managed
@@ -392,6 +392,37 @@ impl Authenticator {
     }
 }
 
+/// The client-encryption salt stored in `<dir>/<file_name>`: `None` when the
+/// file is absent or holds no salt, an error when it can't be read or parsed.
+pub fn read_salt(dir: &Path, file_name: &str) -> std::io::Result<Option<String>> {
+    let bytes = match std::fs::read(dir.join(file_name)) {
+        Ok(bytes) => bytes,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(e) => return Err(e),
+    };
+    let file: AuthFile = serde_json::from_slice(&bytes).map_err(std::io::Error::other)?;
+    Ok(Some(file.salt).filter(|salt| !salt.is_empty()))
+}
+
+/// Writes `<dir>/<file_name>` holding only `salt`, atomically and durably. The empty
+/// secret and stamp make the next `load_or_init_with_stamp_named` generate a
+/// signing secret while keeping the salt.
+pub fn seed_salt(dir: &Path, file_name: &str, salt: &str) -> std::io::Result<()> {
+    let file = AuthFile {
+        secret: String::new(),
+        config_hash: String::new(),
+        salt: salt.to_string(),
+    };
+    let bytes = serde_json::to_vec_pretty(&file).map_err(std::io::Error::other)?;
+    let path = dir.join(file_name);
+    let tmp = dir.join(format!("{file_name}.tmp"));
+    write_private(&tmp, &bytes)?;
+    std::fs::rename(&tmp, &path)?;
+    #[cfg(unix)]
+    std::fs::File::open(dir)?.sync_all()?;
+    Ok(())
+}
+
 /// Write `bytes` to `path` with owner-only permissions (`0600` on Unix), so the
 /// persisted signing secret is not readable by other local users. New files are
 /// created `0600` directly; a pre-existing file has its mode tightened before
@@ -409,11 +440,14 @@ fn write_private(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
             .open(path)?;
         std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
         f.write_all(bytes)?;
-        Ok(())
+        f.sync_all()
     }
     #[cfg(not(unix))]
     {
-        std::fs::write(path, bytes)
+        use std::io::Write;
+        let mut f = std::fs::File::create(path)?;
+        f.write_all(bytes)?;
+        f.sync_all()
     }
 }
 

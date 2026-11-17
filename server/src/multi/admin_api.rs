@@ -392,6 +392,8 @@ async fn handle_create(
         mut config,
     } = body;
     config.git_sync = None;
+    config.client_identity_path = None;
+    config.former_prefixes.clear();
     match run_blocking(move || Ok(manager.create(config, seed_index))).await {
         Ok(Ok(id)) => Json(json!({ "id": id })).into_response(),
         Ok(Err(e)) => api_error(e),
@@ -2070,6 +2072,21 @@ pub(crate) mod tests {
         let v = body_json(resp).await;
         assert_eq!(v["name"], "Work");
         assert!(v.get("status").is_some(), "{v}");
+    }
+
+    #[tokio::test]
+    async fn create_drops_a_submitted_client_identity_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let id = create_space(
+            &router,
+            &cookie,
+            r#"{"name":"Work","binding":{"prefix":"/work"},"clientIdentityPath":"/evil","formerPrefixes":["/"]}"#,
+        )
+        .await;
+        assert!(m.get(&id).unwrap().get("clientIdentityPath").is_none());
+        assert!(m.get(&id).unwrap().get("formerPrefixes").is_none());
     }
 
     #[tokio::test]

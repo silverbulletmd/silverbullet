@@ -17,8 +17,6 @@ pub enum RuntimeAvailability {
     Available,
     /// No Chrome or Chromium found, and none configured.
     NoChrome,
-    /// Turned off server-wide with `SB_RUNTIME_API=0`.
-    DisabledByEnv,
     /// A browser was found, but the pool could not be created.
     Failed { message: String },
 }

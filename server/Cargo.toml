@@ -42,6 +42,9 @@ openidconnect = { version = "4", default-features = false, features = ["reqwest"
 tempfile = "3"
 png = "0.18"
 
+[target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
+libc = { workspace = true }
+
 [features]
 # `SpaceSearch::with_semantic`, for embedders' tests.
 test-model = ["silverbullet-server-search/test-model"]

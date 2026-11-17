@@ -9,8 +9,8 @@
 //! `runtime_e2e.rs`). Run `cargo test --workspace` (which builds every bin) or
 //! `make build-rs` first to exercise the server-backed paths.
 //!
-//! The server is started with `SB_RUNTIME_API=0`, so the headless-Chrome Lua
-//! runtime is disabled and every `/.runtime/*` endpoint returns 503. The
+//! The data root's `server.json` turns the Runtime API off, so the
+//! headless-Chrome Lua runtime is disabled and every `/.runtime/*` endpoint returns 503. The
 //! runtime-dependent cases therefore assert the *graceful* not-enabled path
 //! (the full conn → api → HTTP → error-mapping chain), not a live Lua result —
 //! exercising the real wire path without requiring a browser in CI.
@@ -41,7 +41,8 @@ fn server_bin() -> Option<PathBuf> {
 // naive "bind :0, read the port, drop the listener" helper is racy.
 #[path = "../../silverbullet/tests/common/mod.rs"]
 mod common;
-use common::free_port;
+use common::{free_port, mint_token, provision_data_root};
+use silverbullet_server::multi::config::SpaceAccess;
 
 #[path = "integration/space.rs"]
 mod space;
@@ -99,7 +100,8 @@ fn run_sb_with_input(args: &[&str], config_home: &std::path::Path, input: Option
     }
 }
 
-struct Server(Child);
+/// The child and the data root it serves, which must outlive it.
+struct Server(Child, #[allow(dead_code)] tempfile::TempDir);
 
 impl Drop for Server {
     fn drop(&mut self) {
@@ -123,29 +125,39 @@ fn version_prints_without_a_server() {
 /// `/.ping`. Returns the managed server + base URL, or `None` if the server binary
 /// isn't built (caller skips).
 fn start_server(space_dir: &std::path::Path) -> Option<(Server, String)> {
-    start_server_with_env(space_dir, &[])
+    start_server_with_access(space_dir, SpaceAccess::Write)
 }
 
-fn start_server_with_env(
+/// Like [`start_server`], with visitors granted `access` to the space.
+fn start_server_with_access(
     space_dir: &std::path::Path,
-    extra_env: &[(&str, &str)],
+    access: SpaceAccess,
 ) -> Option<(Server, String)> {
+    let root = provision_data_root(space_dir, access, None);
+    start_server_on(root)
+}
+
+/// A server whose space needs an account, plus an API token for it. A
+/// multi-space server lists a space's own skills to signed-in users only.
+fn start_server_signed_in(space_dir: &std::path::Path) -> Option<(Server, String, String)> {
+    let root = provision_data_root(space_dir, SpaceAccess::None, Some(("alice", "s3cret")));
+    let token = mint_token(root.path(), "alice", "test");
+    let (server, base) = start_server_on(root)?;
+    Some((server, base, token))
+}
+
+fn start_server_on(root: tempfile::TempDir) -> Option<(Server, String)> {
     let bin = server_bin()?;
     let port = free_port();
     let mut command = Command::new(bin);
     command
-        .arg(space_dir)
+        .arg(root.path())
         .arg("-p")
         .arg(port.to_string())
         .args(["-L", "127.0.0.1"])
-        .arg("--single")
-        .env("SB_RUNTIME_API", "0")
         .env("SB_DISABLE_SERVICE_WORKER", "1");
-    for (key, value) in extra_env {
-        command.env(key, value);
-    }
     let child = command.spawn().expect("spawn silverbullet server");
-    let mut server = Server(child);
+    let mut server = Server(child, root);
     let base = format!("http://127.0.0.1:{port}");
 
     let client = reqwest::blocking::Client::new();
@@ -554,8 +566,7 @@ fn fs_binary_roundtrip_and_oversize_read_never_emit_partial_stdout() {
 fn fs_read_only_server_allows_reads_and_rejects_writes() {
     let space = tempfile::tempdir().unwrap();
     std::fs::write(space.path().join("Public.md"), b"Visible but immutable").unwrap();
-    let Some((_server, base)) = start_server_with_env(space.path(), &[("SB_READ_ONLY", "1")])
-    else {
+    let Some((_server, base)) = start_server_with_access(space.path(), SpaceAccess::Read) else {
         eprintln!(
             "skip: silverbullet server binary not built (run `make build-rs` or `cargo build --workspace`)"
         );
@@ -820,24 +831,22 @@ fn rendered_read_of_a_missing_page_exits_3() {
 #[test]
 fn help_shows_space_skills_and_outline() {
     let space = tempfile::tempdir().unwrap();
-    let Some((_server, base)) = require_server(space.path()) else {
+    let Some((_server, base, token)) = start_server_signed_in(space.path()) else {
         return;
     };
     let cfg = tempfile::tempdir().unwrap();
     let page = b"---\ntags: meta/skill\ndescription: House rules for notes. Use when filing a note in this space.\n---\nFile every note under Inbox first.\n";
-    assert_eq!(
-        create_file(&base, cfg.path(), "Guides/Filing.md", page).code,
-        0
-    );
+    std::fs::create_dir_all(space.path().join("Guides")).unwrap();
+    std::fs::write(space.path().join("Guides/Filing.md"), page).unwrap();
 
     // The space's catalog picks the new page up from the watcher.
-    let mut out = run_sb(&["--url", &base, "help"], cfg.path());
+    let mut out = run_sb(&["--url", &base, "--token", &token, "help"], cfg.path());
     for _ in 0..50 {
         if out.stdout_text().contains("**Filing**") {
             break;
         }
         std::thread::sleep(std::time::Duration::from_millis(200));
-        out = run_sb(&["--url", &base, "help"], cfg.path());
+        out = run_sb(&["--url", &base, "--token", &token, "help"], cfg.path());
     }
     let text = out.stdout_text();
     assert_eq!(out.code, 0, "stderr: {}", out.stderr);
@@ -851,7 +860,10 @@ fn help_shows_space_skills_and_outline() {
     assert!(text.contains("Folders: Guides/ (1)"), "{text}");
     assert!(text.contains("# Operations"), "{text}");
 
-    let out = run_sb(&["--url", &base, "help", "Filing"], cfg.path());
+    let out = run_sb(
+        &["--url", &base, "--token", &token, "help", "Filing"],
+        cfg.path(),
+    );
     let text = out.stdout_text();
     assert_eq!(out.code, 0, "stderr: {}", out.stderr);
     assert!(text.starts_with("Source: Guides/Filing — "), "{text}");
@@ -860,7 +872,10 @@ fn help_shows_space_skills_and_outline() {
         "{text}"
     );
 
-    let out = run_sb(&["--url", &base, "help", "--json"], cfg.path());
+    let out = run_sb(
+        &["--url", &base, "--token", &token, "help", "--json"],
+        cfg.path(),
+    );
     assert_eq!(out.code, 0, "stderr: {}", out.stderr);
     assert_eq!(out.json()["help"]["version"], 1);
 }

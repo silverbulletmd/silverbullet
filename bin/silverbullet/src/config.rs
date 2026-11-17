@@ -22,21 +22,11 @@ pub struct Config {
     pub theme_color: String,
     pub space_description: String,
     pub host_url_prefix: String,
-    pub http_logging: bool,
     pub revisions: RevisionsMode,
-    /// `SB_SEARCH_DIR`: single-space mode keeps its search indexes (and
-    /// model) there instead of in RAM.
-    pub search_dir: Option<String>,
-    /// `SB_SEARCH_MODEL`: the catalog id of the model for semantic search;
-    /// needs `search_dir`.
+    /// `SB_SEARCH_MODEL`: a legacy install's semantic search model, which a
+    /// migration carries into server.json.
     pub search_model: Option<String>,
-    /// `SB_RUNTIME_IDLE_TIMEOUT`: minutes without a Runtime API request before
-    /// single-space mode stops the runtime; `0` never does.
-    pub runtime_idle_timeout: Option<u64>,
 }
-
-/// Minutes of inactivity after which a runtime stops, unless configured.
-pub const DEFAULT_RUNTIME_IDLE_MINUTES: u64 = 30;
 
 /// An env var read as a non-empty string.
 fn env_nonempty(key: &str) -> Option<String> {
@@ -112,7 +102,6 @@ impl Config {
             space_description: env_nonempty("SB_DESCRIPTION")
                 .unwrap_or_else(|| "Powerful and programmable note taking app".to_string()),
             host_url_prefix: normalize_prefix(&env::var("SB_URL_PREFIX").unwrap_or_default()),
-            http_logging: env_nonempty("SB_HTTP_LOGGING").is_some(),
             revisions: match env::var("SB_REVISIONS").as_deref() {
                 Ok("managed") => RevisionsMode::Managed,
                 Ok("unmanaged") | Err(_) => RevisionsMode::Unmanaged,
@@ -122,14 +111,7 @@ impl Config {
                     RevisionsMode::Unmanaged
                 }
             },
-            search_dir: env_nonempty("SB_SEARCH_DIR"),
             search_model: env_nonempty("SB_SEARCH_MODEL"),
-            runtime_idle_timeout: match env_nonempty("SB_RUNTIME_IDLE_TIMEOUT") {
-                Some(value) => Some(value.trim().parse().map_err(|_| {
-                    format!("SB_RUNTIME_IDLE_TIMEOUT is not a number of minutes: {value}")
-                })?),
-                None => None,
-            },
         })
     }
 }

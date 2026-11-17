@@ -8,10 +8,9 @@
 pub mod boot;
 pub mod config;
 pub mod embed;
+mod legacy_env;
 pub mod multi;
 pub mod server;
-pub mod single;
-mod single_search;
 
 /// The product version, injected at build time from `version.ts`.
 pub const VERSION: &str = env!("SB_VERSION");

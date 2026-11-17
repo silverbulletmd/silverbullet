@@ -4,7 +4,11 @@
 
 use std::collections::HashSet;
 use std::net::TcpListener;
+use std::path::Path;
 use std::sync::Mutex;
+
+use silverbullet_server::multi::config::SpaceAccess;
+use silverbullet_server::multi::users::{Profile, UserStore};
 
 /// Ports already handed out in this process.
 static ISSUED: Mutex<Option<HashSet<u16>>> = Mutex::new(None);
@@ -210,4 +214,78 @@ pub fn kill_browsers(profile_root: &std::path::Path) {
             .args(["-KILL", &pid.to_string()])
             .status();
     }
+}
+
+/// A multi-space data root for a server under test: one space "Main" bound at
+/// `/` whose folder is the absolute `space_dir`, so a test keeps reading and
+/// writing its space folder directly, plus a `users.json` that is `{}`
+/// (accountless) or holds the admin. `access` is what visitors without an
+/// account may do; the shell is enabled (any command) so shell tests run.
+/// The runtime API is off (`server.json`), so no test boots a headless
+/// browser unless it asks for one with [`provision_data_root_with_runtime`].
+/// The returned directory is the data root to hand to the server; keep it
+/// alive as long as the server runs.
+#[allow(dead_code)]
+pub fn provision_data_root(
+    space_dir: &Path,
+    access: SpaceAccess,
+    admin: Option<(&str, &str)>,
+) -> tempfile::TempDir {
+    provision(space_dir, access, admin, false)
+}
+
+/// [`provision_data_root`] with the runtime API left on, for tests that drive
+/// a headless Chrome (point the server at one with `SB_CHROME_PATH`).
+#[allow(dead_code)]
+pub fn provision_data_root_with_runtime(
+    space_dir: &Path,
+    access: SpaceAccess,
+    admin: Option<(&str, &str)>,
+) -> tempfile::TempDir {
+    provision(space_dir, access, admin, true)
+}
+
+fn provision(
+    space_dir: &Path,
+    access: SpaceAccess,
+    admin: Option<(&str, &str)>,
+    runtime_api: bool,
+) -> tempfile::TempDir {
+    let root = tempfile::tempdir().expect("create a data root");
+    let users = UserStore::create_empty(root.path()).expect("create users.json");
+    if let Some((username, password)) = admin {
+        users
+            .create_user(username, password, true, Profile::default())
+            .expect("create the admin account");
+    }
+    let spaces = serde_json::json!({
+        "main": {
+            "name": "Main",
+            "folder": space_dir,
+            "binding": { "prefix": "" },
+            "access": access,
+            "shell": { "enabled": true, "whitelist": [] },
+        }
+    });
+    if !runtime_api {
+        std::fs::write(root.path().join("server.json"), r#"{"runtimeApi":false}"#)
+            .expect("write server.json");
+    }
+    std::fs::write(
+        root.path().join("spaces.json"),
+        serde_json::to_vec_pretty(&spaces).unwrap(),
+    )
+    .expect("write spaces.json");
+    root
+}
+
+/// Mint an API token named `name` for the existing account `user` of the data
+/// root, written to its `users.json` before the server boots.
+#[allow(dead_code)]
+pub fn mint_token(data_root: &Path, user: &str, name: &str) -> String {
+    UserStore::open(data_root)
+        .expect("read users.json")
+        .expect("users.json exists")
+        .create_token(user, name)
+        .expect("create an API token")
 }

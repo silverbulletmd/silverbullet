@@ -1,5 +1,5 @@
 //! Server entry point: parse `Config` from the environment + CLI flags, then
-//! dispatch to multi-space or single-space serving.
+//! dispatch to the boot mode the data folder calls for.
 
 use std::future::Future;
 use std::pin::Pin;
@@ -12,6 +12,14 @@ pub async fn run(
     folder: Option<String>,
     single: bool,
 ) -> Result<(), String> {
+    if single {
+        return Err(
+            "--single was removed: single-space folders are now migrated to a \
+                    multi-space server. Start without --single and open the migration page \
+                    the log points to"
+                .into(),
+        );
+    }
     let config = Config::from_env(hostname, port, folder)?;
     tracing::info!("SilverBullet {}", crate::VERSION);
 
@@ -23,8 +31,8 @@ pub async fn run(
             .unwrap_or_else(|_| root.clone())
             .display()
     );
-    match crate::boot::detect(&root, single, &|k| std::env::var(k).ok())? {
-        crate::boot::BootMode::Single => crate::single::run_single(config, shutdown).await,
+    match crate::boot::detect(&root, &|k| std::env::var(k).ok())? {
+        crate::boot::BootMode::Migrate => crate::boot::run_migrate_server(config, shutdown).await,
         crate::boot::BootMode::Setup => crate::boot::run_setup_server(config, shutdown).await,
         crate::boot::BootMode::Multi => crate::multi::run_multi(config, shutdown).await,
     }
@@ -55,6 +63,28 @@ impl Shutdown {
             let _ = tx.send(());
         });
         Shutdown { rx, future }
+    }
+}
+
+/// Where [`serve`] listens, for log lines.
+pub(crate) fn listen_address(config: &Config) -> String {
+    match &config.unix_socket {
+        Some(socket) => format!("unix://{socket}"),
+        None => startup_url(&config.bind_host, config.port),
+    }
+}
+
+/// Serve `router` on `SB_UNIX_SOCKET` when set, otherwise on the TCP bind
+/// address. Every listener (setup wizard, migration, multi-space) goes through
+/// here so the socket choice is made in one place.
+pub(crate) async fn serve(
+    config: &Config,
+    router: axum::Router,
+    shutdown: Shutdown,
+) -> Result<(), String> {
+    match &config.unix_socket {
+        Some(socket) => serve_unix(socket, router, shutdown).await,
+        None => serve_tcp(&config.bind_host, config.port, router, shutdown).await,
     }
 }
 
@@ -136,5 +166,15 @@ mod tests {
     #[test]
     fn startup_url_preserves_other_bind_hosts() {
         assert_eq!(super::startup_url("0.0.0.0", 4000), "http://0.0.0.0:4000");
+    }
+
+    #[test]
+    fn listen_address_names_the_unix_socket() {
+        let mut config =
+            crate::config::Config::from_env(None, Some(3000), Some("./notes".into())).unwrap();
+        config.unix_socket = None;
+        assert_eq!(super::listen_address(&config), "http://localhost:3000");
+        config.unix_socket = Some("sb.sock".into());
+        assert_eq!(super::listen_address(&config), "unix://sb.sock");
     }
 }

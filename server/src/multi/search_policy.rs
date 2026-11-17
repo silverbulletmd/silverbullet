@@ -15,7 +15,7 @@ use tokio::sync::broadcast;
 use silverbullet_server_search::semantic::catalog::{self, ModelSpec};
 
 use crate::multi::config::{MultiConfig, SpaceConfig};
-use crate::multi::instance::{InstanceAuth, InstanceDeps, SpaceInstance};
+use crate::multi::instance::{InstanceDeps, SpaceInstance};
 use crate::multi::server_config::ServerConfig;
 use crate::search::{
     folder_pages, SearchBackend, SemanticChoice, SemanticSpaceState, SpaceSearch, SpaceToOpen,
@@ -59,17 +59,6 @@ fn boot_model(server: &ServerConfig, spaces: &MultiConfig) -> Option<&'static Mo
     Some(spec)
 }
 
-/// How log lines name space `id` in `folder`: by its folder's name on a
-/// single-space server (whose id is synthetic), else by its id.
-fn log_name(auth: &InstanceAuth, id: &str, folder: &Path) -> String {
-    match folder.file_name() {
-        Some(name) if matches!(auth, InstanceAuth::Single(_)) => {
-            name.to_string_lossy().into_owned()
-        }
-        _ => id.to_string(),
-    }
-}
-
 /// The engine of space `id` (`config`, in `folder`) on `deps.search`,
 /// reading `space` with `ignore` and kept current by `events`
 /// ([`SpaceSearch::open`]). A space that follows the default is counted
@@ -85,7 +74,7 @@ pub(crate) fn open(
 ) -> Arc<dyn SearchBackend> {
     let space = SpaceToOpen {
         id,
-        name: &log_name(&deps.auth, id, folder),
+        name: id,
         space,
         ignore,
         events,
@@ -120,20 +109,5 @@ impl SpaceInstance {
             .as_ref()
             .and_then(|search| search.pages())
             .or(self.last_pages)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn a_single_space_server_names_its_space_by_folder() {
-        let single = InstanceAuth::Single(None);
-        assert_eq!(
-            log_name(&single, "solo", Path::new("/home/me/Notes")),
-            "Notes"
-        );
-        assert_eq!(log_name(&single, "solo", Path::new("/")), "solo");
     }
 }

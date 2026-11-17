@@ -83,6 +83,10 @@ pub struct ServerState {
     pub bundled_repositories: Vec<String>,
     /// Absolute path of the space folder, surfaced in `X-Space-Path` headers.
     pub space_folder_path: String,
+    /// The folder path reported to clients (`X-Space-Path`, boot config) so they
+    /// name their local database after it. Equals `space_folder_path` unless the
+    /// space migrated and keeps its old path; never used for filesystem access.
+    pub client_space_path: String,
     /// Server version, surfaced in `/.ping`'s `X-Server-Version`. The client
     /// compares this against its compiled-in `publicVersion`; a mismatch shows a
     /// "new version available" banner, so it must track the served bundle.

@@ -38,7 +38,7 @@ async function verificationUrl(cli: ReturnType<typeof startCli>) {
   return url.toString();
 }
 
-test.use({ serverEnv: { SB_USER: "river:harbor-password" } });
+test.use({ spaceAccount: { username: "river", password: "harbor-password" } });
 test.skip(
   !!process.env.SB_E2E_HOST,
   "CLI browser authorization requires HTTPS or loopback; it is not part of LAN HTTP mode.",

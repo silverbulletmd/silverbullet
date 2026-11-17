@@ -1,7 +1,7 @@
 /// Whether a `SB_SHELL_BACKEND` value names a backend that actually runs
 /// commands: `local` (also the default when unset) does, anything else fails
-/// safe to disabled. Shared by the single-space env parser and the
-/// multi-space kill switch so the two can't drift apart.
+/// safe to disabled. Shared by the env parser and the
+/// server-wide kill switch so the two can't drift apart.
 pub fn backend_enables(backend: Option<&str>) -> bool {
     backend
         .map(|b| b.trim().eq_ignore_ascii_case("local"))

@@ -3,8 +3,7 @@
 //! what the dashboards show about it ([`report`]), how its index directory
 //! is laid out and removed (`index_root`), and the change events that keep
 //! its indexes current (`events`). The HTTP layer (`handlers::search`) only
-//! ever sees `Arc<dyn SearchBackend>`. Every mode (multi-user, single-space,
-//! Desktop) starts it the same way: [`SpaceSearch::in_root`] (or
+//! ever sees `Arc<dyn SearchBackend>`. Every mode (server, Desktop) starts it the same way: [`SpaceSearch::in_root`] (or
 //! [`SpaceSearch::in_memory`]), then [`SpaceSearch::boot`].
 
 use std::collections::HashMap;
@@ -199,8 +198,7 @@ pub struct SpaceSearch {
 }
 
 impl SpaceSearch {
-    /// Every index in RAM and no semantic search: single-space mode without
-    /// `SB_SEARCH_DIR`, tests. [`SpaceSearch::boot`] changes nothing.
+    /// Every index in RAM and no semantic search: tests. [`SpaceSearch::boot`] changes nothing.
     pub fn in_memory() -> SpaceSearch {
         SpaceSearch {
             gate: Arc::new(Gate::new()),
@@ -219,8 +217,7 @@ impl SpaceSearch {
     }
 
     /// Indexes and models under `root`: `<data root>/search` on a
-    /// multi-user server ([`search_root`]), `SB_SEARCH_DIR` on a
-    /// single-space one, `<app data>/search` on Desktop. Nothing is swept or
+    /// server ([`search_root`]), `<app data>/search` on Desktop. Nothing is swept or
     /// started until [`SpaceSearch::boot`].
     pub fn in_root(root: SearchRoot) -> SpaceSearch {
         SpaceSearch {
@@ -301,7 +298,7 @@ impl SpaceSearch {
     /// shuts down (its download is canceled and its spaces fail their next
     /// job, so the caller rebuilds them); the new one starts downloading its
     /// model at once. `false` when nothing changed (the same model), and in
-    /// RAM, which has no model store (single-space mode never gets here).
+    /// RAM, which has no model store.
     /// Must be called inside a tokio runtime.
     pub fn set_model(&self, spec: Option<&'static ModelSpec>) -> bool {
         let Some(root) = &self.root else {

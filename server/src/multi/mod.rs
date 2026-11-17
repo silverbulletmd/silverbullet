@@ -11,6 +11,7 @@ pub mod dispatch;
 pub mod git_connection;
 pub mod instance;
 pub mod manager;
+pub mod migrate;
 pub mod policy;
 pub mod registry;
 pub(crate) mod search_admin;

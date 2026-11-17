@@ -255,6 +255,12 @@ pub fn validate_for_primary(
                 format!("{id}.binding"),
                 "prefixes starting with /. are reserved",
             );
+        } else if norm.starts_with("//") {
+            err(
+                &mut errors,
+                format!("{id}.binding"),
+                "prefixes must not start with //",
+            );
         } else {
             let conflict = seen_bindings.iter().find(|(_, other_scope, other_norm)| {
                 other_scope == &scope
@@ -973,6 +979,27 @@ mod tests {
             errs.iter().any(|e| e.field.ends_with(".binding")),
             "{errs:?}"
         );
+    }
+
+    /// `//host` would make every redirect to the space protocol-relative.
+    #[test]
+    fn prefixes_starting_with_two_slashes_are_rejected() {
+        for prefix in ["//evil.example", "///evil"] {
+            let c = cfg(vec![(
+                "a",
+                space(
+                    "A",
+                    Binding::Prefix {
+                        prefix: prefix.into(),
+                    },
+                ),
+            )]);
+            let errors = validate(&c, std::path::Path::new("/data"), &Default::default());
+            assert!(
+                errors.iter().any(|error| error.field == "a.binding"),
+                "{prefix}: {errors:?}"
+            );
+        }
     }
 
     #[test]

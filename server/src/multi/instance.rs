@@ -1,5 +1,5 @@
 //! Materialize a `SpaceConfig` into a running space: Core's regular
-//! `ServerState` + router, exactly as the single-space binary builds it. A
+//! `ServerState` + router, as the standalone binary builds it. A
 //! build failure produces an `Errored` instance (never a crash) so one broken
 //! space can't take the server down.
 
@@ -13,8 +13,7 @@ use silverbullet_server_common::space::{
 use silverbullet_server_common::{BootConfig, SpacePrimitives};
 
 use crate::auth::{
-    headless_cookie_name, AuthConfig, Authenticator, JwtAuthorizer, LockoutTimer, LoginManager,
-    RequestAuthorizer,
+    headless_cookie_name, Authenticator, JwtAuthorizer, LoginManager, RequestAuthorizer,
 };
 use crate::multi::access::{SessionPolicy, SpaceUsersAuth, UserTokenAuthorizer};
 use crate::multi::config::{Binding, SpaceAccess, SpaceConfig};
@@ -81,11 +80,9 @@ pub struct InstanceDeps {
     pub search: crate::search::SpaceSearch,
 }
 
-/// Single-space servers retain their classic environment credentials. An
-/// account-managed multi-space server shares one user store, JWT signing
+/// An account-managed multi-space server shares one user store, JWT signing
 /// secret, salt, browser session, and session policy across all of its spaces.
 pub enum InstanceAuth {
-    Single(Option<AuthConfig>),
     Accounts {
         users: Arc<UserStore>,
         authenticator: Arc<Authenticator>,
@@ -111,6 +108,10 @@ impl crate::auth::IdentityResolver for AccountIdentity {
             full_name: profile.full_name,
             email: profile.email,
         }
+    }
+
+    fn has_no_accounts(&self) -> bool {
+        self.store.is_empty()
     }
 
     fn accounts(&self) -> Option<Vec<crate::auth::UserProfile>> {
@@ -215,46 +216,6 @@ pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: 
     }
 }
 
-type AuthPair = (
-    Option<Arc<dyn RequestAuthorizer>>,
-    Option<Arc<LoginManager>>,
-);
-
-/// Classic single-space authorizer/login pair: one `AuthConfig` drives both
-/// the JWT authorizer (with its bearer token) and the login manager.
-fn build_env_style_auth(
-    space_id: &str,
-    folder: &Path,
-    prefix: &str,
-    ac: &AuthConfig,
-) -> Result<AuthPair, String> {
-    let authenticator = Arc::new(
-        Authenticator::load_or_init(folder, ac)
-            .map_err(|e| format!("could not initialize authentication: {e}"))?,
-    );
-    let inner: Box<dyn RequestAuthorizer> = Box::new(
-        JwtAuthorizer::with_prefix(
-            authenticator.clone(),
-            ac.auth_token.clone(),
-            prefix.to_string(),
-        )
-        .for_space(space_id),
-    );
-    let authorizer: Arc<dyn RequestAuthorizer> = Arc::from(inner);
-    let lockout = LockoutTimer::from_config(ac.lockout_time_secs, ac.lockout_limit);
-    let login = Arc::new(
-        LoginManager::new(
-            authenticator,
-            Arc::new(ac.clone()),
-            ac.remember_me_hours,
-            lockout,
-            prefix.to_string(),
-        )
-        .for_space(space_id),
-    );
-    Ok((Some(authorizer), Some(login)))
-}
-
 /// Session validity only: revocation on password change or account deletion.
 /// Whether the account may touch *this* space is the policy's decision, so a
 /// read-role member's token must verify here rather than being rejected.
@@ -348,11 +309,10 @@ fn try_build_parts(
     let search_ignore = disk.gitignore_matcher();
     let listing = Arc::new(crate::ListingCachedSpace::new(disk));
     let mut disk: Box<dyn SpacePrimitives> = Box::new(listing.clone());
-    let account_managed = matches!(&deps.auth, InstanceAuth::Accounts { .. });
     let folder_is_server_root = folder.canonicalize().ok() == deps.root.canonicalize().ok();
     // A space rooted at the data root itself: the server's own files and
     // directories stay out of its sight, its watcher's and its index's.
-    let data_root_space = account_managed && folder_is_server_root;
+    let data_root_space = folder_is_server_root;
     if data_root_space {
         disk = Box::new(ServerControlFileFilter::new(disk));
     }
@@ -373,83 +333,64 @@ fn try_build_parts(
     // own live `SpaceAccessPolicy` (access level, member role, admin, freeze).
     let members: BTreeSet<String> = config.members.keys().cloned().collect();
 
-    let access_policy: Arc<dyn crate::auth::AccessPolicy> = match &deps.auth {
-        InstanceAuth::Accounts { users, .. } => Arc::new(SpaceAccessPolicy::new(
-            users.clone(),
-            config.access(),
-            config.members.clone(),
-            config.read_only,
-        )),
-        InstanceAuth::Single(_) => Arc::new(crate::auth::AuthorizedPolicy),
-    };
+    let InstanceAuth::Accounts {
+        users: account_store,
+        authenticator,
+        session,
+    } = &deps.auth;
+    let access_policy: Arc<dyn crate::auth::AccessPolicy> = Arc::new(SpaceAccessPolicy::new(
+        account_store.clone(),
+        config.access(),
+        config.members.clone(),
+        config.read_only,
+    ));
 
-    // Single-space mode always synthesizes `access: none` (it has no accounts
-    // model for `access` to mean anything against, see `synthesize` in
-    // `bin/silverbullet/src/single.rs`), so for it this has to key off
-    // whether an authorizer was configured at all -- an absent one is the
-    // open-server case this field exists to keep serving SSR to.
-    let anonymous_readable = match &deps.auth {
-        InstanceAuth::Accounts { .. } => config.access() != SpaceAccess::None,
-        InstanceAuth::Single(auth) => auth.is_none(),
-    };
+    let anonymous_readable = config.access() != SpaceAccess::None;
 
     // Whether a stranger off the internet can author content here. SSR renders
     // page markdown with raw HTML intact, so `anonymous_readable` alone is not
     // a safe gate for it: on an anonymously *writable* space that would serve
     // an attacker's stored HTML to every later visitor and crawler.
-    let anonymous_writable = match &deps.auth {
-        InstanceAuth::Accounts { .. } => config.access() == SpaceAccess::Write,
-        InstanceAuth::Single(auth) => auth.is_none() && !config.read_only,
-    };
+    let anonymous_writable = config.access() == SpaceAccess::Write;
 
-    let (authorizer, login): AuthPair = match &deps.auth {
-        InstanceAuth::Single(None) => (None, None),
-        InstanceAuth::Single(Some(config)) => build_env_style_auth(id, &folder, prefix, config)?,
-        InstanceAuth::Accounts {
-            users: store,
-            authenticator,
-            session,
-        } => {
-            let jwt: Box<dyn RequestAuthorizer> = Box::new(
-                JwtAuthorizer::with_filter(
-                    authenticator.clone(),
-                    String::new(),
-                    String::new(),
-                    session_claims_filter(store.clone()),
-                )
-                .for_space(id),
-            );
-            let tokens: Box<dyn RequestAuthorizer> = Box::new(UserTokenAuthorizer::new(
-                jwt,
-                store.clone(),
-                any_account_filter(store.clone()),
-            ));
-            let authorizer: Arc<dyn RequestAuthorizer> =
-                Arc::new(crate::auth::AnonymousFallbackAuthorizer::new(tokens));
-            let verifier = Arc::new(SpaceUsersAuth {
-                store: store.clone(),
-                policy: access_policy.clone(),
-            });
-            let version_store = store.clone();
-            let login = Arc::new(
-                LoginManager::new(
-                    authenticator.clone(),
-                    verifier,
-                    session.remember_me_hours,
-                    session.lockout(),
-                    prefix.to_string(),
-                )
-                .with_credential_version(Arc::new(move |username| {
-                    version_store
-                        .credential_version(username)
-                        .unwrap_or_default()
-                }))
-                .with_server_wide_session()
-                .for_space(id),
-            );
-            (Some(authorizer), Some(login))
-        }
-    };
+    let jwt: Box<dyn RequestAuthorizer> = Box::new(
+        JwtAuthorizer::with_filter(
+            authenticator.clone(),
+            String::new(),
+            String::new(),
+            session_claims_filter(account_store.clone()),
+        )
+        .for_space(id),
+    );
+    let tokens: Box<dyn RequestAuthorizer> = Box::new(UserTokenAuthorizer::new(
+        jwt,
+        account_store.clone(),
+        any_account_filter(account_store.clone()),
+    ));
+    let authorizer: Option<Arc<dyn RequestAuthorizer>> = Some(Arc::new(
+        crate::auth::AnonymousFallbackAuthorizer::new(tokens),
+    ));
+    let verifier = Arc::new(SpaceUsersAuth {
+        store: account_store.clone(),
+        policy: access_policy.clone(),
+    });
+    let version_store = account_store.clone();
+    let login = Some(Arc::new(
+        LoginManager::new(
+            authenticator.clone(),
+            verifier,
+            session.remember_me_hours,
+            session.lockout(),
+            prefix.to_string(),
+        )
+        .with_credential_version(Arc::new(move |username| {
+            version_store
+                .credential_version(username)
+                .unwrap_or_default()
+        }))
+        .with_server_wide_session()
+        .for_space(id),
+    ));
 
     let runtime = if !config.read_only
         && deps.runtime_availability == crate::runtime::RuntimeAvailability::Available
@@ -467,10 +408,7 @@ fn try_build_parts(
             server_url,
             deps.runtime.clone(),
             access_policy.clone(),
-            match &deps.auth {
-                InstanceAuth::Accounts { users, .. } => Some(users.clone()),
-                _ => None,
-            },
+            Some(account_store.clone()),
             deps.runtime_enabled.clone(),
             deps.runtime_idle_timeout.clone(),
         ))
@@ -551,12 +489,11 @@ fn try_build_parts(
     };
     let (quiet, max_interval) = config.revisions_commit().effective();
     let store = crate::revisions::RevisionStore::open(&folder, config.revisions).filter(|store| {
-        !matches!(&deps.auth, InstanceAuth::Accounts { .. })
-            || !store
-                .repo_root()
-                .and_then(|repo| repo.canonicalize().ok())
-                .zip(deps.root.canonicalize().ok())
-                .is_some_and(|(repo, root)| root.starts_with(repo))
+        !store
+            .repo_root()
+            .and_then(|repo| repo.canonicalize().ok())
+            .zip(deps.root.canonicalize().ok())
+            .is_some_and(|(repo, root)| root.starts_with(repo))
     });
     let revisions_mode = if store.is_some() {
         config.revisions
@@ -596,17 +533,21 @@ fn try_build_parts(
         search_ignore,
         search_events.subscribe(),
     );
+    let client_space_path = config
+        .client_identity_path
+        .clone()
+        .unwrap_or_else(|| folder_str.clone());
     let state = ServerState {
         space,
         client_bundle: (deps.assets.client_bundle)(),
         boot_config: BootConfig {
-            space_folder_path: folder_str.clone(),
+            space_folder_path: client_space_path.clone(),
             space_name: config.name.clone(),
             index_page: config.index_page.clone(),
             read_only: config.read_only,
             log_push: config.log_push,
             enable_client_encryption,
-            account_managed,
+            account_managed: true,
             shell_backend: if shell_enabled {
                 "local".into()
             } else {
@@ -619,6 +560,7 @@ fn try_build_parts(
         space_prefixes: Default::default(),
         bundled_repositories,
         space_folder_path: folder_str,
+        client_space_path,
         version: ServerVersion::Static(deps.version.clone()),
         host_url_prefix: prefix.to_string(),
         additional_head_html: config.head_html.clone(),
@@ -639,10 +581,7 @@ fn try_build_parts(
         shutdown: deps.shutdown.clone(),
         fs_guard,
         revisions,
-        identity: match &deps.auth {
-            InstanceAuth::Accounts { users, .. } => account_identity(users.clone(), members),
-            InstanceAuth::Single(_) => crate::auth::username_only(),
-        },
+        identity: account_identity(account_store.clone(), members),
         search,
         search_gate: deps.search.gate.clone(),
         page_watch: Arc::new(
@@ -676,11 +615,11 @@ mod tests {
             runtime_availability: crate::runtime::RuntimeAvailability::Available,
             runtime_idle_timeout: Default::default(),
             metrics: None,
-            auth: InstanceAuth::Single(Some(
-                crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)
-                    .unwrap()
-                    .unwrap(),
-            )),
+            auth: InstanceAuth::Accounts {
+                users: crate::multi::users::UserStore::create_empty(root).unwrap(),
+                authenticator: Arc::new(Authenticator::from_secret_bytes(vec![8; 32], "v1".into())),
+                session: SessionPolicy::default(),
+            },
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
@@ -689,6 +628,16 @@ mod tests {
             shutdown: None,
             search: crate::search::SpaceSearch::in_memory(),
         }
+    }
+
+    /// An API token for an admin account in `deps`' user store, for calls that
+    /// need a signed-in caller (anonymous callers never reach `/.help`).
+    fn admin_bearer(deps: &InstanceDeps) -> String {
+        let InstanceAuth::Accounts { users, .. } = &deps.auth;
+        users
+            .create_user("admin", "adminpw1", true, Profile::default())
+            .unwrap();
+        format!("Bearer {}", users.create_token("admin", "test").unwrap())
     }
 
     fn space(binding: Binding, folder: &str) -> SpaceConfig {
@@ -734,7 +683,83 @@ mod tests {
         assert!(inst.router.is_some());
     }
 
-    /// An open single-space server built with `availability`, and the status
+    #[tokio::test]
+    async fn x_space_path_reports_client_identity() {
+        use tower::ServiceExt;
+        let dir = tempfile::tempdir().unwrap();
+        let deps = test_deps(dir.path());
+        let folder = dir.path().join("spaces/x");
+        std::fs::create_dir_all(&folder).unwrap();
+        let mut cfg = space(
+            Binding::Prefix {
+                prefix: "/work".into(),
+            },
+            folder.to_str().unwrap(),
+        );
+        cfg.access = Some(SpaceAccess::Write);
+        cfg.client_identity_path = Some("/data".into());
+        let state = Arc::new(try_build_state("x", &cfg, "/work", &deps).unwrap());
+        assert_eq!(state.space_folder_path, folder.to_string_lossy());
+        assert_eq!(state.client_space_path, "/data");
+        let router = crate::build_router(state);
+        let get = |uri: &'static str| {
+            let router = router.clone();
+            async move {
+                router
+                    .oneshot(
+                        Request::builder()
+                            .header("X-Sync-Mode", "true")
+                            .uri(uri)
+                            .body(Body::empty())
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap()
+            }
+        };
+        for uri in ["/.fs", "/.ping"] {
+            let response = get(uri).await;
+            assert_eq!(response.status(), StatusCode::OK, "{uri}");
+            assert_eq!(response.headers()["x-space-path"], "/data", "{uri}");
+        }
+        let response = get("/.config").await;
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let config: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+        assert_eq!(config["spaceFolderPath"], "/data");
+
+        // Captured shares are stamped with this id on the client, so it must
+        // follow the client identity, not the folder a migration moved.
+        let owner_id = |folder: &std::path::Path| {
+            let deps = test_deps(dir.path());
+            let mut cfg = cfg.clone();
+            cfg.folder = folder.to_string_lossy().to_string();
+            let state = Arc::new(try_build_state("x", &cfg, "/work", &deps).unwrap());
+            let router = crate::build_router(state);
+            async move {
+                let response = router
+                    .oneshot(
+                        Request::builder()
+                            .uri("/.config")
+                            .body(Body::empty())
+                            .unwrap(),
+                    )
+                    .await
+                    .unwrap();
+                let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+                    .await
+                    .unwrap();
+                let v: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+                v["shareOwnerId"].as_str().unwrap().to_string()
+            }
+        };
+        let other = dir.path().join("spaces/y");
+        std::fs::create_dir_all(&other).unwrap();
+        assert_eq!(owner_id(&folder).await, owner_id(&other).await);
+    }
+
+    /// An open space built with `availability`, and the status
     /// and body of `method uri` on it.
     async fn ask_open_space(
         availability: crate::runtime::RuntimeAvailability,
@@ -744,7 +769,6 @@ mod tests {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
         let deps = InstanceDeps {
-            auth: InstanceAuth::Single(None),
             runtime_availability: availability,
             ..test_deps(dir.path())
         };
@@ -756,7 +780,8 @@ mod tests {
             },
             folder.to_str().unwrap(),
         );
-        cfg.access = None;
+        cfg.access = Some(SpaceAccess::Write);
+        let bearer = admin_bearer(&deps);
         let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
         let body = if method == "POST" {
             Body::from("1 + 1")
@@ -768,6 +793,7 @@ mod tests {
                 Request::builder()
                     .method(method)
                     .uri(uri)
+                    .header("authorization", bearer)
                     .body(body)
                     .unwrap(),
             )
@@ -784,7 +810,6 @@ mod tests {
     async fn a_server_without_runtimes_answers_runtime_calls_not_enabled() {
         use crate::runtime::RuntimeAvailability;
         for availability in [
-            RuntimeAvailability::DisabledByEnv,
             RuntimeAvailability::NoChrome,
             RuntimeAvailability::Failed {
                 message: "no pool".into(),
@@ -802,10 +827,6 @@ mod tests {
     #[tokio::test]
     async fn help_reports_the_servers_runtime_availability() {
         use crate::runtime::RuntimeAvailability;
-        let (status, body) =
-            ask_open_space(RuntimeAvailability::DisabledByEnv, "GET", "/.help").await;
-        assert_eq!(status, StatusCode::OK);
-        assert_eq!(body["runtime"], false);
         let (status, body) = ask_open_space(RuntimeAvailability::NoChrome, "GET", "/.help").await;
         assert_eq!(status, StatusCode::OK);
         assert_eq!(body["runtime"], false);
@@ -836,7 +857,6 @@ mod tests {
         .unwrap();
         let base_dir = base.clone();
         let deps = InstanceDeps {
-            auth: InstanceAuth::Single(None),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(move || {
@@ -856,12 +876,14 @@ mod tests {
             },
             folder.to_str().unwrap(),
         );
-        cfg.access = None;
+        cfg.access = Some(SpaceAccess::Write);
+        let bearer = admin_bearer(&deps);
         let state = try_build_state("x", &cfg, "/work", &deps).unwrap();
         let response = crate::build_router(Arc::new(state))
             .oneshot(
                 Request::builder()
                     .uri("/.help")
+                    .header("authorization", bearer)
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -885,10 +907,7 @@ mod tests {
     async fn turning_the_runtime_api_off_live_disables_the_space_runtime() {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
-        let deps = InstanceDeps {
-            auth: InstanceAuth::Single(None),
-            ..test_deps(dir.path())
-        };
+        let deps = test_deps(dir.path());
         let folder = dir.path().join("spaces/x");
         std::fs::create_dir_all(&folder).unwrap();
         let mut cfg = space(
@@ -897,7 +916,8 @@ mod tests {
             },
             folder.to_str().unwrap(),
         );
-        cfg.access = None;
+        cfg.access = Some(SpaceAccess::Write);
+        let bearer = admin_bearer(&deps);
         let router = crate::build_router(Arc::new(
             try_build_state("x", &cfg, "/work", &deps).unwrap(),
         ));
@@ -906,6 +926,7 @@ mod tests {
             let request = Request::builder()
                 .method(method)
                 .uri(uri)
+                .header("authorization", bearer.clone())
                 .body(if method == "POST" {
                     Body::from("1 + 1")
                 } else {
@@ -1029,7 +1050,6 @@ mod tests {
         use tower::ServiceExt;
         let dir = tempfile::tempdir().unwrap();
         let deps = InstanceDeps {
-            auth: InstanceAuth::Single(None),
             assets: AssetFactories {
                 client_bundle: Box::new(|| Box::new(MemorySpacePrimitives::new())),
                 base_fs: Box::new(|| {
@@ -1050,7 +1070,7 @@ mod tests {
             },
             folder.to_str().unwrap(),
         );
-        cfg.access = None;
+        cfg.access = Some(SpaceAccess::Write);
         let state = try_build_state("o", &cfg, "/o", &deps).unwrap();
         let response = crate::build_router(Arc::new(state))
             .oneshot(
@@ -1204,34 +1224,6 @@ mod tests {
                 "{access:?} encryption"
             );
         }
-
-        // Single-space mode derives access from its authorizer, since its
-        // synthesized config always has `access: none`.
-        let dir = tempfile::tempdir().unwrap();
-        let folder = dir.path().join("open");
-        std::fs::create_dir_all(&folder).unwrap();
-        let mut cfg = space(
-            Binding::Prefix {
-                prefix: "/o".into(),
-            },
-            folder.to_str().unwrap(),
-        );
-
-        // Auth-protected (the default `Single(Some(..))`): not anonymous.
-        let protected = try_build_state("o", &cfg, "/o", &test_deps(dir.path())).unwrap();
-        assert!(!protected.anonymous_readable);
-
-        // Open: anyone may write, unless the freeze stops every writer.
-        let mut deps = test_deps(dir.path());
-        deps.auth = InstanceAuth::Single(None);
-        let open = try_build_state("o", &cfg, "/o", &deps).unwrap();
-        assert!(open.anonymous_readable);
-        assert!(open.anonymous_writable);
-        assert!(!open.boot_config.enable_client_encryption);
-        cfg.read_only = true;
-        let frozen = try_build_state("o", &cfg, "/o", &deps).unwrap();
-        assert!(frozen.anonymous_readable);
-        assert!(!frozen.anonymous_writable);
     }
 
     #[tokio::test]

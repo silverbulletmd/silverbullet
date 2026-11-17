@@ -167,8 +167,6 @@ fn boot_multi(
     cmd.arg(root)
         .args(["-p", &port.to_string(), "-L", "127.0.0.1"])
         .env_remove("SB_MULTI_SPACE")
-        .env_remove("SB_USER")
-        .env("SB_RUNTIME_API", "0")
         .env("RUST_LOG", "info")
         .env("SB_DISABLE_SERVICE_WORKER", "1")
         .env("SB_CHROME_PATH", chrome)

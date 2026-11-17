@@ -170,50 +170,6 @@ impl MultiManager {
         }))
     }
 
-    /// Boot from an already-constructed, in-memory `MultiConfig` that is never
-    /// read from or written to disk. Single-space mode uses this: it
-    /// synthesizes exactly one space from the environment and serves it on the
-    /// multi engine. Validation runs against an empty user set (single-space
-    /// synthesis never uses the accounts `members` model), and because the
-    /// admin API is not mounted in single mode there is no mutation path — so
-    /// `spaces.json` is neither loaded nor saved.
-    pub fn boot_in_memory(
-        root: PathBuf,
-        config: MultiConfig,
-        deps: InstanceDeps,
-    ) -> Result<Arc<Self>, String> {
-        let config_path = root.join("spaces.json");
-        let known_users = BTreeSet::new();
-        let errors = validate_for_primary(&config, &root, &known_users, None);
-        if !errors.is_empty() {
-            let msgs: Vec<String> = errors
-                .iter()
-                .map(|e| format!("{}: {}", e.field, e.message))
-                .collect();
-            return Err(format!("invalid synthesized config: {}", msgs.join("; ")));
-        }
-        let instances: HashMap<String, Arc<SpaceInstance>> = config
-            .spaces
-            .iter()
-            .map(|(id, cfg)| (id.clone(), Arc::new(build_instance(id, cfg, &deps))))
-            .collect();
-        publish_prefix_roots(&instances, None);
-        let table = RoutingTable::build(instances.clone());
-        Ok(Arc::new(Self {
-            root,
-            git_connections: Mutex::new(()),
-            config_path,
-            deps,
-            state: Mutex::new(Inner {
-                server_config: ServerConfig::default(),
-                config,
-                instances,
-            }),
-            registry: Registry::new(table),
-            known_users: RwLock::new(known_users),
-        }))
-    }
-
     pub fn primary_url(&self) -> Option<String> {
         self.state.lock().unwrap().server_config.primary_url.clone()
     }
@@ -645,6 +601,17 @@ impl MultiManager {
             .spaces
             .get(id)
             .and_then(|space| space.git_sync.clone());
+        cfg.client_identity_path = inner
+            .config
+            .spaces
+            .get(id)
+            .and_then(|space| space.client_identity_path.clone());
+        cfg.former_prefixes = inner
+            .config
+            .spaces
+            .get(id)
+            .map(|space| space.former_prefixes.clone())
+            .unwrap_or_default();
         let mut new_config = inner.config.clone();
         new_config.spaces.insert(id.to_string(), cfg);
         self.apply_locked(&mut inner, new_config, &mut retired, None, true)
@@ -778,6 +745,8 @@ impl MultiManager {
             }])
         })?;
         cfg.git_sync = existing.git_sync.clone();
+        cfg.client_identity_path = existing.client_identity_path.clone();
+        cfg.former_prefixes = existing.former_prefixes.clone();
         cfg.normalize();
         let mut new_config = inner.config.clone();
         new_config.spaces.insert(id.to_string(), cfg);
@@ -871,11 +840,14 @@ mod tests {
             runtime_idle_timeout: Default::default(),
             runtime: Arc::new(|_| None),
             metrics: None,
-            auth: InstanceAuth::Single(Some(
-                crate::auth::AuthConfig::try_parse(Some("admin:pw"), None, None, None, None)
-                    .unwrap()
-                    .unwrap(),
-            )),
+            auth: InstanceAuth::Accounts {
+                users: crate::multi::users::UserStore::create_empty(root).unwrap(),
+                authenticator: std::sync::Arc::new(crate::auth::Authenticator::from_secret_bytes(
+                    vec![8; 32],
+                    "v1".into(),
+                )),
+                session: crate::multi::access::SessionPolicy::default(),
+            },
             version: "test".into(),
             main_port: 3000,
             disable_service_worker: true,
@@ -1388,33 +1360,6 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn boot_in_memory_routes_without_persisting_spaces_json() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut cfg = payload("Solo", Binding::Prefix { prefix: "/".into() });
-        cfg.folder = ".".into();
-        cfg.access = Some(SpaceAccess::None);
-        let mut spaces = HashMap::new();
-        spaces.insert("solo".to_string(), cfg);
-        let config = MultiConfig { spaces };
-
-        let m = MultiManager::boot_in_memory(dir.path().to_path_buf(), config, deps(dir.path()))
-            .unwrap();
-
-        let (inst, prefix) = m
-            .registry()
-            .current()
-            .resolve_main("localhost", "/whatever")
-            .unwrap();
-        assert_eq!(inst.id, "solo");
-        assert_eq!(prefix, "");
-        // spaces.json must never be created by an in-memory boot.
-        assert!(
-            !dir.path().join("spaces.json").exists(),
-            "boot_in_memory must not persist spaces.json"
-        );
-    }
-
-    #[tokio::test]
     async fn remove_member_everywhere_sweeps_all_spaces_and_is_a_noop_when_absent() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
@@ -1490,6 +1435,54 @@ mod tests {
         b.members.insert("bob".into(), Default::default());
         let e = m.create(b, true).unwrap_err();
         assert!(matches!(e, ApiError::Validation(_)), "{e:?}");
+    }
+
+    #[tokio::test]
+    async fn admin_edits_cannot_change_the_client_identity_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let id = m
+            .create(
+                payload(
+                    "Work",
+                    Binding::Prefix {
+                        prefix: "/work".into(),
+                    },
+                ),
+                false,
+            )
+            .unwrap();
+        let mut cfg: SpaceConfig = serde_json::from_value(m.get(&id).unwrap()).unwrap();
+        // Only migration writes the value, so seed it behind the manager's back.
+        cfg.client_identity_path = Some("/data".into());
+        cfg.former_prefixes = vec!["/".into()];
+        {
+            let mut inner = m.state.lock().unwrap();
+            let mut new_config = inner.config.clone();
+            new_config.spaces.insert(id.clone(), cfg.clone());
+            let mut retired = Retired::default();
+            m.apply_locked(&mut inner, new_config, &mut retired, None, true)
+                .unwrap();
+        }
+        let mut body = serde_json::Map::new();
+        body.insert("clientIdentityPath".into(), serde_json::json!("/evil"));
+        body.insert("formerPrefixes".into(), serde_json::json!(["/evil"]));
+        body.insert("name".into(), serde_json::json!("Renamed"));
+        m.patch(&id, body).unwrap();
+        assert_eq!(m.get(&id).unwrap()["clientIdentityPath"], "/data");
+        assert_eq!(
+            m.get(&id).unwrap()["formerPrefixes"],
+            serde_json::json!(["/"])
+        );
+        assert_eq!(m.get(&id).unwrap()["name"], "Renamed");
+        cfg.client_identity_path = Some("/evil".into());
+        cfg.former_prefixes = vec!["/evil".into()];
+        m.update(&id, cfg).unwrap();
+        assert_eq!(m.get(&id).unwrap()["clientIdentityPath"], "/data");
+        assert_eq!(
+            m.get(&id).unwrap()["formerPrefixes"],
+            serde_json::json!(["/"])
+        );
     }
 
     #[tokio::test]
