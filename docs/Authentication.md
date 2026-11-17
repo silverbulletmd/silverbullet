@@ -15,6 +15,11 @@ Authentication is account-based:
 * Accounts, spaces, and access are all managed in the [[Dashboard]], which every account can open.
 * Every space has a login page, including one that permits anonymous access.
 
+# Staying signed in
+A browser stays signed in as long as you use it: every visit extends the session, and it only ends after 30 days without use (configurable with `SB_SESSION_DAYS`, see [[Install/Configuration#Authentication]]). Changing your password, disabling the account, or signing out ends it right away.
+
+On a computer other people use, tick **Shared computer** when you log in. The session then ends when the browser closes (or after 12 hours without use), and nothing is kept on the device: no offline copy, no service worker, no local index. Pages load from the server each time, so this mode needs a connection and starts a little slower on large spaces.
+
 # Single sign-on
 Account-managed servers can connect Google Workspace, Pocket ID, or another OpenID Connect provider alongside local accounts. See [[Single Sign-On]] for web setup, user provisioning and central login.
 

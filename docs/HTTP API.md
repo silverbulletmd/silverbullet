@@ -16,7 +16,7 @@ All API requests from the client will always set the `X-Sync-Mode` request heade
 When authentication is enabled, most endpoints require a valid session cookie (JWT) or a Bearer token. The following paths are excluded from auth: `/service_worker.js`, `/.client/*`, `/.auth`, `/.ping`.
 
 * `GET /.auth`: Serves the login page. Returns 403 if authentication is not enabled.
-* `POST /.auth`: Authenticates a user. Expects form fields: `username`, `password`, `rememberMe` (optional), `from` (optional redirect path). Returns JSON `{"status":"ok","redirect":"..."}` on success or `{"status":"error","error":"..."}` on failure. Implements lockout after repeated failed attempts.
+* `POST /.auth`: Authenticates a user. Expects form fields: `username`, `password`, `sharedComputer` (optional), `from` (optional redirect path). Returns JSON `{"status":"ok","redirect":"..."}` on success or `{"status":"error","error":"..."}` on failure. Implements lockout after repeated failed attempts.
 * `GET /.logout`: Clears authentication cookies and redirects to `/.auth`.
 * **Bearer token**: Requests can authenticate with an account’s [[Authentication#API|API token]] via the `Authorization: Bearer <token>` header instead of cookies.
 

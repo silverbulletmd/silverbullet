@@ -38,7 +38,8 @@ These apply to every space and the [[Dashboard]]. Accounts and [[Authentication#
 
 * `SB_LOCKOUT_LIMIT`: Specifies the number of failed login attempt before locking the user out (for a `SB_LOCKOUT_TIME` specified amount of seconds), defaults to `10`
 * `SB_LOCKOUT_TIME`: Specifies the amount of time (in seconds) a client will be blocked until attempting to log back in, defaults to `60`.
-* `SB_REMEMBER_ME_HOURS`: Sets the session duration in hours when “Remember me” is checked during login, defaults to 7 days. Sessions where “Remember me” was left unchecked always last one week.
+* `SB_SESSION_DAYS`: How many days a browser session stays signed in without being used, defaults to `30`. Every visit extends it, so you stay signed in as long as you come back within this window. Sessions started with “Shared computer” end when the browser closes, or after 12 hours without use. See [[Authentication#Staying signed in]].
+* `SB_REMEMBER_ME_HOURS` (deprecated): Used as the session length, in hours, when `SB_SESSION_DAYS` is not set. Switch to `SB_SESSION_DAYS`.
 
 # Docker
 Configuration only relevant to docker deployments:
