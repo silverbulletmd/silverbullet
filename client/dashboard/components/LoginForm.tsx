@@ -67,7 +67,7 @@ export function LoginForm({
         });
       }}
     >
-      <h1>Log in</h1>
+      <h1>Sign in</h1>
       <p class="sb-auth-description">Continue to {title}.</p>
       {error && <Alert variant="error">{error}</Alert>}
       {providerLabel && onProvider && (
@@ -129,7 +129,7 @@ export function LoginForm({
       )}
       <div style="--sb-space: 1.8rem">
         <Button type="submit" variant="primary" disabled={busy}>
-          Log in
+          Sign in
         </Button>
       </div>
       {children}

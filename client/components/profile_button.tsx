@@ -83,12 +83,12 @@ export function profileMenuItems(
   actions: ProfileMenuActions,
 ): MenuItem[] {
   if (profile.status !== "signed-in") {
-    return [{ name: "Log in", run: actions.logIn }];
+    return [{ name: "Sign in", run: actions.logIn }];
   }
   return [
     { name: "Edit profile", run: actions.editProfile },
     { name: "Dashboard", run: actions.dashboard },
-    { name: "Log out", run: actions.logOut },
+    { name: "Sign out", run: actions.logOut },
   ];
 }
 

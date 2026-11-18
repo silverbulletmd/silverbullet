@@ -65,7 +65,7 @@ test("browser approval completes a separately running CLI sign-in", async ({
     await page.goto(url);
     await page.locator("#username").fill("river");
     await page.locator("#password").fill("harbor-password");
-    await page.getByRole("button", { name: "Log in" }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Authorize access" }),
     ).toBeVisible();

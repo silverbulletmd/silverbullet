@@ -75,7 +75,7 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
       });
       const body = await response.json();
       if (body.status === "error") {
-        setError(body.error ?? "Login failed");
+        setError(body.error ?? "Sign-in failed");
         setBusy(false);
         return;
       }
@@ -160,7 +160,7 @@ export function SpaceLogin({ config }: { config: AuthConfig }) {
           // key and bounce straight back here — say so instead of looping.
           setError(
             "Client encryption needs a service worker, which is not available. " +
-              "Reload and try again, or log in without encryption.",
+              "Reload and try again, or sign in without encryption.",
           );
           setBusy(false);
           return;

@@ -13,7 +13,7 @@ test("encrypted local data remains usable after reopening the editor", async ({
   await page.getByLabel("Username", { exact: true }).fill("casey");
   await page.getByLabel("Password", { exact: true }).fill("casey-password");
   await page.locator("#clientEncryption").check();
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator(".cm-editor")).toBeVisible();
   await gotoSilverBulletPage(page, sbServer, "PrivateDraft");
   await page.locator(".cm-content").click();

@@ -66,7 +66,7 @@ async function loginToAdmin(
 ): Promise<void> {
   await page.getByLabel("Username").fill(username);
   await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Log in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
 }
 
 test("wizard provisions a hostname-prefix space with selected revisions mode", async ({
@@ -77,7 +77,7 @@ test("wizard provisions a hostname-prefix space with selected revisions mode", a
   const setupUrl = `http://localhost:${sbServer.port}`;
   await page.goto(`${setupUrl}/`);
   await fillAdminStep(page, ADMIN_USER, ADMIN_PASSWORD);
-  await expect(page.getByLabel("Server URL", { exact: true })).toHaveValue(
+  await expect(page.getByLabel("Server address", { exact: true })).toHaveValue(
     setupUrl,
   );
   await page.getByLabel("Hostname", { exact: true }).selectOption("new");

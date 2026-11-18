@@ -45,7 +45,7 @@ test("failed saving preserves edits until explicit force logout deletes local da
     clearTimeout(client.contentManager.saveTimeout);
   });
   await page.getByRole("button", { name: "Profile menu", exact: true }).click();
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Force logout", exact: true }),
   ).toBeVisible();

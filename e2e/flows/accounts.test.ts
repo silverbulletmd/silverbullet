@@ -38,7 +38,7 @@ test("a member signs in, edits their space and signs out", async ({
   const profile = page.locator("#sb-top button:has(.sb-profile-avatar)");
   await profile.click();
   await expect(page.getByText("Casey Example", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect
     .poll(async () =>
       (

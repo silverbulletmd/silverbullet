@@ -44,7 +44,7 @@ for (const uploadBlocked of [false, true]) {
             .check();
           const popup = page.waitForEvent("popup");
           await page
-            .getByRole("button", { name: "Log in", exact: true })
+            .getByRole("button", { name: "Sign in", exact: true })
             .click();
           await popup;
           await expect(page.locator("#sb-editor .cm-editor")).toBeVisible();
@@ -103,7 +103,7 @@ for (const uploadBlocked of [false, true]) {
             await readFile(savedFile, "utf8").catch(() => ""),
           ).not.toContain("Unsynced research draft survives logout");
           await page
-            .getByRole("button", { name: "Log out", exact: true })
+            .getByRole("button", { name: "Sign out", exact: true })
             .click();
           if (uploadBlocked) {
             await expect(

@@ -113,7 +113,7 @@ test("an administrator connects a repository, pauses sync and pulls a remote upd
   await page.goto(`${base}/.dashboard/login`);
   await page.getByLabel("Username").fill(ADMIN_USER);
   await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page).toHaveURL(`${base}/.dashboard/`);
   await page.goto(`${base}/.dashboard/sample/git`);
   await page

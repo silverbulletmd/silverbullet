@@ -78,7 +78,7 @@ test.describe("Release binary: embedded bundle", () => {
     await page.locator("#password").fill("s3cret");
     await page
       .locator("#login")
-      .getByRole("button", { name: "Log in" })
+      .getByRole("button", { name: "Sign in", exact: true })
       .click();
 
     // On success the login script redirects into the app; the editor should

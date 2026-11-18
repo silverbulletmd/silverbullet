@@ -35,7 +35,7 @@ test("an editor snapshots a change, previews history and restores a saved revisi
   await page.goto(sbServer.url);
   await page.getByLabel("Username", { exact: true }).fill("river");
   await page.getByLabel("Password", { exact: true }).fill("harbor-password");
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.locator(".cm-editor")).toBeVisible();
   await gotoSilverBulletPage(page, sbServer);
   await page.locator(".cm-content").click();

@@ -45,11 +45,11 @@ test("Core web setup, real Pocket ID admission, cross-host sessions and revocati
     await page.goto(`${oidc.centralOrigin}/.dashboard/login`);
     await page.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
     await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await page
       .getByRole("button", { name: "Profile menu", exact: true })
       .click();
-    await page.getByRole("button", { name: "Log out", exact: true }).click();
+    await page.getByRole("button", { name: "Sign out", exact: true }).click();
     await expect(
       page.getByText("Local space data has been removed from this browser."),
     ).toBeVisible();

@@ -90,7 +90,7 @@ export function AuthenticationView({
                 <dd>{status.active.buttonLabel}</dd>
                 <dt>Issuer</dt>
                 <dd>{status.active.issuer}</dd>
-                <dt>Central login</dt>
+                <dt>Server address</dt>
                 <dd>{status.active.centralOrigin}</dd>
               </dl>
             )}

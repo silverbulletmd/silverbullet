@@ -20,6 +20,6 @@ test("the signed-in profile menu links to the Dashboard", () => {
   expect(items.map((item) => item.name)).toEqual([
     "Edit profile",
     "Dashboard",
-    "Log out",
+    "Sign out",
   ]);
 });

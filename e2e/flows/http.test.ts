@@ -158,14 +158,14 @@ test("HTTP password login, fresh indexing, copying, saving and logout work witho
     other.locator('#sb-editor .cm-content[contenteditable="true"]'),
   ).toBeVisible();
   await page.locator("#sb-top button:has(.sb-profile-avatar)").click();
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   await expect(
     page.getByText(/Close other SilverBullet tabs and windows/),
   ).toBeVisible();
   expect((await request("/.dashboard/api/session")).status).toBe(200);
   await other.close();
   await page.locator("#sb-top button:has(.sb-profile-avatar)").click();
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await page.getByRole("button", { name: "Sign out", exact: true }).click();
   // WebKit's automated tab close omits pagehide, exercising stale-tab recovery.
   if (browserName === "webkit") {
     page.once("dialog", (dialog) => dialog.accept());

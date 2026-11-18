@@ -142,7 +142,7 @@ test("local login unlocks an encrypted space through its popup", async ({
         .getByRole("checkbox", { name: /encryption|Encrypt local/ })
         .check();
       const popupPromise = page.waitForEvent("popup");
-      await page.getByRole("button", { name: "Log in", exact: true }).click();
+      await page.getByRole("button", { name: "Sign in", exact: true }).click();
       await popupPromise;
       await expect(page).toHaveURL(/research\.test/);
       await expect(page.locator("#sb-editor .cm-editor")).toBeVisible();

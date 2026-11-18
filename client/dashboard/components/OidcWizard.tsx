@@ -280,7 +280,7 @@ export function OidcWizard({
             <option value="google">Google Workspace</option>
             <option value="oidc">OpenID Connect</option>
           </Select>
-          <label for="oidc-central">Central login URL</label>
+          <label for="oidc-central">Server address</label>
           <Input
             id="oidc-central"
             disabled={!!status.primaryUrl}
@@ -293,8 +293,8 @@ export function OidcWizard({
           />
           <p class="sb-help-text">
             {status.primaryUrl
-              ? "Uses the primary URL configured under Admin → Server."
-              : "Use the public HTTPS origin configured for central login on this server."}
+              ? "Uses the server address set under Settings → Server."
+              : "The public HTTPS address people use to sign in to this server."}
           </p>
           <label for="oidc-issuer">Issuer URL</label>
           <Input
@@ -440,7 +440,7 @@ export function OidcWizard({
           <h2>Review and enable</h2>
           <p>The saved configuration passed its sign-in test.</p>
           <dl>
-            <dt>Central login</dt>
+            <dt>Server address</dt>
             <dd>{config.centralOrigin}</dd>
             <dt>Sign-in button</dt>
             <dd>{config.buttonLabel}</dd>

@@ -83,7 +83,7 @@ test("an MCP client is connected to the ticked spaces only, then revoked", async
   await expect(page).toHaveURL(/\/\.dashboard\/login\?next=/);
   await page.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
   await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Log in", exact: true }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
 
   const consent = page.locator("main");
   await expect(consent).toContainText("Self-registered app");

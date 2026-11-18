@@ -130,7 +130,7 @@ test("bindingFromAddress keeps a prefix-only address prefix-only", () => {
   expect(bindingFromAddress(null, "/work")).toEqual({ prefix: "/work" });
 });
 
-test("resolvePublicOrigin falls back while the controlled Primary URL is blank or partial", () => {
+test("resolvePublicOrigin falls back while the controlled server address is blank or partial", () => {
   const fallback = "http://localhost:3000";
   expect(resolvePublicOrigin("", fallback)).toEqual({
     origin: fallback,
@@ -148,7 +148,7 @@ test("resolvePublicOrigin falls back while the controlled Primary URL is blank o
   });
 });
 
-test("custom hostname origins use the Primary URL scheme without inheriting its port", () => {
+test("custom hostname origins use the server address scheme without inheriting its port", () => {
   expect(
     customHostOrigin(
       "notes.example.com",

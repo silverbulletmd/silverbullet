@@ -68,7 +68,7 @@ export function Login({
                 .then((result) => {
                   if (result.status === "ok") onDone(username);
                   else {
-                    setError(result.error ?? "Login failed");
+                    setError(result.error ?? "Sign-in failed");
                     setBusy(false);
                   }
                 })
