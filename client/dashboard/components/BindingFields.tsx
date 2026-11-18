@@ -10,6 +10,7 @@ import {
   selectBindingHost,
   validHostAuthority,
 } from "../binding_fields.ts";
+import { InlineError } from "../space_fields.tsx";
 import type { Binding, VisibleSpace } from "../types.ts";
 
 export function BindingFields({
@@ -18,12 +19,15 @@ export function BindingFields({
   spaces,
   currentId,
   onInput,
+  error,
 }: {
   binding: Binding;
   primaryUrl?: string | null;
   spaces: VisibleSpace[];
   currentId?: string;
   onInput: (binding: Binding) => void;
+  /** An error for the hostname or path, shown under the path. */
+  error?: string;
 }) {
   const publicOrigin = resolvePublicOrigin(primaryUrl, location.origin);
   const primaryScope = normalizeHostAuthority(publicOrigin.host);
@@ -161,6 +165,7 @@ export function BindingFields({
           onInput(bindingFromAddress(binding.host ?? null, prefix))
         }
       />
+      <InlineError id="space-binding-error" message={error} />
       {invalidHost && (
         <span role="status" class="sb-dashboard-error">
           Use an ASCII DNS name or canonical IPv4 address, optionally followed

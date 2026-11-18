@@ -1,5 +1,6 @@
 import { Button, Input } from "@silverbulletmd/silverbullet/ui";
-import { FieldErrors } from "../../space_fields.tsx";
+import { splitFieldErrors } from "../../field_errors.ts";
+import { FieldErrors, InlineError } from "../../space_fields.tsx";
 import type { FieldError } from "../../types.ts";
 import type { AdminValues } from "../../wizard.ts";
 
@@ -21,6 +22,11 @@ export function AdminStep({
   busy: boolean;
   onSubmit: () => void;
 }) {
+  const { byField, other } = splitFieldErrors(errors, [
+    "adminUsername",
+    "adminPassword",
+    "adminPassword2",
+  ]);
   return (
     <form
       onSubmit={(e) => {
@@ -36,7 +42,7 @@ export function AdminStep({
         your first space. You can add more spaces and users later (if you were
         so to desire).
       </p>
-      <FieldErrors errors={errors} />
+      <FieldErrors errors={other} />
       <label for="setup-username">Username</label>
       <Input
         id="setup-username"
@@ -44,9 +50,14 @@ export function AdminStep({
         autocorrect="off"
         spellcheck={false}
         autocomplete="username"
+        aria-invalid={!!byField.adminUsername}
+        aria-describedby={
+          byField.adminUsername ? "setup-username-error" : undefined
+        }
         value={values.username}
         onInput={(e) => onChange({ username: e.currentTarget.value })}
       />
+      <InlineError id="setup-username-error" message={byField.adminUsername} />
       <p class="sb-help-text">
         It is wise, but not required, to create an admin account dedicated
         purely for admin purposes. You can add additional regular user accounts
@@ -57,16 +68,29 @@ export function AdminStep({
         id="setup-password"
         type="password"
         autocomplete="new-password"
+        aria-invalid={!!byField.adminPassword}
+        aria-describedby={
+          byField.adminPassword ? "setup-password-error" : undefined
+        }
         value={values.password}
         onInput={(e) => onChange({ password: e.currentTarget.value })}
       />
+      <InlineError id="setup-password-error" message={byField.adminPassword} />
       <label for="setup-password2">Repeat password</label>
       <Input
         id="setup-password2"
         type="password"
         autocomplete="new-password"
+        aria-invalid={!!byField.adminPassword2}
+        aria-describedby={
+          byField.adminPassword2 ? "setup-password2-error" : undefined
+        }
         value={values.password2}
         onInput={(e) => onChange({ password2: e.currentTarget.value })}
+      />
+      <InlineError
+        id="setup-password2-error"
+        message={byField.adminPassword2}
       />
       <label for="setup-full-name">Full name (optional)</label>
       <Input

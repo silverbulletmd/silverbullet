@@ -4,6 +4,7 @@ import {
   prefixFromName,
   slugify,
 } from "@silverbulletmd/silverbullet/ui";
+import { describeFieldError } from "./field_errors.ts";
 import type { FieldError } from "./types.ts";
 
 /**
@@ -45,9 +46,19 @@ export function FieldErrors({ errors }: { errors: FieldError[] }) {
     <>
       {errors.map((e, i) => (
         <Alert variant="error" key={`${e.field}-${i}`}>
-          {e.field ? `${e.field}: ${e.message}` : e.message}
+          {describeFieldError(e)}
         </Alert>
       ))}
     </>
+  );
+}
+
+/** A field's own error, shown under it and announced when it appears. */
+export function InlineError({ id, message }: { id: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <span id={id} class="sb-field-error" role="alert">
+      {message}
+    </span>
   );
 }

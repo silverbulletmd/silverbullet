@@ -1,3 +1,4 @@
+import { describeFieldError } from "./field_errors.ts";
 import type { UpdateCheckAnswer } from "./update_notice.ts";
 import type {
   CatalogModel,
@@ -68,11 +69,7 @@ export function adminApi(
 
 export function formatApiError(e: unknown): string {
   if (Array.isArray(e)) {
-    return e
-      .map((fe: FieldError) =>
-        fe.field ? `${fe.field}: ${fe.message}` : fe.message,
-      )
-      .join(", ");
+    return e.map(describeFieldError).join("; ");
   }
   return "Request failed";
 }

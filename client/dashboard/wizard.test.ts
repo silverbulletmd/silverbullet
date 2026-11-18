@@ -36,7 +36,7 @@ test("validateAdmin accepts a complete, matching account", () => {
 
 test("validateAdmin rejects a mismatched repeat", () => {
   expect(validateAdmin({ ...ADMIN, password2: "hunter3" })).toEqual([
-    { field: "adminPassword", message: "passwords do not match" },
+    { field: "adminPassword2", message: "Passwords do not match" },
   ]);
 });
 
@@ -49,7 +49,7 @@ test("validateAdmin reports one problem at a time, in field order", () => {
       fullName: "",
       email: "",
     }),
-  ).toEqual([{ field: "adminUsername", message: "username is required" }]);
+  ).toEqual([{ field: "adminUsername", message: "Required" }]);
 });
 
 test("validateSpace accepts a complete prefix-bound space", () => {

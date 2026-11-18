@@ -25,7 +25,8 @@ import {
   runtimeApiUnavailableReason,
 } from "../runtime_availability.ts";
 import { changeMemberAccess } from "../runtime_permissions.ts";
-import { FieldErrors, useSlugDefaults } from "../space_fields.tsx";
+import { splitFieldErrors } from "../field_errors.ts";
+import { FieldErrors, InlineError, useSlugDefaults } from "../space_fields.tsx";
 import {
   SPACE_SECTIONS,
   type SpaceSection,
@@ -178,7 +179,7 @@ export function SpaceForm({
   }, []);
   const runtimeApiUnavailable =
     runtimeApiUnavailableReason(runtimeAvailability) ??
-    (!runtimeServerEnabled ? "Disabled in Server settings." : null);
+    (!runtimeServerEnabled ? "Turned off in Settings → APIs." : null);
 
   const values: Partial<SpaceInfo> = {
     name,
@@ -220,6 +221,13 @@ export function SpaceForm({
   const visible = (value: SpaceSection) =>
     id ? section === value : value === "general" || value === "revisions";
 
+  // Name, path and folder errors sit under their fields on the General tab;
+  // everything else, and General errors raised from another tab, stays above.
+  const showInline = !id || (section === "general" && errorSection === section);
+  const generalErrors = showInline
+    ? splitFieldErrors(errors, ["name", "host", "prefix", "binding", "folder"])
+    : { byField: {}, other: errors };
+  const inline: Record<string, string | undefined> = generalErrors.byField;
   return (
     <form
       onSubmit={async (event) => {
@@ -228,7 +236,7 @@ export function SpaceForm({
         notify("");
         setErrorSection(section);
         if ((!id || section === "general") && !hostBinding && !prefix.trim()) {
-          setErrors([{ field: "binding", message: "prefix is required" }]);
+          setErrors([{ field: "binding", message: "Required" }]);
           return;
         }
         const payload = id ? settingsPayload(values, section) : values;
@@ -264,12 +272,16 @@ export function SpaceForm({
     >
       {!id && <h1>Create space</h1>}
       <SaveConfirmation scope="space" />
-      {(!id || errorSection === section) && <FieldErrors errors={errors} />}
+      {(!id || errorSection === section) && (
+        <FieldErrors errors={generalErrors.other} />
+      )}
       <fieldset class="sb-settings-fields" disabled={saveState === "saving"}>
         <div hidden={!visible("general")}>
           <label for="space-name">Name</label>
           <Input
             id="space-name"
+            aria-invalid={!!inline.name}
+            aria-describedby={inline.name ? "space-name-error" : undefined}
             value={name}
             onInput={(e) => {
               const newName = e.currentTarget.value;
@@ -277,11 +289,13 @@ export function SpaceForm({
               onNameChange(newName);
             }}
           />
+          <InlineError id="space-name-error" message={inline.name} />
           <BindingFields
             binding={binding}
             primaryUrl={primaryUrl}
             spaces={spaces}
             currentId={id}
+            error={inline.host ?? inline.prefix ?? inline.binding}
             onInput={(next) => {
               if (next.host !== undefined) setHostBinding(next);
               else {
@@ -302,6 +316,7 @@ export function SpaceForm({
             apiBase="api/admin"
             browseStart={folderTouched ? undefined : "spaces"}
           />
+          <InlineError id="space-folder-error" message={inline.folder} />
           <label for="space-index-page">Index page</label>
           <Input
             id="space-index-page"
@@ -358,7 +373,7 @@ export function SpaceForm({
               </Alert>
             )}
             {!usersError && Object.keys(users).length === 0 && (
-              <p>No other users yet — create some in the Users tab.</p>
+              <p>No other users yet — create some under Users.</p>
             )}
             <AccessGrid
               users={users}

@@ -45,13 +45,13 @@ export function validateAdmin({
   password2,
 }: AdminValues): FieldError[] {
   if (!username.trim()) {
-    return [{ field: "adminUsername", message: "username is required" }];
+    return [{ field: "adminUsername", message: "Required" }];
   }
   if (!password) {
-    return [{ field: "adminPassword", message: "password is required" }];
+    return [{ field: "adminPassword", message: "Required" }];
   }
   if (password !== password2) {
-    return [{ field: "adminPassword", message: "passwords do not match" }];
+    return [{ field: "adminPassword2", message: "Passwords do not match" }];
   }
   return [];
 }
@@ -62,25 +62,25 @@ export function validateSpace({
   folder,
 }: SpaceValues): FieldError[] {
   if (!name.trim()) {
-    return [{ field: "space.name", message: "name is required" }];
+    return [{ field: "space.name", message: "Required" }];
   }
   if (binding.host !== undefined && !binding.host.trim()) {
-    return [{ field: "space.host", message: "hostname is required" }];
+    return [{ field: "space.host", message: "Required" }];
   }
   if (binding.host !== undefined && !validHostAuthority(binding.host)) {
     return [
       {
         field: "space.host",
         message:
-          "enter an ASCII DNS name or canonical IPv4 address, optionally followed by a port from 1 to 65535",
+          "Enter an ASCII DNS name or canonical IPv4 address, optionally followed by a port from 1 to 65535",
       },
     ];
   }
   if (binding.prefix !== undefined && !binding.prefix.trim()) {
-    return [{ field: "space.prefix", message: "prefix is required" }];
+    return [{ field: "space.prefix", message: "Required" }];
   }
   if (!folder.trim()) {
-    return [{ field: "space.folder", message: "folder is required" }];
+    return [{ field: "space.folder", message: "Required" }];
   }
   return [];
 }

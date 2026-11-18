@@ -1,6 +1,7 @@
 import { Button, Input, Select } from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
-import { FieldErrors } from "../../space_fields.tsx";
+import { splitFieldErrors } from "../../field_errors.ts";
+import { FieldErrors, InlineError } from "../../space_fields.tsx";
 import type { Binding, FieldError, RevisionsMode } from "../../types.ts";
 import { defaultFolder, parentDir, type SpaceValues } from "../../wizard.ts";
 import { BindingFields } from "../BindingFields.tsx";
@@ -33,6 +34,12 @@ export function SpaceStep({
   onBack: () => void;
   onSubmit: () => void;
 }) {
+  const { byField, other } = splitFieldErrors(errors, [
+    "name",
+    "host",
+    "prefix",
+    "folder",
+  ]);
   return (
     <form
       onSubmit={(e) => {
@@ -42,8 +49,8 @@ export function SpaceStep({
     >
       <h1>Create your first space</h1>
       <p class="sb-help-text">Step 2 of 2</p>
-      <FieldErrors errors={errors} />
-      <label for="setup-primary-url">Server URL</label>
+      <FieldErrors errors={other} />
+      <label for="setup-primary-url">Server address</label>
       <Input
         id="setup-primary-url"
         type="url"
@@ -52,19 +59,23 @@ export function SpaceStep({
         onInput={(e) => onPrimaryUrlChange(e.currentTarget.value)}
       />
       <p class="sb-help-text">
-        Confirm the public origin for server management and sign-in.
+        Where people reach this server for management and sign-in.
       </p>
       <label for="setup-space-name">Name of your first space</label>
       <Input
         id="setup-space-name"
+        aria-invalid={!!byField.name}
+        aria-describedby={byField.name ? "setup-space-name-error" : undefined}
         value={values.name}
         onInput={(e) => onNameInput(e.currentTarget.value)}
       />
+      <InlineError id="setup-space-name-error" message={byField.name} />
       <BindingFields
         binding={values.binding}
         primaryUrl={primaryUrl}
         spaces={[]}
         onInput={onBindingChange}
+        error={byField.host ?? byField.prefix}
       />
       <label for="setup-folder">Folder</label>
       <FolderPicker
@@ -75,6 +86,7 @@ export function SpaceStep({
         placeholder={defaultFolder(root, values.name)}
         browseStart={parentDir(values.folder) || "/"}
       />
+      <InlineError id="setup-folder-error" message={byField.folder} />
       <label for="setup-revisions">Revisions</label>
       <Select
         id="setup-revisions"
