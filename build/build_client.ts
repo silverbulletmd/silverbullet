@@ -125,11 +125,6 @@ export async function buildClient(): Promise<void> {
   for (const [buildName, buildConfig] of buildConfigs) {
     const result = await esbuild.build(buildConfig);
     if (buildName === "client") clientMetafile = result.metafile;
-
-    if (result.metafile) {
-      const text = await esbuild.analyzeMetafile(result.metafile!);
-      console.log(`Bundle info for ${buildName}`, text);
-    }
   }
 
   await copyAssets("client_bundle/client/.client");
