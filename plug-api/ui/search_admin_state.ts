@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import type {
   CatalogModel,
   SearchModelState,
+  SearchOverview,
   SpaceSearchInfo,
 } from "../types/search_admin.ts";
 import { usePolledLoad } from "./polling.ts";
@@ -17,6 +18,7 @@ import {
   BUSY_POLL_MS,
   indexesBusy,
   modelActive,
+  overviewPollMs,
 } from "./search_admin_model.ts";
 
 /** The message for a failure; null when the host handled it itself. */
@@ -224,5 +226,61 @@ export function useSpaceSearch<T extends SpaceSearchInfo>(
     error,
     rebuilding: !!rebuilds.running[""],
     rebuild: () => rebuilds.start(""),
+  };
+}
+
+export type SearchOverviewHost<T extends SearchOverview> = {
+  get: () => Promise<T>;
+  /** Starts rebuilding one space's indexes. */
+  rebuild: (spaceId: string) => Promise<void>;
+  /** Calls `changed` when the overview may have changed elsewhere; returns the unsubscribe. */
+  subscribe?: (changed: () => void) => () => void;
+  errorText: ErrorText;
+};
+
+export type SearchOverviewStatus<T> = {
+  overview: T | undefined;
+  error: string;
+  /** The spaces whose rebuild is being started. */
+  rebuilding: Record<string, boolean>;
+  rebuild: (spaceId: string) => Promise<void>;
+};
+
+/** Every space's search indexes, polled while any is busy, with Rebuild. */
+export function useSearchOverview<T extends SearchOverview>(
+  host: SearchOverviewHost<T>,
+): SearchOverviewStatus<T> {
+  const [error, setError] = useState("");
+  const fail = (cause: unknown) => {
+    const message = host.errorText(cause);
+    if (message !== null) setError(message);
+  };
+  const { data, reload } = usePolledLoad(host.get, {
+    pollMs: overviewPollMs,
+    onError: fail,
+  });
+
+  const latestReload = useRef(reload);
+  latestReload.current = reload;
+  useEffect(() => host.subscribe?.(() => void latestReload.current()), []);
+
+  const rebuilds = useConfirmedAction({
+    question: (id) => (data?.spaces[id] ? rebuildConfirmText() : null),
+    run: async (id) => {
+      setError("");
+      try {
+        await host.rebuild(id);
+      } finally {
+        await reload();
+      }
+    },
+    onError: fail,
+  });
+
+  return {
+    overview: data,
+    error,
+    rebuilding: rebuilds.running,
+    rebuild: rebuilds.start,
   };
 }

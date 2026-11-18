@@ -83,6 +83,8 @@ export type {
   ConfirmedActionOptions,
   SearchModelHost,
   SearchModelSection,
+  SearchOverviewHost,
+  SearchOverviewStatus,
   SpaceSearchHost,
   SpaceSearchOptions,
   SpaceSearchStatus,
@@ -90,6 +92,7 @@ export type {
 export {
   useConfirmedAction,
   useSearchModel,
+  useSearchOverview,
   useSpaceSearch,
 } from "./search_admin_state.ts";
 export { SearchBadge } from "./search_badge.tsx";

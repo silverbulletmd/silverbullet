@@ -2,14 +2,20 @@
 import { h, render } from "preact";
 import { act } from "preact/test-utils";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
-import type { SearchModelState } from "../types/search_admin.ts";
+import type {
+  SearchModelState,
+  SearchOverview,
+} from "../types/search_admin.ts";
 import {
   type ConfirmedAction,
   type ConfirmedActionOptions,
   type SearchModelHost,
   type SearchModelSection,
+  type SearchOverviewHost,
+  type SearchOverviewStatus,
   useConfirmedAction,
   useSearchModel,
+  useSearchOverview,
 } from "./search_admin_state.ts";
 
 const tiny = {
@@ -229,4 +235,60 @@ test("a host's handled error shows nothing", async () => {
   );
   expect(section.error).toBe("");
   expect(section.state).toBeUndefined();
+});
+
+let overview: SearchOverviewStatus<SearchOverview>;
+
+function OverviewProbe({ host }: { host: SearchOverviewHost<SearchOverview> }) {
+  overview = useSearchOverview(host);
+  return null;
+}
+
+test("an overview rebuilds a space after asking, then reloads", async () => {
+  vi.stubGlobal(
+    "confirm",
+    vi.fn(() => true),
+  );
+  const garden = { indexes: [] } as unknown as SearchOverview["spaces"][string];
+  const get = vi.fn(async () => ({ ...none, spaces: { garden } }));
+  let changed = () => {};
+  const unsubscribe = vi.fn();
+  const rebuild = vi.fn(async () => {});
+  await act(() =>
+    render(
+      h(OverviewProbe, {
+        host: {
+          get,
+          rebuild,
+          subscribe: (listener) => {
+            changed = listener;
+            return unsubscribe;
+          },
+          errorText: (cause) => String(cause),
+        },
+      }),
+      root,
+    ),
+  );
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(Object.keys(overview.overview?.spaces ?? {})).toEqual(["garden"]);
+
+  await act(() => overview.rebuild("garden"));
+  expect(rebuild).toHaveBeenCalledWith("garden");
+  expect(get).toHaveBeenCalledTimes(2);
+
+  await act(async () => {
+    changed();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(get).toHaveBeenCalledTimes(3);
+
+  rebuild.mockRejectedValueOnce("disk full");
+  await act(() => overview.rebuild("garden"));
+  expect(overview.error).toBe("disk full");
+
+  render(null, root);
+  expect(unsubscribe).toHaveBeenCalled();
 });
