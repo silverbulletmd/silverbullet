@@ -214,7 +214,9 @@ test("the box is disabled until the space's info arrives", async () => {
   );
   await mount({ spaceId: undefined, model: null });
   expect(checkbox().disabled).toBe(true);
-  expect(root.textContent).toContain("Choose a search model in Settings → Search");
+  expect(root.textContent).toContain(
+    "Choose a search model in Settings → Search",
+  );
 });
 
 test("unchecking edits false, checking again the saved choice", async () => {
