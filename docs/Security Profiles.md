@@ -23,7 +23,7 @@ A team, community, or any setup where a `write` member _might_ plant malicious c
 The recommended hardened profile:
 
 * **Shell off** for spaces with untrusted writers. This removes the main capability an attacker could otherwise reach.
-* **One hostname per space**, via a [[Dashboard#Bindings|custom-host binding]] rather than multiple path prefixes on one hostname. Use the primary URL for the `/.dashboard` admin surface through **Admin → Server**. Then configure a separate sub-domain per space. With this configured, the server rejects Dashboard APIs on space hosts and blocks browser requests to Dashboard APIs from other origins, including sibling subdomains.
+* **One hostname per space**, via a [[Dashboard#Bindings|custom-host binding]] rather than multiple path prefixes on one hostname. Use the primary URL for the `/.dashboard` admin surface through **Settings → Server**. Then configure a separate sub-domain per space. With this configured, the server rejects Dashboard APIs on space hosts and blocks browser requests to Dashboard APIs from other origins, including sibling subdomains.
 
 **Why a hostname per space?** SilverBullet’s session cookie and browser origin are scoped to the hostname you’re on. A `write` member can make their space’s content run code as whoever opens it — but if each untrusted-writer space lives on its own hostname, that code runs in an origin that doesn’t hold another space’s session.
 

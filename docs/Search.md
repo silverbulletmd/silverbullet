@@ -47,7 +47,7 @@ Where the index lives:
 # Semantic search
 When enabled (default off), SilverBullet offers semantic search — search based on meaning. It runs an embedding model on the server itself (in Desktop, on your computer). Beyond downloading the model, no data leaves your server/desktop. On a server, an administrator turns it on in the dashboard. Desktop is covered under [[#SilverBullet Desktop]].
 
-1. In the dashboard, open **Admin** → **Search** and choose a model.
+1. In the dashboard, open **Settings** → **Search** and choose a model.
 2. To keep a space on full-text search only, open its settings, go to **Search** and uncheck **Semantic search**.
 
 After selecting a model, it is downloaded once. Choosing a model turns semantic search on for every space by default. The dashboard asks first, saying how many spaces will build a semantic index.

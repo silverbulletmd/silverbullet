@@ -26,7 +26,7 @@ The obvious design would follow [[ADR/001 Offline-First PWA]] and [[ADR/007 Core
 Search runs on the server only. The server keeps one index per space, updates it as pages change, and answers queries from any connected client.
 
 * **Full-text search** uses [tantivy](https://github.com/quickwit-oss/tantivy), a Rust search library similar to Lucene. It is always on and fast enough for search-as-you-type.
-* **Semantic search** is a second, opt-in engine (**Admin > Search**). It embeds page content with a model that runs locally on the server, and also powers the “Related Pages” widget. It is off by default because you have to download a model first, and indexing a large space can take a long time. No content ever leaves the server.
+* **Semantic search** is a second, opt-in engine (**Settings > Search**). It embeds page content with a model that runs locally on the server, and also powers the “Related Pages” widget. It is off by default because you have to download a model first, and indexing a large space can take a long time. No content ever leaves the server.
 
 # Consequences
 ## Positive

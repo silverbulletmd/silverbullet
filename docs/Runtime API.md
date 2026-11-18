@@ -185,4 +185,4 @@ Set `SB_CHROME_SHOW=1` to run Chrome with a visible window — useful for watchi
 Headless Chrome spawns several processes (browser, network, storage, and renderer) for each active user and space pair. Additional runtimes therefore cost a whole browser, not just a tab. Browsers start lazily so unused runtime permissions consume no Chrome processes, and stop again after a period without requests (see [[#Idle stop]]).
 
 ## Managing runtimes
-Server administrators can open **Admin → APIs** to see each instantiated runtime's space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.
+Server administrators can open **Status → Runtimes** in the [[Dashboard]] to see each instantiated runtime's space, user, status, CPU, estimated memory, and profile disk usage. The list refreshes while visible and includes stopped runtimes with retained profiles. Viewing it does not start Chrome.

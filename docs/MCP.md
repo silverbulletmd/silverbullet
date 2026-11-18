@@ -6,7 +6,7 @@ references:
 ---
 SilverBullet can act as an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server, so AI assistants can read, write, query and pimp up your spaces.
 
-MCP is available on SilverBullet Server and in [[Desktop]]. The endpoint is `/.mcp` on your server, for example `https://notes.example.com/.mcp`. On a server it is off by default: an admin turns it on in the APIs tab of the [[Dashboard]].
+MCP is available on SilverBullet Server and in [[Desktop]]. The endpoint is `/.mcp` on your server, for example `https://notes.example.com/.mcp`. On a server it is off by default: an admin turns it on under **Settings → APIs** in the [[Dashboard]].
 
 # Tools
 Every client sees the same tools on every space:
@@ -51,4 +51,4 @@ SilverBullet Desktop serves MCP too, for the spaces registered in the app, on a 
 # Security
 A connection carries the authority of the account that approved it, limited to the spaces chosen on the consent page. Page content read through MCP reaches the assistant (and its provider), and `lua` can do anything a user can script, so only connect assistants you trust with the spaces involved. Pages in shared spaces can be written by other people, and a page can contain text meant to steer the assistant, so be careful with spaces others can edit. Desktop's endpoint has no sign-in or consent page: while it is on, any program on your computer can use every registered space through it.
 
-Connected apps are listed under **Connected apps** in your Profile (admins see everyone’s under APIs in the Dashboard), each with a Revoke button. Changing your password, choosing “sign out everywhere” or having your account disabled disconnects all your apps and removes them from the list.
+Connected apps are listed under **Connected apps** in your Profile (admins see everyone’s under **Status → Connected apps** in the [[Dashboard]]), each with a Revoke button. Changing your password, choosing “sign out everywhere” or having your account disabled disconnects all your apps and removes them from the list.
