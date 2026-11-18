@@ -35,28 +35,54 @@ export function shouldFlashSyncNotification(
   return last === undefined || !sameSyncState(next, last);
 }
 
+/** A sync state as a short label, plus what a fuller line adds to it. */
+export type SyncDescription = { label: string; detail?: string };
+
+export function describeSync(
+  snapshot: import("@silverbulletmd/silverbullet/type/revisions").GitSyncSnapshot,
+): SyncDescription {
+  if (!snapshot.enabled) return { label: "Disconnected" };
+  if (snapshot.paused) return { label: "Sync paused" };
+  switch (snapshot.sync.state) {
+    case "syncing":
+      return { label: "Syncing…" };
+    case "conflicted":
+      return {
+        label: `${snapshot.sync.paths.length} files need conflict resolution`,
+      };
+    case "paused":
+      return { label: "Sync paused", detail: snapshot.sync.reason };
+    case "error":
+      return { label: "Sync needs attention" };
+    case "idle":
+      if (snapshot.dirty)
+        return {
+          label: "Changes waiting",
+          detail: "local edits await an automatic commit",
+        };
+      if (snapshot.pending || snapshot.incoming)
+        return {
+          label: "Changes waiting",
+          detail: `${snapshot.pending ?? "unknown"} outgoing, ${snapshot.incoming ?? "unknown"} incoming`,
+        };
+      if (!snapshot.lastSuccess)
+        return { label: "Waiting for the first successful sync" };
+      if (snapshot.pending === null || snapshot.incoming === null)
+        return {
+          label: "Last sync succeeded",
+          detail: "pending changes are not known",
+        };
+      return {
+        label: "Up to date",
+        detail: new Date(snapshot.lastSuccess).toLocaleString(),
+      };
+  }
+}
+
+/** A sync state as one line: the label, then any detail. */
 export function syncStatusText(
   snapshot: import("@silverbulletmd/silverbullet/type/revisions").GitSyncSnapshot,
 ): string {
-  if (!snapshot.enabled) return "Disconnected";
-  if (snapshot.paused) return "Sync paused";
-  switch (snapshot.sync.state) {
-    case "syncing":
-      return "Syncing…";
-    case "conflicted":
-      return `${snapshot.sync.paths.length} files need conflict resolution`;
-    case "paused":
-      return `Sync paused — ${snapshot.sync.reason}`;
-    case "error":
-      return "Sync needs attention";
-    case "idle":
-      if (snapshot.dirty)
-        return "Changes waiting — local edits await an automatic commit";
-      if (snapshot.pending || snapshot.incoming)
-        return `Changes waiting — ${snapshot.pending ?? "unknown"} outgoing, ${snapshot.incoming ?? "unknown"} incoming`;
-      if (!snapshot.lastSuccess) return "Waiting for the first successful sync";
-      if (snapshot.pending === null || snapshot.incoming === null)
-        return "Last sync succeeded; pending changes are not known";
-      return `Up to date · ${new Date(snapshot.lastSuccess).toLocaleString()}`;
-  }
+  const { label, detail } = describeSync(snapshot);
+  return detail ? `${label} — ${detail}` : label;
 }
