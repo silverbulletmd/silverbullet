@@ -19,7 +19,8 @@ import {
 import { loginUrl, safeDashboardDestination, dashboardUrl } from "../routes.ts";
 import type { DashboardRoute } from "../routes.ts";
 import type { AuthState } from "../types.ts";
-import { AdminView } from "./AdminView.tsx";
+import { SettingsView } from "./SettingsView.tsx";
+import { StatusView } from "./status/StatusView.tsx";
 import { Login } from "./Login.tsx";
 import { ProfileView } from "./ProfileView.tsx";
 import { SpaceEditor } from "./SpaceEditor.tsx";
@@ -28,73 +29,103 @@ import { DashboardProfileMenu } from "./DashboardProfileMenu.tsx";
 import { UpdateNotice } from "./UpdateNotice.tsx";
 import { NewUser, UserDetail, UserList } from "./UsersView.tsx";
 
-type ScreenProps = {
-  route: DashboardRoute;
+type ScreenProps<R extends DashboardRoute = DashboardRoute> = {
+  route: R;
   auth: Extract<AuthState, { phase: "authed" }>;
   onUnauthorized: () => void;
 };
 
-type Screen = { view: ComponentType<ScreenProps>; admin: boolean };
-
-const SpaceListScreen = ({ auth, onUnauthorized }: ScreenProps) => (
-  <SpaceList admin={auth.admin} onUnauthorized={onUnauthorized} />
-);
-const SpaceNewScreen = ({ onUnauthorized }: ScreenProps) => (
-  <SpaceEditor onUnauthorized={onUnauthorized} />
-);
-const SpaceEditScreen = ({ route, onUnauthorized }: ScreenProps) => {
-  const settings = route as Extract<
-    DashboardRoute,
-    { screen: "space" | "space-git" }
-  >;
-  return (
-    <SpaceEditor
-      key={settings.id}
-      id={settings.id}
-      section={
-        settings.screen === "space-git"
-          ? "revisions"
-          : (settings.section ?? "general")
-      }
-      onUnauthorized={onUnauthorized}
-    />
-  );
+type Screen<R extends DashboardRoute> = {
+  view: ComponentType<ScreenProps<R>>;
+  admin: boolean;
+  /** The sidebar item that stays highlighted on this screen. */
+  nav: "spaces" | "users" | "profile" | "settings" | "status";
 };
-const UserListScreen = ({ auth, onUnauthorized }: ScreenProps) => (
-  <UserList currentUsername={auth.username} onUnauthorized={onUnauthorized} />
-);
-const UserNewScreen = ({ onUnauthorized }: ScreenProps) => (
-  <NewUser onUnauthorized={onUnauthorized} />
-);
-const UserDetailScreen = ({ route, auth, onUnauthorized }: ScreenProps) => (
-  <UserDetail
-    username={(route as Extract<DashboardRoute, { screen: "user" }>).username}
-    currentUsername={auth.username}
-    onUnauthorized={onUnauthorized}
-  />
-);
-const ProfileScreen = ({ onUnauthorized }: ScreenProps) => (
-  <ProfileView onUnauthorized={onUnauthorized} />
-);
+type ScreenFor<K extends DashboardRoute["screen"]> = Screen<
+  Extract<DashboardRoute, { screen: K }>
+>;
 
-const AdminScreen = ({ route, onUnauthorized }: ScreenProps) => (
-  <AdminView
-    section={route.screen === "admin" ? route.section : "server"}
+const SpaceEditScreen = ({
+  route,
+  onUnauthorized,
+}: ScreenProps<Extract<DashboardRoute, { screen: "space" | "space-git" }>>) => (
+  <SpaceEditor
+    key={route.id}
+    id={route.id}
+    section={
+      route.screen === "space-git" ? "revisions" : (route.section ?? "general")
+    }
     onUnauthorized={onUnauthorized}
   />
 );
 
 // These flags control navigation; API requests enforce authorization independently.
-const SCREENS: Record<DashboardRoute["screen"], Screen | undefined> = {
-  spaces: { view: SpaceListScreen, admin: false },
-  "space-new": { view: SpaceNewScreen, admin: true },
-  space: { view: SpaceEditScreen, admin: true },
-  "space-git": { view: SpaceEditScreen, admin: true },
-  users: { view: UserListScreen, admin: true },
-  "user-new": { view: UserNewScreen, admin: true },
-  user: { view: UserDetailScreen, admin: true },
-  admin: { view: AdminScreen, admin: true },
-  profile: { view: ProfileScreen, admin: false },
+const SCREENS: {
+  [K in DashboardRoute["screen"]]: ScreenFor<K> | undefined;
+} = {
+  spaces: {
+    view: ({ auth, onUnauthorized }) => (
+      <SpaceList admin={auth.admin} onUnauthorized={onUnauthorized} />
+    ),
+    admin: false,
+    nav: "spaces",
+  },
+  "space-new": {
+    view: ({ onUnauthorized }) => (
+      <SpaceEditor onUnauthorized={onUnauthorized} />
+    ),
+    admin: true,
+    nav: "spaces",
+  },
+  space: { view: SpaceEditScreen, admin: true, nav: "spaces" },
+  "space-git": { view: SpaceEditScreen, admin: true, nav: "spaces" },
+  users: {
+    view: ({ auth, onUnauthorized }) => (
+      <UserList
+        currentUsername={auth.username}
+        onUnauthorized={onUnauthorized}
+      />
+    ),
+    admin: true,
+    nav: "users",
+  },
+  "user-new": {
+    view: ({ onUnauthorized }) => <NewUser onUnauthorized={onUnauthorized} />,
+    admin: true,
+    nav: "users",
+  },
+  user: {
+    view: ({ route, auth, onUnauthorized }) => (
+      <UserDetail
+        username={route.username}
+        currentUsername={auth.username}
+        onUnauthorized={onUnauthorized}
+      />
+    ),
+    admin: true,
+    nav: "users",
+  },
+  settings: {
+    view: ({ route, onUnauthorized }) => (
+      <SettingsView section={route.section} onUnauthorized={onUnauthorized} />
+    ),
+    admin: true,
+    nav: "settings",
+  },
+  status: {
+    view: ({ route, onUnauthorized }) => (
+      <StatusView section={route.section} onUnauthorized={onUnauthorized} />
+    ),
+    admin: true,
+    nav: "status",
+  },
+  profile: {
+    view: ({ onUnauthorized }) => (
+      <ProfileView onUnauthorized={onUnauthorized} />
+    ),
+    admin: false,
+    nav: "profile",
+  },
   login: undefined, // handled by the auth gate before this table is consulted
   "not-found": undefined,
 };
@@ -195,9 +226,8 @@ export function App() {
   const onUnauthorized = () => {
     if (!logoutInProgress()) location.replace(loginUrl());
   };
-  const onSpacesTab = route.screen.startsWith("space");
-  const onUsersTab = route.screen.startsWith("user");
-  const onAdminTab = route.screen === "admin";
+  // The table is keyed by screen, so each entry matches its own route.
+  const screen = SCREENS[route.screen] as Screen<DashboardRoute> | undefined;
   return (
     <NavigateProvider value={navigate}>
       <div class="sb-management">
@@ -233,15 +263,7 @@ export function App() {
           <SectionNav
             label="Sections"
             collapse={false}
-            active={
-              onSpacesTab
-                ? "spaces"
-                : onAdminTab
-                  ? "admin"
-                  : onUsersTab
-                    ? "users"
-                    : "profile"
-            }
+            active={screen?.nav ?? ""}
             navClass="sb-management-nav"
             itemClass="sb-management-nav-item"
             items={[
@@ -263,9 +285,14 @@ export function App() {
               ...(auth.admin
                 ? [
                     {
-                      id: "admin",
-                      label: "Admin",
-                      href: dashboardUrl("/admin"),
+                      id: "settings",
+                      label: "Settings",
+                      href: dashboardUrl("/settings"),
+                    },
+                    {
+                      id: "status",
+                      label: "Status",
+                      href: dashboardUrl("/status"),
                     },
                   ]
                 : []),
@@ -274,7 +301,6 @@ export function App() {
           />
         </aside>
         {(() => {
-          const screen = SCREENS[route.screen];
           if (!screen || (screen.admin && !auth.admin)) {
             return (
               <div class="sb-management-main">

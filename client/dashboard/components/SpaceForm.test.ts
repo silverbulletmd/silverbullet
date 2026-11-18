@@ -187,7 +187,7 @@ test("the semantic search box waits, disabled, for the space's search info", () 
   // Server info arrives after the first render: no model yet.
   expect(html).toContain("Semantic search");
   expect(html).toContain(
-    "Choose a search model in Admin → Search to turn on semantic search.",
+    "Choose a search model in Settings → Search to turn on semantic search.",
   );
   expect(html).toMatch(
     /<input(?=[^>]*\bdisabled)[^>]*type="checkbox"[^>]*>\s*<label[^>]*>Semantic search/,

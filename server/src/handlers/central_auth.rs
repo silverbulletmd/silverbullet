@@ -1090,6 +1090,11 @@ async fn resume_context(
     let shared = state.authenticator.is_shared_session(&claims);
     Json(json!({"attempt":resume.attempt_id,"destination":resume.destination,"scope":resume.scope,"encrypt":resume.encrypt,"shared":shared,"username":resume.username,"loginMethod":state.users.login_method(&resume.username),"encryptionSalt":state.login.salt(),"centralOrigin":state.central_origin()})).into_response()
 }
+/// Where a provider test sign-in returns: the dashboard's SSO settings.
+fn test_destination(origin: &str) -> String {
+    format!("{origin}/.dashboard/settings?section=authentication")
+}
+
 async fn test_provider(
     State(state): State<Arc<CentralAuth>>,
     headers: HeaderMap,
@@ -1139,7 +1144,7 @@ async fn test_provider(
         id.clone(),
         Attempt {
             expires: now() + 600,
-            destination: format!("{}/.dashboard/authentication", origin(&headers)),
+            destination: test_destination(&origin(&headers)),
             scope: "/".into(),
             binding: random_secret(),
             central_binding: None,
@@ -1185,5 +1190,18 @@ async fn test_result(
             StatusCode::NOT_FOUND,
             "Test expired. Start a new sign-in test.",
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sign_in_returns_to_a_dashboard_page() {
+        let destination = test_destination("https://notes.example.test");
+        let url = reqwest::Url::parse(&destination).unwrap();
+        assert_eq!(url.query(), Some("section=authentication"));
+        assert!(crate::multi::dispatch::dashboard_ui_path(url.path()));
     }
 }

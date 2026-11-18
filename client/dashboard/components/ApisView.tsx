@@ -5,166 +5,89 @@ import {
   Field,
   Input,
 } from "@silverbulletmd/silverbullet/ui";
-import { useEffect, useRef, useState } from "preact/hooks";
-import { adminApi, formatApiError, getServerInfo } from "../api.ts";
+import { useEffect, useState } from "preact/hooks";
+import { adminApi, apiErrorText, getServerInfo } from "../api.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
-import { McpSection } from "./McpSection.tsx";
-import { runtimeApiUnavailableReason } from "../runtime_availability.ts";
+import { dashboardUrl } from "../routes.ts";
+import {
+  mcpUnavailableReason,
+  runtimeApiUnavailableReason,
+} from "../runtime_availability.ts";
+import { McpSetup } from "./McpSection.tsx";
 
-type RuntimeInfo = {
-  id: string;
-  spaceId: string;
-  spaceName: string;
-  username: string | null;
-  status: string;
-  cpuPercent: number | null;
-  memoryBytes: number | null;
-  diskBytes: number | null;
+type ApiSettings = {
+  runtimeApi: boolean;
+  runtimeIdleTimeout: number;
+  mcp: boolean;
 };
 
-function bytes(value: number | null): string {
-  if (value === null) return "Unavailable";
-  const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  return `${Number(value.toFixed(1))} ${units[unit]}`;
-}
-
-function RuntimeApiSection({ onUnauthorized }: { onUnauthorized: () => void }) {
-  const [rows, setRows] = useState<RuntimeInfo[] | null>(null);
-  const [runtimeApi, setRuntimeApi] = useState<boolean | null>(null);
+export function ApisView({ onUnauthorized }: { onUnauthorized: () => void }) {
+  const [saved, setSaved] = useState<ApiSettings | null>(null);
+  const [runtimeApi, setRuntimeApi] = useState(false);
   const [idleTimeout, setIdleTimeout] = useState("");
+  const [mcp, setMcp] = useState(false);
   const [runtimeReason, setRuntimeReason] = useState<string | null>(null);
+  const [mcpReason, setMcpReason] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [loadError, setLoadError] = useState("");
-  const [pending, setPending] = useState("");
-  const notify = useNotification("runtimes");
-  const manage = useRef<(id: string, action: "stop" | "reset") => void>(
-    () => {},
-  );
+  const notify = useNotification("apis");
+
+  function fail(cause: unknown) {
+    const text = apiErrorText(cause, onUnauthorized);
+    if (text !== null) setError(text);
+  }
+
+  function show(config: ApiSettings) {
+    setSaved(config);
+    setRuntimeApi(config.runtimeApi);
+    setIdleTimeout(String(config.runtimeIdleTimeout));
+    setMcp(config.mcp);
+  }
+
   useEffect(() => {
     void getServerInfo()
-      .then((info) =>
-        setRuntimeReason(runtimeApiUnavailableReason(info.runtimeApi)),
-      )
-      .catch((error) => {
-        if (error.unauthorized) onUnauthorized();
-        else setError(formatApiError(error));
-      });
-    void adminApi("GET", "server-config")
-      .then((config) => {
-        setRuntimeApi(config.runtimeApi);
-        setIdleTimeout(String(config.runtimeIdleTimeout));
+      .then((info) => {
+        setRuntimeReason(runtimeApiUnavailableReason(info.runtimeApi));
+        setMcpReason(mcpUnavailableReason(info.mcp));
       })
-      .catch((error) => {
-        if (error.unauthorized) onUnauthorized();
-        else setError(formatApiError(error));
-      });
+      .catch(fail);
+    void adminApi("GET", "server-config").then(show).catch(fail);
   }, []);
 
-  async function saveRuntimeApi() {
-    if (runtimeApi === null) return;
+  async function save() {
     setSaving(true);
     setError("");
     notify("");
     try {
-      const config = await adminApi("PUT", "server-config", {
-        runtimeApi,
-        runtimeIdleTimeout: Number(idleTimeout),
-      });
-      setRuntimeApi(config.runtimeApi);
-      setIdleTimeout(String(config.runtimeIdleTimeout));
-      notify("Runtime API settings saved.");
-    } catch (error: any) {
-      if (error.unauthorized) onUnauthorized();
-      else setError(formatApiError(error));
+      show(
+        await adminApi("PUT", "server-config", {
+          runtimeApi,
+          runtimeIdleTimeout: Number(idleTimeout),
+          mcp,
+        }),
+      );
+      notify("API settings saved.");
+    } catch (cause) {
+      fail(cause);
     } finally {
       setSaving(false);
     }
   }
 
-  useEffect(() => {
-    let disposed = false;
-    let fetching = false;
-    let acting = false;
-    let queued = false;
-    let generation = 0;
-    const reportError = (error: any, loading = false) => {
-      if (disposed) return;
-      if (error.unauthorized) onUnauthorized();
-      else (loading ? setLoadError : setError)(formatApiError(error));
-    };
-    const refresh = async (force = false) => {
-      if (disposed || document.hidden || acting) return;
-      if (fetching) {
-        queued ||= force;
-        return;
-      }
-      fetching = true;
-      const current = generation;
-      try {
-        const result: RuntimeInfo[] = await adminApi("GET", "runtimes");
-        if (!disposed && current === generation) {
-          setRows(result);
-          setLoadError("");
-        }
-      } catch (error) {
-        if (current === generation) reportError(error, true);
-      } finally {
-        fetching = false;
-        if (queued) {
-          queued = false;
-          void refresh();
-        }
-      }
-    };
-    manage.current = async (id, action) => {
-      if (acting || disposed) return;
-      acting = true;
-      generation++;
-      setPending(id);
-      setError("");
-      try {
-        await adminApi("POST", `runtimes/${encodeURIComponent(id)}/${action}`);
-      } catch (error) {
-        reportError(error);
-      } finally {
-        acting = false;
-        if (!disposed) {
-          setPending("");
-          void refresh(true);
-        }
-      }
-    };
-    const visible = () => {
-      if (!document.hidden) void refresh(true);
-    };
-    void refresh();
-    const interval = setInterval(() => void refresh(), 3000);
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      disposed = true;
-      clearInterval(interval);
-      document.removeEventListener("visibilitychange", visible);
-    };
-  }, []);
+  const runtimeOff = !runtimeApi || runtimeReason !== null;
   return (
-    <section>
-      <h2>Runtime API</h2>
+    <div>
       {error && <Alert variant="error">{error}</Alert>}
-      {runtimeApi === null && !error && <p>Loading settings…</p>}
-      {runtimeApi !== null && (
+      {!saved && !error && <p>Loading settings…</p>}
+      {saved && (
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            void saveRuntimeApi();
+            void save();
           }}
         >
-          <SaveConfirmation scope="runtimes" />
+          <SaveConfirmation scope="apis" />
+          <h2>Runtime API</h2>
           <CheckboxField
             label="Enable runtime API"
             checked={runtimeApi}
@@ -188,91 +111,39 @@ function RuntimeApiSection({ onUnauthorized }: { onUnauthorized: () => void }) {
               onInput={(event) => setIdleTimeout(event.currentTarget.value)}
             />
           </Field>
+          <h2>MCP</h2>
+          <CheckboxField
+            label="Enable MCP"
+            checked={mcp}
+            disabled={mcpReason !== null}
+            onChange={(event) => setMcp(event.currentTarget.checked)}
+          />
+          {mcpReason && <p class="sb-help-text">{mcpReason}</p>}
+          {mcp && runtimeOff && (
+            <Alert variant="warning">
+              The runtime API is off, so the <code>lua</code> and{" "}
+              <code>screenshot</code> tools are unavailable.
+            </Alert>
+          )}
           <Button
             type="submit"
             variant="primary"
-            disabled={saving || runtimeReason !== null}
+            disabled={saving || (runtimeReason !== null && mcpReason !== null)}
           >
             Save
           </Button>
         </form>
       )}
+      {saved?.mcp && <McpSetup />}
       <p class="sb-help-text">
-        This page lists currently active Runtime API users.
+        Running runtimes are under{" "}
+        <a href={dashboardUrl("/status?section=runtimes")}>Status → Runtimes</a>
+        , connected apps under{" "}
+        <a href={dashboardUrl("/status?section=apps")}>
+          Status → Connected apps
+        </a>
+        .
       </p>
-
-      {loadError && <Alert variant="error">{loadError}</Alert>}
-      {rows === null && !loadError && <p>Loading…</p>}
-      {rows?.length === 0 && <p>No runtimes have been started.</p>}
-      {rows && rows.length > 0 && (
-        <div style={{ overflowX: "auto" }}>
-          <table class="sb-user-table">
-            <thead>
-              <tr>
-                <th>Space</th>
-                <th>User</th>
-                <th>Status</th>
-                <th>CPU</th>
-                <th>Memory</th>
-                <th>Index size</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.spaceName}</td>
-                  <td>{row.username ?? "Accountless"}</td>
-                  <td>
-                    {row.status === "stop_failed" ? "Stop failed" : row.status}
-                  </td>
-                  <td>
-                    {row.cpuPercent === null
-                      ? "Unavailable"
-                      : `${row.cpuPercent.toFixed(1)}%`}
-                  </td>
-                  <td>{bytes(row.memoryBytes)}</td>
-                  <td>{bytes(row.diskBytes)}</td>
-                  <td>
-                    <Button
-                      disabled={
-                        !!pending ||
-                        !["starting", "running", "stop_failed"].includes(
-                          row.status,
-                        )
-                      }
-                      onClick={() => manage.current(row.id, "stop")}
-                    >
-                      Stop
-                    </Button>{" "}
-                    <Button
-                      disabled={!!pending || row.status === "stopping"}
-                      onClick={() => manage.current(row.id, "reset")}
-                    >
-                      Reset
-                    </Button>
-                    {pending === row.id && <span> Working…</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p class="sb-help-text">
-            Memory usage is an estimate. "Stop" stops the client, "Reset" stops
-            and deletes the index. The next Runtime API request can start a new
-            runtime.
-          </p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-export function ApisView({ onUnauthorized }: { onUnauthorized: () => void }) {
-  return (
-    <div>
-      <RuntimeApiSection onUnauthorized={onUnauthorized} />
-      <McpSection onUnauthorized={onUnauthorized} />
     </div>
   );
 }

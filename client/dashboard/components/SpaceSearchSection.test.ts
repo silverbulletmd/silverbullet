@@ -162,13 +162,13 @@ test("a canceled confirmation rebuilds nothing", async () => {
   expect(api.rebuildSpaceSearch).not.toHaveBeenCalled();
 });
 
-test("without a model the box points to Admin → Search", async () => {
+test("without a model the box points to Settings → Search", async () => {
   api.getSpaceSearch.mockResolvedValue({ ...ready, semantic: "noModel" });
   await mount({ model: null });
   expect(checkbox().checked).toBe(false);
   expect(checkbox().disabled).toBe(true);
   expect(root.textContent).toContain(
-    "Choose a search model in Admin → Search to turn on semantic search.",
+    "Choose a search model in Settings → Search to turn on semantic search.",
   );
 });
 
@@ -214,7 +214,7 @@ test("the box is disabled until the space's info arrives", async () => {
   );
   await mount({ spaceId: undefined, model: null });
   expect(checkbox().disabled).toBe(true);
-  expect(root.textContent).toContain("Choose a search model in Admin → Search");
+  expect(root.textContent).toContain("Choose a search model in Settings → Search");
 });
 
 test("unchecking edits false, checking again the saved choice", async () => {

@@ -69,10 +69,10 @@ async function configurePocketId(
   await adminPage.goto(`${oidc.centralOrigin}/.dashboard/login`);
   await adminPage.getByLabel("Username", { exact: true }).fill(ADMIN_USER);
   await adminPage.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
-  await adminPage.getByRole("button", { name: "Log in", exact: true }).click();
-  await adminPage.getByRole("link", { name: "Admin", exact: true }).click();
+  await adminPage.getByRole("button", { name: "Sign in", exact: true }).click();
+  await adminPage.getByRole("link", { name: "Settings", exact: true }).click();
   await adminPage
-    .getByRole("navigation", { name: "Admin settings" })
+    .getByRole("navigation", { name: "Settings" })
     .getByRole("link", { name: "Authentication", exact: true })
     .click();
   await adminPage
@@ -80,7 +80,7 @@ async function configurePocketId(
     .click();
   await adminPage.getByLabel("Provider", { exact: true }).selectOption("oidc");
   await adminPage
-    .getByLabel("Central login URL", { exact: true })
+    .getByLabel("Server address", { exact: true })
     .fill(oidc.centralOrigin);
   await adminPage
     .getByLabel("Issuer URL", { exact: true })

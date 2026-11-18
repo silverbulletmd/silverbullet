@@ -140,11 +140,11 @@ test.describe("semantic search on a multi-user server", () => {
     await page.goto(`${base}/.dashboard/login`);
     await page.getByLabel("Username").fill(ADMIN_USER);
     await page.getByLabel("Password", { exact: true }).fill(ADMIN_PASSWORD);
-    await page.getByRole("button", { name: "Log in", exact: true }).click();
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
     await expect(page).toHaveURL(`${base}/.dashboard/`);
 
-    // The server starts without a search model: choose one in Server settings.
-    await page.goto(`${base}/.dashboard/admin?section=search`);
+    // The server starts without a search model: choose one in Settings → Search.
+    await page.goto(`${base}/.dashboard/settings?section=search`);
     // Choosing it turns semantic search on for the garden space, which
     // follows the server's default: the dashboard asks first.
     const question = new Promise<string>((resolve) =>
@@ -164,6 +164,10 @@ test.describe("semantic search on a multi-user server", () => {
     await expect(
       page.getByRole("link", { name: "Model page ↗" }),
     ).toHaveAttribute("href", "https://example.com/test-tiny");
+    // Index progress is on the Status page, one link away.
+    await expect(page.locator(".sb-search-spaces")).toHaveCount(0);
+    await page.getByRole("link", { name: "Status → Search" }).click();
+    await expect(page).toHaveURL(`${base}/.dashboard/status?section=search`);
     // The spaces table shows the garden space building both indexes.
     const row = page.locator(".sb-search-spaces tr", { hasText: "Garden" });
     await expect(row).toBeVisible();

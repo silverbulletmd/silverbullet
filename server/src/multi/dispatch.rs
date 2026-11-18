@@ -153,7 +153,7 @@ fn same_origin_request(primary: Option<&str>, headers: &HeaderMap) -> bool {
     true
 }
 
-fn dashboard_ui_path(path: &str) -> bool {
+pub(crate) fn dashboard_ui_path(path: &str) -> bool {
     let rest = path.strip_prefix("/.dashboard").unwrap_or("");
     if rest.is_empty() || rest == "/" || rest == "/index.html" {
         return true;
@@ -171,7 +171,7 @@ fn dashboard_ui_path(path: &str) -> bool {
     }
     matches!(
         parts.as_slice(),
-        ["new" | "users" | "login" | "profile" | "admin"] | ["users", _]
+        ["new" | "users" | "login" | "profile" | "settings" | "status"] | ["users", _]
     ) || (parts.len() == 1 && uuid::Uuid::parse_str(parts[0]).is_ok())
         || (parts.len() == 2 && parts[1] == "git" && uuid::Uuid::parse_str(parts[0]).is_ok())
 }
@@ -1240,5 +1240,18 @@ mod tests {
         let r = build_main_router(m, Some(spaces), "test".to_string());
         let resp = get(&r, "localhost", "/").await;
         assert_ne!(resp.status(), StatusCode::TEMPORARY_REDIRECT);
+    }
+
+    #[test]
+    fn dashboard_screens_are_dashboard_ui_paths() {
+        for path in [
+            "/.dashboard/settings",
+            "/.dashboard/profile",
+            "/.dashboard/status",
+        ] {
+            assert!(dashboard_ui_path(path), "{path}");
+        }
+        assert!(!dashboard_ui_path("/.dashboard/elsewhere"));
+        assert!(!dashboard_ui_path("/.dashboard/admin"));
     }
 }

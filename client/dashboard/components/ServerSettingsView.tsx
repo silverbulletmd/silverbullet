@@ -49,7 +49,7 @@ export function ServerSettingsView({
       setPrimaryUrl(value.primaryUrl);
       notify("Server settings saved.");
       if (new URL(value.primaryUrl).origin !== location.origin) {
-        location.href = `${value.primaryUrl}/.dashboard/admin?section=server`;
+        location.href = `${value.primaryUrl}/.dashboard/settings?section=server`;
       }
     } catch (error) {
       handleError(error);
@@ -70,7 +70,7 @@ export function ServerSettingsView({
           }}
         >
           <SaveConfirmation scope="server" />
-          <Field label="Server Name">
+          <Field label="Server name">
             <Input
               id="server-name"
               required
@@ -80,8 +80,8 @@ export function ServerSettingsView({
             />
           </Field>
           <Field
-            label="Primary URL"
-            hint="The address for server management and sign-in."
+            label="Server address"
+            hint="Where people reach this server for management and sign-in."
           >
             <Input
               id="server-primary-url"

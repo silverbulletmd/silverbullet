@@ -12,7 +12,7 @@ import { apiErrorText, getSpaceSearch, rebuildSpaceSearch } from "../api.ts";
 const IDLE_POLL_MS = 30_000;
 
 const NO_MODEL =
-  "Choose a search model in Admin → Search to turn on semantic search.";
+  "Choose a search model in Settings → Search to turn on semantic search.";
 
 /**
  * A space's Search settings in Server's words: the "Semantic search" box

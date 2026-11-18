@@ -75,7 +75,7 @@ test("a read-only member cannot write or enter another space or administration",
   );
   await expect(page.locator(".cm-content")).not.toContainText("Page not found");
 
-  await page.goto(`${sbServer.url}/.dashboard/admin`);
+  await page.goto(`${sbServer.url}/.dashboard/settings`);
   await expect(
     page.getByRole("heading", { name: "Not found", exact: true }),
   ).toBeVisible();

@@ -39,7 +39,8 @@ test("runtime metrics, stop, reset, and errors refresh the list", async ({
     }
     return route.fulfill({ status: 404 });
   });
-  await page.goto(`${origin}/.dashboard/admin?section=runtimes`);
+  await page.goto(`${origin}/.dashboard/status?section=runtimes`);
+  await expect(page).toHaveURL(`${origin}/.dashboard/status?section=runtimes`);
   const row = page.getByRole("row").filter({ hasText: "Field Notes" });
   await expect(row).toContainText("Accountless");
   await expect(row).toContainText("125.5%");
@@ -50,6 +51,16 @@ test("runtime metrics, stop, reset, and errors refresh the list", async ({
   await expect(
     row.getByRole("button", { name: "Stop", exact: true }),
   ).toBeDisabled();
+  const prompts: string[] = [];
+  page.once("dialog", (dialog) => {
+    prompts.push(dialog.message());
+    void dialog.dismiss();
+  });
+  await row.getByRole("button", { name: "Reset", exact: true }).click();
+  await expect.poll(() => prompts.length).toBe(1);
+  expect(prompts[0]).toContain("deletes its index");
+  await expect(row).toContainText("stopped");
+  page.on("dialog", (dialog) => void dialog.accept());
   await row.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.getByText("Profile cleanup failed")).toBeVisible();
   failReset = false;

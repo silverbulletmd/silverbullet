@@ -516,6 +516,13 @@ body.sb-standalone.sb-page:has(.sb-auth-header) {
   white-space: nowrap;
 }
 
+/* Short numbers (counts): sized to their content, right-aligned. */
+.sb-standalone .sb-user-table .sb-numeric-cell {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
 .sb-standalone .sb-user-table label {
   display: inline-flex;
   align-items: center;

@@ -7,7 +7,6 @@ import {
   Select,
 } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { syncStatusText } from "../../sync_notification.ts";
 import {
   adminApi,
   applyGitDraft,
@@ -32,6 +31,7 @@ import {
 import { setNavigationGuard } from "../navigation.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
 import { dashboardUrl } from "../routes.ts";
+import { gitStatusText } from "../git_sync_status.ts";
 import type { GitDraft, GitStatus, SpaceInfo } from "../types.ts";
 
 const FREQUENCIES = [
@@ -234,19 +234,7 @@ export function GitSyncPage({
     });
   const test = draft?.test;
   const provider = draft ? parseRepoUrl(draft.url) : null;
-  const syncText =
-    status &&
-    syncStatusText({
-      sync: status.sync,
-      enabled: status.enabled ?? connected,
-      paused: status.paused ?? false,
-      lastSuccess: status.lastSuccess ?? null,
-      lastAttempt: status.lastAttempt ?? null,
-      version: status.version ?? 0,
-      pending: status.ahead,
-      incoming: status.behind,
-      dirty: status.dirty,
-    });
+  const syncText = status && gitStatusText(status);
 
   return (
     <section class="sb-git-page">

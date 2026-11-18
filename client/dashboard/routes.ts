@@ -4,13 +4,21 @@ export const DASHBOARD_BASE = new URL(document.baseURI).pathname.replace(
   "",
 );
 
-export const ADMIN_SECTIONS = {
+export const SETTINGS_SECTIONS = {
   server: "Server",
   authentication: "Authentication",
   search: "Search",
   apis: "APIs",
 } as const;
-export type AdminSection = keyof typeof ADMIN_SECTIONS;
+export type SettingsSection = keyof typeof SETTINGS_SECTIONS;
+
+export const STATUS_SECTIONS = {
+  runtimes: "Runtimes",
+  apps: "Connected apps",
+  search: "Search",
+  sync: "Sync",
+} as const;
+export type StatusSection = keyof typeof STATUS_SECTIONS;
 
 export type DashboardRoute =
   | { screen: "login"; next?: string }
@@ -22,7 +30,8 @@ export type DashboardRoute =
   | { screen: "user-new" }
   | { screen: "user"; username: string }
   | { screen: "profile" }
-  | { screen: "admin"; section: AdminSection }
+  | { screen: "settings"; section: SettingsSection }
+  | { screen: "status"; section: StatusSection }
   | { screen: "not-found" };
 
 export function dashboardUrl(path: string): string {
@@ -36,6 +45,16 @@ function decoded(value: string | undefined): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/** The `?section=` of the current address, if it names one of `sections`. */
+function pickSection<S extends string>(
+  sections: Record<S, string>,
+): S | undefined {
+  const section = new URLSearchParams(location.search).get("section");
+  return section !== null && Object.hasOwn(sections, section)
+    ? (section as S)
+    : undefined;
 }
 
 export function parseDashboardRoute(): DashboardRoute {
@@ -59,21 +78,16 @@ export function parseDashboardRoute(): DashboardRoute {
   if (segments[0] === "new" && segments.length === 1) {
     return { screen: "space-new" };
   }
-  if (
-    ["admin", "authentication"].includes(segments[0]) &&
-    segments.length === 1
-  ) {
-    const raw = new URLSearchParams(location.search).get("section");
-    // Old links used the tab's former name.
-    const section = raw === "runtimes" ? "apis" : raw;
+  if (segments[0] === "settings" && segments.length === 1) {
     return {
-      screen: "admin",
-      section:
-        section && Object.hasOwn(ADMIN_SECTIONS, section)
-          ? (section as AdminSection)
-          : segments[0] === "authentication"
-            ? "authentication"
-            : "server",
+      screen: "settings",
+      section: pickSection(SETTINGS_SECTIONS) ?? "server",
+    };
+  }
+  if (segments[0] === "status" && segments.length === 1) {
+    return {
+      screen: "status",
+      section: pickSection(STATUS_SECTIONS) ?? "runtimes",
     };
   }
   if (segments[0] === "profile" && segments.length === 1) {
@@ -96,9 +110,9 @@ export function parseDashboardRoute(): DashboardRoute {
   if (segments.length === 1) {
     const id = decoded(segments[0]);
     if (id) {
-      const section = new URLSearchParams(location.search).get("section");
-      return section && Object.hasOwn(SPACE_SECTIONS, section)
-        ? { screen: "space", id, section: section as SpaceSection }
+      const section = pickSection(SPACE_SECTIONS);
+      return section
+        ? { screen: "space", id, section }
         : { screen: "space", id };
     }
   }

@@ -200,28 +200,39 @@ test("space sections have refreshable query routes", async () => {
   });
 });
 
-test("existing authentication links open the Admin authentication section", async () => {
-  expect(
-    (await load("/.dashboard/authentication")).parseDashboardRoute(),
-  ).toEqual({
-    screen: "admin",
-    section: "authentication",
-  });
-});
-
-test("Admin defaults to Server and supports section links", async () => {
+test("Settings defaults to Server and supports section links", async () => {
   for (const [query, section] of [
     ["", "server"],
     ["?section=invalid", "server"],
     ["?section=authentication", "authentication"],
     ["?section=apis", "apis"],
-    ["?section=runtimes", "apis"],
+    ["?section=search", "search"],
   ]) {
     expect(
-      (await load("/.dashboard/admin", query)).parseDashboardRoute(),
-    ).toEqual({
-      screen: "admin",
-      section,
-    });
+      (await load("/.dashboard/settings", query)).parseDashboardRoute(),
+    ).toEqual({ screen: "settings", section });
+  }
+});
+
+test("the former Admin addresses are no longer dashboard screens", async () => {
+  for (const path of ["admin", "authentication"]) {
+    expect(
+      (
+        await load(`/.dashboard/${path}`, "?section=runtimes")
+      ).parseDashboardRoute(),
+    ).toEqual({ screen: "space", id: path });
+  }
+});
+
+test("Status defaults to Runtimes and supports section links", async () => {
+  for (const [query, section] of [
+    ["", "runtimes"],
+    ["?section=invalid", "runtimes"],
+    ["?section=apps", "apps"],
+    ["?section=search", "search"],
+  ]) {
+    expect(
+      (await load("/.dashboard/status", query)).parseDashboardRoute(),
+    ).toEqual({ screen: "status", section });
   }
 });
