@@ -454,6 +454,8 @@ type Shown = {
   contents: LuaWidget[];
   pendingWrites: number;
   renderedSource: string | null;
+  /** Called when a write starts; see `commitFocused` */
+  onWrite?: () => void;
 };
 
 const shownByDom = new WeakMap<HTMLElement, Shown>();
@@ -518,6 +520,7 @@ export class ObjectPreviewWidget extends WidgetType {
       // A locally edited DOM must not compare equal to an untouched render
       shown.renderedSource = null;
       shown.pendingWrites++;
+      shown.onWrite?.();
     }
     const previous = writeQueues.get(view) ?? Promise.resolve();
     const next = previous
@@ -662,10 +665,58 @@ export class ObjectPreviewWidget extends WidgetType {
     view.focus();
   }
 
-  /** Moves the cursor into the source, which read-only pages show only on request */
-  private reveal(view: EditorView, dom: HTMLElement, pos: number | undefined) {
+  /**
+   * Commits the text of a focused field and waits for it to land. Showing the
+   * source removes this DOM, and a field removed with uncommitted text loses
+   * it: WebKit commits nothing, and Chrome's blur commit can no longer find
+   * where the DOM was. Returns whether there was anything to commit.
+   */
+  private async commitFocused(
+    view: EditorView,
+    dom: HTMLElement,
+  ): Promise<boolean> {
+    const active = document.activeElement;
+    const shown = shownByDom.get(dom);
+    if (!shown || !dom.contains(active) || !hasLocalEdits(active)) {
+      return false;
+    }
+    // The commit runs in the form's Lua blur handler, which calls `set` a
+    // little later; give up waiting if it decides not to write
+    const started = new Promise<void>((resolve) => {
+      shown.onWrite = resolve;
+      setTimeout(resolve, 1000);
+    });
+    (active as HTMLElement).blur();
+    await started;
+    shown.onWrite = undefined;
+    await writeQueues.get(view);
+    return true;
+  }
+
+  /**
+   * Moves the cursor into the source of object `index`, on `key`'s value or
+   * else its first line. Read-only pages show the source only on request.
+   */
+  private async reveal(
+    view: EditorView,
+    dom: HTMLElement,
+    index: number,
+    key?: string,
+  ) {
     const from = this.livePosition(view, dom);
-    if (pos === undefined || from === undefined) return;
+    if (from === undefined) return;
+    if (await this.commitFocused(view, dom)) {
+      // Focus left for elsewhere while the value was written
+      const active = document.activeElement;
+      if (active && active !== document.body && !dom.contains(active)) return;
+    }
+    // The DOM may have been rebuilt by the write, but the object still starts
+    // at `from`: the write only changed its YAML
+    const doc = this.preview.host.documents(view.state, from)?.[index];
+    if (!doc) return;
+    const offset = key ? yamlValueOffset(doc.text, key) : undefined;
+    const pos = offset === undefined ? contentStart(doc) : doc.from + offset;
+    if (pos === undefined) return;
     const to = from + (this.preview.to - this.preview.from);
     view.dispatch({
       selection: { anchor: pos },
@@ -775,11 +826,7 @@ export class ObjectPreviewWidget extends WidgetType {
         }
         event.preventDefault();
         event.stopPropagation();
-        this.reveal(
-          view,
-          container,
-          contentStart(this.liveDocument(view, container, index(target))),
-        );
+        void this.reveal(view, container, index(target));
       },
       true,
     );
@@ -812,16 +859,15 @@ export class ObjectPreviewWidget extends WidgetType {
     });
     container.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
-      const doc = this.liveDocument(view, container, index(event.target));
-      if (!doc) return;
-      const key = dataAttribute(event.target, "data-key");
-      const offset = key ? yamlValueOffset(doc.text, key) : undefined;
+      const i = index(event.target);
+      if (!this.liveDocument(view, container, i)) return;
       event.preventDefault();
       event.stopPropagation();
-      this.reveal(
+      void this.reveal(
         view,
         container,
-        offset === undefined ? contentStart(doc) : doc.from + offset,
+        i,
+        dataAttribute(event.target, "data-key"),
       );
     });
 

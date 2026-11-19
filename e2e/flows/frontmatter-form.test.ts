@@ -452,6 +452,33 @@ test.describe("frontmatter form", () => {
     await expect(row(sbPage, "status").locator("select")).toHaveValue("active");
     await expect(budget).toHaveValue("30000");
   });
+
+  // Showing the YAML removes the form; a value typed but not yet committed
+  // must be written first, not lost with it
+  test("an uncommitted value is written before the YAML shows", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await openApollo(sbPage, sbServer);
+    await row(sbPage, "budget").locator("input").fill("31000");
+    await row(sbPage, "status").locator(".sb-fm-key").click();
+    await expect.poll(() => docText(sbPage)).toContain("budget: 31000\n");
+    await expect(form(sbPage)).toHaveCount(0);
+
+    await sbPage.locator(".cm-line", { hasText: "Apollo body text." }).click();
+    await row(sbPage, "budget").locator("input").fill("32000");
+    await sbPage.keyboard.press("Escape");
+    await expect.poll(() => docText(sbPage)).toContain("budget: 32000\n");
+    await expect(form(sbPage)).toHaveCount(0);
+    // Escape puts the cursor on the edited value
+    expect(
+      await sbPage.evaluate(() => {
+        const state = (globalThis as any).client.editorView.state;
+        return state.doc.lineAt(state.selection.main.head).text;
+      }),
+    ).toBe("budget: 32000");
+    await expect(sbPage.locator(".sb-notification-error")).toHaveCount(0);
+  });
 });
 
 test.describe("links in text fields", () => {
