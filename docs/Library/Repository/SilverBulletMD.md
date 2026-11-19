@@ -1,9 +1,10 @@
 ---
+share:
+  uri: "github:silverbulletmd/silverbullet-libraries@main/Library/Repository/SilverBulletMD.md"
+  mode: pull
+  hash: "7b00b8c4"
 name: Repositories/SilverBulletMD
 tags: meta/repository
-share.uri: "github:silverbulletmd/silverbullet-libraries@main/Library/Repository/SilverBulletMD.md"
-share.mode: pull
-share.hash: 7b00b8c4
 ---
 Optional libraries maintained by the SilverBullet project.
 
