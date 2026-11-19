@@ -62,6 +62,7 @@ export const CORE_ICON_NAMES: readonly string[] = [
   "list-ordered",
   "lock",
   "maximize",
+  "message-square",
   "minus",
   "navigation",
   "panel-left",
