@@ -111,6 +111,8 @@
   --top-color: var(--root-color);
   --top-background-color: var(--root-background-color);
   --top-border-color: transparent;
+  // Fades in under the top bar once the page scrolls.
+  --top-scroll-shadow-color: color-mix(in srgb, var(--root-color) 4%, transparent);
   --top-sync-error-color: var(--top-color);
   --top-sync-error-background-color: var(--tone-warning-soft);
   --top-saved-color: var(--root-color);

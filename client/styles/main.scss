@@ -82,10 +82,45 @@ body {
   container-type: inline-size;
   container-name: sb-editor-col;
 
+  // The scroll shadow below the top bar lives on the editor column, not on
+  // #sb-top, so it never falls across side panels (which keep their hairline).
+  position: relative;
+  timeline-scope: --sb-editor-scroll;
+
+  >.cm-editor>.cm-scroller {
+    scroll-timeline: --sb-editor-scroll block;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(var(--top-scroll-shadow-color), transparent);
+    opacity: 0;
+    // An inactive timeline (page too short to scroll, or no scroll-timeline
+    // support) leaves the base opacity, so no shadow.
+    animation: sb-top-scroll-shadow linear both;
+    animation-timeline: --sb-editor-scroll;
+    animation-range: 0 24px;
+  }
+
   iframe {
     width: 100%;
     height: 100%;
     border: none;
+  }
+}
+
+@keyframes sb-top-scroll-shadow {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
