@@ -542,3 +542,16 @@ test("Blank table header cells render as empty cells (#178)", () => {
     "<table><thead><tr><td></td><td>b</td></tr></thead><tr><td>1</td><td>2</td></tr></table>",
   );
 });
+
+test("a link around an image links to its own target and shows the image", () => {
+  vi.stubGlobal("document", mediaTestDocument());
+  try {
+    const html = renderMarkdownToHtml(
+      parse(extendedMarkdownLanguage, "[![Report](preview.png)](Report.pdf)"),
+    );
+    expect(html).toMatch(/^<span class="p"><a href="Report\.pdf"[^>]*><img /i);
+    expect(html).toContain("preview.png");
+  } finally {
+    vi.unstubAllGlobals();
+  }
+});

@@ -250,6 +250,7 @@ async function renamePage(oldName: string, newName: string) {
       linksToUpdate.push(rel);
     }
 
+    const tree = await markdown.parseMarkdown(text);
     const splices: Splice[] = [];
     for (const rel of linksToUpdate) {
       const movedDocument = documentsToMove.get(rel.to);
@@ -263,12 +264,12 @@ async function renamePage(oldName: string, newName: string) {
             oldName: rel.to,
             newName: movedDocument ?? rel.to,
             pageToEdit: newName,
+            tree,
           }),
       });
     }
     if (splices.length > 0) {
-      const regions = yamlRegions(await markdown.parseMarkdown(text));
-      text = applySplices(text, splices, regions).text;
+      text = applySplices(text, splices, yamlRegions(tree)).text;
     }
   }
 
@@ -508,6 +509,7 @@ export async function updateBacklinks(
     }
     let text = original;
 
+    const tree = await markdown.parseMarkdown(text);
     const splices: Splice[] = [];
     for (const rec of recsInPage) {
       const range = rec.range;
@@ -525,12 +527,12 @@ export async function updateBacklinks(
             newName,
             newWikiName,
             pageToEdit,
+            tree,
           }),
       });
     }
     if (splices.length > 0) {
-      const regions = yamlRegions(await markdown.parseMarkdown(text));
-      const applied = applySplices(text, splices, regions);
+      const applied = applySplices(text, splices, yamlRegions(tree));
       text = applied.text;
       updatedReferences += applied.changed;
     }

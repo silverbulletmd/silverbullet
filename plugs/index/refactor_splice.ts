@@ -16,11 +16,21 @@
 // `[text](OldName#hdr)`
 // `[text](/OldName)`
 // `[text](<OldName with spaces>)`
+// `[![alt](image.png)](OldName)`
 
 import {
   absoluteToRelativePath,
   fileName,
 } from "@silverbulletmd/silverbullet/lib/resolve";
+import {
+  type ParseTree,
+  renderToText,
+  traverseTree,
+} from "@silverbulletmd/silverbullet/lib/tree";
+import {
+  childrenWithin,
+  markdownLinkParts,
+} from "../../client/markdown_parser/markdown_link.ts";
 
 export type SpliceArgs = {
   text: string;
@@ -30,10 +40,14 @@ export type SpliceArgs = {
   newWikiName?: string;
   // Page that owns the reference being rewritten (for relative-path math).
   pageToEdit: string;
+  // Parse tree of the page before this batch of splices, to find the
+  // destination of a markdown link. Splices are applied from the end of the
+  // page, so its positions still hold up to the end of `range`.
+  tree: ParseTree;
 };
 
 export function spliceReference(args: SpliceArgs): string {
-  const { text, range, oldName, newName, pageToEdit } = args;
+  const { text, range, oldName, newName, pageToEdit, tree } = args;
   const newWikiName = args.newWikiName ?? newName;
   let [start, end] = range;
   let slice = text.substring(start, end);
@@ -48,9 +62,44 @@ export function spliceReference(args: SpliceArgs): string {
     return spliceWikilink(text, start, end, oldName, newWikiName, newName);
   }
   if (slice.startsWith("[")) {
-    return spliceMarkdownLink(text, start, end, newName, pageToEdit);
+    const destination = markdownLinkDestinationAt(tree, range);
+    // Leave the link alone if the text no longer holds what was parsed, as
+    // on a CRLF page, whose carriage returns the parser drops
+    if (
+      !destination ||
+      text.substring(...destination.range) !== destination.text
+    ) {
+      return text;
+    }
+    return spliceMarkdownLink(text, destination.range, newName, pageToEdit);
   }
   return text;
+}
+
+/** The destination of the markdown link or image spanning exactly `range` */
+function markdownLinkDestinationAt(
+  tree: ParseTree,
+  [from, to]: [number, number],
+): { range: [number, number]; text: string } | null {
+  let destination: { range: [number, number]; text: string } | null = null;
+  traverseTree(tree, (n) => {
+    if (destination || n.from! > from || n.to! < to) return true;
+    if (n.from !== from || n.to !== to) return false;
+    if (n.type !== "Link" && n.type !== "Image") return false;
+    const children = n.children ?? [];
+    const parts = markdownLinkParts(children);
+    if (parts) {
+      const { destinationFrom, destinationTo } = parts;
+      destination = {
+        range: [destinationFrom, destinationTo],
+        text: childrenWithin(children, destinationFrom, destinationTo)
+          .map(renderToText)
+          .join(""),
+      };
+    }
+    return true;
+  });
+  return destination;
 }
 
 function spliceWikilink(
@@ -91,17 +140,14 @@ function spliceWikilink(
 
 function spliceMarkdownLink(
   text: string,
-  start: number,
-  end: number,
+  [start, end]: [number, number],
   newName: string,
   pageToEdit: string,
 ): string {
-  // [text](url) or [text](<url with spaces>)
-  const slice = text.substring(start, end);
-  const m = slice.match(/^(\[[^\]]*\]\()(<)?([^)]*?)(>)?(\))$/);
-  if (!m) return text;
-  const [, leftBracketText, openAngle, urlBody, closeAngle, closeParen] = m;
-  if (!!openAngle !== !!closeAngle) return text; // mismatched < >
+  // The destination: `url` or `<url with spaces>`
+  const url = text.substring(start, end);
+  const angled = url.startsWith("<") && url.endsWith(">");
+  const urlBody = angled ? url.slice(1, -1) : url;
 
   const detail = matchDetail(urlBody);
   const isAbsolute = urlBody.startsWith("/");
@@ -116,16 +162,10 @@ function spliceMarkdownLink(
 
   // Re-wrap in <> if the original was wrapped OR the new url contains
   // characters that require wrapping (spaces).
-  const needsWrap = !!openAngle || newUrl.includes(" ");
+  const needsWrap = angled || newUrl.includes(" ");
   const wrappedUrl = needsWrap ? `<${newUrl}>` : newUrl;
 
-  return (
-    text.substring(0, start) +
-    leftBracketText +
-    wrappedUrl +
-    closeParen +
-    text.substring(end)
-  );
+  return text.substring(0, start) + wrappedUrl + text.substring(end);
 }
 
 // Matches a trailing `@123` / `@L4C5` / `#header` / `$anchor` ref

@@ -5,6 +5,7 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexPage } from "./indexer.ts";
 import { batchRenameFiles } from "./refactor.ts";
+import { spliceReference } from "./refactor_splice.ts";
 import { applySplices, type Splice, yamlRegions } from "./refactor_yaml.ts";
 
 async function indexPageForTest(name: string, text: string) {
@@ -80,6 +81,30 @@ test("moving a page rewrites links to its moved image and moves the image back w
       (doc: { name: string }) => doc.name,
     ),
   ).toEqual(["Inbox/photo.jpg"]);
+});
+
+test("renaming a document rewrites a link around an image, keeping the image", async () => {
+  const { space, system } = createMockSystem();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+
+  const text = "Read [![Report|300](/preview.png)](/Report.pdf) today.";
+  await space.writePage("Notes", text);
+  await space.writeDocument("Report.pdf", new Uint8Array([1]));
+  await space.writeDocument("preview.png", new Uint8Array([2]));
+  await indexPageForTest("Notes", text);
+
+  expect(await batchRenameFiles([["Report.pdf", "Docs/Report.pdf"]])).toBe(
+    true,
+  );
+  expect((await space.readPage("Notes")).text).toBe(
+    "Read [![Report|300](/preview.png)](/Docs/Report.pdf) today.",
+  );
 });
 
 test("cross-folder rename leaves an @mention's text byte-identical", async () => {
@@ -306,4 +331,33 @@ test("applySplices counts only the splices it kept", () => {
   // The flow sequence can't hold the new name, so its splice is dropped
   expect(result.text).toBe("---\nrefs: ['[[A]]', 'x']\n---\nBody [[B's: C]]\n");
   expect(result.changed).toBe(1);
+});
+
+test("applySplices rewrites a link and the image inside it to the same file", () => {
+  const text = "See [![alt](x.png)](x.png).";
+  const tree = parseMarkdown(text);
+  const outer = text.indexOf("[![");
+  const inner = text.indexOf("![alt");
+  const splice = (from: number, to: number): Splice => ({
+    range: [from, to],
+    apply: (t) =>
+      spliceReference({
+        text: t,
+        range: [from, to],
+        oldName: "x.png",
+        newName: "longer-name.png",
+        pageToEdit: "Page",
+        tree,
+      }),
+  });
+  const result = applySplices(
+    text,
+    [
+      splice(outer, outer + "[![alt](x.png)](x.png)".length),
+      splice(inner, inner + "![alt](x.png)".length),
+    ],
+    [],
+  );
+  expect(result.text).toBe("See [![alt](longer-name.png)](longer-name.png).");
+  expect(result.changed).toBe(2);
 });

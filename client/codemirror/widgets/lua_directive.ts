@@ -12,7 +12,7 @@ import {
   resolveMarkdownLink,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../../client.ts";
-import { mdLinkRegex } from "../../markdown_parser/constants.ts";
+import { markdownLinkPartsOfNode } from "../../markdown_parser/markdown_link.ts";
 import { marksTemplate } from "../../space_lua/page_definitions.ts";
 import type { PageScope } from "../../space_lua/page_scope.ts";
 import { parseAssignmentDirective } from "../../space_lua/assignment_directive.ts";
@@ -141,8 +141,9 @@ export function directiveWrappers(
         out.unshift({ tag: "span", attrs: { class: "sb-highlight" } });
         break;
       case "Link": {
-        mdLinkRegex.lastIndex = 0;
-        const url = mdLinkRegex.exec(state.sliceDoc(p.from, p.to))?.groups?.url;
+        const parts = markdownLinkPartsOfNode(p);
+        const url =
+          parts && state.sliceDoc(parts.destinationFrom, parts.destinationTo);
         if (!url) break;
         out.unshift({
           tag: "a",

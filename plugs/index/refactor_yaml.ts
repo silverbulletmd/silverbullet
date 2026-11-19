@@ -212,7 +212,10 @@ export function applySplices(
   splices: Splice[],
   regions: [number, number][],
 ): { text: string; changed: number } {
-  const sorted = [...splices].sort((a, b) => b.range[0] - a.range[0]);
+  // By end, so a link is rewritten before an image nested in it
+  // (`[![alt](x.png)](x.png)`): the link's url follows the image, so the
+  // image's range stays valid.
+  const sorted = [...splices].sort((a, b) => b.range[1] - a.range[1]);
   const regionOf = (s: Splice) =>
     regions.findIndex(([from, to]) => from <= s.range[0] && s.range[1] <= to);
   const kept: Replaced = [];

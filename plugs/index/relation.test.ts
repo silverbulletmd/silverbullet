@@ -989,3 +989,93 @@ test("YAML relation keys use parser-decoded identity and exact value spans", () 
     );
   }
 });
+
+test("a link around an image relates to the link target and to the image", async () => {
+  createMockSystem();
+  const text = "See [![Report|300](/folder/preview.webp)](/Report.pdf).";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+
+  const relations = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "mention",
+  );
+  expect(relations).toHaveLength(2);
+  const [link, image] = relations;
+  expect(link).toMatchObject({
+    kind: "mention",
+    to: "Report.pdf",
+    toTag: "document",
+    alias: "![Report|300](/folder/preview.webp)",
+  });
+  expect(text.substring(link.range![0], link.range![1])).toEqual(
+    "[![Report|300](/folder/preview.webp)](/Report.pdf)",
+  );
+  expect(image).toMatchObject({
+    kind: "mention",
+    to: "folder/preview.webp",
+    toTag: "document",
+    alias: "Report|300",
+  });
+  expect(text.substring(image.range![0], image.range![1])).toEqual(
+    "![Report|300](/folder/preview.webp)",
+  );
+});
+
+test("a plain image emits one document relation", async () => {
+  createMockSystem();
+  const text = "![Report|300](/folder/preview.webp)";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+
+  const relations = objects.filter((o) => o.tag === "relation");
+  expect(relations).toHaveLength(1);
+  expect(relations[0]).toMatchObject({
+    to: "folder/preview.webp",
+    toTag: "document",
+    alias: "Report|300",
+  });
+});
+
+test("an image inside a link without a url is still a relation", async () => {
+  createMockSystem();
+  const text = "[![a](b.png)]()";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+
+  const relations = objects.filter((o) => o.tag === "relation");
+  expect(relations.map((r) => r.to)).toEqual(["b.png"]);
+});
+
+test("an image in formatted link text is a relation too", async () => {
+  createMockSystem();
+  const text = "[**![a](b.png)** report](c.pdf)";
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+
+  const relations = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "mention",
+  );
+  expect(relations.map((r) => r.to)).toEqual(["c.pdf", "b.png"]);
+});
+
+test("markdown links on a CRLF page keep their target and text", async () => {
+  createMockSystem();
+  const text = ["Intro", "", "See [![a](b.png)](c.pdf)."].join(
+    String.fromCharCode(13, 10),
+  );
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+
+  const relations = objects.filter(
+    (o) => o.tag === "relation" && o.kind === "mention",
+  );
+  expect(relations.map((r) => [r.to, r.alias])).toEqual([
+    ["c.pdf", "![a](b.png)"],
+    ["b.png", "a"],
+  ]);
+});
