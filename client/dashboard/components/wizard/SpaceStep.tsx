@@ -1,9 +1,24 @@
-import { Button, Input, Select } from "@silverbulletmd/silverbullet/ui";
+import {
+  Alert,
+  Button,
+  type GalleryChoice,
+  HAS_NOTES_WARNING,
+  Input,
+  type KitInfo,
+  Select,
+  StarterGallery,
+} from "@silverbulletmd/silverbullet/ui";
 import { FolderPicker } from "../../FolderPicker.tsx";
 import { splitFieldErrors } from "../../field_errors.ts";
 import { FieldErrors, InlineError } from "../../space_fields.tsx";
+import { kitPreviewUrl } from "../../starter_kits.ts";
 import type { Binding, FieldError, RevisionsMode } from "../../types.ts";
-import { defaultFolder, parentDir, type SpaceValues } from "../../wizard.ts";
+import {
+  defaultFolder,
+  parentDir,
+  type SpaceValues,
+  type StarterValues,
+} from "../../wizard.ts";
 import { BindingFields } from "../BindingFields.tsx";
 
 export function SpaceStep({
@@ -15,6 +30,9 @@ export function SpaceStep({
   onBindingChange,
   onFolderChange,
   onRevisionsChange,
+  kits,
+  kitsFailed,
+  onStarterChange,
   errors,
   busy,
   onBack,
@@ -29,6 +47,10 @@ export function SpaceStep({
   onBindingChange: (binding: Binding) => void;
   onFolderChange: (folder: string) => void;
   onRevisionsChange: (revisions: RevisionsMode) => void;
+  /** Undefined while the starter kits are still loading. */
+  kits?: KitInfo[];
+  kitsFailed: boolean;
+  onStarterChange: (patch: Partial<StarterValues>) => void;
   errors: FieldError[];
   busy: boolean;
   onBack: () => void;
@@ -39,7 +61,10 @@ export function SpaceStep({
     "host",
     "prefix",
     "folder",
+    "starter",
+    "gitUrl",
   ]);
+  const { choice } = values.starter;
   return (
     <form
       onSubmit={(e) => {
@@ -61,6 +86,45 @@ export function SpaceStep({
       <p class="sb-help-text">
         Where people reach this server for management and sign-in.
       </p>
+      <h2>Start from</h2>
+      {kitsFailed ? (
+        <Alert variant="error">Could not load the starter kits.</Alert>
+      ) : !kits ? (
+        <p>Loading…</p>
+      ) : (
+        <StarterGallery
+          showGit
+          selectedId={choice.type === "kit" ? choice.id : "git"}
+          kits={kits.map((kit) => ({
+            id: kit.id,
+            name: kit.name,
+            description: kit.description,
+            previewUrl: kitPreviewUrl("setup", kit),
+          }))}
+          onPick={(next: GalleryChoice) => onStarterChange({ choice: next })}
+        />
+      )}
+      <InlineError id="setup-starter-error" message={byField.starter} />
+      {choice.type === "git" && (
+        <>
+          <label for="setup-git-url">Git repository URL</label>
+          <Input
+            id="setup-git-url"
+            placeholder="https://github.com/example/notes"
+            aria-invalid={!!byField.gitUrl}
+            aria-describedby={
+              byField.gitUrl ? "setup-git-url-error" : undefined
+            }
+            value={values.starter.gitUrl}
+            onInput={(e) => onStarterChange({ gitUrl: e.currentTarget.value })}
+          />
+          <InlineError id="setup-git-url-error" message={byField.gitUrl} />
+          <p class="sb-help-text">
+            The files of a public repository are copied once, as a starting
+            point.
+          </p>
+        </>
+      )}
       <label for="setup-space-name">Name of your first space</label>
       <Input
         id="setup-space-name"
@@ -87,6 +151,9 @@ export function SpaceStep({
         browseStart={parentDir(values.folder) || "/"}
       />
       <InlineError id="setup-folder-error" message={byField.folder} />
+      {choice.type === "kit" && values.starter.hasNotes && (
+        <Alert variant="info">{HAS_NOTES_WARNING}</Alert>
+      )}
       <label for="setup-revisions">Revisions</label>
       <Select
         id="setup-revisions"

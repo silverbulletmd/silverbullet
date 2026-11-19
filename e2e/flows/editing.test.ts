@@ -27,9 +27,7 @@ test("a fresh space can be edited, saved and reopened", async ({
 }) => {
   const editor = sbPage.locator("#sb-editor .cm-content");
   await expect(editor).toBeVisible();
-  await expect(editor).toContainText(
-    "Welcome to the wondrous world of SilverBullet",
-  );
+  await expect(editor).toContainText("Welcome to your personal space");
 
   await createPageViaPagePicker(sbPage, "First Note");
   await sbPage.locator("#sb-editor .cm-content").click();

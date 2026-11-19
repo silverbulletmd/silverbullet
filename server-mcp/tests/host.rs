@@ -98,7 +98,7 @@ async fn request_forwards_with_bearer() {
         .await
         .unwrap();
     assert_eq!(response.status, StatusCode::OK);
-    assert!(String::from_utf8_lossy(&response.body).contains("# Fixture"));
+    assert!(String::from_utf8_lossy(&response.body).contains("Welcome to your new space"));
 }
 
 #[tokio::test]
@@ -239,7 +239,7 @@ async fn host_bound_space_is_reachable() {
         "members": {"writer-one": {"role": "write"}},
     }))
     .unwrap();
-    let id = fixture.manager.create(config, true).unwrap();
+    let id = fixture.create_seeded(config);
     let response = fixture
         .host
         .request(&caller(&fixture, "writer-one"), &id, get("/.fs/index.md"))

@@ -10,7 +10,7 @@ async fn boots_and_serves_ping_config_and_bundle() {
     let space = tempfile::tempdir().unwrap();
     std::fs::write(
         space.path().join("index.md"),
-        silverbullet::DEFAULT_INDEX_MD,
+        include_str!("../../../starter-kits/personal-space/index.md"),
     )
     .unwrap();
     // Visitors may write, but `/.help` is for signed-in accounts.
@@ -71,7 +71,7 @@ async fn boots_and_serves_ping_config_and_bundle() {
     assert_eq!(index.status(), reqwest::StatusCode::OK);
     let index_body = index.text().await.unwrap();
     assert!(
-        index_body.contains("Welcome to the wondrous world of SilverBullet"),
+        index_body.contains("Welcome to your personal space"),
         "got: {index_body}"
     );
 

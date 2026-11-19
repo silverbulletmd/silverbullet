@@ -46,8 +46,11 @@ export function GitSyncPage({
   onUnauthorized,
   spaceInfo,
   onDraftChange,
+  initialUrl,
 }: {
   spaceId: string;
+  /** Pre-fills the repository of the first connection draft. */
+  initialUrl?: string;
   spaceInfo?: SpaceInfo;
   onDraftChange?: (open: boolean, changed: boolean) => void;
   onUnauthorized: () => void;
@@ -71,6 +74,8 @@ export function GitSyncPage({
   const [notice, setNotice] = useState("");
   const notify = useNotification("git");
   const request = useRef(0);
+  // Consumed by the first draft, so a later "Connect repository" starts blank.
+  const pendingUrl = useRef(initialUrl);
   const mounted = useRef(true);
   const sessionRef = useRef(session);
   sessionRef.current = session;
@@ -225,13 +230,27 @@ export function GitSyncPage({
   const openDraft = () =>
     operation("draft", async () => {
       const value = await createGitDraft(spaceId);
-      setSession(new GitDraftSession(value));
-      setRepository(value.url);
+      const next = new GitDraftSession(value);
+      const url = pendingUrl.current;
+      pendingUrl.current = undefined;
+      if (url) next.edit({ url: effectiveUrl(url, value.mode) });
+      setSession(next);
+      setRepository(url || value.url);
       setGeneratedDraftKey(false);
       setAdvanced(false);
       setCombine(false);
       setNotice("");
     });
+  useEffect(() => {
+    if (
+      pendingUrl.current &&
+      status &&
+      !connected &&
+      !session &&
+      space?.revisions === "managed"
+    )
+      void openDraft();
+  }, [!!status, !!space, !!session]);
   const test = draft?.test;
   const provider = draft ? parseRepoUrl(draft.url) : null;
   const syncText = status && gitStatusText(status);

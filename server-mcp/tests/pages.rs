@@ -91,7 +91,7 @@ async fn read_returns_markdown_and_revision() {
     let env = env();
     let r = env.call("read", json!({"page": "index"})).await;
     assert!(!is_error(&r), "{r}");
-    assert!(text(&r).contains("# Fixture"));
+    assert!(text(&r).contains("Welcome to your new space"));
     let s = &r["structuredContent"];
     assert_eq!(s["page"], "index");
     assert_eq!(s["truncated"], false);
@@ -110,7 +110,7 @@ async fn read_returns_markdown_and_revision() {
     assert!(several["structuredContent"]["pages"][0]["text"]
         .as_str()
         .unwrap()
-        .contains("# Fixture"));
+        .contains("Welcome to your new space"));
 
     let missing = env.call("read", json!({"page": "Nope/Missing"})).await;
     assert!(is_error(&missing));

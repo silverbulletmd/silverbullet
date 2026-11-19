@@ -3,7 +3,7 @@
 //! library crate (`src/lib.rs`), this is just the CLI entry point.
 
 use clap::{Parser, Subcommand};
-use silverbullet::{server, DEFAULT_INDEX_MD, VERSION};
+use silverbullet::{server, VERSION};
 use silverbullet_server::multi::setup::{run_setup, FirstSpace, SetupRequest};
 use silverbullet_server_common::upgrade::{self, UpgradeSpec, EDGE_URL_PREFIX, STABLE_URL_PREFIX};
 
@@ -209,10 +209,11 @@ fn run_setup_subcommand(
             prefix: at,
             folder: space_folder,
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }),
     };
 
-    match run_setup(root, &req, DEFAULT_INDEX_MD) {
+    match run_setup(root, &req) {
         Ok(()) => {
             println!("Setup complete: admin \"{username}\" created");
             if let Some(space) = &req.space {

@@ -118,7 +118,7 @@ export async function seedWelcomePage(spaceDir: string): Promise<void> {
   const entries = await readdir(spaceDir, { recursive: true });
   if (entries.some((entry) => entry.endsWith(".md"))) return;
   await copyFile(
-    join(import.meta.dirname, "../../bin/silverbullet/space_template/index.md"),
+    join(import.meta.dirname, "../../starter-kits/personal-space/index.md"),
     join(spaceDir, "index.md"),
   );
 }

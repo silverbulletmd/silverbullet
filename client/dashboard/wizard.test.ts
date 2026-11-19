@@ -1,5 +1,6 @@
 import { expect, test } from "vitest";
 import {
+  DEFAULT_STARTER,
   defaultFolder,
   parentDir,
   spacePayload,
@@ -19,6 +20,12 @@ const SPACE = {
   binding: { prefix: "/notes" },
   folder: "/data/spaces/notes",
   revisions: "managed" as const,
+  starter: DEFAULT_STARTER,
+};
+
+const KIT_STARTER = {
+  type: "kit",
+  id: "personal-space",
 };
 
 test("defaultFolder slugifies the name under <root>/spaces", () => {
@@ -62,6 +69,7 @@ test("spacePayload serializes a primary-host prefix", () => {
     prefix: "/notes",
     folder: "/data/spaces/notes",
     revisions: "managed",
+    starter: KIT_STARTER,
   });
 
   expect(
@@ -72,6 +80,7 @@ test("spacePayload serializes a primary-host prefix", () => {
     prefix: "/",
     folder: "/data/spaces/notes",
     revisions: "managed",
+    starter: KIT_STARTER,
   });
   expect(
     spacePayload({
@@ -84,8 +93,50 @@ test("spacePayload serializes a primary-host prefix", () => {
     prefix: "/work",
     folder: SPACE.folder,
     revisions: "managed",
+    starter: KIT_STARTER,
   });
   expect(spacePayload({ ...SPACE, revisions: "unmanaged" }).revisions).toBe(
     "unmanaged",
   );
+});
+
+test("spacePayload defaults to the Personal space kit", () => {
+  expect(spacePayload(SPACE).starter).toEqual(KIT_STARTER);
+});
+
+test("spacePayload carries the chosen kit", () => {
+  const starter = {
+    ...DEFAULT_STARTER,
+    choice: { type: "kit" as const, id: "blank-space" },
+  };
+  expect(spacePayload({ ...SPACE, starter }).starter).toEqual({
+    type: "kit",
+    id: "blank-space",
+  });
+});
+
+test("spacePayload sends a Git starting point as a one-off copy", () => {
+  const starter = {
+    ...DEFAULT_STARTER,
+    choice: { type: "git" as const },
+    gitUrl: " https://github.com/example/notes ",
+  };
+  expect(spacePayload({ ...SPACE, starter }).starter).toEqual({
+    type: "git",
+    url: "https://github.com/example/notes",
+  });
+});
+
+test("spacePayload sends no starter content over a folder with notes", () => {
+  const starter = { ...DEFAULT_STARTER, hasNotes: true };
+  expect(spacePayload({ ...SPACE, starter }).starter).toEqual({
+    type: "none",
+  });
+});
+
+test("validateSpace requires a Git URL once Git is chosen", () => {
+  const starter = { ...DEFAULT_STARTER, choice: { type: "git" as const } };
+  expect(validateSpace({ ...SPACE, starter })).toEqual([
+    { field: "space.gitUrl", message: "Required" },
+  ]);
 });

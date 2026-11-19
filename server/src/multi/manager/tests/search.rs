@@ -1,4 +1,5 @@
 use super::*;
+use silverbullet_server_common::starter_kits::PreparedStarter;
 use silverbullet_server_search::fulltext::SCHEMA_DIR;
 use std::path::PathBuf;
 
@@ -141,9 +142,10 @@ async fn deleting_a_space_removes_its_search_index() {
                     prefix: "/keep".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
-        .unwrap();
+        .unwrap()
+        .0;
     let gone = m
         .create(
             payload(
@@ -152,9 +154,10 @@ async fn deleting_a_space_removes_its_search_index() {
                     prefix: "/gone".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
-        .unwrap();
+        .unwrap()
+        .0;
     let index = |id: &str| root.join("search/indexes").join(id).join(SCHEMA_DIR);
     let deadline = Instant::now() + Duration::from_secs(10);
     while !(index(&keep).join("meta.json").is_file() && index(&gone).join("meta.json").is_file()) {
@@ -256,7 +259,7 @@ async fn boot_skips_a_space_whose_folder_overlaps_a_reserved_directory() {
     );
     moss.folder = "git-keys".into();
     assert!(matches!(
-        m.create(moss.clone(), false),
+        m.create(moss.clone(), PreparedStarter::None),
         Err(ApiError::Validation(_))
     ));
     let mut moved = fern.clone();
@@ -279,7 +282,7 @@ async fn boot_skips_a_space_whose_folder_overlaps_a_reserved_directory() {
         },
     );
     taker.folder = "spaces/moss".into();
-    let Err(ApiError::Validation(errors)) = m.create(taker, false) else {
+    let Err(ApiError::Validation(errors)) = m.create(taker, PreparedStarter::None) else {
         panic!("a skipped space's prefix was taken");
     };
     assert!(

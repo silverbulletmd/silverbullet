@@ -16,7 +16,7 @@ A single SilverBullet server can host any number of [[Space|spaces]] — each wi
 When a server boots with an empty data folder it will run in setup mode. Setup mode has two steps:
 
 1. **Account creation**: creates the first administrator account.
-2. **Space creation**: creates your first space.
+2. **Space creation**: creates your first space, starting from one of the [[Starter Kits]] (Personal space by default) or a public Git repository.
 
 When the data folder has a `spaces.json` but no `users.json`, the setup wizard runs to create an administrator and keeps the existing spaces. See [[Install/Configuration#Data folder]] for what the data folder holds.
 
@@ -28,10 +28,14 @@ A server whose `users.json` contains just `{}` has no accounts, so nobody can si
 # Spaces
 Spaces have a name and point to a folder where its content is kept. By default this will be inside the SilverBullet data folder, but you can pick any folder you like.
 
+**New space** opens with a gallery of [[Starter Kits]] (Personal space, Team space, Blank space) and **From a Git repository**, which copies a public repository once or keeps the space in sync with it. Pointing it at a folder that already has notes creates the space without adding starter content.
+
+**Space settings → General → Remove space** removes a space from the server and keeps its files on disk. Tick **Also delete all my files** to permanently delete the space's folder and everything in it as well; this cannot be undone. The server refuses to delete a folder that holds its own data (a space at `.`) or overlaps another space's folder; remove such a space without deleting its files and clean up by hand.
+
 ## Bindings
 Each space has a public address composed from a hostname and a path (which can be `/`).
 
-The setup wizard, **Create space**, and **Space settings → General** use the same address editor. Choose the primary host, a previously configured custom hostname or `hostname:port`, or **New hostname**, then choose a path.
+The setup wizard, **New space**, and **Space settings → General** use the same address editor. Choose the primary host, a previously configured custom hostname or `hostname:port`, or **New hostname**, then choose a path.
 
 ## Access
 Access to a space can be configured to one of three levels:

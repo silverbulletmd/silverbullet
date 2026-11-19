@@ -4,7 +4,7 @@ import {
   Input,
   overviewPollMs,
   SearchBadge,
-  SlidersIcon,
+  Icon,
   usePolledLoad,
 } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
@@ -109,7 +109,7 @@ export function SpaceList({
         <h1>Spaces</h1>
         {admin && (
           <a class="sb-button sb-button-primary" href={dashboardUrl("/new")}>
-            Create space
+            New space
           </a>
         )}
       </header>
@@ -172,7 +172,7 @@ export function SpaceList({
                 aria-label={`Settings for ${space.name}`}
                 title={`Settings for ${space.name}`}
               >
-                <SlidersIcon size={16} aria-hidden="true" />
+                <Icon name="sliders-vertical" size={16} />
               </ButtonLink>
             )}
           </li>

@@ -70,10 +70,6 @@ pub struct InstanceDeps {
     /// regardless of its own `spaces.json` settings. It only ever disables:
     /// a space that turned the shell off stays off.
     pub shell_disabled: bool,
-    /// Content seeded into a brand-new empty space's index page. The bin
-    /// crate supplies the rich `space_template/index.md`; test helpers in
-    /// this crate can use any short string.
-    pub index_template: String,
     /// Process-wide shutdown signal, cloned into every instance's
     /// `ServerState::shutdown`. See that field's doc comment.
     pub shutdown: Option<tokio::sync::watch::Receiver<()>>,
@@ -197,26 +193,6 @@ pub fn resolve_folder(root: &Path, id: &str, folder: &str) -> PathBuf {
         } else {
             root.join(p)
         }
-    }
-}
-
-/// Seed index_page.md when no unignored markdown exists anywhere in the space.
-/// Stop the recursive walk at the first match; create parent directories for
-/// nested index pages through DiskSpacePrimitives::write_file.
-pub fn seed_index(folder: &Path, index_page: &str, content: &str, space_ignore: &str) {
-    let disk = match DiskSpacePrimitives::new(folder, space_ignore) {
-        Err(e) => {
-            tracing::warn!("could not check space state at {}: {e}", folder.display());
-            return;
-        }
-        Ok(disk) => disk,
-    };
-    if disk.has_file_with_suffix(".md") {
-        return;
-    }
-    let path = format!("{index_page}.md");
-    if let Err(e) = disk.write_file(&path, content.as_bytes(), None) {
-        tracing::warn!("could not seed index page {path}: {e}");
     }
 }
 
@@ -653,7 +629,6 @@ mod tests {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: false,
-            index_template: "# Test space\n".into(),
             shutdown: None,
             search: crate::search::SpaceSearch::in_memory(),
         }
@@ -1634,32 +1609,6 @@ mod tests {
                 "{path} must not expose server control state"
             );
         }
-    }
-
-    #[test]
-    fn seed_index_creates_page_only_in_empty_space() {
-        let dir = tempfile::tempdir().unwrap();
-        seed_index(dir.path(), "index", "# Hello\n", "");
-        assert_eq!(
-            std::fs::read_to_string(dir.path().join("index.md")).unwrap(),
-            "# Hello\n"
-        );
-        std::fs::write(dir.path().join("other.md"), "x").unwrap();
-        seed_index(dir.path(), "home", "# Hello\n", "");
-        assert!(!dir.path().join("home.md").exists());
-    }
-
-    #[test]
-    fn seed_index_ignores_markdown_nested_in_subdirectories() {
-        // Markdown in subdirectories also makes a space nonempty.
-        let dir = tempfile::tempdir().unwrap();
-        std::fs::create_dir_all(dir.path().join("sub")).unwrap();
-        std::fs::write(dir.path().join("sub/page.md"), "hi").unwrap();
-        seed_index(dir.path(), "index", "# Hello\n", "");
-        assert!(
-            !dir.path().join("index.md").exists(),
-            "space with markdown only in a subdirectory must not be seeded"
-        );
     }
 
     #[test]

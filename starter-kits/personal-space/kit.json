@@ -1,0 +1,7 @@
+{
+  "name": "Personal space",
+  "description": "Journal, quick notes and tasks",
+  "order": 10,
+  "interface": "minimal",
+  "preview": "preview.png"
+}

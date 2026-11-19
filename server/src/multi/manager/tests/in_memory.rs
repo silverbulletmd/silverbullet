@@ -1,4 +1,5 @@
 use super::*;
+use silverbullet_server_common::starter_kits::PreparedStarter;
 use tower::ServiceExt;
 
 fn in_memory_deps() -> InstanceDeps {
@@ -22,7 +23,6 @@ fn in_memory_deps() -> InstanceDeps {
         main_port: 3000,
         disable_service_worker: true,
         shell_disabled: false,
-        index_template: "# Test space\n".into(),
         shutdown: None,
         search: crate::search::SpaceSearch::in_memory(),
     }
@@ -86,7 +86,7 @@ async fn an_in_memory_manager_serves_its_spaces_and_refuses_every_change() {
                     prefix: "/new".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .map(|_| ()),
     );

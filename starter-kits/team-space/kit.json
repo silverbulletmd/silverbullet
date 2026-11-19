@@ -1,0 +1,7 @@
+{
+  "name": "Team space",
+  "description": "Meeting notes, decisions and action items",
+  "order": 30,
+  "interface": "standard",
+  "preview": "preview.png"
+}

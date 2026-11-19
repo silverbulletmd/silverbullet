@@ -904,3 +904,59 @@ a.sb-tab.sb-active { color: var(--ui-accent-text-color); }
     opacity: 1;
   }
 }
+
+/* Starter gallery: kit cards in a grid that collapses to one column on phones. */
+.sb-starter-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+  gap: 12px;
+}
+
+.sb-starter-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--root-color);
+  background-color: var(--root-background-color);
+  border: 1px solid var(--ui-surface-border-color);
+  border-radius: var(--ui-radius-lg);
+  font: inherit;
+
+  &:hover, &:focus-visible {
+    background-color: var(--ui-accent-surface-color);
+  }
+
+  &[aria-pressed="true"] {
+    border-color: var(--ui-accent-color);
+    box-shadow: 0 0 0 1px var(--ui-accent-color);
+  }
+
+  .sb-starter-preview {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    object-position: top left;
+    border-radius: var(--ui-radius-md);
+    background-color: var(--ui-accent-surface-color);
+  }
+
+  .sb-starter-preview-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ui-surface-subtle-color);
+  }
+
+  .sb-starter-name {
+    font-weight: 600;
+  }
+
+  .sb-starter-description {
+    font-size: 0.875em;
+    color: var(--ui-surface-subtle-color);
+  }
+}

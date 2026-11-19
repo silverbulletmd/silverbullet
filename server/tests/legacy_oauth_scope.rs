@@ -1,6 +1,7 @@
 //! The per-space OAuth flows accept only SilverBullet's own clients, and no
 //! space surface accepts an audience-bound (MCP) bearer token.
 
+use silverbullet_server_common::starter_kits::PreparedStarter;
 use std::sync::{atomic::AtomicBool, Arc};
 
 use axum::{
@@ -66,7 +67,6 @@ impl Fixture {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: true,
-            index_template: "# Fixture\n".into(),
             shutdown: None,
             search: silverbullet_server::search::SpaceSearch::in_memory(),
         };
@@ -82,7 +82,7 @@ impl Fixture {
             "members": {"keeper": {"role": "write"}}
         }))
         .unwrap();
-        manager.create(config, false).unwrap();
+        manager.create(config, PreparedStarter::None).unwrap();
         let main = silverbullet_server::multi::dispatch::build_main_router(
             manager.clone(),
             Some(Router::new()),

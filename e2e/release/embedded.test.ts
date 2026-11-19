@@ -33,9 +33,7 @@ test.describe("Release binary: embedded bundle", () => {
     // The embedded bundle ships the welcome content on an empty space.
     const editor = page.locator("#sb-editor .cm-content");
     await expect(editor).toBeVisible();
-    await expect(editor).toContainText(
-      "Welcome to the wondrous world of SilverBullet",
-    );
+    await expect(editor).toContainText("Welcome to your personal space");
 
     // Type some text and confirm it persists across a reload.
     await editor.click();

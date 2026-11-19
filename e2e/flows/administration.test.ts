@@ -54,7 +54,10 @@ hostnameTest(
       },
     );
     await page.reload();
-    await page.getByRole("link", { name: "Create space", exact: true }).click();
+    await page.getByRole("link", { name: "New space", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Blank space", exact: true })
+      .click();
     const primaryOption = page
       .getByLabel("Hostname", { exact: true })
       .locator('option[value="primary"]');
@@ -69,6 +72,9 @@ hostnameTest(
     ).toHaveCount(0);
     await adminApi(page, sbServer, "DELETE", `spaces/${primaryRoot.id}`);
     await page.reload();
+    await page
+      .getByRole("button", { name: "Blank space", exact: true })
+      .click();
     await page.getByLabel("Name", { exact: true }).fill("Draft");
     await page.getByLabel("Hostname", { exact: true }).selectOption("new");
     await page
@@ -92,7 +98,10 @@ hostnameTest(
     });
 
     await page.goto(`${sbServer.url}/.dashboard/`);
-    await page.getByRole("link", { name: "Create space", exact: true }).click();
+    await page.getByRole("link", { name: "New space", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Blank space", exact: true })
+      .click();
     await page.getByLabel("Name", { exact: true }).fill("Wiki");
     const knownHost = page
       .getByLabel("Hostname", { exact: true })

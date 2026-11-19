@@ -15,7 +15,9 @@ use axum::{Json, Router};
 use serde_json::json;
 use silverbullet_server_common::SpacePrimitives;
 
-use crate::multi::admin_api::dir_completion;
+use crate::multi::admin_api::{
+    dir_completion, handle_starter_kit_preview, handle_starter_kits, has_notes, HasNotesQuery,
+};
 use crate::multi::setup::{canonicalize_best_effort, run_setup, SetupRequest};
 use crate::router::run_blocking;
 
@@ -26,8 +28,6 @@ pub struct SetupState {
     pub root: PathBuf,
     pub client_bundle: Box<dyn SpacePrimitives>,
     pub version: String,
-    /// Seeded into a first space's index page, as the admin API does for new spaces.
-    pub index_template: String,
     pub on_complete: Box<dyn Fn() + Send + Sync>,
     /// Serializes `POST /.setup/api/complete`. `run_setup`'s `is_configured`
     /// check-then-write isn't atomic on its own — argon2 hashing the admin
@@ -96,10 +96,9 @@ async fn handle_complete(
     let _guard = state.complete_lock.lock().await;
 
     let root = state.root.clone();
-    let tmpl = state.index_template.clone();
     // `run_setup` hashes the admin password (argon2, deliberately slow) and
     // touches the filesystem — keep it off the async worker.
-    let result = run_blocking(move || Ok(run_setup(&root, &req, &tmpl))).await;
+    let result = run_blocking(move || Ok(run_setup(&root, &req))).await;
     match result {
         Ok(Ok(())) => {
             (state.on_complete)();
@@ -134,6 +133,18 @@ async fn handle_fs_dirs(
     }
 }
 
+/// `GET /.setup/api/fs/has-notes`: same resolution and trust model as `fs/dirs`.
+async fn handle_has_notes(
+    State(state): State<Arc<SetupState>>,
+    axum::extract::Query(q): axum::extract::Query<HasNotesQuery>,
+) -> Response {
+    let root = state.root.clone();
+    match run_blocking(move || Ok(has_notes(&root, &q.path))).await {
+        Ok(v) => Json(v).into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
 /// Anything outside `/.setup/...` on an unconfigured server points the browser
 /// at the wizard.
 async fn handle_fallback() -> Response {
@@ -161,6 +172,12 @@ pub fn build_setup_router(state: Arc<SetupState>) -> Router {
         .route("/.setup/assets/{file}", get(handle_asset))
         .route("/.setup/api/status", get(handle_status))
         .route("/.setup/api/fs/dirs", get(handle_fs_dirs))
+        .route("/.setup/api/fs/has-notes", get(handle_has_notes))
+        .route("/.setup/api/starter-kits", get(handle_starter_kits))
+        .route(
+            "/.setup/api/starter-kits/{id}/preview",
+            get(handle_starter_kit_preview),
+        )
         .route("/.setup/api/complete", post(handle_complete))
         .fallback(handle_fallback)
         .layer(axum::extract::DefaultBodyLimit::max(1024 * 1024))
@@ -195,7 +212,6 @@ mod tests {
             root: dir.path().to_path_buf(),
             client_bundle: Box::new(bundle),
             version: "test".into(),
-            index_template: "# Hello\n".into(),
             on_complete: Box::new(move || flag.store(true, Ordering::SeqCst)),
             complete_lock: tokio::sync::Mutex::new(()),
         })

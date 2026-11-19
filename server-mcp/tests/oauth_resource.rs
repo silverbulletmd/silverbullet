@@ -167,7 +167,7 @@ async fn name_lookup_ignores_ungranted_spaces() {
     let text = env
         .text(&wide, "read", json!({"space": "Beta", "page": "index"}))
         .await;
-    assert!(text.contains("# Fixture"), "{text}");
+    assert!(text.contains("Welcome to your new space"), "{text}");
 }
 
 #[tokio::test]
@@ -335,7 +335,7 @@ async fn token_for_other_host_is_401_with_this_hosts_metadata() {
             "members": {"writer-one": {"role": "write"}},
         }))
         .unwrap();
-        ids.push(env.fixture.manager.create(config, true).unwrap());
+        ids.push(env.fixture.create_seeded(config));
     }
     let spaces: Vec<&str> = ids.iter().map(String::as_str).collect();
     let (token, _) =
@@ -420,7 +420,7 @@ async fn forwarded_request_uses_space_scoped_token() {
     let text = env
         .text(&token, "read", json!({"space": alpha, "page": "index"}))
         .await;
-    assert!(text.contains("# Fixture"), "{text}");
+    assert!(text.contains("Welcome to your new space"), "{text}");
 
     // The bearer `request` puts on the forwarded request.
     let forward = env.host.forward_bearer(&caller, &alpha).unwrap();
@@ -487,7 +487,7 @@ async fn prefix_bound_space_reachable_through_grant() {
     let text = env
         .text(&token, "read", json!({"space": "Alpha", "page": "index"}))
         .await;
-    assert!(text.contains("# Fixture"), "{text}");
+    assert!(text.contains("Welcome to your new space"), "{text}");
 }
 
 #[tokio::test]
@@ -508,5 +508,5 @@ async fn root_prefix_space_does_not_swallow_well_known() {
     let text = env
         .text(&token, "read", json!({"space": "Root", "page": "index"}))
         .await;
-    assert!(text.contains("# Fixture"), "{text}");
+    assert!(text.contains("Welcome to your new space"), "{text}");
 }

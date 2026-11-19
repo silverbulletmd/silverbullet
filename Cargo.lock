@@ -4067,6 +4067,7 @@ dependencies = [
  "percent-encoding",
  "pulldown-cmark",
  "reqwest 0.12.28",
+ "rust-embed",
  "serde",
  "serde_json",
  "serde_yaml",

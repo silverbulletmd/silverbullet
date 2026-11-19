@@ -1,15 +1,20 @@
+import type { KitInfo } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.ts";
 import { useSlugDefaults } from "../space_fields.tsx";
+import { listStarterKits } from "../starter_kits.ts";
 import type { Binding, FieldError, RevisionsMode } from "../types.ts";
 import {
   type AdminValues,
+  DEFAULT_STARTER,
   defaultFolder,
   type SpaceValues,
+  type StarterValues,
   spacePayload,
   validateAdmin,
   validateSpace,
 } from "../wizard.ts";
+import { useFolderHasNotes } from "./NewSpaceStarter.tsx";
 import { AdminStep } from "./wizard/AdminStep.tsx";
 import { DoneStep } from "./wizard/DoneStep.tsx";
 import { SpaceStep } from "./wizard/SpaceStep.tsx";
@@ -45,11 +50,22 @@ export function Wizard() {
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [busy, setBusy] = useState(false);
 
+  const [kits, setKits] = useState<KitInfo[]>();
+  const [kitsFailed, setKitsFailed] = useState(false);
+  const [starter, setStarter] =
+    useState<Omit<StarterValues, "hasNotes">>(DEFAULT_STARTER);
+  const hasNotes = useFolderHasNotes(
+    "setup",
+    step === "space" && starter.choice.type === "kit",
+    folder,
+  );
+
   const space: SpaceValues = {
     name: spaceName,
     binding,
     folder,
     revisions,
+    starter: { ...starter, hasNotes },
   };
 
   useEffect(() => {
@@ -65,6 +81,12 @@ export function Wizard() {
         // retry once the server is reachable again.
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    listStarterKits("setup")
+      .then(setKits)
+      .catch(() => setKitsFailed(true));
   }, []);
 
   // Seed the prefix/folder defaults from the initial "Notes" space name once
@@ -141,6 +163,9 @@ export function Wizard() {
           }}
           onFolderChange={setFolder}
           onRevisionsChange={setRevisions}
+          kits={kits}
+          kitsFailed={kitsFailed}
+          onStarterChange={(patch) => setStarter({ ...starter, ...patch })}
           errors={errors}
           busy={busy}
           onBack={() => {

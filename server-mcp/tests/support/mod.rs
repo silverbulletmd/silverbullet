@@ -1,5 +1,6 @@
 #![allow(dead_code)] // each test binary uses a different subset
 
+use silverbullet_server_common::starter_kits::PreparedStarter;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -323,7 +324,6 @@ impl Fixture {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: true,
-            index_template: "# Fixture\n".into(),
             shutdown: None,
             search: silverbullet_server::search::SpaceSearch::in_memory(),
         };
@@ -366,7 +366,18 @@ impl Fixture {
             "members": members,
         }))
         .unwrap();
-        self.manager.create(config, true).unwrap()
+        self.create_seeded(config)
+    }
+
+    /// Creates a space and seeds its index page inside `create`, as the
+    /// admin API does. Seeding afterwards would reach the space's watcher as a
+    /// late event and slow every index wait.
+    pub fn create_seeded(&self, config: SpaceConfig) -> String {
+        let starter = PreparedStarter::Kit {
+            id: "blank-space".into(),
+            interface: None,
+        };
+        self.manager.create(config, starter).unwrap().0
     }
 
     pub fn config(&self, id: &str) -> SpaceConfig {

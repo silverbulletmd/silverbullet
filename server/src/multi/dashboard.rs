@@ -435,6 +435,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::Request;
     use silverbullet_server_common::space::MemorySpacePrimitives;
+    use silverbullet_server_common::starter_kits::PreparedStarter;
     use tower::ServiceExt;
 
     fn config(name: &str, prefix: &str, access: SpaceAccess, members: &[&str]) -> SpaceConfig {
@@ -500,23 +501,28 @@ mod tests {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: false,
-            index_template: "# Test\n".into(),
             shutdown: None,
             search: crate::search::SpaceSearch::in_memory(),
         };
         let manager =
             MultiManager::boot(dir.path().to_path_buf(), deps, users.usernames()).unwrap();
         manager
-            .create(config("Public", "/public", SpaceAccess::Write, &[]), true)
+            .create(
+                config("Public", "/public", SpaceAccess::Write, &[]),
+                PreparedStarter::None,
+            )
             .unwrap();
         manager
             .create(
                 config("Alice", "/alice", SpaceAccess::None, &["alice"]),
-                true,
+                PreparedStarter::None,
             )
             .unwrap();
         manager
-            .create(config("Bob", "/bob", SpaceAccess::None, &["bob"]), true)
+            .create(
+                config("Bob", "/bob", SpaceAccess::None, &["bob"]),
+                PreparedStarter::None,
+            )
             .unwrap();
         let bundle = MemorySpacePrimitives::new();
         bundle

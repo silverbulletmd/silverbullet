@@ -7,13 +7,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use axum::extract::{Path as AxumPath, Request, State};
-use axum::http::StatusCode;
+use axum::http::{header, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use silverbullet_server_common::starter_kits::{
+    self, prepare, PreparedStarter, Starter, StarterError, DEFAULT_KIT,
+};
 
 use crate::auth::mcp::grants::GrantStore;
 use crate::auth::oidc::store::ProviderStore;
@@ -23,6 +26,7 @@ use crate::multi::config::{GitSyncMode, SpaceConfig};
 use crate::multi::instance::SpaceInstance;
 use crate::multi::manager::{ApiError, MultiManager};
 use crate::multi::users::{Profile, UserStore};
+use crate::multi::validate::FieldError;
 use crate::revisions::{describe_sync_error, git, keys, redact_credentials, sync};
 use crate::router::run_blocking;
 
@@ -40,6 +44,8 @@ pub struct AdminState {
     pub mcp_grants: Option<Arc<GrantStore>>,
     pub mcp_availability: McpAvailability,
     pub update_check: Option<Arc<crate::update_check::UpdateCheck>>,
+    /// Seam so tests can avoid the network; always `prepare` in production.
+    pub prepare_starter: fn(&Starter) -> Result<PreparedStarter, StarterError>,
 }
 
 /// Whether MCP can run at all on this server, independent of the admin
@@ -116,6 +122,7 @@ impl AdminState {
             mcp_grants: None,
             mcp_availability: McpAvailability::Available,
             update_check: None,
+            prepare_starter: prepare,
         }
     }
 
@@ -378,6 +385,8 @@ enum CreateLoginMethod {
 struct CreateBody {
     #[serde(default = "default_true")]
     seed_index: bool,
+    #[serde(default)]
+    starter: Option<Starter>,
     #[serde(flatten)]
     config: SpaceConfig,
 }
@@ -389,14 +398,87 @@ async fn handle_create(
     let manager = state.manager.clone();
     let CreateBody {
         seed_index,
+        starter,
         mut config,
     } = body;
     config.git_sync = None;
     config.client_identity_path = None;
     config.former_prefixes.clear();
-    match run_blocking(move || Ok(manager.create(config, seed_index))).await {
-        Ok(Ok(id)) => Json(json!({ "id": id })).into_response(),
+    let starter = starter.unwrap_or_else(|| {
+        if seed_index {
+            Starter::Kit {
+                id: DEFAULT_KIT.to_string(),
+                interface: None,
+            }
+        } else {
+            Starter::None
+        }
+    });
+    let prepare_starter = state.prepare_starter;
+    let prepared = match run_blocking(move || Ok(prepare_starter(&starter))).await {
+        Ok(Ok(prepared)) => prepared,
+        Ok(Err(e)) => {
+            let (field, message) = e.field_error();
+            return api_error(ApiError::Validation(vec![FieldError {
+                field: field.into(),
+                message,
+            }]));
+        }
+        Err(_) => return (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    };
+    match run_blocking(move || Ok(manager.create(config, prepared))).await {
+        Ok(Ok((id, starter))) => {
+            let mut body = json!(starter);
+            body["id"] = json!(id);
+            Json(body).into_response()
+        }
         Ok(Err(e)) => api_error(e),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
+    }
+}
+
+/// `GET /starter-kits`: the bundled kits, for the new-space picker.
+pub(crate) async fn handle_starter_kits() -> Response {
+    Json(starter_kits::list()).into_response()
+}
+
+/// `GET /starter-kits/{id}/preview`: the kit's preview image, or 404.
+pub(crate) async fn handle_starter_kit_preview(AxumPath(id): AxumPath<String>) -> Response {
+    match starter_kits::preview(&id) {
+        Some((bytes, mime)) => ([(header::CONTENT_TYPE, mime)], bytes).into_response(),
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
+}
+
+#[derive(Deserialize)]
+pub(crate) struct HasNotesQuery {
+    #[serde(default)]
+    pub path: String,
+}
+
+/// Resolves like `fs/dirs`: absolute as given, relative against the data root.
+pub(crate) fn has_notes(root: &Path, input: &str) -> serde_json::Value {
+    let p = Path::new(input);
+    let folder = if p.is_absolute() {
+        p.to_path_buf()
+    } else {
+        root.join(p)
+    };
+    // A missing folder holds no notes; probing it must not create it.
+    let has = folder.is_dir() && starter_kits::folder_has_notes(&folder, "");
+    json!({ "hasNotes": has })
+}
+
+async fn handle_has_notes(
+    State(state): State<Arc<AdminState>>,
+    axum::extract::Query(q): axum::extract::Query<HasNotesQuery>,
+) -> Response {
+    let root = match state.manager.data_root() {
+        Ok(root) => root.to_path_buf(),
+        Err(e) => return api_error(e),
+    };
+    match run_blocking(move || Ok(has_notes(&root, &q.path))).await {
+        Ok(v) => Json(v).into_response(),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
 }
@@ -437,13 +519,31 @@ async fn handle_patch(
     }
 }
 
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+struct DeleteQuery {
+    #[serde(default)]
+    delete_files: bool,
+}
+
+/// `?deleteFiles=true` also deletes the space's folder; a `warning` in the
+/// reply means the space is gone but its folder could not be deleted.
 async fn handle_delete(
     State(state): State<Arc<AdminState>>,
     AxumPath(id): AxumPath<String>,
+    axum::extract::Query(q): axum::extract::Query<DeleteQuery>,
 ) -> Response {
     let manager = state.manager.clone();
-    match run_blocking(move || Ok(manager.delete(&id))).await {
-        Ok(Ok(())) => Json(json!({ "status": "ok" })).into_response(),
+    let result = run_blocking(move || {
+        Ok(if q.delete_files {
+            manager.delete_with_files(&id)
+        } else {
+            manager.delete(&id).map(|()| None)
+        })
+    })
+    .await;
+    match result {
+        Ok(Ok(warning)) => Json(json!({ "status": "ok", "warning": warning })).into_response(),
         Ok(Err(e)) => api_error(e),
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "task failed").into_response(),
     }
@@ -1173,6 +1273,12 @@ fn admin_api_routes() -> Router<Arc<AdminState>> {
         .route("/spaces/{id}/git/test", post(legacy_git_mutation))
         .route("/spaces/{id}/git/sync", post(handle_git_sync_now))
         .route("/fs/dirs", get(handle_fs_dirs))
+        .route("/fs/has-notes", get(handle_has_notes))
+        .route("/starter-kits", get(handle_starter_kits))
+        .route(
+            "/starter-kits/{id}/preview",
+            get(handle_starter_kit_preview),
+        )
         .route("/server-info", get(handle_server_info))
         .route("/runtimes", get(handle_runtimes))
         .route("/runtimes/{id}/stop", post(handle_stop_runtime))
@@ -1261,7 +1367,6 @@ pub(crate) mod tests {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: false,
-            index_template: "# Test space\n".into(),
             shutdown: None,
             search: SpaceSearch::in_memory(),
         }
@@ -1280,10 +1385,31 @@ pub(crate) mod tests {
         admin_router_on(dir, runtime_availability, SpaceSearch::in_memory())
     }
 
+    fn admin_router_with_prepare(
+        dir: &tempfile::TempDir,
+        prepare_starter: fn(&Starter) -> Result<PreparedStarter, StarterError>,
+    ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
+        build_admin_router(
+            dir,
+            crate::runtime::RuntimeAvailability::Available,
+            SpaceSearch::in_memory(),
+            prepare_starter,
+        )
+    }
+
     pub(crate) fn admin_router_on(
         dir: &tempfile::TempDir,
         runtime_availability: crate::runtime::RuntimeAvailability,
         search: SpaceSearch,
+    ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
+        build_admin_router(dir, runtime_availability, search, prepare)
+    }
+
+    fn build_admin_router(
+        dir: &tempfile::TempDir,
+        runtime_availability: crate::runtime::RuntimeAvailability,
+        search: SpaceSearch,
+        prepare_starter: fn(&Starter) -> Result<PreparedStarter, StarterError>,
     ) -> (axum::Router, Arc<MultiManager>, Arc<UserStore>) {
         let users = UserStore::create_empty(dir.path()).unwrap();
         users
@@ -1300,12 +1426,14 @@ pub(crate) mod tests {
             std::collections::BTreeSet::new(),
         )
         .unwrap();
-        let state = Arc::new(AdminState::new(
+        let mut state = AdminState::new(
             manager.clone(),
             users.clone(),
             authenticator,
             runtime_availability,
-        ));
+        );
+        state.prepare_starter = prepare_starter;
+        let state = Arc::new(state);
         // Nested at `/api` so these tests address the same URIs the unified
         // surface exposes at `/api/admin/...` minus its own prefix.
         let router = axum::Router::new().nest("/api", build_admin_api_router(state));
@@ -2096,6 +2224,47 @@ pub(crate) mod tests {
     }
 
     #[tokio::test]
+    async fn delete_keeps_files_unless_delete_files_is_set() {
+        let dir = tempfile::tempdir().unwrap();
+        let (router, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let mut folders = Vec::new();
+        for name in ["Kept", "Gone"] {
+            let id = create_space(
+                &router,
+                &cookie,
+                &format!(r#"{{"name":"{name}","binding":{{"prefix":"/{name}"}}}}"#),
+            )
+            .await;
+            let folder = dir.path().join("spaces").join(&id);
+            std::fs::write(folder.join("page.md"), "hello").unwrap();
+            folders.push((id, folder));
+        }
+
+        let (kept, kept_folder) = &folders[0];
+        let resp = authed(
+            &router,
+            "DELETE",
+            &format!("/api/spaces/{kept}"),
+            "",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert!(
+            kept_folder.join("page.md").exists(),
+            "files kept by default"
+        );
+
+        let (gone, gone_folder) = &folders[1];
+        let uri = format!("/api/spaces/{gone}?deleteFiles=true");
+        let resp = authed(&router, "DELETE", &uri, "", &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        assert!(body_json(resp).await["warning"].is_null());
+        assert!(!gone_folder.exists(), "folder deleted");
+    }
+
+    #[tokio::test]
     async fn patch_members_with_an_unknown_user_is_400() {
         let dir = tempfile::tempdir().unwrap();
         let (router, _m, users) = admin_router(&dir);
@@ -2167,6 +2336,154 @@ pub(crate) mod tests {
         assert_eq!(resp.status(), StatusCode::OK);
         let resp = authed(&r, "DELETE", &format!("/api/spaces/{id}"), "", &cookie).await;
         assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+    }
+
+    async fn create_with_body(
+        dir: &tempfile::TempDir,
+        extra: &str,
+    ) -> (serde_json::Value, std::path::PathBuf, axum::Router, String) {
+        let (r, _m, users) = admin_router(dir);
+        let cookie = session_cookie(&users, "admin");
+        let body = format!(r#"{{"name":"S","binding":{{"prefix":"/s"}},"folder":"s"{extra}}}"#);
+        let resp = authed(&r, "POST", "/api/spaces", &body, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::OK);
+        (body_json(resp).await, dir.path().join("s"), r, cookie)
+    }
+
+    #[tokio::test]
+    async fn create_without_starter_applies_personal_notes() {
+        let dir = tempfile::tempdir().unwrap();
+        let (v, folder, _r, _c) = create_with_body(&dir, "").await;
+        assert_eq!(v["starterContent"], "applied");
+        let index = std::fs::read_to_string(folder.join("index.md")).unwrap();
+        assert!(index.contains("Recent quick notes"), "{index}");
+    }
+
+    #[tokio::test]
+    async fn create_with_seed_index_false_writes_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (v, folder, _r, _c) = create_with_body(&dir, r#","seedIndex":false"#).await;
+        assert_eq!(v["starterContent"], "none");
+        assert_eq!(std::fs::read_dir(folder).unwrap().count(), 0);
+    }
+
+    #[tokio::test]
+    async fn create_with_empty_kit_standard_writes_config() {
+        let dir = tempfile::tempdir().unwrap();
+        let (v, folder, _r, _c) = create_with_body(
+            &dir,
+            r#","starter":{"type":"kit","id":"blank-space","interface":"standard"}"#,
+        )
+        .await;
+        assert_eq!(v["starterContent"], "applied");
+        let cfg = std::fs::read_to_string(folder.join("Library/Config.md")).unwrap();
+        assert!(cfg.contains("std.spaceTree"), "{cfg}");
+    }
+
+    #[tokio::test]
+    async fn create_into_folder_with_notes_skips() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("s")).unwrap();
+        std::fs::write(dir.path().join("s/a.md"), "mine").unwrap();
+        let (v, folder, _r, _c) = create_with_body(&dir, "").await;
+        assert_eq!(v["starterContent"], "skipped");
+        assert_eq!(
+            std::fs::read_to_string(folder.join("a.md")).unwrap(),
+            "mine"
+        );
+        assert!(!folder.join("index.md").exists());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn create_reports_a_failed_starter_apply_distinctly() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let ro = dir.path().join("s");
+        std::fs::create_dir_all(&ro).unwrap();
+        std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let (v, _folder, _r, _c) = create_with_body(&dir, "").await;
+        std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(v["id"].is_string());
+        assert_eq!(v["starterContent"], "failed");
+        assert!(
+            v["starterError"].as_str().is_some_and(|e| !e.is_empty()),
+            "{v}"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_with_unusable_starter_is_a_git_url_field_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+        let body = r#"{"name":"S","binding":{"prefix":"/s"},"starter":{"type":"kit","id":"nope"}}"#;
+        let resp = authed(&r, "POST", "/api/spaces", body, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await.to_string();
+        assert!(
+            v.contains("\"starter\"") && v.contains("Unknown starter kit: nope"),
+            "{v}"
+        );
+    }
+
+    #[tokio::test]
+    async fn create_with_unreachable_git_registers_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        let (r, _m, users) = admin_router_with_prepare(&dir, |_| {
+            Err(StarterError::Network("connection refused".into()))
+        });
+        let cookie = session_cookie(&users, "admin");
+        let count = |v: serde_json::Value| v.as_object().unwrap().len();
+        let before = count(body_json(authed(&r, "GET", "/api/spaces", "", &cookie).await).await);
+        let body = r#"{"name":"S","binding":{"prefix":"/s"},"folder":"s","starter":{"type":"git","url":"https://github.com/a/b"}}"#;
+        let resp = authed(&r, "POST", "/api/spaces", body, &cookie).await;
+        assert_eq!(resp.status(), StatusCode::BAD_REQUEST);
+        let v = body_json(resp).await.to_string();
+        assert!(
+            v.contains("\"gitUrl\"")
+                && v.contains("Could not download the repository: connection refused"),
+            "{v}"
+        );
+        let after = count(body_json(authed(&r, "GET", "/api/spaces", "", &cookie).await).await);
+        assert_eq!(before, after);
+        assert!(!dir.path().join("s").exists());
+    }
+
+    #[tokio::test]
+    async fn starter_kits_list_and_has_notes() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(dir.path().join("full")).unwrap();
+        std::fs::write(dir.path().join("full/a.md"), "x").unwrap();
+        let (r, _m, users) = admin_router(&dir);
+        let cookie = session_cookie(&users, "admin");
+
+        let v = body_json(authed(&r, "GET", "/api/starter-kits", "", &cookie).await).await;
+        assert!(v
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|k| k["id"] == "blank-space"));
+
+        let resp = authed(
+            &r,
+            "GET",
+            "/api/starter-kits/blank-space/preview",
+            "",
+            &cookie,
+        )
+        .await;
+        assert_eq!(resp.status(), StatusCode::NOT_FOUND);
+
+        let q = |p: &str| format!("/api/fs/has-notes?path={p}");
+        let v = body_json(authed(&r, "GET", &q("full"), "", &cookie).await).await;
+        assert_eq!(v["hasNotes"], true);
+        let abs = dir.path().join("full").display().to_string();
+        let v = body_json(authed(&r, "GET", &q(&abs), "", &cookie).await).await;
+        assert_eq!(v["hasNotes"], true);
+        let v = body_json(authed(&r, "GET", &q("missing"), "", &cookie).await).await;
+        assert_eq!(v["hasNotes"], false);
+        assert!(!dir.path().join("missing").exists());
     }
 
     #[tokio::test]

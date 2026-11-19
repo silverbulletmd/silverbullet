@@ -222,6 +222,49 @@ pub(crate) fn folder_errors(conflicts: BTreeMap<String, String>) -> Vec<FieldErr
         .collect()
 }
 
+/// The folder that deleting space `id`'s files removes, canonicalized so a
+/// symlinked folder deletes what the space actually served, or why that is
+/// refused: the folder is or contains the data folder (which holds every
+/// space's settings), or overlaps another space's folder either way.
+pub(crate) fn deletable_folder(
+    root: &Path,
+    spaces: &MultiConfig,
+    id: &str,
+) -> Result<PathBuf, String> {
+    let folder_of = |id: &str| {
+        let folder = spaces.spaces.get(id).map_or("", |s| s.folder.as_str());
+        let lexical = normalize_lexically(&resolve_folder(root, id, folder));
+        let canonical = canonicalize_best_effort(&lexical);
+        (lexical, canonical)
+    };
+    let (lexical, canonical) = folder_of(id);
+    let canonical_root = canonicalize_best_effort(root);
+    if [(root, &lexical), (&canonical_root, &canonical)]
+        .into_iter()
+        .any(|(root, folder)| {
+            matches!(
+                overlap(root, folder),
+                Some(Overlap::Same | Overlap::Contains)
+            )
+        })
+    {
+        return Err(
+            "this space's folder holds the server's own data; delete its files by hand".into(),
+        );
+    }
+    for other in spaces.spaces.keys().filter(|other| *other != id) {
+        let (other_lexical, other_canonical) = folder_of(other);
+        if overlap(&other_lexical, &lexical).is_some()
+            || overlap(&other_canonical, &canonical).is_some()
+        {
+            return Err(format!(
+                "this space's folder overlaps the folder of space {other:?}; remove the space without deleting its files"
+            ));
+        }
+    }
+    Ok(canonical)
+}
+
 /// How a path lies relative to a base folder.
 enum Overlap {
     Same,
@@ -507,6 +550,56 @@ mod tests {
             .unwrap(),
         );
         spaces
+    }
+
+    #[test]
+    fn deletable_folder_refuses_the_data_folder_and_shared_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("server");
+        std::fs::create_dir_all(root.join("spaces/fern")).unwrap();
+        let mut spaces = spaces_with_folder("");
+        let add = |spaces: &mut MultiConfig, id: &str, folder: &str| {
+            let mut cfg = spaces.spaces["space"].clone();
+            cfg.folder = folder.into();
+            spaces.spaces.insert(id.into(), cfg);
+        };
+        add(&mut spaces, "fern", "spaces/fern");
+        let folder = deletable_folder(&root, &spaces, "fern").unwrap();
+        assert_eq!(
+            folder,
+            std::fs::canonicalize(root.join("spaces/fern")).unwrap()
+        );
+
+        for (folder, other) in [
+            ("spaces/fern", "spaces/fern"),
+            ("Spaces/Fern", "spaces/fern"),
+            ("spaces", "spaces/fern"),
+            ("spaces/fern/inner", "spaces/fern"),
+        ] {
+            let mut spaces = spaces_with_folder(folder);
+            add(&mut spaces, "fern", other);
+            let err = deletable_folder(&root, &spaces, "space").unwrap_err();
+            assert!(err.contains("\"fern\""), "{folder}: {err}");
+        }
+        let outside = dir.path().to_string_lossy().into_owned();
+        for folder in [".", "..", outside.as_str()] {
+            let err = deletable_folder(&root, &spaces_with_folder(folder), "space").unwrap_err();
+            assert!(err.contains("server's own data"), "{folder}: {err}");
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn deletable_folder_sees_through_a_symlink_to_another_space() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("server");
+        std::fs::create_dir_all(root.join("spaces/fern")).unwrap();
+        std::os::unix::fs::symlink(root.join("spaces/fern"), root.join("alias")).unwrap();
+        let mut spaces = spaces_with_folder("alias");
+        let mut fern = spaces.spaces["space"].clone();
+        fern.folder = "spaces/fern".into();
+        spaces.spaces.insert("fern".into(), fern);
+        assert!(deletable_folder(&root, &spaces, "space").is_err());
     }
 
     #[test]

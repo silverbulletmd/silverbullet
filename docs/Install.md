@@ -3,7 +3,7 @@
 Choose Desktop to be able to work with local folders, choose Server to access spaces through a browser and manage shared access.
 
 # Desktop
-[[Install/Desktop|Download and install Desktop]] for macOS, Windows or Linux. Create a space from an empty folder or open an existing folder of Markdown files. An external Server is optional. You can add [[Desktop Sync]] later to sync content to a server.
+[[Install/Desktop|Download and install Desktop]] for macOS, Windows or Linux. Create a space from a [[Starter Kits|starter kit]] or a Git repository, or open an existing folder of Markdown files. An external Server is optional. You can add [[Desktop Sync]] later to sync content to a server.
 
 [[Guide/Desktop Setup]] covers local spaces, updates and optional synchronization.
 

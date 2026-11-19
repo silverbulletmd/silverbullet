@@ -15,6 +15,3 @@ pub mod server;
 
 /// The product version, injected at build time from `version.ts`.
 pub const VERSION: &str = env!("SB_VERSION");
-
-/// Content seeded into a brand-new empty space's index page
-pub const DEFAULT_INDEX_MD: &str = include_str!("../space_template/index.md");

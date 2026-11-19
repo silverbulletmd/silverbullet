@@ -351,6 +351,7 @@ mod tests {
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::space::MemorySpacePrimitives;
+    use silverbullet_server_common::starter_kits::PreparedStarter;
     use tower::ServiceExt;
 
     fn deps(root: &std::path::Path) -> InstanceDeps {
@@ -374,7 +375,6 @@ mod tests {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: false,
-            index_template: "# Test space\n".into(),
             shutdown: None,
             search: crate::search::SpaceSearch::in_memory(),
         }
@@ -403,7 +403,7 @@ mod tests {
                     prefix: "/work".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         m.create(
@@ -414,7 +414,7 @@ mod tests {
                     prefix: String::new(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let dashboard = axum::Router::new()
@@ -451,7 +451,7 @@ mod tests {
                 prefix: "/work".into(),
             },
         );
-        let id = m.create(cfg.clone(), true).unwrap();
+        let id = m.create(cfg.clone(), PreparedStarter::None).unwrap().0;
         std::fs::remove_dir_all(dir.path().join("spaces").join(&id)).unwrap();
         m.update(&id, cfg).unwrap();
         let router = build_main_router(m, None, "test".to_string());
@@ -491,12 +491,13 @@ mod tests {
             },
         );
         notes.former_prefixes = former.iter().map(|p| p.to_string()).collect();
-        m.create(notes, true).unwrap();
+        m.create(notes, PreparedStarter::None).unwrap();
         if let Some(prefix) = other {
             let binding = Binding::Prefix {
                 prefix: prefix.into(),
             };
-            m.create(payload("Other", binding), true).unwrap();
+            m.create(payload("Other", binding), PreparedStarter::None)
+                .unwrap();
         }
         let dashboard = Router::new().fallback(|| async { StatusCode::from_u16(299).unwrap() });
         build_main_router(m, Some(dashboard), "test".into())
@@ -606,7 +607,7 @@ mod tests {
                     prefix: "/default".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let work = m
@@ -618,9 +619,10 @@ mod tests {
                         prefix: "/work".into(),
                     },
                 ),
-                true,
+                PreparedStarter::None,
             )
-            .unwrap();
+            .unwrap()
+            .0;
         let r = build_main_router(
             m.clone(),
             Some(Router::new().fallback(|| async { StatusCode::IM_A_TEAPOT })),
@@ -635,7 +637,7 @@ mod tests {
                     prefix: "/wiki".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         assert!(Arc::ptr_eq(&original, &m.instance(&work).unwrap()));
@@ -724,7 +726,7 @@ mod tests {
                     },
                 )
             },
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let r = build_main_router(m, None, "test".into());
@@ -786,7 +788,7 @@ mod tests {
                         prefix: "/notes".into(),
                     },
                 ),
-                false,
+                PreparedStarter::None,
             )
             .unwrap();
         manager
@@ -831,7 +833,7 @@ mod tests {
                     prefix: String::new(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         let dashboard = Router::new().fallback(|| async { "dashboard secret" });
@@ -966,7 +968,7 @@ mod tests {
                     prefix: String::new(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let r = build_main_router(m.clone(), None, "test".to_string());
@@ -998,7 +1000,7 @@ mod tests {
                     prefix: "/private".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let resp = get(&r, "localhost", "/work/.config").await;
@@ -1039,7 +1041,7 @@ mod tests {
         assert!(m
             .create(
                 payload("Root", Binding::Prefix { prefix: "/".into() }),
-                true
+                PreparedStarter::None
             )
             .is_ok());
     }
@@ -1161,7 +1163,7 @@ mod tests {
                     prefix: "/work".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let dashboard = axum::Router::new().fallback(|| async { "dashboard" });
@@ -1190,7 +1192,7 @@ mod tests {
                     prefix: "/work".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let r = build_main_router(
@@ -1233,7 +1235,7 @@ mod tests {
         .unwrap();
         m.create(
             payload("Root", Binding::Prefix { prefix: "/".into() }),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let spaces = axum::Router::new().fallback(|| async { "spaces" });

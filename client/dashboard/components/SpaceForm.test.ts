@@ -1,10 +1,40 @@
 import { h } from "preact";
 import { render } from "preact-render-to-string";
-import { afterEach, expect, test } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import type { SpaceInfo, VisibleSpace } from "../types.ts";
 import { settingsPayload } from "../space_settings.ts";
 import { BindingFields } from "./BindingFields.tsx";
 import { SpaceForm } from "./SpaceForm.tsx";
+
+// GitSyncPage pulls in the router, which needs a browser document at load.
+vi.mock("./GitSyncPage.tsx", () => ({ GitSyncPage: () => null }));
+
+// Server rendering never runs the effects, so a pick has to be forced.
+let picked = false;
+vi.mock("./NewSpaceStarter.tsx", async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import("./NewSpaceStarter.tsx")>();
+  return {
+    ...original,
+    useStarter: (...args: Parameters<typeof original.useStarter>) => {
+      const starter = original.useStarter(...args);
+      return picked
+        ? {
+            ...starter,
+            choice: { type: "kit" as const, id: "personal" },
+            kit: {
+              id: "personal",
+              name: "Personal space",
+              description: "",
+              order: 0,
+              interface: "standard" as const,
+              hasPreview: false,
+            },
+          }
+        : starter;
+    },
+  };
+});
 
 const location = {
   origin: "http://localhost:3000",
@@ -12,11 +42,30 @@ const location = {
   port: "3000",
 };
 afterEach(() => {
+  picked = false;
   delete (globalThis as any).location;
+});
+
+test("a new space starts at the starter gallery, then shows the form", () => {
+  (globalThis as any).location = location;
+  const props = {
+    onSaved: () => {},
+    cancelHref: "/.dashboard/",
+    onDeleted: () => {},
+    onUnauthorized: () => {},
+  };
+  const gallery = render(h(SpaceForm, props));
+  expect(gallery).not.toContain('id="space-name"');
+  expect(gallery).toContain("Cancel");
+  picked = true;
+  const form = render(h(SpaceForm, props));
+  expect(form).toContain('id="space-name"');
+  expect(form).toContain("Starting from");
 });
 
 test("new spaces start with managed revisions and shell commands disabled", () => {
   (globalThis as any).location = location;
+  picked = true;
   const html = render(
     h(SpaceForm, {
       onSaved: () => {},
@@ -191,5 +240,36 @@ test("the semantic search box waits, disabled, for the space's search info", () 
   );
   expect(html).toMatch(
     /<input(?=[^>]*\bdisabled)[^>]*type="checkbox"[^>]*>\s*<label[^>]*>Semantic search/,
+  );
+});
+
+test("Remove space offers to delete files, unchecked by default", () => {
+  (globalThis as any).location = location;
+  const html = render(
+    h(SpaceForm, {
+      id: "work",
+      initial: {
+        name: "Work",
+        folder: "spaces/work",
+        binding: { prefix: "/work" },
+        access: "none",
+        members: {},
+        readOnly: false,
+        shell: { enabled: false, whitelist: [] },
+        indexPage: "index",
+        status: { state: "running" },
+      },
+      onSaved: () => {},
+      cancelHref: "/.dashboard/",
+      onDeleted: () => {},
+      onUnauthorized: () => {},
+    }),
+  );
+  const zone = html.slice(html.indexOf("<h3>Remove space</h3>"));
+  expect(zone).toContain("Also delete all my files");
+  expect(zone).toContain("cannot be undone");
+  expect(zone).toMatch(/<input type="checkbox"[^>]*>/);
+  expect(zone.match(/<input type="checkbox"[^>]*>/)![0]).not.toContain(
+    "checked",
   );
 });

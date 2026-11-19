@@ -1,3 +1,4 @@
+use silverbullet_server_common::starter_kits::PreparedStarter;
 use std::collections::BTreeMap;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -152,7 +153,6 @@ impl Fixture {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: true,
-            index_template: "# Fixture\n".into(),
             shutdown: None,
             search: silverbullet_server::search::SpaceSearch::in_memory(),
         };
@@ -184,7 +184,10 @@ impl Fixture {
             }
         }))
         .unwrap();
-        self.manager.create(config, false).unwrap()
+        self.manager
+            .create(config, PreparedStarter::None)
+            .unwrap()
+            .0
     }
 
     fn router(&self, id: &str) -> Router {

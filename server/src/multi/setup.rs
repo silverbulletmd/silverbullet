@@ -6,9 +6,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
+use silverbullet_server_common::starter_kits::{apply_prepared, prepare, Starter, DEFAULT_KIT};
 
 use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
-use crate::multi::instance::{resolve_folder, seed_index};
+use crate::multi::instance::resolve_folder;
 use crate::multi::server_config::ServerConfig;
 use crate::multi::users::{Profile, UserEntry, UsersConfig, USERS_FILE};
 use crate::multi::validate::FieldError;
@@ -29,6 +30,9 @@ pub struct FirstSpace {
     pub folder: String,
     #[serde(default = "default_revisions")]
     pub revisions: silverbullet_server_common::RevisionsMode,
+    /// Absent = the default kit.
+    #[serde(default)]
+    pub starter: Option<Starter>,
 }
 
 fn default_revisions() -> silverbullet_server_common::RevisionsMode {
@@ -122,11 +126,7 @@ fn relativize_folder_field(root: &Path, folder: &str) -> String {
 /// Fails closed — on any error nothing is written — except that a
 /// directory may already have been created for the first space (mirrors
 /// `MultiManager::create`, which has the same property).
-pub fn run_setup(
-    root: &Path,
-    req: &SetupRequest,
-    index_template: &str,
-) -> Result<(), Vec<FieldError>> {
+pub fn run_setup(root: &Path, req: &SetupRequest) -> Result<(), Vec<FieldError>> {
     if is_configured(root) {
         return Err(err("", "this server is already configured"));
     }
@@ -167,6 +167,7 @@ pub fn run_setup(
         },
     );
 
+    let mut pending_starter = None;
     if let Some(first) = &req.space {
         let prefix = first.prefix.trim();
         if prefix.is_empty() {
@@ -192,6 +193,15 @@ pub fn run_setup(
         };
         let binding: Binding = serde_json::from_value(binding_value)
             .map_err(|e| err("space.binding", format!("invalid binding: {e}")))?;
+
+        let starter = first.starter.clone().unwrap_or(Starter::Kit {
+            id: DEFAULT_KIT.to_string(),
+            interface: None,
+        });
+        let prepared = prepare(&starter).map_err(|e| {
+            let (field, message) = e.field_error();
+            err(&format!("space.{field}"), message)
+        })?;
 
         let id = uuid::Uuid::new_v4().to_string();
         let folder_field = if first.folder.is_empty() {
@@ -224,12 +234,12 @@ pub fn run_setup(
         debug_assert!(cfg.access() == SpaceAccess::None);
         debug_assert!(cfg.members.is_empty());
 
-        seed_index(
-            &folder_path,
-            &cfg.index_page,
-            index_template,
-            &cfg.space_ignore,
-        );
+        pending_starter = Some((
+            prepared,
+            folder_path,
+            cfg.index_page.clone(),
+            cfg.space_ignore.clone(),
+        ));
         spaces.spaces.insert(id, cfg);
     }
 
@@ -253,6 +263,11 @@ pub fn run_setup(
     let conflicts = super::data_root::folder_conflicts(root, &spaces);
     if !conflicts.is_empty() {
         return Err(super::data_root::folder_errors(conflicts));
+    }
+    // Nothing is persisted yet, so a failed apply fails the whole setup.
+    if let Some((prepared, folder, index_page, space_ignore)) = pending_starter {
+        apply_prepared(prepared, &folder, &index_page, &space_ignore)
+            .map_err(|e| err("space.starter", e.to_string()))?;
     }
     server_config
         .save(&root.join("server.json"))
@@ -302,8 +317,9 @@ mod tests {
             prefix: "/".into(),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
-        run_setup(dir.path(), &request, "# Hello\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let users_path = dir.path().join(USERS_FILE);
         assert!(users_path.exists());
@@ -339,10 +355,97 @@ mod tests {
         );
 
         let folder = resolve_folder(dir.path(), id, &space.folder);
-        assert_eq!(
-            std::fs::read_to_string(folder.join("index.md")).unwrap(),
-            "# Hello\n"
-        );
+        assert!(std::fs::read_to_string(folder.join("index.md"))
+            .unwrap()
+            .contains("Recent quick notes"));
+    }
+
+    #[test]
+    fn run_setup_applies_requested_kit() {
+        let dir = tempfile::tempdir().unwrap();
+        let request = req(Some(FirstSpace {
+            name: "Notes".into(),
+            host: None,
+            prefix: "/".into(),
+            folder: "notes".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: Some(Starter::Kit {
+                id: "blank-space".into(),
+                interface: Some(silverbullet_server_common::starter_kits::InterfaceLevel::Standard),
+            }),
+        }));
+        run_setup(dir.path(), &request).unwrap();
+        let folder = dir.path().join("notes");
+        assert!(folder.join("index.md").exists());
+        let cfg = std::fs::read_to_string(folder.join("Library/Config.md")).unwrap();
+        assert!(cfg.contains("std.spaceTree"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn run_setup_fails_closed_when_the_starter_cannot_be_applied() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let ro = dir.path().join("notes");
+        std::fs::create_dir_all(&ro).unwrap();
+        std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let request = req(Some(FirstSpace {
+            name: "Notes".into(),
+            host: None,
+            prefix: "/".into(),
+            folder: "notes".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
+        }));
+        let errs = run_setup(dir.path(), &request).unwrap_err();
+        std::fs::set_permissions(&ro, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(errs[0].field, "space.starter");
+        assert!(!dir.path().join(SPACES_FILE).exists());
+        assert!(!dir.path().join(USERS_FILE).exists());
+    }
+
+    #[test]
+    fn run_setup_writes_no_starter_when_later_validation_fails() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut request = req(Some(FirstSpace {
+            name: "Notes".into(),
+            host: None,
+            prefix: "/".into(),
+            folder: "notes".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
+        }));
+        request.primary_url = Some("not a url".into());
+        let errs = run_setup(dir.path(), &request).unwrap_err();
+        assert_eq!(errs[0].field, "primaryUrl");
+        assert!(!dir.path().join("notes/index.md").exists());
+        assert!(!is_configured(dir.path()));
+    }
+
+    #[test]
+    fn run_setup_defaults_to_personal_notes_and_rejects_unusable_starter() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut first = FirstSpace {
+            name: "Notes".into(),
+            host: None,
+            prefix: "/".into(),
+            folder: "notes".into(),
+            revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: Some(Starter::Git {
+                url: "ftp://example.com/a/b".into(),
+            }),
+        };
+        let errs = run_setup(dir.path(), &req(Some(first.clone()))).unwrap_err();
+        assert_eq!(errs[0].field, "space.gitUrl");
+        assert_eq!(errs[0].message, "Enter a public https:// repository address. GitHub and GitLab always work; other hosts need git installed.");
+        assert!(!dir.path().join(USERS_FILE).exists());
+        assert!(!dir.path().join(SPACES_FILE).exists());
+        assert!(!dir.path().join("notes").exists());
+
+        first.starter = None;
+        run_setup(dir.path(), &req(Some(first))).unwrap();
+        let index = std::fs::read_to_string(dir.path().join("notes/index.md")).unwrap();
+        assert!(index.contains("Recent quick notes"));
     }
 
     #[test]
@@ -354,17 +457,19 @@ mod tests {
             prefix: "/work".into(),
             folder: "custom/work".into(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
-        run_setup(dir.path(), &request, "# Work\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         assert_eq!(cfg.spaces.len(), 1);
         let (_, space) = cfg.spaces.iter().next().unwrap();
         assert!(matches!(&space.binding, Binding::Prefix { prefix } if prefix == "/work"));
         assert_eq!(space.folder, "custom/work");
-        assert_eq!(
-            std::fs::read_to_string(dir.path().join("custom/work/index.md")).unwrap(),
-            "# Work\n"
+        assert!(
+            std::fs::read_to_string(dir.path().join("custom/work/index.md"))
+                .unwrap()
+                .contains("Recent quick notes")
         );
     }
 
@@ -380,16 +485,16 @@ mod tests {
             prefix: "/".into(),
             folder: abs.to_string_lossy().to_string(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
-        run_setup(dir.path(), &request, "# Hello\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         let (_, space) = cfg.spaces.iter().next().unwrap();
         assert_eq!(space.folder, "spaces/notes");
-        assert_eq!(
-            std::fs::read_to_string(abs.join("index.md")).unwrap(),
-            "# Hello\n"
-        );
+        assert!(std::fs::read_to_string(abs.join("index.md"))
+            .unwrap()
+            .contains("Recent quick notes"));
     }
 
     #[test]
@@ -406,8 +511,9 @@ mod tests {
             prefix: "/".into(),
             folder: folder.clone(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
-        run_setup(dir.path(), &request, "# Hello\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         let (_, space) = cfg.spaces.iter().next().unwrap();
@@ -424,8 +530,9 @@ mod tests {
             prefix: "/work".into(),
             folder: "custom/work".into(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
-        run_setup(dir.path(), &request, "# Work\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         let (_, space) = cfg.spaces.iter().next().unwrap();
@@ -435,7 +542,7 @@ mod tests {
     #[test]
     fn setup_without_a_first_space_writes_no_spaces() {
         let dir = tempfile::tempdir().unwrap();
-        run_setup(dir.path(), &req(None), "# Hello\n").unwrap();
+        run_setup(dir.path(), &req(None)).unwrap();
         assert!(UserStore::open(dir.path()).unwrap().is_some());
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         assert!(cfg.spaces.is_empty());
@@ -450,9 +557,10 @@ mod tests {
             host: Some("notes.example.com".into()),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
         request.primary_url = Some("https://manage.example.com".into());
-        run_setup(dir.path(), &request, "# Hello\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
         let server = ServerConfig::load(&dir.path().join("server.json")).unwrap();
         assert_eq!(
             server.primary_url.as_deref(),
@@ -476,9 +584,10 @@ mod tests {
             host: Some("team.example.com:3000".into()),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
 
-        run_setup(dir.path(), &request, "# Work\n").unwrap();
+        run_setup(dir.path(), &request).unwrap();
 
         let cfg = MultiConfig::load(&dir.path().join(SPACES_FILE)).unwrap();
         let space = cfg.spaces.values().next().unwrap();
@@ -498,9 +607,10 @@ mod tests {
             host: Some("notes.example.com".into()),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
 
-        let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+        let errors = run_setup(dir.path(), &request).unwrap_err();
         assert_eq!(errors[0].field, "space.prefix");
         assert!(!is_configured(dir.path()));
     }
@@ -514,9 +624,10 @@ mod tests {
             host: Some(" ".into()),
             folder: String::new(),
             revisions: silverbullet_server_common::RevisionsMode::Managed,
+            starter: None,
         }));
 
-        let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+        let errors = run_setup(dir.path(), &request).unwrap_err();
         assert_eq!(errors[0].field, "space.host");
         assert!(!is_configured(dir.path()));
     }
@@ -535,8 +646,9 @@ mod tests {
                 host: Some(host.into()),
                 folder: String::new(),
                 revisions: silverbullet_server_common::RevisionsMode::Managed,
+                starter: None,
             }));
-            let errors = run_setup(dir.path(), &request, "# Notes\n").unwrap_err();
+            let errors = run_setup(dir.path(), &request).unwrap_err();
             assert_eq!(errors[0].field, "space.host", "{host}");
             assert!(!is_configured(dir.path()));
         }
@@ -552,9 +664,10 @@ mod tests {
                 host: host.map(String::from),
                 folder: String::new(),
                 revisions: silverbullet_server_common::RevisionsMode::Managed,
+                starter: None,
             }));
             request.primary_url = Some("https://manage.example.com".into());
-            run_setup(dir.path(), &request, "").unwrap();
+            run_setup(dir.path(), &request).unwrap();
             assert!(is_configured(dir.path()));
             assert!(dir.path().join("server.json").exists());
         }
@@ -565,7 +678,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut request = req(None);
         request.admin_password = "".into();
-        let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+        let errs = run_setup(dir.path(), &request).unwrap_err();
         assert!(errs.iter().any(|e| e.field == "adminPassword"), "{errs:?}");
         assert!(!is_configured(dir.path()));
     }
@@ -576,12 +689,12 @@ mod tests {
 
         let mut request = req(None);
         request.admin_full_name = "Ada <Lovelace>".into();
-        let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+        let errs = run_setup(dir.path(), &request).unwrap_err();
         assert_eq!(errs[0].field, "adminFullName", "{errs:?}");
 
         let mut request = req(None);
         request.admin_email = "ada @example.org".into();
-        let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+        let errs = run_setup(dir.path(), &request).unwrap_err();
         assert_eq!(errs[0].field, "adminEmail", "{errs:?}");
 
         assert!(!is_configured(dir.path()));
@@ -593,7 +706,7 @@ mod tests {
         for bad in ["", "  ", "with:colon", "with/slash"] {
             let mut request = req(None);
             request.admin_username = bad.into();
-            let errs = run_setup(dir.path(), &request, "x").unwrap_err();
+            let errs = run_setup(dir.path(), &request).unwrap_err();
             assert!(
                 errs.iter().any(|e| e.field == "adminUsername"),
                 "{bad:?}: {errs:?}"
@@ -606,7 +719,7 @@ mod tests {
     fn rejects_when_already_configured() {
         let dir = tempfile::tempdir().unwrap();
         UserStore::create_empty(dir.path()).unwrap();
-        let errs = run_setup(dir.path(), &req(None), "x").unwrap_err();
+        let errs = run_setup(dir.path(), &req(None)).unwrap_err();
         assert!(errs.iter().any(|e| e.field.is_empty()), "{errs:?}");
     }
 }

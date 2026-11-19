@@ -6,8 +6,12 @@ import {
   Alert,
   Button,
   Checkbox,
+  CheckboxField,
   Input,
   Select,
+  StarterFields,
+  StarterPicker,
+  starterNotice,
 } from "@silverbulletmd/silverbullet/ui";
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
@@ -18,7 +22,9 @@ import {
   listUsers,
 } from "../api.ts";
 import { FolderPicker } from "../FolderPicker.tsx";
+import { removeSpace, removeSpacePrompt } from "../remove_space.ts";
 import { formatDuration } from "../git_sync_copy.ts";
+import { createPayload } from "../new_space.ts";
 import { SaveConfirmation, useNotification } from "../notifications.tsx";
 import {
   type RuntimeAvailability,
@@ -45,6 +51,8 @@ import type {
 } from "../types.ts";
 import { AccessGrid } from "./AccessGrid.tsx";
 import { BindingFields } from "./BindingFields.tsx";
+import { GitSyncPage } from "./GitSyncPage.tsx";
+import { GitModeOptions, useStarter } from "./NewSpaceStarter.tsx";
 import { SpaceSearchSection } from "./SpaceSearchSection.tsx";
 
 const COMMIT_PRESETS = [
@@ -148,6 +156,10 @@ export function SpaceForm({
   const [indexPage, setIndexPage] = useState(initial?.indexPage ?? "index");
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [saveState, setSaveState] = useState<"idle" | "saving">("idle");
+  const [deleteFiles, setDeleteFiles] = useState(false);
+  const starter = useStarter(!!id, folder, onUnauthorized);
+  // Set once a "keep in sync" space exists and Git sync still needs connecting.
+  const [connectId, setConnectId] = useState<string>();
 
   const loadUsers = () => {
     setUsersError(false);
@@ -225,9 +237,40 @@ export function SpaceForm({
   // everything else, and General errors raised from another tab, stays above.
   const showInline = !id || (section === "general" && errorSection === section);
   const generalErrors = showInline
-    ? splitFieldErrors(errors, ["name", "host", "prefix", "binding", "folder"])
+    ? splitFieldErrors(errors, [
+        "name",
+        "host",
+        "prefix",
+        "binding",
+        "folder",
+        "gitUrl",
+        "starter",
+      ])
     : { byField: {}, other: errors };
   const inline: Record<string, string | undefined> = generalErrors.byField;
+  if (connectId)
+    return (
+      <div>
+        <h1>Connect Git sync</h1>
+        <GitSyncPage
+          spaceId={connectId}
+          initialUrl={starter.gitUrl}
+          onUnauthorized={onUnauthorized}
+        />
+      </div>
+    );
+  if (!id && !starter.choice)
+    return (
+      <div>
+        <h1>New space</h1>
+        <StarterPicker starter={starter} />
+        <div class="row">
+          <a class="sb-button" href={cancelHref}>
+            Cancel
+          </a>
+        </div>
+      </div>
+    );
   return (
     <form
       onSubmit={async (event) => {
@@ -239,7 +282,14 @@ export function SpaceForm({
           setErrors([{ field: "binding", message: "Required" }]);
           return;
         }
-        const payload = id ? settingsPayload(values, section) : values;
+        const payload = id
+          ? settingsPayload(values, section)
+          : createPayload(values, {
+              choice: starter.choice,
+              gitMode: starter.gitMode,
+              gitUrl: starter.gitUrl,
+              hasNotes: starter.hasNotes,
+            });
         setErrors([]);
         setSaveState("saving");
         try {
@@ -254,8 +304,10 @@ export function SpaceForm({
             onSaved(id, payload);
           } else {
             const result = await adminApi("POST", "spaces", payload);
-            notify("Space created.");
-            onSaved(result.id);
+            notify(starterNotice(result) ?? "Space created.");
+            if (starter.choice?.type === "git" && starter.gitMode === "sync")
+              setConnectId(result.id);
+            else onSaved(result.id);
           }
         } catch (cause) {
           if ((cause as any)?.unauthorized) onUnauthorized();
@@ -270,7 +322,16 @@ export function SpaceForm({
         }
       }}
     >
-      {!id && <h1>Create space</h1>}
+      {!id && <h1>New space</h1>}
+      {!id && (
+        <StarterFields
+          starter={starter}
+          hasNotes={starter.hasNotes}
+          gitUrlError={inline.gitUrl}
+          starterError={inline.starter}
+          gitOptions={<GitModeOptions starter={starter} />}
+        />
+      )}
       <SaveConfirmation scope="space" />
       {(!id || errorSection === section) && (
         <FieldErrors errors={generalErrors.other} />
@@ -553,21 +614,30 @@ export function SpaceForm({
         <div class="sb-danger-zone">
           <h3>Remove space</h3>
           <p class="sb-help-text">
-            Remove this space from the server. Files on disk are kept.
+            Remove this space from the server. Its files stay on disk unless you
+            also delete them.
           </p>
+          <CheckboxField
+            label="Also delete all my files"
+            hint="Permanently deletes the space's folder and everything in it. This cannot be undone."
+            checked={deleteFiles}
+            onChange={(e) =>
+              setDeleteFiles((e.target as HTMLInputElement).checked)
+            }
+          />
           <Button
             type="button"
             variant="danger"
             onClick={async () => {
+              const name = initial?.name ?? id;
               if (
-                !confirm(
-                  `Remove "${initial?.name ?? id}" from the server? Files on disk are kept.`,
-                )
+                !confirm(removeSpacePrompt(name, initial?.folder, deleteFiles))
               ) {
                 return;
               }
               try {
-                await adminApi("DELETE", `spaces/${id}`);
+                const warning = await removeSpace(id, deleteFiles);
+                if (warning) alert(warning);
                 onDeleted();
               } catch (errs) {
                 setErrorSection("general");

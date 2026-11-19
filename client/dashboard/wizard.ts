@@ -1,5 +1,10 @@
-import { slugify } from "@silverbulletmd/silverbullet/ui";
+import {
+  type GalleryChoice,
+  type Starter,
+  slugify,
+} from "@silverbulletmd/silverbullet/ui";
 import { bindingPrefix, validHostAuthority } from "./binding_fields.ts";
+import { starterFor } from "./starter_kits.ts";
 import type { Binding, FieldError, RevisionsMode } from "./types.ts";
 
 /** What the administrator step collects. */
@@ -11,13 +16,41 @@ export type AdminValues = {
   email: string;
 };
 
+/** Pre-selected so clicking straight through keeps today's behaviour. */
+export const DEFAULT_KIT_ID = "personal-space";
+
+/** The starter half of the first-space step. */
+export type StarterValues = {
+  choice: GalleryChoice;
+  gitUrl: string;
+  /** The folder already holds notes, so a kit would be skipped anyway. */
+  hasNotes: boolean;
+};
+
+export const DEFAULT_STARTER: StarterValues = {
+  choice: { type: "kit", id: DEFAULT_KIT_ID },
+  gitUrl: "",
+  hasNotes: false,
+};
+
 /** What the first-space step collects. */
 export type SpaceValues = {
   name: string;
   binding: Binding;
   folder: string;
   revisions: RevisionsMode;
+  starter: StarterValues;
 };
+
+/** The wizard only offers "use as a starting point" for Git, never sync. */
+export function wizardStarter({
+  choice,
+  gitUrl,
+  hasNotes,
+}: StarterValues): Starter {
+  if (choice.type === "kit" && hasNotes) return { type: "none" };
+  return starterFor(choice, "copy", gitUrl.trim());
+}
 
 /** Absolute default folder for a space: `<root>/spaces/<slug-of-name>`. */
 export function defaultFolder(root: string, name: string): string {
@@ -60,6 +93,7 @@ export function validateSpace({
   name,
   binding,
   folder,
+  starter,
 }: SpaceValues): FieldError[] {
   if (!name.trim()) {
     return [{ field: "space.name", message: "Required" }];
@@ -82,6 +116,9 @@ export function validateSpace({
   if (!folder.trim()) {
     return [{ field: "space.folder", message: "Required" }];
   }
+  if (starter.choice.type === "git" && !starter.gitUrl.trim()) {
+    return [{ field: "space.gitUrl", message: "Required" }];
+  }
   return [];
 }
 
@@ -91,6 +128,7 @@ export function spacePayload({
   binding,
   folder,
   revisions,
+  starter,
 }: SpaceValues) {
   return {
     name,
@@ -98,5 +136,6 @@ export function spacePayload({
     prefix: bindingPrefix(binding),
     folder,
     revisions,
+    starter: wizardStarter(starter),
   };
 }

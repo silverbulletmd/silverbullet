@@ -1,0 +1,6 @@
+{
+  "name": "Blank space",
+  "description": "Start from nothing",
+  "order": 100,
+  "interface": "minimal"
+}

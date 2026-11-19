@@ -160,7 +160,6 @@ pub async fn build_multi_stack(
         main_port: config.port,
         disable_service_worker: config.disable_service_worker,
         shell_disabled: config.shell_disabled,
-        index_template: crate::DEFAULT_INDEX_MD.to_string(),
         shutdown: shutdown_rx.clone(),
         search: match &root {
             Some(root) => silverbullet_server::search::SpaceSearch::in_root(

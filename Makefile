@@ -1,4 +1,4 @@
-.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-browser test-e2e-all test-e2e-release test-e2e-oidc bench generate website install uninstall bundle build-rs build-rs-cli run-rs
+.PHONY: build build-e2e build-for-docker build-linux-ci docker build-server-releases build-server-releases-macos build-server-releases-freebsd build-cli-releases-rust build-cli-releases-freebsd build-cli-releases-rust-macos clean check fmt test test-e2e test-browser test-e2e-all test-e2e-release test-e2e-oidc starter-kit-previews bench generate website install uninstall bundle build-rs build-rs-cli run-rs
 
 build:
 	npm run build
@@ -147,6 +147,10 @@ test:
 
 test-e2e-oidc: build-e2e
 	npx playwright test --config=playwright.oidc.config.ts
+
+# Regenerates starter-kits/*/preview.png (1440×900 (720×450 at 2×) index-page screenshots).
+starter-kit-previews: build-e2e
+	npx tsx scripts/starter-kit-previews.ts
 
 test-browser:
 	npm run build

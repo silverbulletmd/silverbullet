@@ -7,9 +7,11 @@ use std::collections::{BTreeSet, HashMap};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
 
+use silverbullet_server_common::starter_kits::{self, PreparedStarter, StarterResult};
+
 use crate::multi::config::{Binding, MultiConfig, SpaceAccess, SpaceConfig};
 use crate::multi::instance::{
-    build_instance, resolve_folder, seed_index, InstanceDeps, InstanceStatus, SpaceInstance,
+    build_instance, resolve_folder, InstanceDeps, InstanceStatus, SpaceInstance,
 };
 use crate::multi::registry::{Registry, RoutingTable};
 use crate::multi::search_policy;
@@ -611,7 +613,11 @@ impl MultiManager {
         result
     }
 
-    pub fn create(&self, mut cfg: SpaceConfig, should_seed: bool) -> Result<String, ApiError> {
+    pub fn create(
+        &self,
+        mut cfg: SpaceConfig,
+        starter: PreparedStarter,
+    ) -> Result<(String, StarterResult), ApiError> {
         let root = self.data_root()?;
         cfg.normalize();
         let mut retired = Retired::default();
@@ -630,15 +636,10 @@ impl MultiManager {
         let mut new_config = inner.config.clone();
         new_config.spaces.insert(id.clone(), cfg.clone());
         self.apply_locked(&mut inner, new_config, &mut retired, None, true)?;
-        if should_seed {
-            seed_index(
-                &folder,
-                &cfg.index_page,
-                &self.deps.index_template,
-                &cfg.space_ignore,
-            );
-        }
-        Ok(id)
+        // Copying a large Git starting point must not block other space operations.
+        drop(inner);
+        let outcome = starter_kits::apply(starter, &folder, &cfg.index_page, &cfg.space_ignore);
+        Ok((id, outcome))
     }
 
     pub fn update(&self, id: &str, mut cfg: SpaceConfig) -> Result<(), ApiError> {
@@ -669,20 +670,57 @@ impl MultiManager {
         self.apply_locked(&mut inner, new_config, &mut retired, None, true)
     }
 
+    /// Removes the space; its folder stays on disk.
     pub fn delete(&self, id: &str) -> Result<(), ApiError> {
-        {
+        self.remove(id, false).map(|_| ())
+    }
+
+    /// Removes the space and permanently deletes its folder. Refused, with
+    /// the space kept, when the folder is unsafe to delete
+    /// (`data_root::deletable_folder`). The `Ok` message is set when the space
+    /// was removed but its folder could not be deleted.
+    pub fn delete_with_files(&self, id: &str) -> Result<Option<String>, ApiError> {
+        self.remove(id, true)
+    }
+
+    fn remove(&self, id: &str, delete_files: bool) -> Result<Option<String>, ApiError> {
+        let folder = {
             let mut retired = Retired::default();
             let mut inner = self.state.lock().unwrap();
             if !inner.config.spaces.contains_key(id) {
                 return Err(ApiError::NotFound);
             }
+            let folder = if delete_files {
+                let root = self.data_root()?;
+                let folder = super::data_root::deletable_folder(root, &inner.config, id).map_err(
+                    |message| {
+                        ApiError::Validation(vec![FieldError {
+                            field: "deleteFiles".into(),
+                            message,
+                        }])
+                    },
+                )?;
+                Some(folder)
+            } else {
+                None
+            };
             let mut new_config = inner.config.clone();
             new_config.spaces.remove(id);
             self.apply_locked(&mut inner, new_config, &mut retired, None, true)?;
-            // The lock, then the retired instance (and its index worker), drop here.
-        }
+            folder
+            // The lock, then the retired instance (its watcher and index
+            // worker), drop here, before the folder is deleted.
+        };
         self.remove_search_index(id);
-        Ok(())
+        let warning = folder.filter(|f| f.exists()).and_then(|folder| {
+            let error = std::fs::remove_dir_all(&folder).err()?;
+            tracing::warn!("could not delete {}: {error}", folder.display());
+            Some(format!(
+                "The space was removed, but its folder {} could not be deleted: {error}",
+                folder.display()
+            ))
+        });
+        Ok(warning)
     }
 
     /// Removes a deleted space's indexes in the background
@@ -905,7 +943,6 @@ mod tests {
             main_port: 3000,
             disable_service_worker: true,
             shell_disabled: false,
-            index_template: "# Test space\n".into(),
             shutdown: None,
             search: crate::search::SpaceSearch::in_memory(),
         }
@@ -974,7 +1011,7 @@ mod tests {
                         prefix: "/wiki".into(),
                     },
                 ),
-                false,
+                PreparedStarter::None,
             )
             .unwrap_err();
         let ApiError::Validation(errors) = error else {
@@ -1056,7 +1093,7 @@ mod tests {
                         prefix: "/wiki".into(),
                     },
                 ),
-                false,
+                PreparedStarter::None,
             )
             .unwrap_err();
         assert!(matches!(error, ApiError::Validation(_)));
@@ -1074,7 +1111,7 @@ mod tests {
                     prefix: String::new(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         m.create(
@@ -1084,7 +1121,7 @@ mod tests {
                     prefix: "/notes".into(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         let error = m
@@ -1211,7 +1248,7 @@ mod tests {
                         prefix: "/notes".into()
                     }
                 ),
-                false
+                PreparedStarter::None
             )
             .is_ok());
         m.create(
@@ -1222,7 +1259,7 @@ mod tests {
                     prefix: "/wiki".into(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         m.create(
@@ -1233,7 +1270,7 @@ mod tests {
                     prefix: String::new(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         drop(m);
@@ -1254,7 +1291,7 @@ mod tests {
                     prefix: "/notes".into(),
                 },
             ),
-            false,
+            PreparedStarter::None,
         )
         .unwrap();
         m.set_primary_url("https://manager.example.test").unwrap();
@@ -1269,7 +1306,7 @@ mod tests {
             r#"{"name":"W","folder":"w","binding":{"prefix":"/w"},"public":true}"#,
         )
         .unwrap();
-        let id = manager.create(cfg, false).unwrap();
+        let id = manager.create(cfg, PreparedStarter::None).unwrap().0;
         let stored = manager.get(&id).unwrap();
         assert_eq!(stored["access"], serde_json::json!("write"));
         assert!(stored.get("public").is_none());
@@ -1306,6 +1343,72 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_keeps_the_space_and_reports_a_failed_starter() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let (id, result) = m
+            .create(
+                payload(
+                    "Work",
+                    Binding::Prefix {
+                        prefix: "/work".into(),
+                    },
+                ),
+                PreparedStarter::Kit {
+                    id: "nope".into(),
+                    interface: None,
+                },
+            )
+            .unwrap();
+        assert!(matches!(result, StarterResult::Failed { ref error } if error.contains("nope")));
+        assert!(m.get(&id).is_some());
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn create_applies_the_starter_without_holding_the_state_lock() {
+        let dir = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let src = tempfile::tempdir().unwrap();
+        // Copying from a FIFO blocks until a writer opens it, pausing the apply.
+        let fifo = src.path().join("index.md");
+        let c_path = std::ffi::CString::new(fifo.to_str().unwrap()).unwrap();
+        assert_eq!(unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) }, 0);
+        let creator = {
+            let m = m.clone();
+            tokio::task::spawn_blocking(move || {
+                m.create(
+                    payload(
+                        "Work",
+                        Binding::Prefix {
+                            prefix: "/work".into(),
+                        },
+                    ),
+                    PreparedStarter::Files(src),
+                )
+            })
+        };
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        let unlocked_while_applying = loop {
+            if let Ok(inner) = m.state.try_lock() {
+                if !inner.config.spaces.is_empty() {
+                    break true;
+                }
+            }
+            if std::time::Instant::now() > deadline {
+                break false;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        };
+        // Opening the writer releases the blocked copy; how the platform copies
+        // a FIFO afterwards is irrelevant here.
+        drop(std::fs::OpenOptions::new().write(true).open(&fifo));
+        let (id, _) = creator.await.unwrap().unwrap();
+        assert!(unlocked_while_applying);
+        assert!(m.get(&id).is_some());
+    }
+
+    #[tokio::test]
     async fn create_defaults_folder_seeds_index_persists_and_routes() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
@@ -1317,12 +1420,17 @@ mod tests {
                         prefix: "/work".into(),
                     },
                 ),
-                true,
+                PreparedStarter::Kit {
+                    id: "personal-space".into(),
+                    interface: None,
+                },
             )
-            .unwrap();
-        assert_eq!(
-            std::fs::read_to_string(dir.path().join("spaces").join(&id).join("index.md")).unwrap(),
-            "# Test space\n"
+            .unwrap()
+            .0;
+        assert!(
+            std::fs::read_to_string(dir.path().join("spaces").join(&id).join("index.md"))
+                .unwrap()
+                .contains("Recent quick notes")
         );
         let (inst, prefix) = m
             .registry()
@@ -1346,7 +1454,7 @@ mod tests {
                     prefix: "/x".into(),
                 },
             ),
-            true,
+            PreparedStarter::None,
         )
         .unwrap();
         let e = m
@@ -1357,7 +1465,7 @@ mod tests {
                         prefix: "/x".into(),
                     },
                 ),
-                true,
+                PreparedStarter::None,
             )
             .unwrap_err();
         assert!(matches!(e, ApiError::Validation(_)));
@@ -1377,9 +1485,13 @@ mod tests {
                         prefix: "/a".into(),
                     },
                 ),
-                true,
+                PreparedStarter::Kit {
+                    id: "personal-space".into(),
+                    interface: None,
+                },
             )
-            .unwrap();
+            .unwrap()
+            .0;
         let mut cfg = payload(
             "A",
             Binding::Prefix {
@@ -1413,6 +1525,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn delete_with_files_removes_the_folder_but_refuses_the_data_folder() {
+        let dir = tempfile::tempdir().unwrap();
+        let elsewhere = tempfile::tempdir().unwrap();
+        let m = boot(dir.path());
+        let create = |name: &str, prefix: &str, folder: &str| {
+            let mut cfg = payload(
+                name,
+                Binding::Prefix {
+                    prefix: prefix.into(),
+                },
+            );
+            cfg.folder = folder.into();
+            m.create(cfg, PreparedStarter::None).unwrap().0
+        };
+        let root_space = create("Root", "/root", ".");
+        let at = |name: &str| elsewhere.path().join(name).to_string_lossy().into_owned();
+        let notes = create("Notes", "/notes", &at("notes"));
+        let other = create("Other", "/other", &at("other"));
+        std::fs::write(elsewhere.path().join("notes/page.md"), "gone").unwrap();
+        std::fs::write(elsewhere.path().join("other/page.md"), "kept").unwrap();
+
+        let e = m.delete_with_files(&root_space).unwrap_err();
+        assert!(
+            matches!(&e, ApiError::Validation(errors) if errors[0].field == "deleteFiles"),
+            "{e:?}"
+        );
+        assert!(
+            m.get(&root_space).is_some(),
+            "a refused delete keeps the space"
+        );
+
+        assert_eq!(m.delete_with_files(&notes).unwrap(), None);
+        assert!(m.get(&notes).is_none());
+        assert!(!elsewhere.path().join("notes").exists(), "folder deleted");
+        assert!(m.get(&other).is_some());
+        assert!(
+            elsewhere.path().join("other/page.md").exists(),
+            "other space untouched"
+        );
+        assert!(dir.path().join("spaces.json").exists(), "data folder kept");
+    }
+
+    #[tokio::test]
     async fn remove_member_everywhere_sweeps_all_spaces_and_is_a_noop_when_absent() {
         let dir = tempfile::tempdir().unwrap();
         let m = boot(dir.path());
@@ -1425,7 +1580,7 @@ mod tests {
         );
         a.members.insert("bob".into(), Default::default());
         a.members.insert("eve".into(), Default::default());
-        let id_a = m.create(a, true).unwrap();
+        let id_a = m.create(a, PreparedStarter::None).unwrap().0;
         let mut b = payload(
             "B",
             Binding::Prefix {
@@ -1433,7 +1588,7 @@ mod tests {
             },
         );
         b.members.insert("eve".into(), Default::default());
-        let id_b = m.create(b, true).unwrap();
+        let id_b = m.create(b, PreparedStarter::None).unwrap().0;
 
         let known = ["bob".to_string(), "eve".to_string()]
             .into_iter()
@@ -1469,7 +1624,7 @@ mod tests {
             },
         );
         a.members.insert("bob".into(), Default::default());
-        m.create(a, true).unwrap();
+        m.create(a, PreparedStarter::None).unwrap();
 
         // Simulate deleting "bob": the store's usernames no longer include
         // him, and that's exactly what's passed in as the new known-users
@@ -1486,7 +1641,7 @@ mod tests {
             },
         );
         b.members.insert("bob".into(), Default::default());
-        let e = m.create(b, true).unwrap_err();
+        let e = m.create(b, PreparedStarter::None).unwrap_err();
         assert!(matches!(e, ApiError::Validation(_)), "{e:?}");
     }
 
@@ -1502,9 +1657,10 @@ mod tests {
                         prefix: "/work".into(),
                     },
                 ),
-                false,
+                PreparedStarter::None,
             )
-            .unwrap();
+            .unwrap()
+            .0;
         let mut cfg: SpaceConfig = serde_json::from_value(m.get(&id).unwrap()).unwrap();
         // Only migration writes the value, so seed it behind the manager's back.
         cfg.client_identity_path = Some("/data".into());
@@ -1551,7 +1707,7 @@ mod tests {
         cfg.read_only = true;
         cfg.index_page = "home".into();
         cfg.members.insert("bob".into(), Default::default());
-        let id = m.create(cfg, false).unwrap();
+        let id = m.create(cfg, PreparedStarter::None).unwrap().0;
 
         let mut body = serde_json::Map::new();
         body.insert("name".into(), serde_json::json!("Renamed"));
@@ -1580,7 +1736,7 @@ mod tests {
         );
         cfg.members.insert("bob".into(), Default::default());
         cfg.members.insert("carol".into(), Default::default());
-        let id = m.create(cfg, false).unwrap();
+        let id = m.create(cfg, PreparedStarter::None).unwrap().0;
 
         let mut body = serde_json::Map::new();
         body.insert("members".into(), serde_json::json!({ "carol": {} }));
@@ -1606,9 +1762,10 @@ mod tests {
                         prefix: "/work".into(),
                     },
                 ),
-                false,
+                PreparedStarter::None,
             )
-            .unwrap();
+            .unwrap()
+            .0;
 
         // A naive GET -> edit -> PATCH round-trip hands back the keys the API
         // emitted itself. They must not reach the config's `extra` map.
@@ -1641,7 +1798,7 @@ mod tests {
         );
         cfg.access = Some(SpaceAccess::None);
         cfg.members.insert("bob".into(), Default::default());
-        m.create(cfg, true).unwrap();
+        m.create(cfg, PreparedStarter::None).unwrap();
 
         let visible = m.list_accessible("bob", false);
         assert_eq!(visible.len(), 1);
@@ -1668,7 +1825,7 @@ mod tests {
             },
         );
         public.access = Some(SpaceAccess::Write);
-        m.create(public, true).unwrap();
+        m.create(public, PreparedStarter::None).unwrap();
 
         let mut bobs = payload(
             "Bobs",
@@ -1678,7 +1835,7 @@ mod tests {
         );
         bobs.access = Some(SpaceAccess::None);
         bobs.members.insert("bob".into(), Default::default());
-        m.create(bobs, true).unwrap();
+        m.create(bobs, PreparedStarter::None).unwrap();
 
         let mut carols = payload(
             "Carols",
@@ -1688,7 +1845,7 @@ mod tests {
         );
         carols.access = Some(SpaceAccess::None);
         carols.members.insert("carol".into(), Default::default());
-        m.create(carols, true).unwrap();
+        m.create(carols, PreparedStarter::None).unwrap();
 
         let names = |v: Vec<VisibleSpace>| {
             let mut n: Vec<String> = v.into_iter().map(|s| s.name).collect();
@@ -1723,7 +1880,7 @@ mod tests {
         );
         work.access = Some(SpaceAccess::None);
         work.members.insert("zef".into(), Default::default());
-        m.create(work, true).unwrap();
+        m.create(work, PreparedStarter::None).unwrap();
 
         let mut wiki = payload(
             "Public Wiki",
@@ -1732,7 +1889,7 @@ mod tests {
             },
         );
         wiki.access = Some(SpaceAccess::Read);
-        m.create(wiki, true).unwrap();
+        m.create(wiki, PreparedStarter::None).unwrap();
 
         (dir, m)
     }

@@ -3,9 +3,11 @@
 //! associated data types.
 
 pub mod crypto;
+pub mod git_starting_point;
 pub mod reconcile;
 pub mod revision;
 pub mod space;
+pub mod starter_kits;
 pub mod types;
 pub mod upgrade;
 
