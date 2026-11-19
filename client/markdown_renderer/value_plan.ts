@@ -188,10 +188,13 @@ export function planValue(raw: unknown, globalEnv: LuaEnv): ValuePlan {
     return { kind: "markdown", markdown, slots, block: true, raw: value };
   }
   const { markdown, dataType } = renderResultToMarkdown(value, c);
+  // An empty result renders as inline "No results" text, so it flows in a
+  // sentence instead of claiming a block like a real table would.
   const block =
-    dataType === "table" ||
-    dataType === "list" ||
-    (typeof value === "string" && isBlockMarkdown(value))
+    c.kind !== "emptyTable" &&
+    (dataType === "table" ||
+      dataType === "list" ||
+      (typeof value === "string" && isBlockMarkdown(value)))
       ? true
       : undefined;
   return { kind: "markdown", markdown, slots: [], block, raw: value };

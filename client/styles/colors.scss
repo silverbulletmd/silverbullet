@@ -360,6 +360,13 @@
   color: var(--ui-accent-contrast-color);
 }
 
+// What an expression shows when it evaluates to an empty collection, such
+// as a query with no matches: quiet text instead of an empty table.
+.sb-empty-result {
+  color: var(--subtle-color);
+  font-style: italic;
+}
+
 .sb-at-mention {
   color: var(--editor-at-mention-color);
   background-color: var(--editor-at-mention-background-color);

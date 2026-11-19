@@ -60,7 +60,10 @@ function formatListItem(v: any): string {
   return typeof v === "string" ? v.trimEnd() : formatScalar(v);
 }
 
+// An empty value nested in a table cell or list item.
 const emptyTable = "<table data-table-empty></table>";
+// A whole expression result that is empty, such as a query with no matches.
+const emptyResult = '<span class="sb-empty-result">No results</span>';
 
 /**
  * Build an HTML table from string headers and a row accessor.
@@ -258,7 +261,7 @@ export function renderResultToMarkdown(
     case "scalar":
       return { markdown: classified.text, dataType: classified.dataType };
     case "emptyTable":
-      return { markdown: emptyTable, dataType: "table" };
+      return { markdown: emptyResult, dataType: "table" };
     case "record":
       return {
         markdown: buildHtmlTable(classified.headers, 1, (_i, h) =>
@@ -331,7 +334,7 @@ export async function renderResultToCleanMarkdown(
     case "scalar":
       return classified.text;
     case "emptyTable":
-      return "*(empty table)*";
+      return "*No results*";
     case "record": {
       const row: Record<string, any> = {};
       for (const h of classified.headers) row[h] = classified.getCell(h);

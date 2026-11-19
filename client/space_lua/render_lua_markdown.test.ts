@@ -57,12 +57,29 @@ test("non-matching object is stringified", async () => {
   expect(r.markdown).toContain("2024");
 });
 
-test("empty LuaTable", async () => {
+test("empty LuaTable renders the No results placeholder", async () => {
   const r = renderResultToMarkdown(new LuaTable());
   expect(r).toEqual({
-    markdown: "<table data-table-empty></table>",
+    markdown: '<span class="sb-empty-result">No results</span>',
     dataType: "table",
   });
+});
+
+test("empty JS array renders the No results placeholder", () => {
+  expect(renderResultToMarkdown([]).markdown).toBe(
+    '<span class="sb-empty-result">No results</span>',
+  );
+});
+
+test("an empty list in a table cell renders, without the placeholder", () => {
+  const md = renderResultToMarkdown([{ name: "a", tags: [] }]).markdown;
+  expect(md).toContain(">a</td>");
+  expect(md).not.toContain("No results");
+});
+
+test("records without keys in a cell do not show the placeholder", () => {
+  const md = renderResultToMarkdown([{ name: "a", rows: [{}] }]).markdown;
+  expect(md).not.toContain("No results");
 });
 
 test("LuaTable array of scalars renders as unmarked list, one item per line", async () => {
@@ -262,12 +279,12 @@ test("e2e: nested table in cell renders full sub-table", async () => {
 const clean = (v: unknown) =>
   renderResultToCleanMarkdown(v, () => Promise.resolve(""));
 
-test("clean: empty LuaTable renders as *(empty table)*", async () => {
-  expect(await clean(new LuaTable())).toBe("*(empty table)*");
+test("clean: empty LuaTable renders as *No results*", async () => {
+  expect(await clean(new LuaTable())).toBe("*No results*");
 });
 
-test("clean: empty array renders as *(empty table)*", async () => {
-  expect(await clean([])).toBe("*(empty table)*");
+test("clean: empty array renders as *No results*", async () => {
+  expect(await clean([])).toBe("*No results*");
 });
 
 test("clean: record LuaTable renders as single-row GFM table", async () => {

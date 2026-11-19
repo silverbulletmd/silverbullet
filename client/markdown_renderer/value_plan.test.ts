@@ -76,6 +76,16 @@ test("block detection", () => {
   expect((planValue([{ a: 1 }]) as any).block).toBe(true);
 });
 
+test("an empty result is inline text, not a block table", () => {
+  for (const empty of [[], new LuaTable()]) {
+    const plan = planValue(empty) as any;
+    expect(plan.markdown).toBe(
+      '<span class="sb-empty-result">No results</span>',
+    );
+    expect(plan.block).toBeFalsy();
+  }
+});
+
 test("1000 widget rows plan into one markdown document", () => {
   const plan = planValue(Array.from({ length: 1000 }, () => btn)) as any;
   expect(plan.kind).toBe("markdown");

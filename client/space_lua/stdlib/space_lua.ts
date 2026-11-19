@@ -223,8 +223,14 @@ export async function interpolateLuaString(
         hasWidget = true;
         parts.push(luaResult);
       } else if (luaResult instanceof LuaTable) {
-        // A list or table, as a page-level `${…}` shows it
-        parts.push(renderResultToMarkdown(luaResult).markdown);
+        // A list or table, as a page-level `${…}` shows it. An empty one adds
+        // nothing: a template's empty `${tags}` is not a query with no results.
+        const c = classifyResult(luaResult);
+        parts.push(
+          c.kind === "emptyTable"
+            ? ""
+            : renderResultToMarkdown(luaResult, c).markdown,
+        );
       } else {
         // Do `luaToString` before `luaValueToJS` to preserve tagged float
         // formatting.

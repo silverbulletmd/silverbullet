@@ -664,6 +664,15 @@ test("Thread local _CTX - advanced cases", async () => {
     ),
   ).toEqual(`Some JSON {"name":"Pete"}!`);
 
+  // An empty table in a template adds nothing (no "No results" placeholder)
+  expect(
+    await evalExpr(
+      `spacelua.interpolate('* item \${tags}', {tags={}})`,
+      env,
+      sf,
+    ),
+  ).toEqual("* item ");
+
   // A rendered string passed where template values are expected
   await expect(
     (async () =>
