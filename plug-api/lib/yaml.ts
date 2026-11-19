@@ -10,6 +10,8 @@ function serializeToYamlScalar(
   if (typeof value === "string") {
     if (
       value === "" || // Empty string
+      value.trim() !== value || // Plain scalars drop surrounding whitespace
+      value.includes("\n") ||
       value.match(/[:{#}[],&*!|>'"%@`]/) || // Special YAML characters
       /^\d+(\.\d+)?([eE][+-]?\d+)?$/.test(value) || // Looks like a number
       value.includes(":") || // Contains colons
@@ -181,6 +183,8 @@ export function applyPatches(yamlString: string, patches: YamlPatch[]): string {
     let commentBlock = "";
     let trailingComments = "";
     let inlineComment = "";
+    // Lines of the old value's nested block (a map or list under the key)
+    let nestedCount = 0;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
@@ -199,7 +203,25 @@ export function applyPatches(yamlString: string, patches: YamlPatch[]): string {
             break;
           }
         }
+        const keyIndent = line.length - line.trimStart().length;
+        // The old value's block runs until the next non-blank line at or
+        // above the key's indentation; blank lines inside it belong to it
+        let blanks = 0;
         for (let j = i + 1; j < lines.length; j++) {
+          const next = lines[j];
+          if (next.trim() === "") {
+            blanks++;
+            continue;
+          }
+          const indent = next.length - next.trimStart().length;
+          const nested =
+            indent > keyIndent ||
+            (indent === keyIndent && next.trimStart().startsWith("- "));
+          if (!nested) break;
+          nestedCount += blanks + 1;
+          blanks = 0;
+        }
+        for (let j = i + 1 + nestedCount; j < lines.length; j++) {
           const nextLine = lines[j].trim();
           if (nextLine.startsWith("#")) {
             trailingComments += `${lines[j]}\n`;
@@ -229,7 +251,10 @@ export function applyPatches(yamlString: string, patches: YamlPatch[]): string {
         keyLineIndex - commentBlock.split("\n").filter(Boolean).length,
       );
       const afterKey = lines.slice(
-        keyLineIndex + 1 + trailingComments.split("\n").filter(Boolean).length,
+        keyLineIndex +
+          1 +
+          nestedCount +
+          trailingComments.split("\n").filter(Boolean).length,
       );
 
       const newContent = [

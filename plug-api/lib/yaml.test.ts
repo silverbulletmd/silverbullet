@@ -1,4 +1,5 @@
 import { expect, test } from "vitest";
+import YAML from "js-yaml";
 import { applyPatches, type YamlPatch } from "./yaml.ts";
 
 test("YAML patching - basic operations and value types", () => {
@@ -320,4 +321,43 @@ license: MIT
   expect(result.includes("license: MIT")).toEqual(true);
 
   expect(result.includes("version:")).toEqual(false);
+});
+
+test("set-key replaces a nested map value instead of keeping its old children", () => {
+  const yaml =
+    "pageDecoration:\n  icon: rocket\n  tree:\n    priority: 1\ntitle: x";
+  const out = applyPatches(yaml, [
+    { op: "set-key", path: "pageDecoration", value: { icon: "house" } },
+  ]);
+  expect(out).not.toContain("rocket");
+  expect(out).not.toContain("priority");
+  expect(out).toContain("icon: house");
+  expect(out).toContain("title: x");
+});
+
+test("set-key replaces a block list value", () => {
+  const yaml = "tags:\n- a\n- b\ntitle: x";
+  const out = applyPatches(yaml, [{ op: "set-key", path: "tags", value: "c" }]);
+  expect(out.trimEnd()).toBe("tags: c\ntitle: x");
+});
+
+test("set-key keeps a string's surrounding whitespace by quoting it", () => {
+  const out = applyPatches("title: x", [
+    { op: "set-key", path: "pageDecoration", value: { prefix: "🧑 " } },
+  ]);
+  expect(YAML.load(out)).toEqual({
+    title: "x",
+    pageDecoration: { prefix: "🧑 " },
+  });
+});
+
+test("set-key replaces a nested block that contains blank lines", () => {
+  const yaml = 'pageDecoration:\n  icon: home\n\n  prefix: "A "\ntitle: x';
+  const out = applyPatches(yaml, [
+    { op: "set-key", path: "pageDecoration", value: { icon: "house" } },
+  ]);
+  expect(YAML.load(out)).toEqual({
+    pageDecoration: { icon: "house" },
+    title: "x",
+  });
 });
