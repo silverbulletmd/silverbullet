@@ -67,13 +67,18 @@ test("every starter kit boots cleanly", async ({
 
     const result = await page.evaluate(async (names) => {
       const runtime = (globalThis as any).sbRuntime;
-      const aspiring: { page: string; name: string }[] = await runtime.evalLua(
-        'query[[from index.tag("aspiring-page") select {page = page, name = name}]]',
+      // An empty Lua table comes back as `{}`, not `[]`.
+      const list = <T>(value: unknown): T[] =>
+        Array.isArray(value) ? value : Object.values(value ?? {});
+      const aspiring = list<{ page: string; name: string }>(
+        await runtime.evalLua(
+          'query[[from index.tag("aspiring-page") select {page = page, name = name}]]',
+        ),
       );
       const lint: unknown[] = [];
       for (const name of names) {
         lint.push(
-          ...(await runtime.evalLua(`space.lint(${JSON.stringify(name)})`)),
+          ...list(await runtime.evalLua(`space.lint(${JSON.stringify(name)})`)),
         );
       }
       return { aspiring, lint };
