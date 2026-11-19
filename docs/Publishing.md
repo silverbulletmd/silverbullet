@@ -27,7 +27,7 @@ Changes to the files show up on the site without a restart. Files and folders wh
 The `publish` image runs `silverbullet publish` on whatever is in `/site`. To bake your pages into an image, put a `Dockerfile` next to the folder:
 
 ```dockerfile
-FROM zefhemel/silverbullet:publish
+FROM ghcr.io/silverbulletmd/silverbullet:publish
 COPY docs /site
 ENV SB_NAME="My Docs" SB_INDEX_PAGE=index
 ```
@@ -35,7 +35,7 @@ ENV SB_NAME="My Docs" SB_INDEX_PAGE=index
 Or mount the folder instead of baking it in:
 
 ```bash
-docker run -v ./docs:/site:ro -p 3000:3000 zefhemel/silverbullet:publish
+docker run -v ./docs:/site:ro -p 3000:3000 ghcr.io/silverbulletmd/silverbullet:publish
 ```
 
 The container runs as user and group `65534` (`nobody`), so the files must be readable by that user. World-readable files, which is what most tools create, already are. Because nothing is written, the container also runs with `docker run --read-only`, without a writable `/tmp`.
@@ -89,7 +89,7 @@ To make a published space read-only for everyone, including members and admins, 
 This documentation is published with the `publish` image, built from `Dockerfile.website` in the [SilverBullet repository](https://github.com/silverbulletmd/silverbullet):
 
 ```dockerfile
-ARG BASE_IMAGE=zefhemel/silverbullet:edge-publish
+ARG BASE_IMAGE=ghcr.io/silverbulletmd/silverbullet:edge-publish
 FROM ${BASE_IMAGE}
 COPY docs /site
 ENV SB_NAME=SilverBullet SB_INDEX_PAGE=SilverBullet SB_DESCRIPTION="Powerful and programmable note taking app" SB_THEME_COLOR=#e1e1e1
