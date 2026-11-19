@@ -30,6 +30,14 @@ pub struct RemoteTarget {
 /// git's stderr is the only signal for most failures, so it is matched here
 /// once rather than at each call site. `git.rs` pins LC_ALL=C, which is what
 /// makes matching English text safe.
+// `git::run_network` kills a transfer that stops reporting progress, so these
+// must keep git talking for the whole transfer. `-q` would silence fetch's
+// "Receiving objects" even alongside `--progress`, leaving a long download
+// looking hung.
+const FETCH: &[&str] = &["fetch"];
+const PUSH: &[&str] = &["push", "-q"];
+const PROGRESS: &[&str] = &["--progress"];
+
 pub fn classify(stderr: &str) -> SyncError {
     let s = stderr.to_ascii_lowercase();
     // Checked before everything else, and on its own exact phrase: a missing
@@ -226,9 +234,14 @@ fn tick_once(
         None => target.remote.clone(),
     };
 
-    let fetched = match git::run(
+    let fetched = match git::run_network(
         repo,
-        &["fetch", "-q", &destination, &target.remote_branch],
+        &[
+            FETCH,
+            PROGRESS,
+            &[destination.as_str(), target.remote_branch.as_str()],
+        ]
+        .concat(),
         &e,
     ) {
         Ok(_) => true,
@@ -238,7 +251,14 @@ fn tick_once(
         },
     };
 
-    let (ahead, behind) = if fetched {
+    // A space with no commits yet has an unborn branch: nothing to compare,
+    // and `git merge` simply checks the remote history out onto it.
+    let unborn = git::run(repo, &["rev-parse", "--verify", "-q", "HEAD"], &[]).is_err();
+    let (ahead, behind) = if fetched && unborn {
+        let incoming = git::run(repo, &["rev-list", "--count", "FETCH_HEAD"], &[])
+            .map_err(|e| classify(&e))?;
+        (0, incoming.trim().parse().unwrap_or(1))
+    } else if fetched {
         ahead_behind(repo, &target.branch)?
     } else {
         // Nothing on the remote to compare against, so everything local is
@@ -270,7 +290,11 @@ fn tick_once(
         if let Some(path) = consent_path {
             let _ = std::fs::remove_file(path);
         }
-        super::conflicts::begin_merge(repo)?;
+        // Provenance names the two sides of a conflict; checking out onto an
+        // unborn branch has only one side and cannot conflict.
+        if !unborn {
+            super::conflicts::begin_merge(repo)?;
+        }
         args.push("FETCH_HEAD");
         match git::run(repo, &args, &super::store::commit_env(None)) {
             Ok(_) => true,
@@ -294,7 +318,7 @@ fn tick_once(
     };
     let pushed = if ahead > 0 {
         let refspec = format!("HEAD:{}", target.remote_branch);
-        let mut args = vec!["push", "-q"];
+        let mut args = [PUSH, PROGRESS].concat();
         if !has_upstream(repo, &target.branch) {
             args.push("-u");
         }
@@ -308,7 +332,7 @@ fn tick_once(
                 repo,
             )?;
         }
-        match git::run(repo, &args, &e) {
+        match git::run_network(repo, &args, &e) {
             Ok(_) => {
                 if settings.is_some() {
                     git::run(
@@ -395,6 +419,64 @@ pub fn try_complete_merge(repo: &Path) -> Result<MergeCompletion, SyncError> {
 pub(crate) mod tests {
     use super::*;
     use crate::{multi::config::GitSyncMode, revisions::git};
+
+    /// Runs git directly to read its stderr, which `git::run` discards.
+    fn transfer_stderr(repo: &Path, args: &[&str]) -> String {
+        let out = std::process::Command::new("git")
+            .arg("-C")
+            .arg(repo)
+            .args(args)
+            .env("GIT_PROGRESS_DELAY", "0")
+            .env("LC_ALL", "C")
+            .output()
+            .unwrap();
+        assert!(out.status.success(), "{out:?}");
+        String::from_utf8_lossy(&out.stderr).into_owned()
+    }
+
+    #[test]
+    fn sync_transfers_report_progress_throughout() {
+        let source = tempfile::TempDir::new().unwrap();
+        git::run(source.path(), &["init", "-q", "-b", "main"], &[]).unwrap();
+        // Enough objects that git indexes the pack instead of unpacking it,
+        // which is the path a large first sync takes.
+        for i in 0..300 {
+            std::fs::write(source.path().join(format!("Page {i}.md")), i.to_string()).unwrap();
+        }
+        git::run(source.path(), &["add", "-A"], &[]).unwrap();
+        git::run(
+            source.path(),
+            &[
+                "-c",
+                "user.name=T",
+                "-c",
+                "user.email=t@x.test",
+                "commit",
+                "-qm",
+                "pages",
+            ],
+            &[],
+        )
+        .unwrap();
+        let url = format!("file://{}", source.path().display());
+
+        let target = tempfile::TempDir::new().unwrap();
+        git::run(target.path(), &["init", "-q", "--bare"], &[]).unwrap();
+        let fetch = transfer_stderr(
+            target.path(),
+            &[FETCH, PROGRESS, &[url.as_str(), "main"]].concat(),
+        );
+        assert!(fetch.contains("Receiving objects"), "{fetch}");
+
+        let destination = tempfile::TempDir::new().unwrap();
+        git::run(destination.path(), &["init", "-q", "--bare"], &[]).unwrap();
+        let destination = format!("file://{}", destination.path().display());
+        let push = transfer_stderr(
+            source.path(),
+            &[PUSH, PROGRESS, &[destination.as_str(), "main"]].concat(),
+        );
+        assert!(push.contains("Writing objects"), "{push}");
+    }
 
     fn repo_with_remote(remote_name: &str) -> tempfile::TempDir {
         let dir = tempfile::TempDir::new().unwrap();
@@ -606,6 +688,41 @@ pub(crate) mod tests {
             std::fs::read_to_string(other.path().join("note.md")).unwrap(),
             "mine\n"
         );
+    }
+
+    #[test]
+    fn an_empty_space_takes_the_remote_history_on_the_first_tick() {
+        let remote = bare_remote();
+        let _seed = seeded_clone(remote.path());
+        // A space with no commits yet, connected to a remote that has history:
+        // its branch is unborn, so there is nothing to compare or merge with.
+        let work = tempfile::TempDir::new().unwrap();
+        git::run(work.path(), &["init", "-q", "-b", "main"], &[]).unwrap();
+        git::run(
+            work.path(),
+            &["remote", "add", "origin", remote.path().to_str().unwrap()],
+            &[],
+        )
+        .unwrap();
+        git::run(
+            work.path(),
+            &["config", "branch.main.remote", "origin"],
+            &[],
+        )
+        .unwrap();
+        git::run(
+            work.path(),
+            &["config", "branch.main.merge", "refs/heads/main"],
+            &[],
+        )
+        .unwrap();
+
+        assert_eq!(tick(work.path(), &[], false).unwrap(), TickOutcome::Merged);
+        assert_eq!(
+            std::fs::read_to_string(work.path().join("note.md")).unwrap(),
+            "base\n"
+        );
+        assert_eq!(tick(work.path(), &[], false).unwrap(), TickOutcome::Idle);
     }
 
     #[test]

@@ -252,6 +252,67 @@ impl Drop for Inspection {
         let _ = std::fs::remove_dir_all(&self.0);
     }
 }
+/// A throwaway bare repository for checking a draft connection: it carries the
+/// live repo's config, so the draft's remote and credentials can be applied
+/// without touching the live `.git`, and anything fetched lands here and is
+/// deleted with it. `--shared` borrows the live object store through
+/// alternates instead of copying it, which a large history would make slow.
+fn open_inspection(repo: &Path, path: PathBuf) -> Result<Inspection, String> {
+    let inspection = Inspection(path);
+    git::run_with_timeout(
+        repo,
+        &[
+            "clone",
+            "--bare",
+            "--shared",
+            "--",
+            &repo.to_string_lossy(),
+            &inspection.0.to_string_lossy(),
+        ],
+        &[("SB_GIT_NO_HOOKS", "1")],
+        CONNECTION_CHECK_TIMEOUT,
+    )?;
+    let config_path = git::run(
+        repo,
+        &["rev-parse", "--git-path", "config"],
+        &[("SB_GIT_NO_HOOKS", "1")],
+    )?;
+    let config_path = repo.join(config_path.trim());
+    std::fs::copy(config_path, inspection.0.join("config")).map_err(|e| e.to_string())?;
+    git::run(
+        &inspection.0,
+        &["config", "core.bare", "true"],
+        &[("SB_GIT_NO_HOOKS", "1")],
+    )?;
+    let _ = git::run(
+        &inspection.0,
+        &["config", "--unset", "core.worktree"],
+        &[("SB_GIT_NO_HOOKS", "1")],
+    );
+    Ok(inspection)
+}
+/// Fetches only the commits of the draft's remote branch into FETCH_HEAD:
+/// the connection check needs the commit graph (ahead/behind, unrelated
+/// histories), never file contents. A server without partial-clone support
+/// ignores the filter with a warning and sends everything.
+///
+/// It fetches the draft's URL, not a configured remote: a deploy-key check
+/// runs git in a throwaway GIT_DIR that ignores the repo's config and only
+/// permits the checked URL. git records that URL itself as where the omitted
+/// objects would come from, which it cannot do for a bare local path, so
+/// those fetch everything.
+fn fetch_commits(
+    inspection: &Path,
+    draft: &Draft,
+    envs: &[(&str, &str)],
+) -> Result<String, String> {
+    let mut args = vec!["fetch", "--no-tags"];
+    if !Path::new(&draft.url).is_absolute() {
+        args.push("--filter=tree:0");
+    }
+    args.extend(["--", draft.url.as_str(), draft.remote_branch.as_str()]);
+    git::run_with_timeout(inspection, &args, envs, CONNECTION_CHECK_TIMEOUT)
+}
 fn validate_remote_branch(repo: &Path, branch: &str) -> Result<(), String> {
     if branch.trim() != branch || branch.is_empty() {
         return Err("choose a valid remote branch".into());
@@ -283,37 +344,10 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
         draft.remote_branch = upstream.clone().unwrap_or_else(|| draft.branch.clone());
         upstream.is_none()
     };
-    let inspection = Inspection(folder.join(format!("inspect-{}", uuid::Uuid::new_v4())));
-    git::run_with_timeout(
+    let inspection = open_inspection(
         &repo,
-        &[
-            "clone",
-            "--bare",
-            "--no-hardlinks",
-            "--",
-            &repo.to_string_lossy(),
-            &inspection.0.to_string_lossy(),
-        ],
-        &[("SB_GIT_NO_HOOKS", "1")],
-        CONNECTION_CHECK_TIMEOUT,
+        folder.join(format!("inspect-{}", uuid::Uuid::new_v4())),
     )?;
-    let config_path = git::run(
-        &repo,
-        &["rev-parse", "--git-path", "config"],
-        &[("SB_GIT_NO_HOOKS", "1")],
-    )?;
-    let config_path = repo.join(config_path.trim());
-    std::fs::copy(config_path, inspection.0.join("config")).map_err(|e| e.to_string())?;
-    git::run(
-        &inspection.0,
-        &["config", "core.bare", "true"],
-        &[("SB_GIT_NO_HOOKS", "1")],
-    )?;
-    let _ = git::run(
-        &inspection.0,
-        &["config", "--unset", "core.worktree"],
-        &[("SB_GIT_NO_HOOKS", "1")],
-    );
     configure(&inspection.0, draft)?;
     let mut envs = match keys::checked_envs_for_mode(draft.mode, &folder, "key", &inspection.0) {
         Ok(envs) => envs,
@@ -388,12 +422,7 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
             let remote_head = refs.split_whitespace().next().map(String::from);
             result["remoteHead"] = json!(remote_head);
             if remote_head.is_some() {
-                match git::run_with_timeout(
-                    &inspection.0,
-                    &["fetch", "--no-tags", "--", &draft.url, &draft.remote_branch],
-                    &envs,
-                    CONNECTION_CHECK_TIMEOUT,
-                ) {
+                match fetch_commits(&inspection.0, draft, &envs) {
                     Ok(_) => {
                         if local_head.is_some() {
                             if let Ok((ahead, behind)) =
@@ -792,26 +821,116 @@ mod tests {
             assert!(!journal_path(root.path(), "sample").exists());
         }
     }
+    fn commit(repo: &Path, name: &str) {
+        std::fs::write(repo.join(name), name).unwrap();
+        git::run(repo, &["add", "--", name], &[]).unwrap();
+        git::run(
+            repo,
+            &[
+                "-c",
+                "user.name=Sample",
+                "-c",
+                "user.email=sample@example.test",
+                "commit",
+                "-qm",
+                "Create note",
+            ],
+            &[],
+        )
+        .unwrap();
+    }
+    #[test]
+    fn inspection_shares_local_objects_and_fetches_only_commits() {
+        let local = repo();
+        commit(local.path(), "Local.md");
+        let seed = tempfile::TempDir::new().unwrap();
+        git::run(seed.path(), &["init", "-q", "-b", "main"], &[]).unwrap();
+        commit(seed.path(), "Remote.md");
+        let remote = tempfile::TempDir::new().unwrap();
+        git::run(
+            seed.path(),
+            &[
+                "clone",
+                "-q",
+                "--bare",
+                "--",
+                seed.path().to_str().unwrap(),
+                remote.path().to_str().unwrap(),
+            ],
+            &[],
+        )
+        .unwrap();
+        git::run(
+            remote.path(),
+            &["config", "uploadpack.allowFilter", "true"],
+            &[],
+        )
+        .unwrap();
+        let folder = tempfile::TempDir::new().unwrap();
+
+        let inspection = open_inspection(
+            &local.path().canonicalize().unwrap(),
+            folder.path().join("inspect"),
+        )
+        .unwrap();
+        let objects = git::run(&inspection.0, &["count-objects", "-v"], &[]).unwrap();
+        assert!(
+            objects.lines().any(|l| l == "count: 0") && objects.lines().any(|l| l == "in-pack: 0"),
+            "the inspection copied local objects:\n{objects}"
+        );
+
+        // As a deploy-key check runs it: git in a throwaway GIT_DIR that
+        // ignores the inspection's config, allowed only to the checked URL.
+        // A URL rather than a bare path, which git cannot record as the
+        // source of the commits-only fetch.
+        let url = format!("file://{}", remote.path().display());
+        let key = folder.path().join("key");
+        std::fs::write(&key, "not a real key").unwrap();
+        let key_hash = {
+            use sha2::{Digest, Sha256};
+            format!("{:x}", Sha256::digest(b"not a real key"))
+        };
+        let known_hosts = folder.path().join("known_hosts");
+        std::fs::write(&known_hosts, "").unwrap();
+        let envs = [
+            ("SB_MANAGED_DESTINATION", url.as_str()),
+            ("SB_MANAGED_KEY", key.to_str().unwrap()),
+            ("SB_MANAGED_KEY_HASH", key_hash.as_str()),
+            ("SB_MANAGED_KNOWN_HOSTS", known_hosts.to_str().unwrap()),
+        ];
+        let root = tempfile::TempDir::new().unwrap();
+        let mut draft = create_draft(
+            root.path(),
+            "sample",
+            local.path(),
+            GitSyncConfig::default(),
+        )
+        .unwrap();
+        draft.url = url.clone();
+        draft.remote_branch = "main".into();
+        fetch_commits(&inspection.0, &draft, &envs).unwrap();
+        let remote_head = git::run(remote.path(), &["rev-parse", "main"], &[]).unwrap();
+        assert_eq!(
+            git::run(&inspection.0, &["rev-parse", "FETCH_HEAD"], &[]).unwrap(),
+            remote_head
+        );
+        let blob = git::run(remote.path(), &["rev-parse", "main:Remote.md"], &[]).unwrap();
+        assert!(
+            git::run(
+                &inspection.0,
+                &["cat-file", "-e", blob.trim()],
+                &[("GIT_NO_LAZY_FETCH", "1")]
+            )
+            .is_err(),
+            "the connection check downloaded file contents"
+        );
+        assert!(
+            git::run(&inspection.0, &["merge-base", "HEAD", "FETCH_HEAD"], &[]).is_err(),
+            "unrelated histories must stay detectable"
+        );
+    }
     #[test]
     fn unrelated_history_recovery_accepts_local_commits_and_rejects_replacement() {
-        fn commit(repo: &Path, name: &str) {
-            std::fs::write(repo.join(name), name).unwrap();
-            git::run(repo, &["add", "--", name], &[]).unwrap();
-            git::run(
-                repo,
-                &[
-                    "-c",
-                    "user.name=Sample",
-                    "-c",
-                    "user.email=sample@example.test",
-                    "commit",
-                    "-qm",
-                    "Create note",
-                ],
-                &[],
-            )
-            .unwrap();
-        }
         let root = tempfile::TempDir::new().unwrap();
         let local = repo();
         let remote = repo();

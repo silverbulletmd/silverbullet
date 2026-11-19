@@ -96,7 +96,59 @@ fn command(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Command {
     cmd
 }
 
-fn output(mut command: Command, timeout: Duration) -> Result<Output, String> {
+/// How long a git process may run before it is killed.
+#[derive(Clone, Copy, Debug)]
+enum Limit {
+    /// A fixed wall-clock budget, for local operations.
+    Total(Duration),
+    /// For transfers whose size is unknown up front: killed once stderr has
+    /// been silent for `idle`, or after `max` in all. Pair it with
+    /// `--progress`, which keeps a healthy transfer talking.
+    Stall { idle: Duration, max: Duration },
+}
+
+impl From<Duration> for Limit {
+    fn from(total: Duration) -> Self {
+        Limit::Total(total)
+    }
+}
+
+/// A transfer that is still making progress keeps going: only one that has
+/// said nothing for two minutes is treated as hung. The cap bounds how long a
+/// sync can hold the commit lock.
+const NETWORK_LIMIT: Limit = Limit::Stall {
+    idle: Duration::from_secs(120),
+    max: Duration::from_secs(2 * 60 * 60),
+};
+
+/// For fetch and push: the first sync of a large repository can take far
+/// longer than [`run`]'s fixed budget, so this kills git only once it stalls.
+/// Callers should pass `--progress` so git reports activity while it works.
+pub fn run_network(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<String, String> {
+    run_bytes_with_limit(repo, args, envs, NETWORK_LIMIT)
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
+}
+
+/// Drops git's progress meter from stderr, so error text shows the error.
+fn strip_progress(stderr: &str) -> String {
+    fn is_progress(line: &str) -> bool {
+        let line = line.strip_prefix("remote: ").unwrap_or(line);
+        line.starts_with("Total ")
+            || line.starts_with("Delta compression")
+            || line
+                .split_once(": ")
+                .is_some_and(|(label, _)| label.ends_with(" objects") || label.ends_with(" deltas"))
+    }
+    stderr
+        .split(['\n', '\r'])
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !is_progress(line))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn output(mut command: Command, limit: impl Into<Limit>) -> Result<Output, String> {
+    let limit = limit.into();
     command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -115,16 +167,41 @@ fn output(mut command: Command, timeout: Duration) -> Result<Output, String> {
         let mut bytes = Vec::new();
         stdout.read_to_end(&mut bytes).map(|_| bytes)
     });
+    let started = Instant::now();
+    // Milliseconds since `started` at which stderr last produced bytes.
+    let last_activity = std::sync::Arc::new(std::sync::atomic::AtomicU64::new(0));
+    let activity = last_activity.clone();
     let err_thread = std::thread::spawn(move || {
         let mut bytes = Vec::new();
-        stderr.read_to_end(&mut bytes).map(|_| bytes)
+        let mut chunk = [0u8; 8192];
+        loop {
+            match stderr.read(&mut chunk) {
+                Ok(0) => return Ok(bytes),
+                Ok(n) => {
+                    bytes.extend_from_slice(&chunk[..n]);
+                    activity.store(
+                        started.elapsed().as_millis() as u64,
+                        std::sync::atomic::Ordering::Release,
+                    );
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::Interrupted => {}
+                Err(e) => return Err(e),
+            }
+        }
     });
-    let started = Instant::now();
+    let expired = || match limit {
+        Limit::Total(total) => started.elapsed() > total,
+        Limit::Stall { idle, max } => {
+            let quiet_since =
+                Duration::from_millis(last_activity.load(std::sync::atomic::Ordering::Acquire));
+            started.elapsed() > max || started.elapsed().saturating_sub(quiet_since) > idle
+        }
+    };
     let status = loop {
         if let Some(status) = child.try_wait().map_err(|e| e.to_string())? {
             break status;
         }
-        if started.elapsed() > timeout {
+        if expired() {
             #[cfg(unix)]
             {
                 let _ = Command::new("kill")
@@ -286,19 +363,19 @@ pub fn run_with_timeout(
     envs: &[(&str, &str)],
     timeout: Duration,
 ) -> Result<String, String> {
-    run_bytes_with_timeout(repo, args, envs, timeout)
+    run_bytes_with_limit(repo, args, envs, timeout)
         .map(|b| String::from_utf8_lossy(&b).into_owned())
 }
 
 pub fn run_bytes(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<Vec<u8>, String> {
-    run_bytes_with_timeout(repo, args, envs, Duration::from_secs(60))
+    run_bytes_with_limit(repo, args, envs, Duration::from_secs(60))
 }
 
-fn run_bytes_with_timeout(
+fn run_bytes_with_limit(
     repo: &Path,
     args: &[&str],
     envs: &[(&str, &str)],
-    timeout: Duration,
+    limit: impl Into<Limit>,
 ) -> Result<Vec<u8>, String> {
     if !available() {
         return Err("git is not installed".to_string());
@@ -313,14 +390,14 @@ fn run_bytes_with_timeout(
                 .collect()
         })
         .unwrap_or_else(|| envs.to_vec());
-    let out = output(command(repo, args, &selected), timeout)?;
+    let out = output(command(repo, args, &selected), limit)?;
     if out.status.success() {
         if let Some(transport) = &transport {
             transport.finish()?;
         }
         Ok(out.stdout)
     } else {
-        Err(String::from_utf8_lossy(&out.stderr).trim().to_string())
+        Err(strip_progress(&String::from_utf8_lossy(&out.stderr)))
     }
 }
 
@@ -484,6 +561,52 @@ mod transport_tests {
         assert_eq!(
             run(repo.path(), &["show", "FETCH_HEAD:Note.md"], &[]).unwrap(),
             "A note\n"
+        );
+    }
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use super::*;
+
+    fn sh(script: &str) -> Command {
+        let mut command = Command::new("sh");
+        command.args(["-c", script]);
+        command
+    }
+
+    #[test]
+    fn steady_progress_outlives_the_idle_limit() {
+        let limit = Limit::Stall {
+            idle: Duration::from_millis(300),
+            max: Duration::from_secs(10),
+        };
+        let out = output(
+            sh("for i in 1 2 3 4 5 6 7 8; do printf 'x\\r' >&2; sleep 0.1; done"),
+            limit,
+        )
+        .unwrap();
+        assert!(out.status.success());
+    }
+
+    #[test]
+    fn a_silent_process_is_killed_after_the_idle_limit() {
+        let limit = Limit::Stall {
+            idle: Duration::from_millis(300),
+            max: Duration::from_secs(10),
+        };
+        let started = Instant::now();
+        let error = output(sh("printf start >&2; sleep 5"), limit).unwrap_err();
+        assert!(error.contains("timed out"), "{error}");
+        assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    #[test]
+    fn progress_is_dropped_from_error_text() {
+        let stderr = "remote: Enumerating objects: 9, done.        \nReceiving objects:  11% (1/9)\rReceiving objects: 100% (9/9), done.\nResolving deltas: 100% (2/2), done.\nremote: Total 9 (delta 1), reused 0 (delta 0)\nDelta compression using up to 10 threads\nfatal: the remote end hung up unexpectedly\n";
+        assert_eq!(
+            strip_progress(stderr),
+            "fatal: the remote end hung up unexpectedly"
         );
     }
 }
