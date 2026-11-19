@@ -11,15 +11,6 @@ actionButton.define {
     editor.openUrl "https://community.silverbullet.md"
   end
 }
-
-actionButton.define {
-  icon = "git-branch",
-  description = "Github",
-  priority = 2.6,
-  run = function()
-    editor.openUrl "https://github.com/silverbulletmd/silverbullet"
-  end
-}
 ```
 
 # Custom tag definitions
