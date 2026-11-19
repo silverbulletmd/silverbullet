@@ -22,6 +22,7 @@ import {
   type ViewDefaultsTable,
 } from "./navigator/view_defaults.ts";
 import { hiddenPageNames } from "./navigator/views/pages.ts";
+import { followRenames } from "./navigator/views/space_tree_order.ts";
 import { CodeWidgetHook } from "./plugos/hooks/code_widget.ts";
 import { CommandHook } from "./plugos/hooks/command.ts";
 import { DocumentEditorHook } from "./plugos/hooks/document_editor.ts";
@@ -267,6 +268,13 @@ export class ClientSystem {
     wirePerFileEvents(this.eventHook);
 
     this.eventHook.addLocalListener("editor:init", () => restoreDocks());
+
+    // Renamed pages, documents and folders keep their place in the space tree
+    this.eventHook.addLocalListener(
+      "file:renamed",
+      (renames: { from: string; to: string }[]) =>
+        followRenames(renames).catch(console.error),
+    );
 
     setBoundaryBudgetFactory(() =>
       makeLuaBudget({

@@ -809,16 +809,12 @@ test("Move up/Move down offer only where there is a sibling to pass, and move be
 
   // Move up on B: before A.
   await runAction(4, { tag: "page", name: "B" });
-  expect(space.writePage.mock.calls[0][1]).toContain(
-    "* [[B]]\n* [[A]]\n* [[C]]\n",
-  );
+  expect(space.writePage.mock.calls[0][1]).toContain("* B\n* A\n* C\n");
   // Move down on B (order now B, A, C after the write): after A.
   await builtinRows("std.spaceTree");
   space.writePage.mockClear();
   await runAction(5, { tag: "page", name: "B" });
-  expect(space.writePage.mock.calls[0][1]).toContain(
-    "* [[A]]\n* [[B]]\n* [[C]]\n",
-  );
+  expect(space.writePage.mock.calls[0][1]).toContain("* A\n* B\n* C\n");
 });
 
 test("Move up/Move down availability is a lookup, not a rescan per row", async () => {
@@ -861,7 +857,12 @@ test("Move up/Move down availability is a lookup, not a rescan per row", async (
 // A write primes the order cache, which outlives the test that wrote it.
 async function resetTreeOrder() {
   const { primeTreeOrder } = await import("./views/space_tree_order.ts");
-  primeTreeOrder(new Map());
+  primeTreeOrder(new Map(), new Map());
+  // A write checks what exists against the file list: the indexed objects.
+  space.listPages.mockImplementation(() => index.queryLuaObjects("page", {}));
+  space.listDocuments.mockImplementation(() =>
+    index.queryLuaObjects("document", {}),
+  );
 }
 
 async function spaceTreeWith(pages: string[], documents: string[] = []) {
@@ -878,6 +879,44 @@ async function spaceTreeWith(pages: string[], documents: string[] = []) {
   return builtinRows("std.spaceTree");
 }
 
+test("std.spaceTree takes icon and hide from the order page's attributes", async () => {
+  await resetTreeOrder();
+  index.isAvailable.mockResolvedValue(true);
+  const pages = ["Docs", "Docs/A", "Fixtures/X", "Fixtures/Y", "Notes"];
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page"
+        ? [
+            ...pages.map((name) => ({ name, tag: "page" })),
+            {
+              name: "Library/Space Tree Structure",
+              tag: "page",
+              lastModified: "attrs-1",
+            },
+          ]
+        : [],
+    ),
+  );
+  space.readPage.mockResolvedValue(
+    "* [[Notes]]\n* [[Docs]] [icon: book-open]\n  * Group [icon: layers]\n* Fixtures [hide: true]\n",
+  );
+
+  const rows = (await builtinRows("std.spaceTree")) as any[];
+  const names = rows.map((r) => r.obj.name);
+  expect(names).not.toContain("Fixtures/X");
+  expect(names).not.toContain("Fixtures/Y");
+  expect(names).toEqual(expect.arrayContaining(["Notes", "Docs", "Docs/A"]));
+
+  const [docs, group, notes] = (await rowState("std.spaceTree", [
+    { tag: "page", name: "Docs", ref: "Docs" },
+    { isFolder: true, name: "Docs/Group" },
+    { tag: "page", name: "Notes", ref: "Notes" },
+  ])) as any[];
+  expect(docs.icon).toBe("book-open");
+  expect(group.icon).toBe("layers");
+  expect(notes.icon).toBe("file-text");
+});
+
 function moveUp(name: string, segment: string) {
   return builtinHandle("std.spaceTree", "action", {
     index: 4,
@@ -893,7 +932,7 @@ test("Move up skips a sibling the active segment hides (All hides Library)", asy
 
   // Anchored on Journal, not the invisible Library; Library stays after Journal.
   expect(space.writePage.mock.calls[0][1]).toContain(
-    "* [[Meetings]]\n* [[Journal]]\n* Library\n",
+    "* Meetings\n* Journal\n* Library\n",
   );
 });
 
@@ -903,7 +942,7 @@ test("Move up skips a document in the Pages segment", async () => {
   await moveUp("Meetings", "Pages");
 
   expect(space.writePage.mock.calls[0][1]).toContain(
-    "* [[Meetings]]\n* [[Journal]]\n* [[Kite.png]]\n",
+    "* Meetings\n* Journal\n* Kite.png\n",
   );
 });
 
@@ -932,7 +971,7 @@ test("Move down in a segment counts a folder visible through its children", asyn
 
   // Past Projects (shown in Pages through its page), not the hidden Beta.png.
   expect(space.writePage.mock.calls[0][1]).toContain(
-    "* [[Beta.png]]\n* Projects\n* [[Alpha]]\n",
+    "* Beta.png\n* Projects\n* Alpha\n",
   );
 });
 

@@ -18,7 +18,6 @@ test.use({
     "Draft.md": "# Draft\n",
     "Topic.md": "# Topic\n\nA topic page.\n",
     "Concepts.md": conceptIndex,
-    "Library/Space Tree Structure.md": "* [[Topic]] arranged by the tree\n",
     "Widgets.md": [
       "Intro.",
       "",
@@ -64,8 +63,6 @@ test("editing a tagged, linked note updates queries and backlinks", async ({
   const topic = page.locator("#sb-editor .cm-content");
   await expect(topic).toContainText("Linked Mentions", { timeout: 20_000 });
   await expect(topic).toContainText("Research connects the idea");
-  // Tool pages under Library/ link to what they manage; they are no mentions
-  await expect(topic).not.toContainText("arranged by the tree");
 });
 
 test("widgets compose inside tables, transclusions and emphasis", async ({

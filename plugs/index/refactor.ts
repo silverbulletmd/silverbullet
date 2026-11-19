@@ -15,6 +15,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree";
 import {
   editor,
+  events,
   index,
   lua,
   markdown,
@@ -172,20 +173,30 @@ export async function batchRenameFiles(fileList: [string, string][]) {
       }
     }
 
-    for (const [oldName, newName] of fileList) {
-      console.log("Renaming", oldName, "to", newName);
-      try {
-        if (newName.endsWith(".md") && oldName.endsWith(".md")) {
-          await renamePage(oldName.slice(0, -3), newName.slice(0, -3));
-        } else {
-          await renameDocument(oldName, newName);
+    const renamed: { from: string; to: string }[] = [];
+    try {
+      for (const [oldName, newName] of fileList) {
+        console.log("Renaming", oldName, "to", newName);
+        try {
+          if (newName.endsWith(".md") && oldName.endsWith(".md")) {
+            await renamePage(oldName.slice(0, -3), newName.slice(0, -3));
+          } else {
+            await renameDocument(oldName, newName);
+          }
+          renamed.push({ from: oldName, to: newName });
+        } catch (e: any) {
+          if (e.message === notFoundError.message) {
+            console.log(`${oldName} does not exist, skipping`);
+          } else {
+            throw e;
+          }
         }
-      } catch (e: any) {
-        if (e.message === notFoundError.message) {
-          console.log(`${oldName} does not exist, skipping`);
-        } else {
-          throw e;
-        }
+      }
+    } finally {
+      // What did get renamed, even when a later rename failed: listeners
+      // (the space tree's saved order, say) follow these file paths.
+      if (renamed.length > 0) {
+        await events.dispatchEvent("file:renamed", renamed);
       }
     }
 

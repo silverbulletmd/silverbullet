@@ -1,20 +1,26 @@
 import { wikiLinkRegex } from "../../client/markdown_parser/constants.ts";
 
-/** Page holding the saved order of the space tree, as a nested list of wiki links. */
+/** Page holding the saved order of the space tree, as a nested list of
+ * names. Older versions wrote wiki links; those still read. */
 export const TREE_ORDER_PAGE = "Library/Space Tree Structure";
 
 /** Folder path (`""` for the root) to its child segment names, in order. */
 export type TreeOrder = Map<string, string[]>;
 
+/** Path to the `[key: value]` attributes written after its entry, such as
+ * `icon` and `hide`. Kept as written so a rewrite gives them back unchanged. */
+export type TreeAttributes = Map<string, Record<string, string>>;
+
 type OrderItem = {
-  /** Link target, or null for plain text */
+  /** Link target (as older versions wrote entries), or null for plain text */
   link: string | null;
   text: string;
+  attributes: Record<string, string>;
   children: OrderItem[];
 };
 
 const itemRegex = /^(\s*)[*+-]\s+(.*)$/;
-const attributeRegex = /\s*\[[^[\]]*:[^[\]]*\]\s*$/;
+const attributeRegex = /\s*\[([^[\]:]*):([^[\]]*)\]\s*$/;
 // SilverBullet's own wiki link syntax, anchored to the whole item body.
 const linkRegex = new RegExp(`^${wikiLinkRegex.source}$`);
 
@@ -77,13 +83,20 @@ function scanList(text: string): { start: number; roots: OrderItem[] } | null {
     }
     blankSeen = false;
     let body = m[2].trim();
-    while (attributeRegex.test(body)) body = body.replace(attributeRegex, "");
+    const found: [string, string][] = [];
+    let attr = attributeRegex.exec(body);
+    while (attr) {
+      found.unshift([attr[1].trim(), attr[2].trim()]);
+      body = body.slice(0, attr.index);
+      attr = attributeRegex.exec(body);
+    }
     body = body.trim();
     const ref = linkRegex.exec(body)?.groups?.stringRef;
     const item: OrderItem = {
       // A body holding two links (`[[A]] and [[B]]`) is text, not one link.
       link: ref === undefined || ref.includes("]]") ? null : ref.trim(),
       text: body,
+      attributes: Object.fromEntries(found),
       children: [],
     };
     while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
@@ -105,9 +118,18 @@ export function parseTreeOrder(
   text: string,
   resolve: (target: string) => string = (target) => target,
 ): TreeOrder {
+  return parseTree(text, resolve).order;
+}
+
+/** Like `parseTreeOrder`, also returning each entry's attributes. */
+export function parseTree(
+  text: string,
+  resolve: (target: string) => string = (target) => target,
+): { order: TreeOrder; attributes: TreeAttributes } {
   const order: TreeOrder = new Map();
+  const attributes: TreeAttributes = new Map();
   const list = scanList(normalizeNewlines(text));
-  if (!list) return order;
+  if (!list) return { order, attributes };
   const resolveAll = (items: OrderItem[]) => {
     for (const item of items) {
       if (item.link !== null) item.link = resolve(item.link);
@@ -163,10 +185,13 @@ export function parseTreeOrder(
       return;
     }
     add(folder, name);
+    if (Object.keys(item.attributes).length > 0) {
+      attributes.set(path, { ...attributes.get(path), ...item.attributes });
+    }
     for (const child of item.children) visit(child, path);
   };
   for (const root of list.roots) visit(root, "");
-  return order;
+  return { order, attributes };
 }
 
 /** What a rewrite keeps ahead of the list: everything before the first
@@ -179,16 +204,21 @@ export function treeOrderPreamble(text: string): string {
 }
 
 /**
- * Renders the canonical order page: preamble followed by the nested list.
- * `isFolder` marks page-less folders that exist (have descendants) so they
- * keep their place even without a saved order of their own.
+ * Renders the canonical order page: preamble followed by the nested list of
+ * plain names -- full paths at the top level, where no parent item gives
+ * context. An entry is kept while `exists` says its page, document or folder
+ * is still there (or something below it is).
  */
 export function renderTreeOrder(
   preamble: string,
   order: TreeOrder,
-  isFile: (path: string) => boolean,
-  isFolder: (path: string) => boolean = () => false,
+  exists: (path: string) => boolean,
+  attributes: TreeAttributes = new Map(),
 ): string {
+  const suffix = (path: string) =>
+    Object.entries(attributes.get(path) ?? {})
+      .map(([key, value]) => ` [${key}: ${value}]`)
+      .join("");
   const reached = new Set<string>();
   const walk = (folder: string, depth: number): string[] => {
     reached.add(folder);
@@ -198,11 +228,11 @@ export function renderTreeOrder(
       if (name === "") continue;
       const path = join(folder, name);
       const children = walk(path, depth + 1);
-      if (isFile(path)) {
-        lines.push(`${pad}* [[${path}]]`, ...children);
-      } else if (children.length > 0 || isFolder(path)) {
-        // At the top level no parent item gives context: write the full path.
-        lines.push(`${pad}* ${depth === 0 ? path : name}`, ...children);
+      if (children.length > 0 || exists(path)) {
+        lines.push(
+          `${pad}* ${depth === 0 ? path : name}${suffix(path)}`,
+          ...children,
+        );
       }
     }
     return lines;
@@ -214,6 +244,72 @@ export function renderTreeOrder(
     if (!reached.has(folder)) lines.push(...walk(folder, 0));
   }
   return `${preamble}${lines.join("\n")}\n`;
+}
+
+/**
+ * Applies renames (old path to new path, both as tree names) to a saved
+ * order. A renamed entry keeps its place when it stays in its folder, and
+ * its attributes follow it. When the renames empty a folder into another one
+ * (`A/x` to `B/x` and nothing left under `A`), that folder's order moves
+ * along too. `exists` and `isFolder` describe the space after the renames:
+ * a page renamed away from the pages under it leaves its folder's entry
+ * where it was. Returns whether anything changed.
+ */
+export function renameInTreeOrder(
+  order: TreeOrder,
+  attributes: TreeAttributes,
+  renames: [string, string][],
+  exists: (path: string) => boolean,
+  isFolder: (path: string) => boolean,
+): boolean {
+  const moves = new Map<string, string>();
+  for (const [from, to] of renames) {
+    if (from === to) continue;
+    moves.set(from, to);
+    // `A/B/x` to `C/B/x` moves `A/B` to `C/B` and `A` to `C` as well --
+    // when nothing is left under them.
+    const a = from.split("/");
+    const b = to.split("/");
+    while (a.length > 1 && b.length > 1 && a.at(-1) === b.at(-1)) {
+      a.pop();
+      b.pop();
+      const folder = a.join("/");
+      if (!isFolder(folder)) moves.set(folder, b.join("/"));
+    }
+  }
+  let changed = false;
+  const rekey = <T>(map: Map<string, T>, gone: (path: string) => boolean) => {
+    for (const [from, to] of moves) {
+      if (gone(from) && map.has(from) && !map.has(to)) {
+        map.set(to, map.get(from)!);
+        map.delete(from);
+        changed = true;
+      }
+    }
+  };
+  // Re-key first: a moved folder takes its children's order along, so the
+  // entries below find nothing left to update under the old folder.
+  rekey(order, (path) => !isFolder(path));
+  rekey(attributes, (path) => !exists(path));
+  for (const [from, to] of moves) {
+    const old = splitPath(from);
+    const siblings = order.get(old.folder);
+    const i = siblings?.indexOf(old.name) ?? -1;
+    if (!siblings || i < 0) continue;
+    const moved = splitPath(to);
+    const place = moved.folder === old.folder && !siblings.includes(moved.name);
+    if (exists(from)) {
+      // Still there (a folder, or a page left behind): it keeps its entry,
+      // the new name lands right after it.
+      if (place) siblings.splice(i + 1, 0, moved.name);
+    } else if (place) {
+      siblings[i] = moved.name;
+    } else {
+      siblings.splice(i, 1);
+    }
+    changed ||= place || !exists(from);
+  }
+  return changed;
 }
 
 /**

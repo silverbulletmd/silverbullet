@@ -4,6 +4,10 @@ import { beforeEach, expect, test, vi } from "vitest";
 const space = {
   readPage: vi.fn<(name: string) => Promise<string>>(),
   writePage: vi.fn<(name: string, text: string) => Promise<unknown>>(),
+  // Writes check what exists against the file list, the same set of names
+  // as the listing in these tests.
+  listPages: vi.fn(async () => (await spaceContents()) ?? []),
+  listDocuments: vi.fn(async () => []),
 };
 const config = { get: vi.fn() };
 const editor = {
@@ -150,7 +154,7 @@ test("reorderSibling writes the folder's full order", async () => {
   });
   const text = written();
   expect(text.startsWith(`${EXPLANATION}\n\n`)).toBe(true);
-  expect(text).toContain("* [[C]]\n* [[A]]\n* [[B]]");
+  expect(text).toContain("* C\n* A\n* B");
   // Shown at once, before the listing catches up with the write.
   expect(cachedTreeOrder().get("")).toEqual(["C", "A", "B"]);
 });
@@ -170,7 +174,7 @@ test("siblings hidden by a segment keep their place", async () => {
     position: "before",
   });
   // `Library` (the order page's own folder) is a sibling too, unlisted so far.
-  expect(written()).toContain("* [[B]]\n* [[C]]\n* [[a.png]]\n");
+  expect(written()).toContain("* B\n* C\n* a.png\n");
 });
 
 test("implicit folders are siblings and keep their place", async () => {
@@ -183,7 +187,7 @@ test("implicit folders are siblings and keep their place", async () => {
     anchor: "A",
     position: "before",
   });
-  expect(written()).toContain("* Projects\n* [[A]]\n* [[B]]\n");
+  expect(written()).toContain("* Projects\n* A\n* B\n");
 });
 
 test("reorderSibling in a subfolder only takes that folder's children", async () => {
@@ -214,7 +218,7 @@ test("saveFolderOrder(null) drops a folder", async () => {
   await saveFolderOrder("Projects", null);
   const text = written();
   expect(text).not.toContain("Projects/");
-  expect(text).toContain("* [[Projects]]\n* [[A]]\n");
+  expect(text).toContain("* Projects\n* A\n");
 });
 
 test("an existing preamble is kept", async () => {
@@ -222,7 +226,7 @@ test("an existing preamble is kept", async () => {
   spaceContents.mockResolvedValue([...pages("A", "B"), orderPage]);
   space.readPage.mockResolvedValue("My notes\n\n* [[A]]\n");
   await saveFolderOrder("", ["B", "A"]);
-  expect(written()).toBe("My notes\n\n* [[B]]\n* [[A]]\n");
+  expect(written()).toBe("My notes\n\n* B\n* A\n");
 });
 
 test("an existing page without a list keeps its text", async () => {
@@ -230,7 +234,7 @@ test("an existing page without a list keeps its text", async () => {
   spaceContents.mockResolvedValue([...pages("A", "B"), orderPage]);
   space.readPage.mockResolvedValue("Just prose");
   await saveFolderOrder("", ["B", "A"]);
-  expect(written()).toBe("Just prose\n\n* [[B]]\n* [[A]]\n");
+  expect(written()).toBe("Just prose\n\n* B\n* A\n");
 });
 
 test("a nested-only order survives the written page and leaves its folder unpinned", async () => {
@@ -291,9 +295,7 @@ test("a CRLF order page keeps its other folders when one is saved", async () => 
     "Notes\r\n\r\n* [[Projects]]\r\n  * [[Projects/y]]\r\n  * [[Projects/x]]\r\n* [[A]]\r\n",
   );
   await saveFolderOrder("", ["A", "Projects", "B"]);
-  expect(written()).toBe(
-    "Notes\n\n* [[A]]\n* [[Projects]]\n  * [[Projects/y]]\n  * [[Projects/x]]\n* [[B]]\n",
-  );
+  expect(written()).toBe("Notes\n\n* A\n* Projects\n  * y\n  * x\n* B\n");
 });
 
 test("a failed read is not cached: the next load retries", async () => {
@@ -377,6 +379,34 @@ test("a save builds on the page text, not a stale or missing listing", async () 
   space.readPage.mockResolvedValue("* [[D]]\n* [[C]]\n");
   await m.saveFolderOrder("Projects", ["Y", "X"]);
   const written = space.writePage.mock.calls[0][1];
-  expect(written).toMatch(/\[\[D\]\][\s\S]*\[\[C\]\]/);
-  expect(written).toMatch(/\[\[Projects\/Y\]\][\s\S]*\[\[Projects\/X\]\]/);
+  expect(written).toMatch(/\* D\n\* C\n/);
+  expect(written).toMatch(/Projects\/Y[\s\S]*Projects\/X/);
+});
+
+test("a rename keeps the renamed page's place in the order page", async () => {
+  const { followRenames, cachedTreeOrder } = await load();
+  spaceContents.mockResolvedValue([...pages("A", "Bee", "C"), orderPage]);
+  space.readPage.mockResolvedValue("* [[A]]\n* [[B]] [icon: star]\n* [[C]]\n");
+  await followRenames([{ from: "B.md", to: "Bee.md" }]);
+  expect(written()).toContain("\n\n* A\n* Bee [icon: star]\n* C\n");
+  expect(cachedTreeOrder().get("")).toEqual(["A", "Bee", "C"]);
+});
+
+test("a renamed document keeps its extension in the order page", async () => {
+  const { followRenames } = await load();
+  spaceContents.mockResolvedValue([...pages("A", "b.png"), orderPage]);
+  space.readPage.mockResolvedValue("* a.png\n* A\n");
+  await followRenames([{ from: "a.png", to: "b.png" }]);
+  expect(written()).toContain("\n\n* b.png\n* A\n");
+});
+
+test("a rename writes nothing without an order page, or when it is not in it", async () => {
+  const { followRenames } = await load();
+  spaceContents.mockResolvedValue(pages("A", "Bee"));
+  space.readPage.mockRejectedValue(new Error("not found"));
+  await followRenames([{ from: "B.md", to: "Bee.md" }]);
+  spaceContents.mockResolvedValue([...pages("A", "Bee"), orderPage]);
+  space.readPage.mockResolvedValue("* A\n");
+  await followRenames([{ from: "B.md", to: "Bee.md" }]);
+  expect(space.writePage).not.toHaveBeenCalled();
 });

@@ -6,10 +6,12 @@ import {
 } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import {
   compareTreePaths,
-  parseTreeOrder,
+  parseTree,
   placeSibling,
+  renameInTreeOrder,
   renderTreeOrder,
   TREE_ORDER_PAGE,
+  type TreeAttributes,
   TreeIndex,
   type TreeOrder,
   treeOrderPreamble,
@@ -37,6 +39,7 @@ const EXPLANATION =
  * at a new `lastModified`. */
 let cache: {
   order: TreeOrder;
+  attributes: TreeAttributes;
   modified?: number | string;
   ours: boolean;
 } | null = null;
@@ -73,11 +76,11 @@ export async function loadTreeOrder(
     // tree beats no tree, and nothing is cached so the next load retries.
     return new Map();
   }
-  const order = parseTreeOrder(
+  const { order, attributes } = parseTree(
     text,
     linkResolver(contents.map((obj) => obj.name)),
   );
-  cache = { order, modified: page.lastModified, ours: false };
+  cache = { order, attributes, modified: page.lastModified, ours: false };
   return order;
 }
 
@@ -86,10 +89,18 @@ export function cachedTreeOrder(): TreeOrder {
   return cache?.order ?? new Map();
 }
 
+/** The `[key: value]` attributes as of the last load (or write). */
+export function cachedTreeAttributes(): TreeAttributes {
+  return cache?.attributes ?? new Map();
+}
+
 /** Shows our own just-written order immediately; the cache key is left alone,
  * so the next `lastModified` change replaces it with what is on disk. */
-export function primeTreeOrder(order: TreeOrder): void {
-  cache = { order, modified: cache?.modified, ours: true };
+export function primeTreeOrder(
+  order: TreeOrder,
+  attributes: TreeAttributes = cache?.attributes ?? new Map(),
+): void {
+  cache = { order, attributes, modified: cache?.modified, ours: true };
 }
 
 export function sortByTreeOrder<T extends { name: string }>(
@@ -133,22 +144,62 @@ export async function reorderSibling(req: ReorderRequest): Promise<void> {
 }
 
 /** Saves `names` as the order of `folder`'s children; `null` forgets the
- * folder's order (back to alphabetical). Rewrites the whole order page,
- * building on its text on disk: the listing may not have caught up with it
- * (a hand edit, a sync, index lag). */
+ * folder's order (back to alphabetical). */
 export async function saveFolderOrder(
   folder: string,
   names: string[] | null,
 ): Promise<void> {
-  const [currentPage, contents] = await Promise.all([
-    editor.getCurrentPage(),
-    listContents(),
+  await updateTreeOrder((order) => {
+    if (names === null) order.delete(folder);
+    else order.set(folder, names);
+    return true;
+  });
+}
+
+/** Follows renames made inside SilverBullet (`file:renamed`, file paths) in
+ * the order page, so renamed pages, documents and folders keep their place. */
+export async function followRenames(
+  renames: { from: string; to: string }[],
+): Promise<void> {
+  const treeName = (path: string) =>
+    path.endsWith(".md") ? path.slice(0, -3) : path;
+  const pairs = renames.map(({ from, to }): [string, string] => [
+    treeName(from),
+    treeName(to),
   ]);
+  await updateTreeOrder(
+    (order, attributes, { exists, isFolder }) =>
+      renameInTreeOrder(order, attributes, pairs, exists, isFolder),
+    { create: false },
+  );
+}
+
+/** Rewrites the whole order page after `change` edits its parsed order,
+ * building on its text on disk: the index may not have caught up with it (a
+ * hand edit, a sync, a write a moment ago). `change` returns whether it
+ * changed anything; nothing is written when it didn't, nor -- unless
+ * `create` -- when there is no order page yet. */
+async function updateTreeOrder(
+  change: (
+    order: TreeOrder,
+    attributes: TreeAttributes,
+    known: {
+      exists: (path: string) => boolean;
+      isFolder: (path: string) => boolean;
+    },
+  ) => boolean,
+  { create = true } = {},
+): Promise<void> {
+  const [currentPage, pages, documents] = await Promise.all([
+    editor.getCurrentPage(),
+    space.listPages(),
+    space.listDocuments(),
+  ]);
+  const allNames = [...pages, ...documents].map((file) => file.name);
   const open = currentPage === TREE_ORDER_PAGE;
   // Someone may have the order page open, perhaps with unsaved hand edits:
   // save those first so they are what we build on.
   if (open) await editor.save();
-  const allNames = contents.map((obj) => obj.name);
   let text: string | undefined;
   try {
     text = await space.readPage(TREE_ORDER_PAGE);
@@ -158,18 +209,20 @@ export async function saveFolderOrder(
     if (allNames.includes(TREE_ORDER_PAGE)) {
       throw new Error(`Could not read ${TREE_ORDER_PAGE}`);
     }
+    if (!create) return;
   }
-  const order: TreeOrder =
+  const { order, attributes } =
     text === undefined
-      ? new Map()
-      : parseTreeOrder(text, linkResolver(allNames));
-  if (names === null) order.delete(folder);
-  else order.set(folder, names);
-
+      ? { order: new Map() as TreeOrder, attributes: new Map() }
+      : parseTree(text, linkResolver(allNames));
   const files = new Set(allNames);
   const tree = new TreeIndex(allNames);
+  const isFolder = (path: string) => tree.isFolder(path);
+  const exists = (path: string) => files.has(path) || isFolder(path);
+  if (!change(order, attributes, { exists, isFolder })) return;
+
   const previous = cache;
-  primeTreeOrder(order);
+  primeTreeOrder(order, attributes);
   try {
     await space.writePage(
       TREE_ORDER_PAGE,
@@ -177,8 +230,8 @@ export async function saveFolderOrder(
         (text === undefined ? "" : treeOrderPreamble(text)) ||
           `${EXPLANATION}\n\n`,
         order,
-        (path) => files.has(path),
-        (path) => tree.isFolder(path),
+        exists,
+        attributes,
       ),
     );
   } catch (e) {

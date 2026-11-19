@@ -1,5 +1,6 @@
 import {
   splitPath,
+  type TreeAttributes,
   TreeIndex,
 } from "@silverbulletmd/silverbullet/lib/tree_order";
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
@@ -7,6 +8,7 @@ import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { inLibrary, isHiddenPage, spaceContents } from "./pages.ts";
 import {
+  cachedTreeAttributes,
   cachedTreeOrder,
   loadTreeOrder,
   reorderSibling,
@@ -22,11 +24,13 @@ type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
 };
 
 function treeIcon(obj: TreeObj): string {
+  const decorated = obj.pageDecoration?.icon;
+  if (typeof decorated === "string" && decorated !== "") return decorated;
+  const structured = cachedTreeAttributes().get(obj.name)?.icon;
+  if (structured) return structured;
   // Only a pure folder gets the folder icon. A dual has a page behind it and
   // reads as that page, so it falls through to the icons below like any other.
   if (obj.isFolder && obj.ref == null) return "folder";
-  const decorated = obj.pageDecoration?.icon;
-  if (typeof decorated === "string" && decorated !== "") return decorated;
   if (obj.isAspiring) return "file-plus";
   if (obj.perm === "ro") return "lock";
   if (obj.tag === "document") {
@@ -74,6 +78,16 @@ function isTreeHidden(obj: TreeObj): boolean {
   return isHiddenPage(obj) || obj.pageDecoration?.tree?.hide === true;
 }
 
+/** Whether `name` or one of its ancestor folders is marked `[hide: true]` in
+ * the order page: hiding a folder there hides everything under it. */
+function hiddenByStructure(name: string, attributes: TreeAttributes): boolean {
+  for (const [path, attrs] of attributes) {
+    if (attrs.hide !== "true") continue;
+    if (name === path || name.startsWith(`${path}/`)) return true;
+  }
+  return false;
+}
+
 /** Whether `segment` shows `obj`; fail-closed, like the panel's own masks. */
 function admits(segment: Segment<TreeObj>, obj: TreeObj): boolean {
   try {
@@ -117,8 +131,11 @@ async function spaceTreeSource(): Promise<TreeObj[]> {
     treeCollate(),
     loadTreeOrder(contents),
   ]);
+  const attributes = cachedTreeAttributes();
   lastRows = sortByTreeOrder(
-    contents.filter((obj) => !isTreeHidden(obj)),
+    contents.filter(
+      (obj) => !isTreeHidden(obj) && !hiddenByStructure(obj.name, attributes),
+    ),
     order,
     collate,
   );
