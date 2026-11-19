@@ -83,8 +83,8 @@ export async function writeConfigAndReload(
     // Index the page before reloading, so the reload runs the block just written
     await sync.performFileSync(`${CONFIG_PAGE}.md`);
     await mq.send("indexQueue", `${CONFIG_PAGE}.md`);
+    // Also rebuilds the editor and re-renders widgets
     await reloadConfig();
-    await editor.rebuildEditorState();
   } catch (e: any) {
     throw new ConfigReloadError(
       `Saved to Library/Config, but reloading failed: ${e?.message ?? e}`,

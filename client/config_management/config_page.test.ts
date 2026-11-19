@@ -84,13 +84,12 @@ describe("saveManagedChanges", () => {
   test("reloads after writing", async () => {
     configPage(`\`\`\`space-lua\n${MARKER}\n\`\`\`\n`);
     await saveManagedChanges({ config: { set: { a: 1 }, unset: [] } });
-    expect(calls.slice(-6)).toEqual([
+    expect(calls.slice(-5)).toEqual([
       "space.writePage",
       "sync.performFileSync",
       "mq.send",
       "mq.awaitEmptyQueue",
       "editor.reloadConfigAndCommands",
-      "editor.rebuildEditorState",
     ]);
   });
 });

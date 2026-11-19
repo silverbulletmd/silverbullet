@@ -24,7 +24,7 @@ Keep lasting information on the topic page and use the journal for dated activit
 The previous and next commands navigate existing entries. They do not create pages for missing days.
 
 # Customize the journal
-Open **Workbench: Configuration** and select the **Journal** category. Save and apply your changes there.
+Open **Workbench: Configuration** and select the **Journal** category. Changes there save as you make them.
 
 * **Enable journal** turns the journal commands on or off.
 * **Journal page prefix** controls the names of new entries. The default is `Journal/`. End the prefix with `/` to group entries in a folder.

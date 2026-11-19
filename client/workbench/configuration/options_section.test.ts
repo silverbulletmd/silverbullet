@@ -11,6 +11,7 @@ test.each([
   [{ type: "string", enum: ["a", "b"], ui: {} }, "enum"],
   [{ type: "string", ui: { inputType: "password" } }, "string"],
   [{ type: "number", ui: {} }, "number"],
+  [{ type: "object", ui: { layout: true } }, "layout"],
   [{ type: "object", ui: {} }, undefined],
   [{ type: "array", ui: {} }, undefined],
 ])("%j gets the %s control", (schema, control) => {

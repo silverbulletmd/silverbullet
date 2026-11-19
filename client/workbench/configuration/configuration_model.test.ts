@@ -1,5 +1,8 @@
 import { describe, expect, test, vi } from "vitest";
-import type { ManagedChanges } from "../../config_management/managed_edit.ts";
+import {
+  applyManagedChanges,
+  type ManagedChanges,
+} from "../../config_management/managed_edit.ts";
 import {
   type ConfigurationDeps,
   ConfigurationModel,
@@ -48,11 +51,17 @@ function setup(initial: ConfigurationSource) {
   let current = initial;
   let reload: () => void = () => {};
   const saved: ManagedChanges[] = [];
+  // Library/Config as a save leaves it
+  const write = (changes: ManagedChanges) => {
+    saved.push(changes);
+    current = {
+      ...current,
+      configText: applyManagedChanges(current.configText, changes),
+    };
+  };
   const deps: ConfigurationDeps = {
     load: async () => current,
-    save: async (changes) => {
-      saved.push(changes);
-    },
+    save: async (changes) => write(changes),
     subscribeReload: (changed) => {
       reload = changed;
       return () => {};
@@ -65,12 +74,14 @@ function setup(initial: ConfigurationSource) {
     model,
     deps,
     saved,
+    write,
     // A config reload with Library/Config now holding `text`
-    reloadWith: async (text: string) => {
+    reloadWith: async (text: string, { saves = false } = {}) => {
       current = { ...current, configText: text };
       reload();
       await flush();
-      expect(model.source?.configText).toBe(text);
+      // A save made on load has written the file again
+      if (!saves) expect(model.source?.configText).toBe(text);
     },
   };
 }
@@ -127,6 +138,186 @@ describe("ConfigurationModel", () => {
     model.setField("example.toggle", true);
     await model.save();
     expect(saved).toEqual([]);
+  });
+
+  test("edits kept while the block is invalid save once it is fixed", async () => {
+    const { model, saved, reloadWith } = setup(
+      source(managed('config.set("a", {')),
+    );
+    await ready(model);
+    model.commitField("example.toggle", true);
+    await flush();
+    expect(saved).toEqual([]);
+    expect(model.dirty).toBe(true);
+    await reloadWith("", { saves: true });
+    await flush();
+    expect(saved.map((c) => c.config?.set)).toEqual([
+      { "example.toggle": true },
+    ]);
+  });
+
+  test("commitNow loads, saves and settles without a subscriber", async () => {
+    const saved: ManagedChanges[] = [];
+    const model = new ConfigurationModel({
+      load: async () => source(""),
+      save: async (changes) => {
+        saved.push(changes);
+      },
+      subscribeReload: () => () => {},
+      onDirty: vi.fn(),
+    });
+    await model.commitNow("example.toggle", () => true);
+    expect(saved.map((c) => c.config?.set)).toEqual([
+      { "example.toggle": true },
+    ]);
+  });
+
+  test("commitNow computes the value from what is loaded", async () => {
+    const saved: ManagedChanges[] = [];
+    const model = new ConfigurationModel({
+      load: async () => source(""),
+      save: async (changes) => {
+        saved.push(changes);
+      },
+      subscribeReload: () => () => {},
+      onDirty: vi.fn(),
+    });
+    await model.commitNow("example.other", async (current) => `${current}!`);
+    expect(saved.map((c) => c.config?.set)).toEqual([
+      { "example.other": "x!" },
+    ]);
+  });
+
+  test("commitNow reloads a model that went stale after its tab closed", async () => {
+    let other = "x";
+    const seen: unknown[] = [];
+    const model = new ConfigurationModel({
+      load: async () => {
+        const src = source("");
+        src.values = { example: { toggle: false, other } };
+        return src;
+      },
+      save: async () => {},
+      subscribeReload: () => () => {},
+      onDirty: vi.fn(),
+    });
+    const release = model.subscribe(() => {});
+    await flush();
+    release();
+    other = "changed elsewhere";
+    await model.commitNow("example.other", (current) => {
+      seen.push(current);
+      return "y";
+    });
+    expect(seen).toEqual(["changed elsewhere"]);
+  });
+
+  test("commitNow rejects when the space is read-only", async () => {
+    const model = new ConfigurationModel({
+      load: async () => source("", false),
+      save: vi.fn(),
+      subscribeReload: () => () => {},
+      onDirty: vi.fn(),
+    });
+    await expect(
+      model.commitNow("example.toggle", () => true),
+    ).rejects.toThrow();
+  });
+
+  test("commitField saves right away; setField waits for save", async () => {
+    const { model, saved } = setup(source(""));
+    await ready(model);
+    model.setField("example.other", "typed");
+    await flush();
+    expect(saved).toEqual([]);
+    model.commitField("example.toggle", true);
+    await flush();
+    expect(saved.map((c) => c.config?.set)).toEqual([
+      { "example.toggle": true, "example.other": "typed" },
+    ]);
+  });
+
+  test("key binding and reset edits save right away", async () => {
+    const { model, saved } = setup(
+      source(managed('config.set("example.other", "y")')),
+    );
+    await ready(model);
+    model.commit("Example: One", 0, ["Mod-u"]);
+    await flush();
+    model.resetField("example.other");
+    await flush();
+    expect(saved).toHaveLength(2);
+    expect(saved[0].commands?.set).toHaveProperty("Example: One");
+    expect(saved[1].config?.unset).toEqual(["example.other"]);
+  });
+
+  test("an edit made while saving is saved next, not lost", async () => {
+    const { model, saved, deps, write } = setup(source(""));
+    await ready(model);
+    let release!: () => void;
+    deps.save = async (changes) => {
+      write(changes);
+      if (saved.length === 1) {
+        await new Promise<void>((r) => {
+          release = r;
+        });
+      }
+    };
+    model.commitField("example.toggle", true);
+    await flush();
+    expect(model.saving).toBe(true);
+    model.commitField("example.other", "later");
+    release();
+    await flush();
+    await flush();
+    expect(saved.map((c) => c.config?.set)).toEqual([
+      { "example.toggle": true },
+      // The first edit landed, so only the new one goes out
+      { "example.other": "later" },
+    ]);
+    expect(model.saving).toBe(false);
+    expect(model.valueOf("example.other")).toBe("later");
+  });
+
+  test("a failed save keeps the edits and can be retried", async () => {
+    const { model, saved, deps } = setup(source(""));
+    await ready(model);
+    deps.save = async () => {
+      throw new Error("Disk full");
+    };
+    model.commitField("example.toggle", true);
+    await flush();
+    expect(model.saveError).toBe("Failed to save: Disk full");
+    expect(model.dirty).toBe(true);
+    deps.save = async (changes) => {
+      saved.push(changes);
+    };
+    await model.save();
+    expect(saved).toHaveLength(1);
+    expect(model.saveError).toBeUndefined();
+  });
+
+  test("revertField drops an unsaved edit", async () => {
+    const { model } = setup(source(""));
+    await ready(model);
+    model.setField("example.other", "typed");
+    model.revertField("example.other");
+    expect(model.dirty).toBe(false);
+    expect(model.valueOf("example.other")).toBe("x");
+  });
+
+  test("the badge shows unsaved edits, not a save in flight", async () => {
+    const { model, deps } = setup(source(""));
+    await ready(model);
+    let release!: () => void;
+    deps.save = () =>
+      new Promise<void>((r) => {
+        release = r;
+      });
+    model.commitField("example.toggle", true);
+    await flush();
+    expect(deps.onDirty).not.toHaveBeenCalledWith(true);
+    release();
   });
 
   test("save writes only changes, then clears dirty", async () => {

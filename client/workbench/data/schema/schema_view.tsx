@@ -23,7 +23,7 @@ import { IconPicker } from "../icon_picker.tsx";
 import { sourceForEntry } from "../sources.ts";
 import { type TagListEntry, tagIcon } from "../tag_list.ts";
 import { AddAttributeRow, AttributeRowView } from "./attribute_row.tsx";
-import type { SaveResult, SchemaDrafts } from "./schema_drafts.ts";
+import type { SchemaDrafts } from "./schema_drafts.ts";
 import { objectsFilter, type SchemaLink } from "./schema_links.ts";
 import {
   buildRows,
@@ -64,7 +64,6 @@ export function SchemaView({
   const tag = data.selected;
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [keep, setKeep] = useState<Record<string, boolean>>({});
-  const [result, setResult] = useState<SaveResult | null>(null);
 
   useEffect(() => {
     if (!entry) return;
@@ -81,8 +80,6 @@ export function SchemaView({
     };
     // Reload on every config reload too, which `schemas` notifies about
   }, [entry?.name, entry?.count, schemas.ready && schemas.blockError]);
-
-  useEffect(() => setResult(null), [tag]);
 
   const writable = schemas.writable && !schemas.blockError;
   const effective: JsonSchema | null = client.config.get(
@@ -117,7 +114,11 @@ export function SchemaView({
   const conflict = schemas.conflict(tag);
   const definitions = schemas.definitions(tag);
   const sampled = loaded?.samples.length ?? 0;
+  const result = schemas.result(tag);
   const fieldErrors = result && !result.ok ? (result.fieldErrors ?? {}) : {};
+  // A draft left after its save: invalid, or not written
+  const stuck =
+    !!draft && schemas.writable && !schemas.saving && result?.ok === false;
 
   async function link(l: SchemaLink) {
     await showObjects();
@@ -130,11 +131,7 @@ export function SchemaView({
     }));
   }
 
-  async function save() {
-    setResult(await schemas.save(tag));
-  }
-
-  async function create() {
+  function create() {
     schemas.declare(
       tag,
       schemaFor(
@@ -142,7 +139,6 @@ export function SchemaView({
         (row) => row.origin === "inferred" && keep[row.name] !== false,
       ),
     );
-    await save();
   }
 
   // A draft's null is "no icon", shown as the plain tag glyph the list falls back to
@@ -151,15 +147,7 @@ export function SchemaView({
     tagIcon(client.config.get(["tags"], {}), tag);
 
   return (
-    <div
-      className="sb-wbd-schema"
-      onKeyDown={(e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === "s" && draft) {
-          e.preventDefault();
-          void save();
-        }
-      }}
-    >
+    <div className="sb-wbd-schema">
       <div className="sb-wb-toolbar">
         <IconPicker
           icon={iconNow}
@@ -208,32 +196,8 @@ export function SchemaView({
             Copy as tag.define
           </button>
         ) : null}
-        {draft && writable ? (
-          <>
-            <Button
-              disabled={schemas.saving}
-              onClick={() => {
-                schemas.discard(tag);
-                setResult(null);
-              }}
-            >
-              Discard
-            </Button>
-            <Button
-              variant="primary"
-              disabled={schemas.saving}
-              onClick={() => void save()}
-            >
-              {schemas.saving ? "Saving…" : "Save and apply"}
-            </Button>
-          </>
-        ) : null}
         {creating && !draft && writable && loaded?.tag === tag ? (
-          <Button
-            variant="primary"
-            disabled={schemas.saving}
-            onClick={() => void create()}
-          >
+          <Button variant="primary" disabled={schemas.saving} onClick={create}>
             Create schema
           </Button>
         ) : null}
@@ -269,6 +233,23 @@ export function SchemaView({
         <div className="sb-wb-cfg-error">
           {result.savedButNotApplied ? "Saved, but not applied: " : ""}
           {result.error}
+        </div>
+      ) : null}
+      {stuck ? (
+        <div className="sb-wb-cfg-unsaved">
+          <span>
+            Your changes to #{tag} aren't saved
+            {schemas.blockError
+              ? "; they will be once the block is fixed."
+              : "."}
+          </span>
+          {result &&
+          !result.ok &&
+          !result.fieldErrors &&
+          !schemas.blockError ? (
+            <Button onClick={() => void schemas.saveSoon(tag)}>Retry</Button>
+          ) : null}
+          <Button onClick={() => schemas.discard(tag)}>Discard</Button>
         </div>
       ) : null}
       {result?.ok && result.shadowed.length ? (
@@ -328,6 +309,7 @@ export function SchemaView({
       </div>
       <div className="sb-wb-footer">
         <span>{rows.length.toLocaleString()} attributes</span>
+        {schemas.saving ? <span>Saving…</span> : null}
         <span>
           {sampled >= SAMPLE_LIMIT
             ? `Present counts come from a sample of ${SAMPLE_LIMIT} objects`

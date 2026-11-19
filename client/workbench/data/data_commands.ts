@@ -51,9 +51,10 @@ export function dataModel(client: Client, builder: QueryBuilder): DataModel {
   });
 }
 
-/** The Data tab's unsaved schema edits, reading from and saving to this client. */
+/** The Data tab's schema edits, saved to this client as they are made. */
 export function schemaDrafts(client: Client): SchemaDrafts {
   return new SchemaDrafts({
+    autoSave: true,
     load: async () => ({
       configText: await readConfigPage(),
       definitions: client.config.get<Record<string, any>>(["tags"], {}),

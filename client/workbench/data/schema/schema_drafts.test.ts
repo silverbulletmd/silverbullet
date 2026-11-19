@@ -293,14 +293,14 @@ describe("changes", () => {
     ]);
   });
 
-  test("an icon on a user tag saves pageDecoration.icon; on a built-in it saves icon", async () => {
+  test("an icon on any tag saves the tag's icon", async () => {
     const { drafts } = setup();
     await ready(drafts);
     drafts.setIcon("meeting", "calendar");
     drafts.setIcon("page", "file");
     expect(drafts.changesFor("meeting").set).toEqual([
       {
-        path: ["tags", "meeting", "pageDecoration", "icon"],
+        path: ["tags", "meeting", "icon"],
         value: "calendar",
       },
     ]);
@@ -551,7 +551,7 @@ describe("review fixes", () => {
     drafts.setIcon("page", null);
     expect(drafts.changesFor("meeting").set).toEqual([
       {
-        path: ["tags", "meeting", "pageDecoration", "icon"],
+        path: ["tags", "meeting", "icon"],
         value: CONFIG_UNSET,
       },
     ]);
@@ -570,5 +570,90 @@ describe("review fixes", () => {
       },
     ]);
     expect(drafts.definitions("meeting")).toEqual([]);
+  });
+});
+
+describe("auto-save", () => {
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  test("each edit saves right away and records the result", async () => {
+    const { drafts, saved, onDirty } = setup({}, { autoSave: true });
+    await ready(drafts);
+    drafts.setRule("meeting", "room", { type: "string" });
+    await tick();
+    expect(saved).toHaveLength(1);
+    expect(drafts.draft("meeting")).toBeUndefined();
+    expect(drafts.result("meeting")?.ok).toBe(true);
+    expect(onDirty).not.toHaveBeenCalledWith(true);
+  });
+
+  test("an edit made while saving goes out in the next save", async () => {
+    let release: () => void = () => {};
+    const { drafts, saved, world } = setup(
+      {},
+      {
+        autoSave: true,
+        save: async (changes) => {
+          saved.push(changes);
+          world.configText = applySchemaChanges(world.configText, changes);
+          if (saved.length === 1) {
+            await new Promise<void>((r) => {
+              release = r;
+            });
+          }
+        },
+      },
+    );
+    await ready(drafts);
+    drafts.setRule("meeting", "room", { type: "string" });
+    await tick();
+    drafts.setRule("meeting", "seats", { type: "number" });
+    expect(saved).toHaveLength(1);
+    release();
+    await tick();
+    await tick();
+    expect(saved).toHaveLength(2);
+    expect(saved[1].define.meeting.properties).toHaveProperty("seats");
+    expect(drafts.draft("meeting")).toBeUndefined();
+  });
+
+  test("an invalid edit stays a draft with its errors and isn't written", async () => {
+    const { drafts, saved } = setup({}, { autoSave: true });
+    await ready(drafts);
+    drafts.rename("page", "due", "name");
+    await tick();
+    expect(saved).toHaveLength(0);
+    expect(drafts.draft("page")).toBeDefined();
+    const result = drafts.result("page");
+    expect(result?.ok).toBe(false);
+    expect(result && !result.ok && result.fieldErrors).toHaveProperty("name");
+  });
+
+  test("drafts kept by an invalid block save once it is fixed", async () => {
+    const { drafts, saved, world, reload } = setup(
+      {
+        configText: `\`\`\`space-lua\n${SCHEMAS_MARKER}\ntag.define {\n\`\`\`\n`,
+      },
+      { autoSave: true },
+    );
+    await ready(drafts);
+    drafts.setRule("meeting", "room", { type: "string" });
+    await tick();
+    expect(saved).toHaveLength(0);
+    world.configText = "# Config\n";
+    reload();
+    await tick();
+    await tick();
+    expect(saved).toHaveLength(1);
+    expect(drafts.draft("meeting")).toBeUndefined();
+  });
+
+  test("discarding clears the tag's result", async () => {
+    const { drafts } = setup({}, { autoSave: true });
+    await ready(drafts);
+    drafts.rename("page", "due", "name");
+    await tick();
+    drafts.discard("page");
+    expect(drafts.result("page")).toBeUndefined();
   });
 });

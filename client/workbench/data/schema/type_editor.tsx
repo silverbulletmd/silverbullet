@@ -205,7 +205,7 @@ function LuaSchemaEditor({
       {error ? <span className="sb-wbd-error">{error}</span> : null}
       <span>
         <button type="button" className="sb-wbq-link" onClick={apply}>
-          Apply
+          Done
         </button>{" "}
         <button type="button" className="sb-wbq-link" onClick={onCancel}>
           Cancel

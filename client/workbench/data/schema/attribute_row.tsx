@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { ActionMenu } from "../../shared/action_menu.tsx";
 import type { SchemaDrafts } from "./schema_drafts.ts";
 import type { SchemaLink } from "./schema_links.ts";
@@ -54,13 +54,13 @@ export function AttributeRowView({
         </td>
       ) : null}
       <td>
-        <input
+        <CommitInput
           className="sb-wbd-input sb-wbd-name-input"
-          aria-label="Attribute name"
+          label="Attribute name"
           value={row.name}
           disabled={!editable || row.origin === "inherited"}
-          onChange={(e) => {
-            const to = e.currentTarget.value.trim();
+          onCommit={(value) => {
+            const to = value.trim();
             if (to && to !== row.name) schemas.rename(tag, original, to);
           }}
         />
@@ -123,13 +123,13 @@ export function AttributeRowView({
         ) : null}
       </td>
       <td>
-        <input
+        <CommitInput
           className="sb-wbd-input"
-          aria-label="Description"
+          label="Description"
           value={row.schema?.description ?? ""}
           disabled={!editable || !row.schema}
-          onChange={(e) => {
-            const description = e.currentTarget.value;
+          onCommit={(description) => {
+            if (description === (row.schema?.description ?? "")) return;
             const { description: _, ...rest } = row.schema ?? {};
             schemas.setRule(
               tag,
@@ -200,6 +200,52 @@ export function AttributeRowView({
         ) : null}
       </td>
     </tr>
+  );
+}
+
+/**
+ * A text field that hands its value over when it is left or Enter is
+ * pressed, since each hand-over saves; Escape puts the value back.
+ */
+function CommitInput({
+  className,
+  label,
+  value,
+  disabled,
+  onCommit,
+}: {
+  className: string;
+  label: string;
+  value: string;
+  disabled: boolean;
+  onCommit: (value: string) => void;
+}) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  return (
+    <input
+      className={className}
+      aria-label={label}
+      value={text}
+      disabled={disabled}
+      onInput={(e) => setText(e.currentTarget.value)}
+      onBlur={() => {
+        if (text !== value) onCommit(text);
+      }}
+      onKeyDown={(e) => {
+        if (e.isComposing) return;
+        if (e.key === "Enter") {
+          e.preventDefault();
+          e.currentTarget.blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          setText(value);
+          // Left once it's back, so the blur hands nothing over
+          const el = e.currentTarget;
+          requestAnimationFrame(() => el.blur());
+        }
+      }}
+    />
   );
 }
 

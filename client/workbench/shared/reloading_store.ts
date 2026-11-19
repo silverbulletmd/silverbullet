@@ -22,6 +22,11 @@ export abstract class ReloadingStore<T> {
     return false;
   }
 
+  /** What the tab's badge shows: unsaved changes, by default all of them */
+  protected get badged(): boolean {
+    return this.dirty;
+  }
+
   subscribe(listener: () => void): () => void {
     this.listeners.add(listener);
     if (this.listeners.size === 1) {
@@ -68,7 +73,7 @@ export abstract class ReloadingStore<T> {
   }
 
   protected emit(): void {
-    const dirty = this.dirty;
+    const dirty = this.badged;
     if (dirty !== this.wasDirty) {
       this.wasDirty = dirty;
       this.store.onDirty?.(dirty);

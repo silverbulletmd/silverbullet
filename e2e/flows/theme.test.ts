@@ -58,7 +58,6 @@ test("a theme picked in Configuration applies, survives a reload, and yields to 
       alias: "dark",
       background: "rgb(1, 2, 3)",
     });
-  await tab(page).getByRole("button", { name: "Save and apply" }).click();
   await expect
     .poll(() =>
       readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(

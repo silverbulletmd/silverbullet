@@ -1,6 +1,5 @@
 import { Button } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useRef, useState } from "preact/hooks";
-import { isMacLike } from "../../../plug-api/lib/shortcut.ts";
 import { CONFIG_PAGE } from "../../config_management/config_page.ts";
 import { openRef } from "../shared/action.ts";
 import { BlockNote } from "../shared/block_ui.tsx";
@@ -48,10 +47,19 @@ export function ConfigurationView({
     return el ? focusTarget(el) : undefined;
   }, [focusTarget]);
 
+  // A field still being typed in is saved when the tab is left
+  useEffect(() => {
+    if (!showing) void model.save();
+  }, [showing]);
+
   const { section, index, source } = model;
   const phrase = phrases[section];
   const writable = !!source?.writable;
-  const canSave = model.dirty && !model.managedBlockError && writable;
+  // Edits that a broken block or a failed save keeps from being saved
+  const stuck =
+    model.dirty &&
+    !model.saving &&
+    !!(model.managedBlockError || model.saveError);
 
   const fieldCount = Object.values(index.categoryMap).reduce(
     (n, fields) => n + fields.length,
@@ -87,18 +95,7 @@ export function ConfigurationView({
   const unsaved = model.unsavedCount;
 
   return (
-    <div
-      className="sb-workbench sb-wb-configuration"
-      ref={root}
-      onKeyDown={(e) => {
-        const mod = isMacLike ? e.metaKey : e.ctrlKey;
-        if (mod && e.key === "s" && canSave) {
-          e.preventDefault();
-          e.stopPropagation();
-          void model.save();
-        }
-      }}
-    >
+    <div className="sb-workbench sb-wb-configuration" ref={root}>
       <div className="sb-wb-cfg-layout">
         <SectionSidebar
           label="Configuration sections"
@@ -125,20 +122,6 @@ export function ConfigurationView({
                 setPhrases((p) => ({ ...p, [section]: value }));
               }}
             />
-            {canSave && (
-              <>
-                <Button disabled={model.saving} onClick={() => model.discard()}>
-                  Discard
-                </Button>
-                <Button
-                  variant="primary"
-                  disabled={model.saving}
-                  onClick={() => void model.save()}
-                >
-                  {model.saving ? "Saving…" : "Save and apply"}
-                </Button>
-              </>
-            )}
           </div>
           {!writable && model.ready && <BlockNote>{READ_ONLY_NOTE}</BlockNote>}
           {model.managedBlockError && (
@@ -149,6 +132,20 @@ export function ConfigurationView({
           )}
           {model.saveError && (
             <div className="sb-wb-cfg-error">{model.saveError}</div>
+          )}
+          {stuck && (
+            <div className="sb-wb-cfg-unsaved">
+              <span>
+                {plural(unsaved, "change isn't", "changes aren't")} saved
+                {model.managedBlockError
+                  ? `; ${unsaved === 1 ? "it" : "they"} will be once the block is fixed.`
+                  : "."}
+              </span>
+              {!model.managedBlockError && (
+                <Button onClick={() => void model.save()}>Retry</Button>
+              )}
+              <Button onClick={() => model.discard()}>Discard</Button>
+            </div>
           )}
           <div className="sb-workbench-body" ref={body}>
             {!model.ready ? (
@@ -182,11 +179,7 @@ export function ConfigurationView({
                 ? `${modifiedCount.toLocaleString()} modified`
                 : `${reboundCount.toLocaleString()} rebound`}
             </span>
-            {unsaved > 0 && (
-              <span>
-                {plural(unsaved, "unsaved change", "unsaved changes")}
-              </span>
-            )}
+            {model.saving && <span>Saving…</span>}
             <span className="sb-wb-cfg-saved-to">
               Saved to{" "}
               <a

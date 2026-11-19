@@ -18,7 +18,12 @@ test.describe("configuration tab", () => {
   const shortWikiLinks = (page: Page) =>
     tab(page).getByRole("checkbox", { name: "Short wiki links" });
 
-  test("configuration tab saves an option to Library/Config", async ({
+  const configText = (sbServer: { spaceDir: string }) =>
+    readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
+      () => "",
+    );
+
+  test("configuration tab saves options to Library/Config as they change", async ({
     page,
     sbServer,
   }) => {
@@ -29,7 +34,12 @@ test.describe("configuration tab", () => {
     ).toBeVisible();
     await expect(shortWikiLinks(page)).toBeChecked();
     await shortWikiLinks(page).uncheck();
-    // A font choice previews at once, and is saved alongside the other edit.
+    await expect
+      .poll(() => configText(sbServer))
+      .toContain(
+        `${MARKER}\n-- boot: true\nconfig.set("shortWikiLinks", false)`,
+      );
+    // A font choice applies and saves at once
     const editorFont = () =>
       page.evaluate(() =>
         getComputedStyle(document.documentElement).getPropertyValue(
@@ -40,7 +50,10 @@ test.describe("configuration tab", () => {
       .getByRole("combobox", { name: "Editor font" })
       .selectOption("inter");
     await expect.poll(editorFont).toContain("Inter");
-    // So does the editor's text size.
+    await expect
+      .poll(() => configText(sbServer))
+      .toContain('config.set("fonts.editor", "inter")');
+    // A typed size previews while typed, and saves on Enter
     const editorSize = () =>
       page.evaluate(
         () =>
@@ -51,62 +64,49 @@ test.describe("configuration tab", () => {
       .getByRole("spinbutton", { name: "Editor font size" })
       .fill("22");
     await expect.poll(editorSize).toBe("22px");
-    await expect.poll(editorFont).toContain("Inter");
-    await tab(page).getByRole("button", { name: "Save and apply" }).click();
+    expect(await configText(sbServer)).not.toContain("fonts.editorSize");
+    await tab(page)
+      .getByRole("spinbutton", { name: "Editor font size" })
+      .press("Enter");
     await expect
-      .poll(() =>
-        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
-          () => "",
-        ),
-      )
-      .toContain(
-        `${MARKER}\n-- boot: true\nconfig.set("shortWikiLinks", false)`,
-      );
-    expect(
-      await readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8"),
-    ).toContain('config.set("fonts.editor", "inter")');
-    expect(
-      await readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8"),
-    ).toContain('config.set("fonts.editorSize", 22)');
-    await expect(
-      tab(page).getByRole("button", { name: "Save and apply" }),
-    ).toHaveCount(0);
+      .poll(() => configText(sbServer))
+      .toContain('config.set("fonts.editorSize", 22)');
+    await expect(tab(page).getByRole("button", { name: /^Save/ })).toHaveCount(
+      0,
+    );
 
     await page.reload();
     await expect.poll(editorFont).toContain("Inter");
     await expect.poll(editorSize).toBe("22px");
   });
 
-  test("unsaved configuration edits survive closing the workbench", async ({
+  test("a typed field saves when left, and Escape takes it back", async ({
     page,
     sbServer,
   }) => {
     await gotoSilverBulletPage(page, sbServer, "index");
     await runCommandViaPalette(page, "Configuration: Open");
-    await shortWikiLinks(page).uncheck();
-    await runCommandViaPalette(page, "Workbench: Toggle");
-    await expect(tab(page)).toHaveCount(0);
-    await runCommandViaPalette(page, "Workbench: Configuration");
-    await expect(shortWikiLinks(page)).not.toBeChecked();
-    await expect(
-      page.getByRole("radio", { name: "Configuration, •" }),
-    ).toBeVisible();
-
-    // Discarding also takes back a font that was only being previewed.
-    const editorFont = () =>
-      page.evaluate(() =>
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--editor-font",
-        ),
+    const editorSize = () =>
+      page.evaluate(
+        () =>
+          getComputedStyle(document.querySelector("#sb-editor .cm-editor")!)
+            .fontSize,
       );
-    // SilverBullet Light suggests Lora, so preview a different font.
-    const shown = await editorFont();
-    await tab(page)
-      .getByRole("combobox", { name: "Editor font" })
-      .selectOption("system-serif");
-    await expect.poll(editorFont).not.toBe(shown);
-    await tab(page).getByRole("button", { name: "Discard" }).click();
-    await expect.poll(editorFont).toBe(shown);
+    const size = tab(page).getByRole("spinbutton", {
+      name: "Editor font size",
+    });
+    const shown = await editorSize();
+    await size.fill("24");
+    await expect.poll(editorSize).toBe("24px");
+    await size.press("Escape");
+    await expect.poll(editorSize).toBe(shown);
+    await expect(size).toHaveValue("");
+
+    await size.fill("21");
+    await tab(page).getByRole("searchbox", { name: "Filter options" }).click();
+    await expect
+      .poll(() => configText(sbServer))
+      .toContain('config.set("fonts.editorSize", 21)');
 
     // A lone family name could be a missing font library's name, so it is
     // not used as is; the field says how to write it instead.
@@ -156,9 +156,9 @@ test.describe("configuration tab", () => {
     await page.keyboard.press("Enter");
     await expect(row).toHaveAttribute("data-modified", "true");
     await expect(row.getByText("Press keys…")).toHaveCount(0);
-    await expect(
-      page.getByRole("radio", { name: "Configuration, •" }),
-    ).toBeVisible();
+    await expect
+      .poll(() => configText(sbServer))
+      .toContain('name = "Workbench: Toggle"');
   });
 
   // The editor's keymap is rebuilt just after the save settles: wait for the
@@ -187,17 +187,9 @@ test.describe("configuration tab", () => {
     await startRecording(page, "Workbench: Toggle");
     await page.keyboard.press("ControlOrMeta+Alt+Shift+u");
     await page.keyboard.press("Enter");
-    await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
-      .poll(() =>
-        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
-          () => "",
-        ),
-      )
+      .poll(() => configText(sbServer))
       .toMatch(/name = "Workbench: Toggle", key = "[^"]+", mac = ""/);
-    await expect(
-      tab(page).getByRole("button", { name: "Save and apply" }),
-    ).toHaveCount(0);
     await waitForBinding(page, "");
     // The old chord no longer closes the Workbench...
     await page.keyboard.press("ControlOrMeta+Alt+j");
@@ -217,17 +209,9 @@ test.describe("configuration tab", () => {
     await row.hover();
     await row.getByRole("button", { name: "Actions" }).click();
     await page.getByRole("menuitem", { name: "Remove binding" }).click();
-    await tab(page).getByRole("button", { name: "Save and apply" }).click();
     await expect
-      .poll(() =>
-        readFile(join(sbServer.spaceDir, "Library", "Config.md"), "utf8").catch(
-          () => "",
-        ),
-      )
+      .poll(() => configText(sbServer))
       .toContain('name = "Workbench: Toggle", key = "", mac = ""');
-    await expect(
-      tab(page).getByRole("button", { name: "Save and apply" }),
-    ).toHaveCount(0);
     await waitForBinding(page, "");
     await page.keyboard.press("ControlOrMeta+Alt+j");
     await page.waitForTimeout(500);
@@ -242,16 +226,20 @@ test.describe("configuration tab", () => {
       },
     });
 
-    test("managed block error blocks saving", async ({ page, sbServer }) => {
+    test("managed block error keeps edits unsaved", async ({
+      page,
+      sbServer,
+    }) => {
       await gotoSilverBulletPage(page, sbServer, "index");
       await runCommandViaPalette(page, "Configuration: Open");
       await expect(tab(page)).toContainText(
         "The managed configuration block in Library/Config is not valid Lua",
       );
       await shortWikiLinks(page).uncheck();
-      await expect(
-        tab(page).getByRole("button", { name: "Save and apply" }),
-      ).toHaveCount(0);
+      await expect(tab(page)).toContainText(
+        "1 change isn't saved; it will be once the block is fixed.",
+      );
+      expect(await configText(sbServer)).not.toContain("shortWikiLinks");
     });
   });
 });
@@ -298,7 +286,6 @@ test.describe("data tab schemas", () => {
     await tags.getByRole("button", { name: /^page/ }).click();
     await page.getByRole("textbox", { name: "New attribute" }).fill("category");
     await page.getByRole("textbox", { name: "New attribute" }).press("Enter");
-    await page.getByRole("button", { name: "Save and apply" }).click();
     await expect
       .poll(() => config(sbServer))
       .toMatch(
@@ -314,7 +301,6 @@ test.describe("data tab schemas", () => {
     await tags.getByRole("button", { name: /^page/ }).click();
     await page.getByRole("textbox", { name: "New attribute" }).fill("rating");
     await page.getByRole("textbox", { name: "New attribute" }).press("Enter");
-    await page.getByRole("button", { name: "Save and apply" }).click();
     await expect.poll(() => config(sbServer)).toContain('"rating"');
     expect(await config(sbServer)).toContain("A note typed by hand.");
   });

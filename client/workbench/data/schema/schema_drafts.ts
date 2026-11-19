@@ -1,10 +1,10 @@
 /**
- * Unsaved schema edits per tag, kept for the whole session like the
- * Configuration tab's pending edits, and how saving turns them into
- * statements of Library/Config's managed schemas block.
+ * Schema edits per tag, and how saving turns them into statements of
+ * Library/Config's managed schemas block. With `autoSave` each edit saves
+ * right away; a draft stays only while a save is running or when it can't
+ * be saved (invalid edits, an invalid block, a failed write).
  */
 import { deepEqual } from "@silverbulletmd/silverbullet/lib/json";
-import { isBuiltinTag } from "@silverbulletmd/silverbullet/lib/tags";
 import { CONFIG_UNSET } from "../../../config.ts";
 import {
   invalidManagedBlockMessage,
@@ -59,6 +59,8 @@ export type SchemaDraftDeps = {
   effective: (tag: string) => JsonSchema | null;
   subscribeReload: (changed: () => void) => () => void;
   onDirty: (dirty: boolean) => void;
+  /** Save each edit as it is made */
+  autoSave?: boolean;
 };
 
 type Baseline = SchemaDraftSource & {
@@ -100,6 +102,12 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
   private snapshots = new Map<string, string>();
   /** Counts edits per tag, to tell whether a draft changed while it was saved */
   private versions = new Map<string, number>();
+  /** Tags waiting for an automatic save */
+  private queued = new Set<string>();
+  /** The last automatic save's outcome per tag */
+  private results = new Map<string, SaveResult>();
+  private draining = false;
+  private committing = false;
 
   constructor(private deps: SchemaDraftDeps) {
     super(deps);
@@ -123,6 +131,34 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
 
   draft(tag: string): TagDraft | undefined {
     return this.drafts.get(tag);
+  }
+
+  /** How the tag's last automatic save went */
+  result(tag: string): SaveResult | undefined {
+    return this.results.get(tag);
+  }
+
+  /**
+   * Saves the tag's draft, one save at a time: a tag edited meanwhile is
+   * saved again once the running save is done.
+   */
+  async saveSoon(tag: string): Promise<void> {
+    this.queued.add(tag);
+    if (this.draining) return;
+    this.draining = true;
+    try {
+      for (let next = this.takeQueued(); next; next = this.takeQueued()) {
+        if (!this.drafts.has(next)) continue;
+        this.results.set(next, await this.save(next));
+        this.emit();
+      }
+    } finally {
+      this.draining = false;
+    }
+  }
+
+  protected override get badged(): boolean {
+    return this.dirty && !this.saving && !this.draining && !this.committing;
   }
 
   /** The block's own rules for a tag: properties it defines or sets */
@@ -238,9 +274,11 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
     if (tag === undefined) {
       this.drafts.clear();
       this.snapshots.clear();
+      this.results.clear();
     } else {
       this.drafts.delete(tag);
       this.snapshots.delete(tag);
+      this.results.delete(tag);
     }
     this.emit();
   }
@@ -252,9 +290,7 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
     const ownership = this.ownership(tag);
     if (d.icon !== undefined) {
       changes.set.push({
-        path: isBuiltinTag(tag)
-          ? ["tags", tag, "icon"]
-          : ["tags", tag, "pageDecoration", "icon"],
+        path: ["tags", tag, "icon"],
         value: d.icon ?? CONFIG_UNSET,
       });
     }
@@ -317,12 +353,17 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
           rule === null ? name in effective : !deepEqual(effective[name], rule),
         )
         .map(([name]) => name);
+      const kept = this.versions.get(tag) !== version;
       // Edits made while saving stay as a draft (saving them again is harmless)
-      if (this.versions.get(tag) === version) {
+      if (!kept) {
         this.drafts.delete(tag);
         this.snapshots.delete(tag);
       }
       await this.load();
+      // The block now holds this save: compare the kept draft's next save to that
+      if (kept && this.baseline) {
+        this.snapshots.set(tag, ownedSnapshot(this.baseline.owned, tag));
+      }
       return { ok: true, shadowed };
     } finally {
       this.saving = false;
@@ -483,7 +524,21 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
     }
     change(d);
     this.versions.set(tag, (this.versions.get(tag) ?? 0) + 1);
-    this.emit();
+    if (this.deps.autoSave) {
+      // So the badge doesn't flash for an edit about to save
+      this.committing = true;
+      this.emit();
+      this.committing = false;
+      void this.saveSoon(tag);
+    } else {
+      this.emit();
+    }
+  }
+
+  private takeQueued(): string | undefined {
+    const [next] = this.queued;
+    if (next !== undefined) this.queued.delete(next);
+    return next;
   }
 
   protected override loadErrorMessage(e: any): string {
@@ -497,5 +552,9 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
       sources: schemaSources(source.scripts),
     };
     this.emit();
+    // Drafts an invalid block or a failed write kept get another go
+    if (this.deps.autoSave && !this.draining && !this.blockError) {
+      for (const tag of this.drafts.keys()) void this.saveSoon(tag);
+    }
   }
 }

@@ -18,15 +18,15 @@ When you find one you want, click **Install** and follow its instructions. Libra
 # Get comfortable
 Open any page with some text, then press **Cmd-,** on macOS or **Ctrl-,** on Windows/Linux to open Configuration in [[Workbench]]. You can also open the command palette with **Cmd-/** or **Ctrl-/** and run **Workbench: Configuration**.
 
-Choose **Appearance** in the sidebar. Experiment with the font options (the changes should apply instantly) and once you’re happy, click **Save and apply**.
+Choose **Appearance** in the sidebar. Experiment with the font options. Each change applies and saves right away; a typed value such as the font size saves when you leave the field or press **Enter**.
 
 ![Configuration’s Appearance controls with Inter selected as the editor font and the font size set to 20.](../Screenshots/customization-appearance.png)
 The interface, page text and code each have their own font setting. Try the built-in choices to find what suits you. [[Fonts]] explains the choices.
 
-To undo a saved setting, open its ⋯ menu, choose **Reset to default**, then **Save and apply** again.
+To undo a setting, open its ⋯ menu and choose **Reset to default**.
 
 # Pick a theme
-A [[Theming|theme]] sets SilverBullet’s colors. Still under **Appearance**, open the **Theme** list. Pick one and click **Save and apply**.
+A [[Theming|theme]] sets SilverBullet’s colors. Still under **Appearance**, open the **Theme** list. Pick one and it applies right away.
 
 Want your own touch without a whole new theme? Pick an **Accent color**, also under Appearance. It recolors links, buttons, checkboxes and selections in whatever theme is active. Clear it to get the theme’s own color back.
 
@@ -38,9 +38,9 @@ In Configuration, select **Key bindings** and use the filter to find a command y
 1. Click **+** beside the command to add an alternate shortcut.
 2. Press the keys you want to use, then press **Enter** to keep them.
 3. If SilverBullet reports a conflict, choose another combination.
-4. Click **Save and apply**, return to the editor and try your shortcut.
+4. Return to the editor and try your shortcut: it is saved already.
 
-The command’s ⋯ menu offers **Reset** if you want its default bindings back. Save again to apply that reset. See [[Keyboard Shortcuts]] for reserved keys and shortcuts made of several keystrokes.
+The command’s ⋯ menu offers **Reset** if you want its default bindings back. See [[Keyboard Shortcuts]] for reserved keys and shortcuts made of several keystrokes.
 
 # Where your changes live
 Configuration saves your settings and shortcuts in a page called [[^Library/Config]]. They belong to the space, so in a shared space they also affect other people using it.

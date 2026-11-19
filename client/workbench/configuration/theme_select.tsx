@@ -10,8 +10,8 @@ import {
 } from "./theme_options.ts";
 
 /**
- * The space's `theme` setting. Choosing one shows it here, on this device,
- * until it is saved or discarded or the tab is left.
+ * The space's `theme` setting. A chosen theme is shown on this device while
+ * it is being saved, until the reload applies it for real.
  */
 export function ThemeSelect(props: {
   client: Client;

@@ -10,6 +10,7 @@ import type { ThemeInfo } from "@silverbulletmd/silverbullet/lib/themes";
 import { Input, Select } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import type { Client } from "../../client.ts";
+import type { TypedField } from "./options_section.tsx";
 
 const CUSTOM = "\u0000custom";
 
@@ -21,8 +22,8 @@ const GROUPS: [FontEntry["kind"], string][] = [
 
 /**
  * Previews the `fonts.*` settings as Configuration currently holds them,
- * saved or not, so discarding or resetting takes a preview back as well;
- * saving makes it stick.
+ * including a value still being typed; Escape or a reset takes the preview
+ * back, and saving makes it stick.
  */
 export function useFontPreview(
   client: Client,
@@ -60,6 +61,7 @@ export function EditorSizeInput(props: {
   label: string;
   disabled: boolean;
   onChange: (value: number | undefined) => void;
+  typed: TypedField;
 }) {
   const theme = useActiveTheme(props.client);
   return (
@@ -73,6 +75,7 @@ export function EditorSizeInput(props: {
         const v = e.currentTarget.value;
         props.onChange(v === "" ? undefined : Number(v));
       }}
+      {...props.typed}
     />
   );
 }
@@ -87,7 +90,11 @@ export function FontSelect(props: {
   slot: "editor" | "code";
   label: string;
   disabled: boolean;
+  /** A font picked from the list */
   onChange: (value: string | undefined) => void;
+  /** A custom font-family as it is typed */
+  onType: (value: string | undefined) => void;
+  typed: TypedField;
 }) {
   const available = props.client.config.get<Record<string, FontEntry>>(
     "fonts.available",
@@ -140,7 +147,8 @@ export function FontSelect(props: {
           disabled={props.disabled}
           placeholder="e.g. Georgia, serif"
           value={value}
-          onInput={(e) => props.onChange(e.currentTarget.value || undefined)}
+          onInput={(e) => props.onType(e.currentTarget.value || undefined)}
+          {...props.typed}
         />
       )}
       {isCustom &&
