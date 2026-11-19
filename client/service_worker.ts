@@ -187,12 +187,24 @@ self.addEventListener("message", async (event: any) => {
       );
       if (proxyRouter.syncEngine) {
         await proxyRouter.syncEngine.wipe();
-        broadcastMessage({
-          type: "dataWiped",
-        });
       } else {
-        console.warn("Not performing sync data wipe, sync engine not started");
+        console.warn(
+          "Sync engine not started, deleting sync databases directly",
+        );
+        for (const db of await indexedDB.databases()) {
+          if (db.name?.startsWith("sb_files_")) {
+            await new Promise<void>((resolve) => {
+              const req = indexedDB.deleteDatabase(db.name!);
+              req.onsuccess = req.onerror = req.onblocked = () => resolve();
+            });
+          }
+        }
       }
+      // Always confirm, otherwise the client waits for ever (e.g. when the
+      // worker was restarted and has no sync engine yet)
+      broadcastMessage({
+        type: "dataWiped",
+      });
       break;
     }
     case "perform-file-sync": {
