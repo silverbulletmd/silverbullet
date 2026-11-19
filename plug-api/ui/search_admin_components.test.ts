@@ -1,6 +1,11 @@
-import { expect, test } from "vitest";
 import { h } from "preact";
 import { render } from "preact-render-to-string";
+import { expect, test } from "vitest";
+import type {
+  IndexReport,
+  SearchModelState,
+  SpaceSearchSummary,
+} from "../types/search_admin.ts";
 import {
   SearchBadge,
   SearchIndexStatus,
@@ -8,11 +13,6 @@ import {
   SearchSpacesTable,
   SearchSummary,
 } from "./index.ts";
-import type {
-  IndexReport,
-  SearchModelState,
-  SpaceSearchSummary,
-} from "../types/search_admin.ts";
 
 const e5 = {
   id: "multilingual-e5-small",
@@ -213,16 +213,18 @@ test("the spaces table orders active spaces first, each status one word with its
     html.indexOf(`>${n}<`),
   );
   expect(order).toEqual([...order].sort((a, b) => a - b));
-  expect(html).toContain('title="Building · 115 of 5,001 pages">Building');
+  // Attribute order is the renderer's business: compare without classes.
+  const titled = html.replace(/ class="[^"]*"/g, "");
+  expect(titled).toContain('title="Building · 115 of 5,001 pages">Building');
   expect(html).toContain(">115/5,001<");
-  expect(html).toContain('title="Waiting to build">Waiting<');
-  expect(html).toContain(
+  expect(titled).toContain('title="Waiting to build">Waiting<');
+  expect(titled).toContain(
     'title="Ready · catching up 12 of 40 pages">Catching up<',
   );
-  expect(html).toContain('title="Failed: disk full">Failed<');
-  expect(html).toContain('title="Ready · 2,950 pages · 41 MB">Ready<');
-  expect(html).toContain('title="Off by choice">Off<');
-  expect(html).toContain('title="Off: over 5,000 pages">Off<');
+  expect(titled).toContain('title="Failed: disk full">Failed<');
+  expect(titled).toContain('title="Ready · 2,950 pages · 41 MB">Ready<');
+  expect(titled).toContain('title="Off by choice">Off<');
+  expect(titled).toContain('title="Off: over 5,000 pages">Off<');
   // The cells carry no counts or sizes: the Pages and Size columns do.
   expect(html).not.toContain(">Ready ·");
   expect(html).toContain(">5,001<");

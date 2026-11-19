@@ -163,7 +163,7 @@ test("conflict list includes every kind and sends the displayed content precondi
     generation: "merge-1",
     conflicts: [],
   });
-  await gitConflictsView.actions![0].run(rows[1]);
+  await gitConflictsView.actions![0].run(rows[1], {});
   expect(space.resolveGitConflict).toHaveBeenCalledWith(
     "opaque-1",
     "merge-1",
@@ -177,16 +177,19 @@ test("conflict list includes every kind and sends the displayed content precondi
 
 test("a stale conflict choice refreshes without retrying the mutation", async () => {
   space.resolveGitConflict.mockRejectedValueOnce({ status: 409 });
-  await gitConflictsView.actions![0].run({
-    name: "opaque",
-    id: "opaque",
-    generation: "merge-1",
-    contentRevision: "old",
-    kind: "text",
-    path: "Sample.md",
-    local: true,
-    remote: true,
-  });
+  await gitConflictsView.actions![0].run(
+    {
+      name: "opaque",
+      id: "opaque",
+      generation: "merge-1",
+      contentRevision: "old",
+      kind: "text",
+      path: "Sample.md",
+      local: true,
+      remote: true,
+    },
+    {},
+  );
   expect(space.resolveGitConflict).toHaveBeenCalledTimes(1);
   expect(editor.flashNotification).toHaveBeenCalledWith(
     "This conflict changed. Review the refreshed file before choosing again.",
@@ -203,16 +206,19 @@ test("read members can download an original conflict side without resolving it",
     (action) => action.label === "Download This space",
   )!;
   expect(action.requireMode).toBeUndefined();
-  await action.run({
-    name: "opaque",
-    id: "opaque",
-    generation: "merge-1",
-    contentRevision: "old",
-    kind: "binary",
-    path: "Sample.bin",
-    local: true,
-    remote: true,
-  });
+  await action.run(
+    {
+      name: "opaque",
+      id: "opaque",
+      generation: "merge-1",
+      contentRevision: "old",
+      kind: "binary",
+      path: "Sample.bin",
+      local: true,
+      remote: true,
+    },
+    {},
+  );
   expect(space.getGitConflictVersion).toHaveBeenCalledWith(
     "opaque",
     "merge-1",

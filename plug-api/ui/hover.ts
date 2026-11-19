@@ -1,5 +1,23 @@
 import { useEffect, useState } from "preact/hooks";
 
+let holds = 0;
+
+/**
+ * Freezes every tracker on the row it is over until the returned release
+ * runs. A row's open menu sits outside its list (see `RowMenu`), so the
+ * pointer on its way there crosses other rows, or leaves the list, and the
+ * row (and the menu with it) must not be unmounted for that.
+ */
+export function holdHover(): () => void {
+  holds++;
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    holds--;
+  };
+}
+
 /**
  * Tracks hover outside parent state. Individual subscriptions re-render only
  * the two affected rows instead of the entire expanded list.
@@ -16,7 +34,7 @@ export class HoverTracker {
   }
 
   set(key: unknown): void {
-    if (this.key === key) return;
+    if (this.key === key || holds > 0) return;
     this.key = key;
     for (const notify of this.subscribers) notify(key);
   }

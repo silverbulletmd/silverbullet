@@ -1,12 +1,14 @@
-import { h } from "preact";
+// @vitest-environment happy-dom
+import { h, render as mount } from "preact";
 import { render } from "preact-render-to-string";
 import { expect, test } from "vitest";
 import { buildTree } from "./tree_model.ts";
 import {
   activateTreeRow,
+  dropZone,
   externalFilesDrag,
-  targetFolderForPath,
   TreeView,
+  targetFolderForPath,
   windowIncluding,
   windowShowing,
 } from "./tree_view.tsx";
@@ -52,7 +54,7 @@ test("current page remains independent of target and retains tree hooks", () => 
   );
   expect(html).toMatch(/data-path="Home"[^>]*aria-current="page"/);
   expect(html).toMatch(
-    /class="sb-nav-row sb-nav-selected"[^>]*data-path="Notes\/Guide"/,
+    /<div(?=[^>]*class="sb-nav-row sb-nav-selected")[^>]*data-path="Notes\/Guide"/,
   );
   expect(html).not.toMatch(/data-path="Notes\/Guide"[^>]*aria-current/);
   expect(html).toContain('class="sb-treeitem"');
@@ -72,7 +74,7 @@ test("passive folders expand on row activation while passive leaves do nothing",
   expect(actions).toEqual(["toggle:Notes", "select:Notes"]);
 });
 
-test("document actions render on every expanded row and can be disabled", () => {
+test("document actions render on every expanded row, each as one tabbable menu", () => {
   const tree = buildTree(
     [{ primary: "Guide", obj: { name: "Notes/Guide" } }],
     "/",
@@ -95,9 +97,8 @@ test("document actions render on every expanded row and can be disabled", () => 
       onAction() {},
     }),
   );
-  expect(html.match(/aria-label="Open"/g)).toHaveLength(2);
+  expect(html.match(/sb-row-menu-trigger/g)).toHaveLength(2);
   expect(html.match(/tabindex="0"/g)).toHaveLength(2);
-  expect(html.match(/ disabled/g)).toHaveLength(2);
 });
 
 test("panel actions are only mounted for selected or hovered rows", () => {
@@ -122,7 +123,7 @@ test("panel actions are only mounted for selected or hovered rows", () => {
       onAction() {},
     }),
   );
-  expect(html.match(/aria-label="Open"/g)).toHaveLength(1);
+  expect(html.match(/sb-row-menu-trigger/g)).toHaveLength(1);
   expect(html).toContain('tabindex="-1"');
 });
 
@@ -140,9 +141,7 @@ test("read-only Space file rows remain draggable without making folder-only rows
       separator: "/",
       canDrag: false,
       fileDragData: (node) =>
-        node.row
-          ? { mime: "application/x-test", payload: node.path, downloadURL: "x" }
-          : null,
+        node.row ? { mime: "application/x-test", payload: node.path } : null,
       hasIcon: false,
       readOnly: true,
       onToggle() {},
@@ -219,4 +218,190 @@ test("scrolling extends the window nearby, moves it on a jump, and caps its size
   expect(windowShowing([24000, 24200], [24990, 25000], 25000)).toEqual([
     24890, 25000,
   ]);
+});
+
+test("a drop's zone: folder edges reorder, its middle moves in; pages split in half", () => {
+  expect(dropZone(2, 20, true)).toBe("before");
+  expect(dropZone(10, 20, true)).toBe("into");
+  expect(dropZone(18, 20, true)).toBe("after");
+  expect(dropZone(9, 20, false)).toBe("before");
+  expect(dropZone(11, 20, false)).toBe("after");
+});
+
+/** Mounts a tree of `Other`, `Notes/A`, `Notes/B`, `Notes/Sub/C` (expanded)
+ * and drives HTML5 drag events at its rows, each row 20px tall. */
+function dragHarness(
+  onReorder?: (...args: string[]) => void,
+  expanded = ["Notes", "Notes/Sub"],
+  extraProps: Record<string, unknown> = {},
+) {
+  // happy-dom lacks these, which makes preact bind `DragOver` and the like
+  // instead of the lowercase event names.
+  for (const name of [
+    "dragstart",
+    "dragover",
+    "dragleave",
+    "drop",
+    "dragend",
+  ]) {
+    if (!(`on${name}` in HTMLElement.prototype)) {
+      Object.defineProperty(HTMLElement.prototype, `on${name}`, {
+        value: null,
+        writable: true,
+        configurable: true,
+      });
+    }
+  }
+  const calls: string[] = [];
+  const tree = buildTree(
+    ["Other", "Notes/A", "Notes/B", "Notes/Sub/C"].map((name) => ({
+      primary: name,
+      obj: { name },
+    })),
+    "/",
+    false,
+  );
+  const root = document.createElement("div");
+  document.body.appendChild(root);
+  mount(
+    h(TreeView, {
+      tree,
+      expanded: new Set(expanded),
+      showEmpty: true,
+      separator: "/",
+      canDrag: true,
+      hasIcon: false,
+      readOnly: false,
+      onToggle() {},
+      onMove: (from: string, to: string) => calls.push(`move:${from}->${to}`),
+      onReorder: onReorder
+        ? (from: string, anchor: string, position: string) => {
+            calls.push(`reorder:${from}:${position}:${anchor}`);
+            onReorder(from, anchor, position);
+          }
+        : undefined,
+      onAction() {},
+      ...extraProps,
+    }),
+    root,
+  );
+  const row = (path: string) => {
+    const el = root.querySelector(`[data-path="${path}"]`) as HTMLElement;
+    el.getBoundingClientRect = () =>
+      ({ top: 100, height: 20, bottom: 120 }) as DOMRect;
+    return el;
+  };
+  const data = new Map<string, string>();
+  const transfer = {
+    get types() {
+      return [...data.keys()];
+    },
+    setData: (k: string, v: string) => data.set(k, v),
+    getData: (k: string) => data.get(k) ?? "",
+    dropEffect: "none",
+    effectAllowed: "all",
+  };
+  const fire = (el: HTMLElement, type: string, offsetY = 0) => {
+    const e = new Event(type, { bubbles: true, cancelable: true });
+    Object.assign(e, { dataTransfer: transfer, clientY: 100 + offsetY });
+    el.dispatchEvent(e);
+    return e;
+  };
+  const drag = async (from: string, to: string, offsetY: number) => {
+    const start = fire(row(from), "dragstart");
+    const over = fire(row(to), "dragover", offsetY);
+    await new Promise((r) => setTimeout(r, 0));
+    const classes = row(to).className;
+    fire(row(to), "drop", offsetY);
+    fire(row(from), "dragend");
+    return {
+      accepted: over.defaultPrevented,
+      classes,
+      startPrevented: start.defaultPrevented,
+    };
+  };
+  return { calls, data, drag, cleanup: () => root.remove() };
+}
+
+test("a row carrying file-drag data stays an in-app drag: it reorders and is never handed off as a download", async () => {
+  const { calls, data, drag, cleanup } = dragHarness(() => {}, undefined, {
+    fileDragData: (node: { path: string; row?: unknown }) =>
+      node.row ? { mime: "application/x-test", payload: node.path } : null,
+  });
+  try {
+    const result = await drag("Notes/B", "Notes/A", 1);
+    expect(result.startPrevented).toBe(false);
+    expect(data.has("DownloadURL")).toBe(false);
+    expect(data.get("application/x-test")).toBe("Notes/B");
+    expect(calls).toEqual(["reorder:Notes/B:before:Notes/A"]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("without onReorder an edge drop still moves into the parent folder", async () => {
+  const { calls, drag, cleanup } = dragHarness();
+  try {
+    const { accepted, classes } = await drag("Other", "Notes/A", 1);
+    expect(accepted).toBe(true);
+    expect(classes).not.toMatch(/sb-nav-drop-(before|after)/);
+    expect(calls).toEqual(["move:Other->Notes"]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("with onReorder a row's edges reorder and a folder's middle still moves in", async () => {
+  const { calls, drag, cleanup } = dragHarness(() => {});
+  try {
+    const top = await drag("Notes/B", "Notes/A", 1);
+    expect(top.accepted).toBe(true);
+    expect(top.classes).toContain("sb-nav-drop-before");
+    const bottom = await drag("Other", "Notes/B", 19);
+    expect(bottom.classes).toContain("sb-nav-drop-after");
+    const middle = await drag("Other", "Notes/Sub", 10);
+    expect(middle.classes).toContain("sb-nav-droptarget");
+    expect(middle.classes).not.toMatch(/sb-nav-drop-(before|after)/);
+    expect(calls).toEqual([
+      "reorder:Notes/B:before:Notes/A",
+      "reorder:Other:after:Notes/B",
+      "move:Other->Notes/Sub",
+    ]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a row can't be reordered against itself or a row inside it", async () => {
+  const { calls, drag, cleanup } = dragHarness(() => {});
+  try {
+    expect((await drag("Notes/A", "Notes/A", 1)).accepted).toBe(false);
+    expect((await drag("Notes", "Notes/Sub/C", 1)).accepted).toBe(false);
+    expect(calls).toEqual([]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("an expanded folder's bottom edge inserts before its first child", async () => {
+  const { calls, drag, cleanup } = dragHarness(() => {});
+  try {
+    expect((await drag("Other", "Notes", 19)).accepted).toBe(true);
+    // The folder itself can't go inside its own subtree.
+    expect((await drag("Notes", "Notes", 19)).accepted).toBe(false);
+    expect(calls).toEqual(["reorder:Other:before:Notes/A"]);
+  } finally {
+    cleanup();
+  }
+});
+
+test("a collapsed folder's bottom edge still inserts after it", async () => {
+  const { calls, drag, cleanup } = dragHarness(() => {}, []);
+  try {
+    const { classes } = await drag("Other", "Notes", 19);
+    expect(classes).toContain("sb-nav-drop-after");
+    expect(calls).toEqual(["reorder:Other:after:Notes"]);
+  } finally {
+    cleanup();
+  }
 });

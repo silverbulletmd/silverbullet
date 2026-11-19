@@ -22,7 +22,17 @@ export type NavigatorHook =
   | "action"
   | "rowState"
   | "dropdown"
-  | "move";
+  | "move"
+  | "reorder";
+
+/** Moves `name` (a child segment of `folder`, `""` = root) before or after
+ * its sibling `anchor`; a null anchor puts it last. */
+export type ReorderRequest = {
+  folder: string;
+  name: string;
+  anchor: string | null;
+  position: "before" | "after";
+};
 
 /** Why a view has no rows when that's a setting, not a failure (e.g.
  * revision history switched off): shown as a neutral empty state. */
@@ -112,6 +122,7 @@ export type ViewMeta = {
   followEditor: boolean;
   refreshOn: string[];
   hasMove: boolean;
+  hasReorder: boolean;
   uploadFiles?: boolean;
   hasCreate: boolean;
   refreshOnOpen: boolean;

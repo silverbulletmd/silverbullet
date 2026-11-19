@@ -1,14 +1,19 @@
-import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
 import {
-  config,
-  editor,
-  space,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
-import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
+  splitPath,
+  TreeIndex,
+} from "@silverbulletmd/silverbullet/lib/tree_order";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import { inLibrary, isHiddenPage, spaceContents } from "./pages.ts";
+import {
+  cachedTreeOrder,
+  loadTreeOrder,
+  reorderSibling,
+  saveFolderOrder,
+  sortByTreeOrder,
+  treeCollate,
+} from "./space_tree_order.ts";
 import { type BuiltinView, baseMeta, type Segment } from "./types.ts";
 
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
@@ -69,18 +74,74 @@ function isTreeHidden(obj: TreeObj): boolean {
   return isHiddenPage(obj) || obj.pageDecoration?.tree?.hide === true;
 }
 
+/** Whether `segment` shows `obj`; fail-closed, like the panel's own masks. */
+function admits(segment: Segment<TreeObj>, obj: TreeObj): boolean {
+  try {
+    return segment.where?.(obj) ?? true;
+  } catch {
+    return false;
+  }
+}
+
+// Rows from the last source run, in tree order, and the sibling index of
+// each segment's share of them, built on first use: Move up/down read
+// siblings from these (their `when` has to be synchronous).
+let lastRows: TreeObj[] = [];
+let siblingIndexes = new Map<string, TreeIndex>();
+
+/** Siblings as the segment labelled `label` shows them (all rows for none). */
+function siblingIndex(label: string | undefined): TreeIndex {
+  const segment = spaceTreeSegments.find((s) => s.label === label);
+  const key = segment?.label ?? "";
+  let index = siblingIndexes.get(key);
+  if (!index) {
+    const rows = segment
+      ? lastRows.filter((obj) => admits(segment, obj))
+      : lastRows;
+    index = new TreeIndex(rows.map((obj) => obj.name));
+    siblingIndexes.set(key, index);
+  }
+  return index;
+}
+
+/** The first segment showing `obj`. Action masks are worked out once for all
+ * segments, so Move up/down judge a row where it lives (All or Tool Pages);
+ * in a narrower segment a move may find nothing to pass, and does nothing. */
+function homeSegment(obj: TreeObj): string | undefined {
+  return spaceTreeSegments.find((s) => admits(s, obj))?.label;
+}
+
 async function spaceTreeSource(): Promise<TreeObj[]> {
-  const contents = await spaceContents();
-  const collation = await config.get<QueryCollationConfig>(
-    "queryCollation",
-    {},
+  const contents = (await spaceContents()) as TreeObj[];
+  const [collate, order] = await Promise.all([
+    treeCollate(),
+    loadTreeOrder(contents),
+  ]);
+  lastRows = sortByTreeOrder(
+    contents.filter((obj) => !isTreeHidden(obj)),
+    order,
+    collate,
   );
-  const collator = Intl.Collator(collation?.locale, collation?.options);
-  return (contents as TreeObj[])
-    .filter((obj) => !isTreeHidden(obj))
-    .sort((a, b) =>
-      compareCollated(String(a.name), String(b.name), collation, collator),
-    );
+  siblingIndexes = new Map();
+  return lastRows;
+}
+
+/** Moves `obj` past its nearest sibling in `segment`, so a move is never
+ * spent on a row the user can't see (which keeps its place). */
+async function moveAmongSiblings(
+  obj: TreeObj,
+  step: -1 | 1,
+  segment: string | undefined,
+): Promise<void> {
+  const anchor = siblingIndex(segment).neighbor(obj.name, step);
+  if (anchor === undefined) return;
+  const { folder, name } = splitPath(obj.name);
+  await reorderSibling({
+    folder,
+    name,
+    anchor,
+    position: step < 0 ? "before" : "after",
+  });
 }
 
 async function moveByRename(obj: TreeObj, newName: string): Promise<void> {
@@ -179,7 +240,6 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
   }),
   row: {
     icon: treeIcon,
-    priority: (obj) => obj.pageDecoration?.tree?.priority,
   },
   segments: spaceTreeSegments,
   actions: [
@@ -198,6 +258,31 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
       when: isDeletable,
       run: deleteTreeRow,
     },
+    {
+      icon: "arrow-up",
+      label: "Move up",
+      requireMode: "rw",
+      when: (obj) =>
+        siblingIndex(homeSegment(obj)).neighbor(obj.name, -1) !== undefined,
+      run: (obj, ctx) =>
+        moveAmongSiblings(obj, -1, ctx.segment ?? homeSegment(obj)),
+    },
+    {
+      icon: "arrow-down",
+      label: "Move down",
+      requireMode: "rw",
+      when: (obj) =>
+        siblingIndex(homeSegment(obj)).neighbor(obj.name, 1) !== undefined,
+      run: (obj, ctx) =>
+        moveAmongSiblings(obj, 1, ctx.segment ?? homeSegment(obj)),
+    },
+    {
+      icon: "rotate-ccw",
+      label: "Reset order",
+      requireMode: "rw",
+      when: (obj) => obj.isFolder === true && cachedTreeOrder().has(obj.name),
+      run: (obj) => saveFolderOrder(obj.name, null),
+    },
   ],
   keymap: {
     // Peek: open the row without leaving the panel, so the next arrow keeps
@@ -206,6 +291,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     " ": (obj) => editor.navigate(obj.ref ?? obj.name),
   },
   onMove: moveByRename,
+  onReorder: reorderSibling,
   source: spaceTreeSource,
   onSelect: (obj) => editor.navigate(obj.ref ?? obj.name),
   onCreate: (name) => editor.navigate(name),

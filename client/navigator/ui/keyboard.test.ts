@@ -374,3 +374,34 @@ it("table filters let Tab reach headers and row controls", () => {
   expect(event.prevented()).toBe(false);
   expect(trace).toEqual([]);
 });
+
+describe("the selected row's menu", () => {
+  it("opens on the menu key and on Shift-F10, ahead of a view's own keys", () => {
+    const trace: Trace = [];
+    const ctx = makeCtx(trace, {
+      keys: ["F10"],
+      interaction: "navigating",
+    });
+    ctx.openRowMenu = () => {
+      trace.push("openRowMenu");
+      return true;
+    };
+    const menuKey = press({ key: "ContextMenu" });
+    handleKeyDown(menuKey.e, ctx);
+    const shiftF10 = press({ key: "F10", shiftKey: true });
+    handleKeyDown(shiftF10.e, ctx);
+    expect(trace).toEqual(["openRowMenu", "openRowMenu"]);
+    expect(menuKey.prevented()).toBe(true);
+    expect(shiftF10.prevented()).toBe(true);
+  });
+
+  it("leaves the key alone when the selected row has no menu", () => {
+    const trace: Trace = [];
+    const ctx = makeCtx(trace);
+    ctx.openRowMenu = () => false;
+    const event = press({ key: "ContextMenu" });
+    handleKeyDown(event.e, ctx);
+    expect(event.prevented()).toBe(false);
+    expect(trace).toEqual([]);
+  });
+});

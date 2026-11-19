@@ -2,7 +2,7 @@ Implements general purpose widgets: buttons, sub-page lists, and docked views (t
 
 ## Docked widgets
 * **Table of Contents** (`std.toc`, command `Navigate: Table of Contents`): the current page's headers as a tree, live as you type. Opens in the right sidebar. A page with fewer than `minHeaders` headers has no outline worth showing, and the view renders nothing at all in a page dock there.
-* **Linked Mentions** (`std.linkedMentions`, command `Navigate: Linked Mentions`): every other page linking to this one, with a snippet of context. Docks at the bottom of the page, open until you close it.
+* **Linked Mentions** (`std.linkedMentions`, command `Navigate: Linked Mentions`): every other page linking to this one, except tool pages under `Library/`, with a snippet of context. Docks at the bottom of the page, open until you close it.
 * **Linked Tasks** (`std.linkedTasks`, command `Navigate: Linked Tasks`): incomplete tasks on other pages that link to this one. Docks at the top of the page, open until you close it.
 
 None of the three has an `enabled` config key any more. Each remembers its own dock and open/closed state: close it with its ×, bring it back with its command, move it with its dock menu, and that choice is what applies from then on. The one knob left is how short an outline is too short to be worth showing:
@@ -225,6 +225,7 @@ local function mentions(pageName)
     where r.page != pageName
       and r.to == pageName
       and r.kind != "co-mention"
+      and not r.page:startsWith("Library/")
     order by r.pageLastModified desc, r.range[1]
   ]]
 end

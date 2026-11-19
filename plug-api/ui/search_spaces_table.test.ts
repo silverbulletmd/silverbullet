@@ -78,7 +78,8 @@ async function openMenu(name: string): Promise<HTMLButtonElement> {
     );
     trigger(name).click();
   });
-  const item = root.querySelector<HTMLButtonElement>(
+  // The menu is drawn on <body>, outside the table.
+  const item = document.querySelector<HTMLButtonElement>(
     '[role="menu"] [role="menuitem"]',
   );
   expect(item?.textContent).toBe("Rebuild");
@@ -93,7 +94,7 @@ test("Rebuild in a row's menu is disabled while that space builds or waits", asy
   // A closed space has no indexes to report, and can still be rebuilt.
   expect((await openMenu("Allotment")).disabled).toBe(false);
   // Only one menu is open at a time: the last one.
-  expect(root.querySelectorAll('[role="menu"]').length).toBe(1);
+  expect(document.querySelectorAll('[role="menu"]').length).toBe(1);
 });
 
 test("Rebuild asks first, then rebuilds that space and closes the menu", async () => {
@@ -107,7 +108,7 @@ test("Rebuild asks first, then rebuilds that space and closes the menu", async (
     "Are you sure you want to rebuild the search index?",
   );
   expect(run).toHaveBeenCalledWith("a");
-  expect(root.querySelector('[role="menu"]')).toBeNull();
+  expect(document.querySelector('[role="menu"]')).toBeNull();
   expect(document.activeElement).toBe(trigger("Garden"));
 });
 
@@ -133,7 +134,7 @@ test("the menu focuses its item and closes on Escape or a click outside", async 
       new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
     );
   });
-  expect(root.querySelector('[role="menu"]')).toBeNull();
+  expect(document.querySelector('[role="menu"]')).toBeNull();
   expect(document.activeElement).toBe(trigger("Garden"));
   await openMenu("Garden");
   await act(() => {
@@ -141,5 +142,5 @@ test("the menu focuses its item and closes on Escape or a click outside", async 
       new PointerEvent("pointerdown", { bubbles: true }),
     );
   });
-  expect(root.querySelector('[role="menu"]')).toBeNull();
+  expect(document.querySelector('[role="menu"]')).toBeNull();
 });

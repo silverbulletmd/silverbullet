@@ -11,8 +11,13 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
       writes.push({ key, paths });
     },
   },
-  editor: {},
+  editor: {
+    flashNotification: (message: string) => {
+      flashes.push(message);
+    },
+  },
 }));
+const flashes: string[] = [];
 
 const { createTreeCommands } = await import("./tree_commands.ts");
 
@@ -20,7 +25,9 @@ function setup(
   defaultExpanded: boolean,
   filtering = false,
   initialExpanded = ["Projects"],
+  engine = {} as NavigatorEngine,
 ) {
+  flashes.length = 0;
   writes.length = 0;
   let expanded = new Set(initialExpanded);
   let dirty = false;
@@ -45,7 +52,7 @@ function setup(
         hierarchy: { separator: "/" },
       },
     } as ActiveView,
-    engine: {} as NavigatorEngine,
+    engine,
     derived: {
       treeFiltering: filtering,
       treeDisplay: { tree, visible: [], effectiveExpanded: new Set() },
@@ -127,4 +134,78 @@ test("bulk actions preserve folders outside the current segment", () => {
 
   cmd.collapseAllFolders();
   expect(expanded()).toEqual(["Elsewhere"]);
+});
+
+function recordingEngine(fail?: "move" | "reorder") {
+  const calls: unknown[][] = [];
+  const engine = {
+    move: async (view: string, obj: { name: string }, newName: string) => {
+      calls.push(["move", view, obj.name, newName]);
+      if (fail === "move") throw new Error("nope");
+    },
+    reorder: async (view: string, req: unknown) => {
+      calls.push(["reorder", view, req]);
+      if (fail === "reorder") throw new Error("nope");
+    },
+  } as unknown as NavigatorEngine;
+  return { calls, engine };
+}
+
+test("reordering among siblings only writes the order", async () => {
+  const { calls, engine } = recordingEngine();
+  const { cmd } = setup(false, false, ["Projects"], engine);
+  await cmd.reorderNode("Projects/Archive", "Projects/Plan", "before");
+  expect(calls).toEqual([
+    [
+      "reorder",
+      "std.spaceTree",
+      {
+        folder: "Projects",
+        name: "Archive",
+        anchor: "Plan",
+        position: "before",
+      },
+    ],
+  ]);
+});
+
+test("reordering next to a row in another folder moves there first", async () => {
+  const { calls, engine } = recordingEngine();
+  const { cmd } = setup(false, false, ["Projects"], engine);
+  await cmd.reorderNode("Journal/Today", "Projects/Plan", "after");
+  expect(calls).toEqual([
+    ["move", "std.spaceTree", "Journal/Today", "Projects/Today"],
+    [
+      "reorder",
+      "std.spaceTree",
+      { folder: "Projects", name: "Today", anchor: "Plan", position: "after" },
+    ],
+  ]);
+});
+
+test("a failed or no-op move skips the reorder", async () => {
+  const failing = recordingEngine("move");
+  await setup(false, false, [], failing.engine).cmd.reorderNode(
+    "Journal/Today",
+    "Projects/Plan",
+    "after",
+  );
+  expect(failing.calls.map((c) => c[0])).toEqual(["move"]);
+  expect(flashes).toEqual(["Move failed: nope"]);
+
+  // A move that plans to nothing (into its own subtree) reorders nothing.
+  const none = recordingEngine();
+  await setup(false, false, [], none.engine).cmd.reorderNode(
+    "Projects",
+    "Projects/Archive/Old",
+    "before",
+  );
+  expect(none.calls).toEqual([]);
+});
+
+test("a failed reorder says so", async () => {
+  const { engine } = recordingEngine("reorder");
+  const { cmd } = setup(false, false, [], engine);
+  await cmd.reorderNode("Projects/Archive", "Projects/Plan", "before");
+  expect(flashes).toEqual(["Reorder failed: nope"]);
 });

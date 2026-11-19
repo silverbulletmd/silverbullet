@@ -1,21 +1,4 @@
-import { RowSummaryText } from "./row_summary.tsx";
-import { inferColumns } from "../../table_model.ts";
-import { TableView } from "./table_view.tsx";
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
-import { Icon } from "../../../../plug-api/ui/icon.tsx";
-import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
-import type {
-  RowStates,
-  RowSummary,
-} from "../../../../plug-api/ui/tree_types.ts";
-import { Chip } from "./row_item.tsx";
-import { createDocumentRowLoader } from "../document_row_state.ts";
-import { RowText } from "../../../../plug-api/ui/row_text.tsx";
-import {
-  computeTreeDisplay,
-  nodeObject,
-} from "../../../../plug-api/ui/tree_model.ts";
-import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import {
   useCallback,
   useEffect,
@@ -23,6 +6,19 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
+import { Icon } from "../../../../plug-api/ui/icon.tsx";
+import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
+import { handleRowMenuKey } from "../../../../plug-api/ui/row_menu.tsx";
+import { RowText } from "../../../../plug-api/ui/row_text.tsx";
+import {
+  computeTreeDisplay,
+  nodeObject,
+} from "../../../../plug-api/ui/tree_model.ts";
+import type {
+  RowStates,
+  RowSummary,
+} from "../../../../plug-api/ui/tree_types.ts";
+import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import type { Client } from "../../../client.ts";
 import type { Tracker } from "../../../space_lua/dependencies.ts";
 import {
@@ -39,15 +35,20 @@ import {
   widgetKind,
 } from "../../page_widget_logic.ts";
 import { type ContentResult, normalizeContent } from "../../registry.ts";
-import type { Row, TableColumn, ViewMeta } from "../../types.ts";
 import { indexViewRows, rankViewRows } from "../../row_filter.ts";
+import { inferColumns } from "../../table_model.ts";
+import type { Row, TableColumn, ViewMeta } from "../../types.ts";
+import { createDocumentRowLoader } from "../document_row_state.ts";
 import { createInlineExpansion } from "../expansion.ts";
 import { useLoading } from "../hooks/use_loading.ts";
 import { LoadingState } from "../loading.ts";
 import { ContentNode, useRenderedValue } from "./content_view.tsx";
-import { PageWidgetFrame } from "./page_widget_frame.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
+import { PageWidgetFrame } from "./page_widget_frame.tsx";
+import { Chip } from "./row_item.tsx";
 import { MarkdownText, type RenderedRow, renderRows } from "./row_markdown.tsx";
+import { RowSummaryText } from "./row_summary.tsx";
+import { TableView } from "./table_view.tsx";
 
 export type DocumentDispatch = (
   hook: "rows" | "content" | "select" | "rowState" | "action",
@@ -388,9 +389,10 @@ export function DocumentRowsBody({
                     }
                   : undefined
               }
-              onKeyDown={
-                onSelect ? (event) => activateOnKey(event, activate) : undefined
-              }
+              onKeyDown={(event) => {
+                if (handleRowMenuKey(event)) return;
+                if (onSelect) activateOnKey(event, activate);
+              }}
             >
               {meta.hasRowIcon &&
                 (state?.icon ? (

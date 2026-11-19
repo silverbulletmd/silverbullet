@@ -264,7 +264,7 @@ Supported `type`s:
 
 Without a type, strings—including `value(obj)` results—render as Markdown. Numbers and booleans display as text, arrays as comma-separated values, nested objects as compact JSON, and missing values as empty cells. With a type, array elements use that renderer. Invalid typed values remain visible as literal text. Tables scroll horizontally when needed.
 
-Without `onSelect`, table rows have no selection styling or row focus stop. Links and actions remain interactive. With `onSelect`, activating a row passes its original object. Links and actions do not activate the row. Actions appear in an unlabeled trailing column, on hover or keyboard focus and continuously on touch devices. Running an action refreshes the table. In table panels, `Tab` follows the normal focus order so links and actions are reachable.
+Without `onSelect`, table rows have no selection styling or row focus stop. Links and actions remain interactive. With `onSelect`, activating a row passes its original object. Links and actions do not activate the row. A row's actions menu (⋯) appears in an unlabeled trailing column, on hover or keyboard focus and continuously on touch devices. Running an action refreshes the table. In table panels, `Tab` follows the normal focus order so links and actions are reachable.
 
 ### Filtering and search
 Panels have a filter input by default. An embedded list, tree, or table gets one only with `filter = { inline = true }`. It appears in the view’s heading when `title` is set. Each embedded view keeps its own phrase. `filter = false` hides the input and disables phrase filtering while leaving navigation keys and keymaps available.
@@ -281,7 +281,7 @@ Inline filtering runs before `presentation.limit`. With `search = "source"`, the
 ### Selection and panel interactions
 `onSelect(obj, ctx)` runs when a selectable row is activated. `ctx.from` identifies a view that routed here through a prefix, when applicable. Return `false` to keep a panel open. `onSelect` and `actions` work in inline views and panels. The other options in this section are panel features.
 
-* `actions`: Row buttons. Each entry has `label`, `run(obj)`, optional `icon`, optional `when(obj)`, and optional `requireMode = "rw"` to hide it in read-only mode. Actions run independently of `onSelect`, disable while running, and refresh the view afterward.
+* `actions`: Row actions, offered in the row's ⋯ menu, which the menu key or Shift-F10 on the selected or focused row also opens. Each entry has `label`, `run(obj)`, optional `icon`, optional `when(obj)`, and optional `requireMode = "rw"` to hide it in read-only mode. Actions run independently of `onSelect`, disable while running, and refresh the view afterward.
 * `onCreate(phrase)`: Adds a create row for a nonempty phrase with no exact match. Activate it with `Enter` or use `Shift-Enter` anywhere in the list.
 * `keymap`: Maps browser `KeyboardEvent.key` names to callbacks receiving the selected object. Built-in navigation keys are reserved.
 * `segments`: Named panel subsets. Each entry has a unique `label`, optional `where(obj)`, `icon`, `default`, single-character `prefix`, `placeholder`, and `helpText`.

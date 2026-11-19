@@ -2,8 +2,9 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import { Checkbox } from "../../../../plug-api/ui/checkbox.tsx";
 import { RowActions } from "../../../../plug-api/ui/row_actions.tsx";
-import type { RowStates } from "../../../../plug-api/ui/tree_types.ts";
+import { handleRowMenuKey } from "../../../../plug-api/ui/row_menu.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
+import type { RowStates } from "../../../../plug-api/ui/tree_types.ts";
 import type { Client } from "../../../client.ts";
 import { activateOnKey, isRowActivation } from "../../page_widget_logic.ts";
 import { tableValueParts } from "../../table_model.ts";
@@ -158,14 +159,11 @@ export function TableView({
                       }
                     : undefined
                 }
-                onKeyDown={
-                  onSelect
-                    ? (event) => {
-                        if (event.target === event.currentTarget)
-                          activateOnKey(event, activate);
-                      }
-                    : undefined
-                }
+                onKeyDown={(event) => {
+                  if (event.target !== event.currentTarget) return;
+                  if (handleRowMenuKey(event)) return;
+                  if (onSelect) activateOnKey(event, activate);
+                }}
               >
                 {columns.map((column, columnIndex) => (
                   <td key={columnIndex} data-type={column.type}>

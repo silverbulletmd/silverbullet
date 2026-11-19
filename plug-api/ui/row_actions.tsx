@@ -1,4 +1,4 @@
-import { Icon } from "./icon.tsx";
+import { RowMenu } from "./row_menu.tsx";
 import type { ActionMeta } from "./tree_types.ts";
 
 export type RowActionsProps = {
@@ -13,6 +13,13 @@ export type RowActionsProps = {
   onRun: (index: number) => void;
 };
 
+/**
+ * A row's actions, as one ⋯ menu (also opened by the menu key or Shift-F10
+ * on the selected row; see `openRowMenu`). A right-click keeps the browser's
+ * own menu. In a panel the filter input keeps focus
+ * and the trigger stays out of the tab order; in a document it is a regular,
+ * tabbable button whose keys stay away from the row's own.
+ */
 export function RowActions({
   actions,
   icons,
@@ -22,41 +29,26 @@ export function RowActions({
   disabled,
   onRun,
 }: RowActionsProps) {
-  const visible = actions
+  const items = actions
     .map((action, index) => ({ action, index }))
     .filter(({ action, index }) => {
       if (readOnly && action.requireMode === "rw") return false;
       return !action.hasWhen || mask?.[index] === true;
-    });
-  if (visible.length === 0) return null;
+    })
+    .map(({ action, index }) => ({
+      label: action.label,
+      icon: icons?.[index],
+      disabled,
+      run: () => onRun(index),
+    }));
+  if (items.length === 0) return null;
   return (
-    <span class="sb-row-actions">
-      {visible.map(({ action, index }) => {
-        const icon = icons?.[index];
-        return (
-          <button
-            key={index}
-            type="button"
-            class="sb-row-action"
-            tabIndex={documentMode ? 0 : -1}
-            title={action.label}
-            aria-label={action.label}
-            disabled={disabled}
-            onMouseDown={documentMode ? undefined : (e) => e.preventDefault()}
-            onKeyDown={documentMode ? (e) => e.stopPropagation() : undefined}
-            onClick={(e) => {
-              e.stopPropagation();
-              onRun(index);
-            }}
-          >
-            {icon ? (
-              <Icon node={icon} class="sb-row-action-icon" />
-            ) : (
-              <span class="sb-row-action-label">{action.label}</span>
-            )}
-          </button>
-        );
-      })}
+    <span
+      class="sb-row-actions"
+      onMouseDown={documentMode ? undefined : (e) => e.preventDefault()}
+      onKeyDown={documentMode ? (e) => e.stopPropagation() : undefined}
+    >
+      <RowMenu label="Actions" items={items} tabIndex={documentMode ? 0 : -1} />
     </span>
   );
 }

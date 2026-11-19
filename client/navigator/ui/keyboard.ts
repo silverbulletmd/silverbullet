@@ -1,4 +1,5 @@
 import type { MutableRef } from "preact/hooks";
+import { isRowMenuKey } from "../../../plug-api/ui/row_menu.tsx";
 import { ancestorPaths } from "../../../plug-api/ui/tree_model.ts";
 import type { Commands } from "./commands.ts";
 import { CREATE_PATH, type DerivedView } from "./hooks/use_derived.ts";
@@ -25,6 +26,8 @@ export type KeyContext = {
   derived: DerivedView;
   cmd: Commands;
   set: Pick<PanelSetters, "setPhrase" | "setSelectedIndex" | "setSelectedPath">;
+  /** Opens the selected row's ⋯ menu; false when it has none. */
+  openRowMenu?: () => boolean;
 };
 
 /**
@@ -42,11 +45,18 @@ export type KeyContext = {
  * 4. `updateInteraction` -- decided by whichever key got this far, i.e. one
  *    no view claimed and no chord above consumed.
  * 5. The default keys -- prefix undo, create, then list or tree navigation.
+ *
+ * Ahead of all of them, the menu key (or Shift-F10) opens the selected row's
+ * ⋯ menu: focus stays in the input, so the row never sees the key itself.
  */
 export function handleKeyDown(e: KeyboardEvent, ctx: KeyContext) {
   const { view, phrase, derived, cmd, set } = ctx;
   const { setPhrase, setSelectedIndex } = set;
   if (e.isComposing) return;
+  if (isRowMenuKey(e) && ctx.openRowMenu?.()) {
+    e.preventDefault();
+    return;
+  }
   if (view?.meta.mode === "table" && e.key === "Tab") return;
   if (tryKeymap(e, ctx)) return;
   if (cycleSegment(e, ctx)) return;

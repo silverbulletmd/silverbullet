@@ -10,16 +10,9 @@ export type TreeNode = {
 
 export type VisibleRow = { node: TreeNode; depth: number };
 
-/** A folder reads only its own row's priority: an implicit folder, or one
- * whose page carries no priority, stays where the alphabet put it however its
- * children are decorated. */
-function priorityOf(node: TreeNode): number {
-  const priority = node.row?.priority;
-  return typeof priority === "number" && Number.isFinite(priority)
-    ? priority
-    : 0;
-}
-
+/** Builds the hierarchy from rows, sorting every level with `sortLevel`: with
+ * `foldersFirst` folders precede leaves, otherwise (and within each group)
+ * children keep the order of `rows`. */
 export function buildTree(
   rows: Row[],
   separator: string,
@@ -52,12 +45,12 @@ export function buildTree(
     const path = String(row.obj.name ?? row.primary);
     ensure(path).row = row;
   }
-  // Stable, so everything a row says nothing about keeps the order the source
-  // put it in -- which is what makes an undecorated tree alphabetical.
+  // Stable, so within a group children keep the order the source put them in
+  // -- which is what makes the tree alphabetical.
   const sortLevel = (n: TreeNode) => {
     n.children.sort((a, b) => {
       if (foldersFirst && a.isFolder !== b.isFolder) return a.isFolder ? -1 : 1;
-      return priorityOf(b) - priorityOf(a);
+      return 0;
     });
     n.children.forEach(sortLevel);
   };

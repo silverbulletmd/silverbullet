@@ -1,22 +1,35 @@
-import { expect, test } from "vitest";
 import { h } from "preact";
 import { renderToString } from "preact-render-to-string";
+import { expect, test } from "vitest";
 import { FilterList, newEntry, offerNewEntry } from "./filter.tsx";
 
+/** Rendered with `class` first in every tag: where the renderer puts it
+ * (preact/compat moves it last) is not what these tests are about. */
 function render(props: Partial<Parameters<typeof FilterList>[0]> = {}) {
-  return renderToString(
-    h(FilterList, {
-      label: "SilverBullet space",
-      placeholder: "Pick one",
-      helpText: "",
-      onSelect: () => {},
-      options: [
-        { name: "Alpha", description: "First space", hint: "Current" },
-        { name: "Beta", hint: "Old", hintInactive: true, cssClass: "festive" },
-      ],
-      ...props,
-    }),
+  return classFirst(
+    renderToString(
+      h(FilterList, {
+        label: "SilverBullet space",
+        placeholder: "Pick one",
+        helpText: "",
+        onSelect: () => {},
+        options: [
+          { name: "Alpha", description: "First space", hint: "Current" },
+          {
+            name: "Beta",
+            hint: "Old",
+            hintInactive: true,
+            cssClass: "festive",
+          },
+        ],
+        ...props,
+      }),
+    ),
   );
+}
+
+function classFirst(html: string): string {
+  return html.replace(/<(\w+)([^>]*?) (class="[^"]*")/g, "<$1 $3$2");
 }
 
 test("filter box uses the page picker's (navigator) structure", () => {

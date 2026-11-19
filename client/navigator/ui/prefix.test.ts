@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
-import { resolvePrefix, segmentFor } from "./prefix.ts";
 import type { SegmentMeta, ViewMeta } from "../types.ts";
+import { resolvePrefix, segmentFor } from "./prefix.ts";
 
 const segments: SegmentMeta[] = [
   { label: "All", hasWhere: false, default: true },
@@ -20,6 +20,7 @@ function meta(overrides: Partial<ViewMeta> = {}): ViewMeta {
     followEditor: false,
     refreshOn: [],
     hasMove: false,
+    hasReorder: false,
     hasCreate: false,
     refreshOnOpen: false,
     limit: 200,

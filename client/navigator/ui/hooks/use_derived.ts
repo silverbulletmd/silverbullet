@@ -60,6 +60,8 @@ export type DerivedView = {
   treeFiltering: boolean;
   truncated: number;
   canDrag: boolean;
+  /** Edge drops reorder rows; only where they can be dragged at all. */
+  canReorder: boolean;
   treeDisplay?: TreeDisplay;
   treeVisible: VisibleRow[];
   treeLastIndex: number;
@@ -246,6 +248,7 @@ export function useDerived({
   // mean something other than what the user sees.
   const canDrag =
     !!view?.meta.hasMove && !treeFiltering && POINTER_FINE && !readOnly;
+  const canReorder = canDrag && !!view?.meta.hasReorder;
 
   // Reuses `visible` (already ranked with the same fields config, already
   // capped) instead of calling `rankRows` a second time.
@@ -324,6 +327,7 @@ export function useDerived({
     treeFiltering,
     truncated,
     canDrag,
+    canReorder,
     treeDisplay,
     treeVisible,
     treeLastIndex,

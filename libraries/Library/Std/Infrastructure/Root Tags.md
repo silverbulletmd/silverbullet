@@ -53,7 +53,6 @@ tag.define {
           tree = {
             type = "object",
             properties = {
-              priority = schema.nullable("number"),
               hide = schema.nullable("boolean"),
             },
             nullable = true,

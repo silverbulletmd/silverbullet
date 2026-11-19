@@ -55,10 +55,21 @@ test("passive tables retain accessible conditional actions and read-only restric
     }),
   );
   expect(html).toContain("sb-table-actions");
-  expect(html).toContain('aria-label="Open"');
-  expect(html).not.toContain('aria-label="Archive"');
-  expect(html).not.toContain('aria-label="Hidden"');
+  expect(html).toContain('aria-label="Actions"');
   expect(html).not.toContain("sb-table-selectable");
+  // Without Open, nothing is left to offer: no menu at all.
+  const none = renderToString(
+    h(TableView, {
+      ...props,
+      actions: [
+        { label: "Archive", hasWhen: false, requireMode: "rw" },
+        { label: "Hidden", hasWhen: true },
+      ],
+      readOnly: true,
+    }),
+  );
+  expect(none).toContain("sb-table-actions");
+  expect(none).not.toContain("sb-row-menu-trigger");
 });
 
 test("typed cells render callback values as booleans, safe URLs, and literal text", () => {

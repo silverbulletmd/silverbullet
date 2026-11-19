@@ -1,7 +1,5 @@
-import { Icon } from "@silverbulletmd/silverbullet/ui";
-import type { RowSummary } from "../../../../plug-api/ui/tree_types.ts";
-import { RowSummaryText } from "./row_summary.tsx";
 import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import {
   useCallback,
   useEffect,
@@ -15,12 +13,14 @@ import {
   MIN_DOCK_SIZE,
 } from "../../../../plug-api/ui/dock_size.ts";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
+import { openRowMenu } from "../../../../plug-api/ui/row_menu.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import {
   allFolderPaths,
   nodeObject,
 } from "../../../../plug-api/ui/tree_model.ts";
+import type { RowSummary } from "../../../../plug-api/ui/tree_types.ts";
 import { TreeView } from "../../../../plug-api/ui/tree_view.tsx";
 import type { Client } from "../../../client.ts";
 import { CloseIcon } from "../../../components/chrome_icons.tsx";
@@ -53,6 +53,7 @@ import { CreateRow } from "./create_row.tsx";
 import { DockMenu } from "./dock_menu.tsx";
 import { ListView } from "./list_view.tsx";
 import { LoadingIndicator } from "./loading_indicator.tsx";
+import { RowSummaryText } from "./row_summary.tsx";
 import { TableView } from "./table_view.tsx";
 import { ViewActionsMenu } from "./view_actions_menu.tsx";
 
@@ -254,6 +255,7 @@ export function NavRoot({
     createSelected,
     canCreate,
     canDrag,
+    canReorder,
     error,
     fatalError,
     segmentUnavailable,
@@ -300,11 +302,6 @@ export function NavRoot({
     </select>
   );
   const spaceTree = view?.name === "std.spaceTree";
-  const desktopFileDrag = (
-    globalThis as typeof globalThis & {
-      silverbulletDesktop?: { startSpaceFileDrag(item: unknown): void };
-    }
-  ).silverbulletDesktop?.startSpaceFileDrag;
   const folderPaths = useMemo(
     () =>
       spaceTree && treeDisplay
@@ -429,6 +426,11 @@ export function NavRoot({
                 derived,
                 cmd,
                 set,
+                openRowMenu: () => {
+                  const row =
+                    bodyRef.current?.querySelector(".sb-nav-selected");
+                  return !!row && openRowMenu(row);
+                },
               })
             }
           />
@@ -575,14 +577,8 @@ export function NavRoot({
                             contentType?: string;
                             isAspiring?: boolean;
                           },
-                          client.httpSpacePrimitives.url,
                         )
                       : null
-                : undefined
-            }
-            nativeFileDrag={
-              spaceTree && desktopFileDrag
-                ? (payload) => desktopFileDrag(JSON.parse(payload))
                 : undefined
             }
             actions={view.meta.actions}
@@ -596,6 +592,12 @@ export function NavRoot({
               view.meta.hasSelect !== false ? cmd.onTreeRowClick : undefined
             }
             onMove={(from, to) => void cmd.moveNode(from, to)}
+            onReorder={
+              canReorder
+                ? (from, anchor, position) =>
+                    void cmd.reorderNode(from, anchor, position)
+                : undefined
+            }
             onExternalFiles={
               view.meta.uploadFiles && !readOnly && !treeFiltering
                 ? (transfer, folder) => {

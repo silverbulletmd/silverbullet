@@ -291,11 +291,11 @@
   border-radius: 0 var(--ui-radius-md) var(--ui-radius-md) 0;
 }
 
-.sb-row-action {
+.sb-row-actions > .sb-row-menu-trigger {
   color: var(--sb-nav-muted);
 }
 
-.sb-nav-selected .sb-row-action:hover {
+.sb-nav-selected .sb-row-actions > .sb-row-menu-trigger:hover {
   color: var(--modal-selected-option-color);
 }
 
@@ -451,6 +451,34 @@
 .sb-tree.sb-nav-droptarget {
   outline: 2px solid var(--modal-selected-option-background-color);
   outline-offset: -2px;
+}
+
+// Where a drag-to-reorder lands: a straight line on the row's top or bottom
+// edge. A pseudo-element, not an inset shadow, which would follow the row's
+// rounded corners and bend at both ends.
+.sb-nav-row.sb-nav-drop-before,
+.sb-nav-row.sb-nav-drop-after {
+  position: relative;
+}
+
+.sb-nav-row.sb-nav-drop-before::before,
+.sb-nav-row.sb-nav-drop-after::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 1px;
+  background-color: var(--ui-accent-color);
+  pointer-events: none;
+}
+
+.sb-nav-row.sb-nav-drop-before::before {
+  top: 0;
+}
+
+.sb-nav-row.sb-nav-drop-after::after {
+  bottom: 0;
 }
 
 .sb-tree {
@@ -798,16 +826,17 @@
     pointer-events: none;
   }
 
-  .sb-row-action { pointer-events: none; }
+  .sb-row-actions > .sb-row-menu-trigger { pointer-events: none; }
 
-  tr:hover .sb-row-actions, tr:focus-within .sb-row-actions {
+  tr:hover .sb-row-actions, tr:focus-within .sb-row-actions,
+  .sb-row-actions:has([aria-expanded="true"]) {
     opacity: 1;
-    .sb-row-action { pointer-events: auto; }
+    > .sb-row-menu-trigger { pointer-events: auto; }
   }
 
   @media (hover: none) and (pointer: coarse) {
     .sb-row-actions { opacity: 1; }
-    .sb-row-action { pointer-events: auto; min-width: 44px; height: 44px; }
+    .sb-row-actions > .sb-row-menu-trigger { pointer-events: auto; min-width: 44px; height: 44px; }
   }
 }
 

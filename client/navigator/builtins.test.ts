@@ -5,6 +5,8 @@ const index = {
   queryLuaObjects: vi.fn<(tag: string, query: unknown) => Promise<unknown[]>>(),
 };
 const space = {
+  readPage: vi.fn<(name: string) => Promise<string>>(),
+  writePage: vi.fn<(name: string, text: string) => Promise<unknown>>(),
   listPages: vi.fn<() => Promise<unknown[]>>(),
   listDocuments: vi.fn<() => Promise<unknown[]>>(),
   fileExists: vi.fn<(name: string) => Promise<boolean>>(),
@@ -74,6 +76,25 @@ vi.mock("@silverbulletmd/silverbullet/syscalls", () => ({
 // Imported by builtins.ts only so a handler can reopen a view; unused here,
 // and pulling in the real module would drag the whole panel plug along.
 vi.mock("./navigator.ts", () => ({ open }));
+// Counted so a test can tell whether Move up/down rebuild sibling indexes
+// per row.
+const treeIndexBuilt = vi.fn();
+vi.mock(
+  "@silverbulletmd/silverbullet/lib/tree_order",
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import("@silverbulletmd/silverbullet/lib/tree_order")
+      >();
+    class CountedTreeIndex extends actual.TreeIndex {
+      constructor(paths: Iterable<string>) {
+        super(paths);
+        treeIndexBuilt();
+      }
+    }
+    return { ...actual, TreeIndex: CountedTreeIndex };
+  },
+);
 
 const { builtinHandle, builtinMeta, setRevisionsAvailable, validateKeymaps } =
   await import("./builtins.ts");
@@ -587,14 +608,15 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
 
   // "New page here" (index 0) only offers on folders; "Delete" (index 2)
   // only where there's something to delete -- a bare folder has neither a
-  // page nor a document behind it.
-  expect(folder.actions).toEqual([true, true, false]);
-  expect(page.actions).toEqual([false, true, true]);
-  expect(doc.actions).toEqual([false, true, true]);
-  expect(aspiring.actions).toEqual([false, true, true]);
+  // page nor a document behind it. Move up/down and Reset order (3-5) need
+  // rows the tree has listed and a saved order, and these were never listed.
+  expect(folder.actions).toEqual([true, true, false, false, false, false]);
+  expect(page.actions).toEqual([false, true, true, false, false, false]);
+  expect(doc.actions).toEqual([false, true, true, false, false, false]);
+  expect(aspiring.actions).toEqual([false, true, true, false, false, false]);
   // A page that also heads a folder (a "dual") keeps its own Delete -- the
   // one case a bare folder-or-page pair doesn't exercise on either side.
-  expect(dual.actions).toEqual([true, true, true]);
+  expect(dual.actions).toEqual([true, true, true, false, false, false]);
 });
 
 test("navigator:action New page here prompts, then navigates to the trimmed name", async () => {
@@ -715,6 +737,203 @@ test("navigator:move moving a folder renames the prefix, not a single page", asy
     },
   );
   expect(system.invokeFunction).toHaveBeenCalledTimes(1);
+});
+
+test("reorder is refused in read-only mode", async () => {
+  const { spaceTreeView } = await import("./views/space_tree.ts");
+  const onReorder = vi.spyOn(spaceTreeView, "onReorder");
+  system.getMode.mockResolvedValue("ro");
+
+  const result = await builtinHandle("std.spaceTree", "reorder", {
+    req: { folder: "", name: "B", anchor: "A", position: "before" },
+  });
+
+  expect(onReorder).not.toHaveBeenCalled();
+  expect(editor.flashNotification).toHaveBeenCalledWith(
+    "navigator: Reorder is unavailable in read-only mode",
+    "error",
+  );
+  expect(result).toBeUndefined();
+  onReorder.mockRestore();
+});
+
+test("reorder passes the request to the view's onReorder", async () => {
+  const { spaceTreeView } = await import("./views/space_tree.ts");
+  const onReorder = vi
+    .spyOn(spaceTreeView, "onReorder")
+    .mockResolvedValue(undefined);
+  const req = { folder: "", name: "B", anchor: "A", position: "before" };
+
+  await builtinHandle("std.spaceTree", "reorder", { req });
+
+  expect(onReorder).toHaveBeenCalledWith(req);
+  expect(builtinMeta("std.spaceTree")!.hasReorder).toBe(true);
+  expect(builtinMeta("std.tags")!.hasReorder).toBe(false);
+  onReorder.mockRestore();
+});
+
+test("Move up/Move down/Reset order are rw-only", () => {
+  const actions = builtinMeta("std.spaceTree")!.actions!;
+  for (const label of ["Move up", "Move down", "Reset order"]) {
+    expect(actions.find((a) => a.label === label)?.requireMode, label).toBe(
+      "rw",
+    );
+  }
+});
+
+test("Move up/Move down offer only where there is a sibling to pass, and move before/after it", async () => {
+  await resetTreeOrder();
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page"
+        ? [
+            { name: "A", tag: "page" },
+            { name: "B", tag: "page" },
+            { name: "C", tag: "page" },
+          ]
+        : [],
+    ),
+  );
+  space.readPage.mockRejectedValue(new Error("not found"));
+  await builtinRows("std.spaceTree");
+
+  const [a, b, c] = (await rowState("std.spaceTree", [
+    { tag: "page", name: "A" },
+    { tag: "page", name: "B" },
+    { tag: "page", name: "C" },
+  ])) as any[];
+  expect(a.actions.slice(3, 5)).toEqual([false, true]);
+  expect(b.actions.slice(3, 5)).toEqual([true, true]);
+  expect(c.actions.slice(3, 5)).toEqual([true, false]);
+
+  // Move up on B: before A.
+  await runAction(4, { tag: "page", name: "B" });
+  expect(space.writePage.mock.calls[0][1]).toContain(
+    "* [[B]]\n* [[A]]\n* [[C]]\n",
+  );
+  // Move down on B (order now B, A, C after the write): after A.
+  await builtinRows("std.spaceTree");
+  space.writePage.mockClear();
+  await runAction(5, { tag: "page", name: "B" });
+  expect(space.writePage.mock.calls[0][1]).toContain(
+    "* [[A]]\n* [[B]]\n* [[C]]\n",
+  );
+});
+
+test("Move up/Move down availability is a lookup, not a rescan per row", async () => {
+  await resetTreeOrder();
+  index.isAvailable.mockResolvedValue(true);
+  // 5,000 rows in 50 folders of 100.
+  const names: string[] = [];
+  for (let f = 0; f < 50; f++) {
+    for (let p = 0; p < 100; p++) names.push(`F${f}/P${p}`);
+  }
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page" ? names.map((name) => ({ name, tag: "page" })) : [],
+    ),
+  );
+  space.readPage.mockRejectedValue(new Error("not found"));
+  await builtinRows("std.spaceTree");
+
+  const objs = [
+    ...names.map((name) => ({ tag: "page", name })),
+    { name: "F0", isFolder: true },
+    { name: "F9", isFolder: true },
+  ];
+  treeIndexBuilt.mockClear();
+  const states = (await rowState("std.spaceTree", objs)) as any[];
+  // Scanning every row for each row's siblings is quadratic: at 25k pages
+  // that is seconds per refresh. Availability must come from a lookup, with
+  // at most one index per segment.
+  expect(treeIndexBuilt.mock.calls.length).toBeLessThanOrEqual(1);
+  // Folder-aware: siblings are within a folder, folders count as siblings.
+  const at = (name: string) => states[objs.findIndex((o) => o.name === name)];
+  expect(at("F0/P0").actions.slice(3, 5)).toEqual([false, true]);
+  expect(at("F0/P99").actions.slice(3, 5)).toEqual([true, false]);
+  expect(at("F7/P50").actions.slice(3, 5)).toEqual([true, true]);
+  expect(at("F0").actions.slice(3, 5)).toEqual([false, true]);
+  // Plain (uncollated) order puts F9 last at the root.
+  expect(at("F9").actions.slice(3, 5)).toEqual([true, false]);
+});
+
+// A write primes the order cache, which outlives the test that wrote it.
+async function resetTreeOrder() {
+  const { primeTreeOrder } = await import("./views/space_tree_order.ts");
+  primeTreeOrder(new Map());
+}
+
+async function spaceTreeWith(pages: string[], documents: string[] = []) {
+  await resetTreeOrder();
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page"
+        ? pages.map((name) => ({ name, tag: "page" }))
+        : documents.map((name) => ({ name, tag: "document" })),
+    ),
+  );
+  space.readPage.mockRejectedValue(new Error("not found"));
+  return builtinRows("std.spaceTree");
+}
+
+function moveUp(name: string, segment: string) {
+  return builtinHandle("std.spaceTree", "action", {
+    index: 4,
+    obj: { tag: "page", name },
+    segment,
+  });
+}
+
+test("Move up skips a sibling the active segment hides (All hides Library)", async () => {
+  await spaceTreeWith(["Journal", "Meetings", "Library/X"]);
+
+  await moveUp("Meetings", "All");
+
+  // Anchored on Journal, not the invisible Library; Library stays after Journal.
+  expect(space.writePage.mock.calls[0][1]).toContain(
+    "* [[Meetings]]\n* [[Journal]]\n* Library\n",
+  );
+});
+
+test("Move up skips a document in the Pages segment", async () => {
+  await spaceTreeWith(["Journal", "Meetings"], ["Kite.png"]);
+
+  await moveUp("Meetings", "Pages");
+
+  expect(space.writePage.mock.calls[0][1]).toContain(
+    "* [[Meetings]]\n* [[Journal]]\n* [[Kite.png]]\n",
+  );
+});
+
+test("Move up with no visible neighbour in the segment writes nothing", async () => {
+  await spaceTreeWith(["Meetings", "Library/X"]);
+
+  // Nor is it offered: in its own segment (All) Meetings has nothing above.
+  const [state] = (await rowState("std.spaceTree", [
+    { tag: "page", name: "Meetings" },
+  ])) as any[];
+  expect(state.actions.slice(3, 5)).toEqual([false, false]);
+
+  await moveUp("Meetings", "All");
+
+  expect(space.writePage).not.toHaveBeenCalled();
+});
+
+test("Move down in a segment counts a folder visible through its children", async () => {
+  await spaceTreeWith(["Alpha", "Projects/x"], ["Beta.png"]);
+
+  await builtinHandle("std.spaceTree", "action", {
+    index: 5,
+    obj: { tag: "page", name: "Alpha" },
+    segment: "Pages",
+  });
+
+  // Past Projects (shown in Pages through its page), not the hidden Beta.png.
+  expect(space.writePage.mock.calls[0][1]).toContain(
+    "* [[Beta.png]]\n* Projects\n* [[Alpha]]\n",
+  );
 });
 
 test("navigator:move is a no-op for a view with no onMove", async () => {

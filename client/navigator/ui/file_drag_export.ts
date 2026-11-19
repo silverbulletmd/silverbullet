@@ -1,8 +1,4 @@
-import {
-  encodePageURI,
-  isValidName,
-  isValidPath,
-} from "../../../plug-api/lib/ref.ts";
+import { isValidName, isValidPath } from "../../../plug-api/lib/ref.ts";
 
 export const FILE_DRAG_MIME = "application/x-sb-space-file";
 
@@ -12,31 +8,23 @@ export type FileDragPayload = {
   contentType?: string;
 };
 
-export function fileDragData(
-  obj: {
-    name: string;
-    tag?: string;
-    contentType?: string;
-    isFolder?: boolean;
-    isAspiring?: boolean;
-  },
-  fsBase: string,
-): { mime: string; payload: string; downloadURL: string } | null {
+/**
+ * What a space tree row carries when dragged, so dropping it into the editor
+ * inserts a link to it. Only pages and documents carry it.
+ */
+export function fileDragData(obj: {
+  name: string;
+  tag?: string;
+  contentType?: string;
+  isFolder?: boolean;
+  isAspiring?: boolean;
+}): { mime: string; payload: string } | null {
   if (obj.isAspiring) return null;
   const kind = obj.tag;
   if (kind !== "page" && kind !== "document") return null;
   if (!(kind === "page" ? isValidName(obj.name) : isValidPath(obj.name)))
     return null;
   const path = obj.name;
-  const filePath = kind === "page" ? `${path}.md` : path;
-  const filename = filePath
-    .split("/")
-    .at(-1)!
-    .replace(/[\r\n:]/g, "_");
-  const contentType =
-    kind === "page"
-      ? "text/markdown"
-      : obj.contentType || "application/octet-stream";
   const payload = JSON.stringify({
     path,
     kind,
@@ -44,11 +32,7 @@ export function fileDragData(
       ? { contentType: obj.contentType }
       : {}),
   });
-  return {
-    mime: FILE_DRAG_MIME,
-    payload,
-    downloadURL: `${contentType}:${filename}:${fsBase}/${encodePageURI(filePath)}`,
-  };
+  return { mime: FILE_DRAG_MIME, payload };
 }
 
 export function parseFileDragData(data: string): FileDragPayload | null {

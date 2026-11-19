@@ -1,20 +1,15 @@
 import { expect, test } from "vitest";
 import {
-  fileDragData,
   FILE_DRAG_MIME,
+  fileDragData,
   parseFileDragData,
 } from "./file_drag_export.ts";
 
-test("page drag exports Markdown under its basename and retains its page target", () => {
-  const result = fileDragData(
-    { name: "Notes/Guide", tag: "page" },
-    "https://example.test/space/.fs",
-  );
+test("page drag carries its page target", () => {
+  const result = fileDragData({ name: "Notes/Guide", tag: "page" });
   expect(result).toEqual({
     mime: FILE_DRAG_MIME,
     payload: JSON.stringify({ path: "Notes/Guide", kind: "page" }),
-    downloadURL:
-      "text/markdown:Guide.md:https://example.test/space/.fs/Notes/Guide.md",
   });
   expect(parseFileDragData(result!.payload)).toEqual({
     path: "Notes/Guide",
@@ -22,12 +17,13 @@ test("page drag exports Markdown under its basename and retains its page target"
   });
 });
 
-test("document drag preserves filename and content type with encoded path", () => {
+test("document drag carries its path and content type", () => {
   expect(
-    fileDragData(
-      { name: "Assets/photo 1.png", tag: "document", contentType: "image/png" },
-      "https://example.test/.fs",
-    ),
+    fileDragData({
+      name: "Assets/photo 1.png",
+      tag: "document",
+      contentType: "image/png",
+    }),
   ).toEqual({
     mime: FILE_DRAG_MIME,
     payload: JSON.stringify({
@@ -35,15 +31,13 @@ test("document drag preserves filename and content type with encoded path", () =
       kind: "document",
       contentType: "image/png",
     }),
-    downloadURL:
-      "image/png:photo 1.png:https://example.test/.fs/Assets/photo%201.png",
   });
 });
 
-test("folder-only and aspiring rows cannot export", () => {
-  expect(fileDragData({ name: "Notes", isFolder: true }, "/.fs")).toBeNull();
+test("folder-only and aspiring rows carry nothing", () => {
+  expect(fileDragData({ name: "Notes", isFolder: true })).toBeNull();
   expect(
-    fileDragData({ name: "Missing", tag: "page", isAspiring: true }, "/.fs"),
+    fileDragData({ name: "Missing", tag: "page", isAspiring: true }),
   ).toBeNull();
 });
 

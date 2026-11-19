@@ -270,6 +270,146 @@ test.describe("space tree", () => {
   });
 });
 
+test.describe("space tree order", () => {
+  test.use({
+    spaceFiles: {
+      "index.md": "Welcome",
+      "Order/A.md": "# A",
+      "Order/B.md": "# B",
+    },
+  });
+
+  const orderPage = "Library/Space Tree Structure.md";
+
+  async function readOrderPage(url: string): Promise<string | null> {
+    const response = await fetch(
+      `${url}/.fs/${orderPage.split("/").map(encodeURIComponent).join("/")}`,
+    );
+    return response.ok ? response.text() : null;
+  }
+
+  async function openOrderFolder(page: Page) {
+    const tree = page.locator(".sb-nav-root-lhs");
+    await expect(tree.locator("[data-path='Order']")).toBeVisible({
+      timeout: 20_000,
+    });
+    const children = tree.locator("[data-path^='Order/']");
+    if ((await children.count()) === 0) {
+      await tree.locator("[data-path='Order'] .sb-nav-chevron").click();
+    }
+    await expect(children.first()).toBeVisible();
+    return tree;
+  }
+
+  function orderRows(page: Page) {
+    return page
+      .locator(".sb-nav-root-lhs [data-path^='Order/']")
+      .evaluateAll((rows) =>
+        rows.map((row) => (row as HTMLElement).dataset.path),
+      );
+  }
+
+  /** Drags `Order/B` onto the top edge of `Order/A`. */
+  async function dragBAboveA(page: Page) {
+    await runCommandViaPalette(page, "Navigate: Tree");
+    const tree = await openOrderFolder(page);
+    await tree
+      .locator("[data-path='Order/B']")
+      .dragTo(tree.locator("[data-path='Order/A']"), {
+        targetPosition: { x: 20, y: 3 },
+      });
+    await expect.poll(() => orderRows(page)).toEqual(["Order/B", "Order/A"]);
+    return tree;
+  }
+
+  test("dragging a page above its sibling reorders the tree and survives reload", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await dragBAboveA(sbPage);
+    await expect
+      .poll(() => readOrderPage(sbServer.url))
+      .toMatch(/\[\[Order\/B\]\][\s\S]*\[\[Order\/A\]\]/);
+
+    await sbPage.reload();
+    await openOrderFolder(sbPage);
+    await expect.poll(() => orderRows(sbPage)).toEqual(["Order/B", "Order/A"]);
+  });
+
+  test("Shift-F10 opens the row menu", async ({ sbPage, sbServer }) => {
+    await runCommandViaPalette(sbPage, "Navigate: Tree");
+    const tree = await openOrderFolder(sbPage);
+    await expect.poll(() => orderRows(sbPage)).toEqual(["Order/A", "Order/B"]);
+    await tree.locator("[data-path='Order/B']").click();
+    await expect(currentPage(sbPage)).toHaveValue("Order/B");
+    // The menu is drawn on <body>, outside the dock.
+    const menu = sbPage.getByRole("menu", { name: "Actions" });
+
+    // A right-click keeps the browser's own context menu.
+    await tree.locator("[data-path='Order/B']").click({ button: "right" });
+    await sbPage.waitForTimeout(200);
+    await expect(menu).toHaveCount(0);
+
+    // The menu key opens the selected row's menu, from the filter input.
+    const input = tree.locator("input.sb-nav-input");
+    await input.focus();
+    await input.press("Shift+F10");
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Rename" })).toBeVisible();
+    await expect(menu.getByRole("menuitem").first()).toBeFocused();
+    await sbPage.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+    await expect(input).toBeFocused();
+
+    await input.press("Shift+F10");
+    await menu.getByRole("menuitem", { name: "Move up" }).click();
+    await expect(menu).toBeHidden();
+    await expect.poll(() => orderRows(sbPage)).toEqual(["Order/B", "Order/A"]);
+    await expect
+      .poll(() => readOrderPage(sbServer.url))
+      .toMatch(/\[\[Order\/B\]\][\s\S]*\[\[Order\/A\]\]/);
+
+    await tree.locator("[data-path='Order/A']").click();
+    await expect(currentPage(sbPage)).toHaveValue("Order/A");
+    await input.focus();
+    await input.press("Shift+F10");
+    // A's, now last: it can only move up.
+    await expect(menu.getByRole("menuitem", { name: "Move up" })).toBeVisible();
+    await expect(menu.getByRole("menuitem", { name: "Move down" })).toHaveCount(
+      0,
+    );
+    await sbPage.keyboard.press("Escape");
+    await expect(menu).toBeHidden();
+  });
+
+  test("renaming a reordered page keeps its place", async ({
+    sbPage,
+    sbServer,
+  }) => {
+    await dragBAboveA(sbPage);
+    await expect
+      .poll(() => readOrderPage(sbServer.url))
+      .toMatch(/\[\[Order\/B\]\][\s\S]*\[\[Order\/A\]\]/);
+
+    await gotoSilverBulletPage(sbPage, sbServer, "Order/A");
+    await runCommandViaPalette(sbPage, "Page: Rename");
+    const input = sbPage.locator(".sb-prompt .sb-prompt-input");
+    await input.fill("Order/Z");
+    await input.press("Enter");
+    await expect(currentPage(sbPage)).toHaveValue("Order/Z");
+
+    // The rename's link rewriting reaches the order page in Library/.
+    await expect
+      .poll(() => readOrderPage(sbServer.url))
+      .toMatch(/\[\[Order\/B\]\][\s\S]*\[\[Order\/Z\]\]/);
+    await expect
+      .poll(async () => (await readOrderPage(sbServer.url)) ?? "")
+      .not.toContain("[[Order/A]]");
+    await openOrderFolder(sbPage);
+    await expect.poll(() => orderRows(sbPage)).toEqual(["Order/B", "Order/Z"]);
+  });
+});
+
 const historyPage =
   "# History\n\nOpen [[Destination]]\n\n" +
   Array.from({ length: 12 }, (_, index) => `History line ${index + 1}`).join(

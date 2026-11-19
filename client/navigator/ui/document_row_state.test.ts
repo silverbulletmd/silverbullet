@@ -1,9 +1,9 @@
 // @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
+import { useFullIcons } from "../../../plug-api/ui/icons/test_icons.ts";
 import type { Row } from "../../../plug-api/ui/tree_types.ts";
 import type { ViewMeta } from "../types.ts";
 import { createDocumentRowLoader } from "./document_row_state.ts";
-import { useFullIcons } from "../../../plug-api/ui/icons/test_icons.ts";
 
 const syscall = vi.fn<(name: string, ...args: any[]) => Promise<any>>();
 
@@ -24,6 +24,7 @@ function meta(overrides: Partial<ViewMeta> = {}): ViewMeta {
     followEditor: false,
     refreshOn: [],
     hasMove: false,
+    hasReorder: false,
     hasCreate: false,
     refreshOnOpen: false,
     limit: 20,

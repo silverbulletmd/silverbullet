@@ -2,65 +2,109 @@ import { h, type VNode } from "preact";
 import { render } from "preact-render-to-string";
 import { expect, test } from "vitest";
 import { RowActions, type RowActionsProps } from "./row_actions.tsx";
+import type { RowMenuItem, RowMenuProps } from "./row_menu.tsx";
 
 const actions = [{ label: "Open", hasWhen: false }];
+const two = [
+  { label: "Rename", hasWhen: false },
+  { label: "Delete", hasWhen: false },
+];
 
-type ButtonProps = {
+type WrapperProps = {
   onKeyDown?: (event: { stopPropagation(): void }) => void;
   onMouseDown?: (event: { preventDefault(): void }) => void;
-  onClick?: (event: { stopPropagation(): void }) => void;
+  children: VNode<RowMenuProps>;
 };
 
-function buttonFor(props: Partial<RowActionsProps>): VNode<ButtonProps> {
-  const row = RowActions({
+function wrapperFor(props: Partial<RowActionsProps>): VNode<WrapperProps> {
+  return RowActions({
     actions,
     readOnly: false,
     onRun() {},
     ...props,
-  });
-  return (row!.props.children as VNode[])[0] as VNode<ButtonProps>;
+  }) as VNode<WrapperProps>;
 }
 
-test("document action buttons remain in tab order and can be disabled", () => {
+function itemsFor(props: Partial<RowActionsProps>): RowMenuItem[] {
+  return wrapperFor(props).props.children.props.items;
+}
+
+/** A per-action button would carry `sb-row-action` itself (not `-s`, `-icon`). */
+const ACTION_BUTTON = /sb-row-action(?![s-])/;
+
+test("renders a single menu trigger, not one button per action", () => {
   const html = render(
-    h(RowActions, {
-      actions,
-      readOnly: false,
-      documentMode: true,
-      disabled: true,
-      onRun() {},
-    }),
+    h(RowActions, { actions: two, readOnly: false, onRun() {} }),
   );
-  expect(html).toContain('tabindex="0"');
-  expect(html).toContain(" disabled");
+  expect(html.match(/sb-row-menu-trigger/g)?.length).toBe(1);
+  expect(html).not.toMatch(ACTION_BUTTON);
+  expect(html).toContain('aria-label="Actions"');
 });
 
-test("document action buttons keep native focus and stop row keyboard handling", () => {
-  const button = buttonFor({ documentMode: true });
-  let stopped = 0;
-  button.props.onKeyDown?.({ stopPropagation: () => stopped++ });
-  expect(stopped).toBe(1);
-  expect(button.props.onMouseDown).toBeUndefined();
-});
-
-test("panel action buttons keep input focus and stay out of tab order", () => {
-  const html = render(h(RowActions, { actions, readOnly: false, onRun() {} }));
-  expect(html).toContain('tabindex="-1"');
-  const button = buttonFor({});
-  let prevented = 0;
-  button.props.onMouseDown?.({ preventDefault: () => prevented++ });
-  expect(prevented).toBe(1);
-  expect(button.props.onKeyDown).toBeUndefined();
-});
-
-test("document action clicks run the action without activating the row", () => {
+test("menu items are the visible actions, running their own index", () => {
   const run: number[] = [];
-  const button = buttonFor({
-    documentMode: true,
+  const icon = { nodeName: "svg" } as unknown as Element;
+  const items = itemsFor({
+    actions: [
+      { label: "Open", hasWhen: false },
+      { label: "Hidden", hasWhen: true },
+      { label: "Delete", hasWhen: true },
+    ],
+    mask: [true, false, true],
+    icons: [undefined, undefined, icon],
     onRun: (index) => run.push(index),
   });
+  expect(items.map((item) => item.label)).toEqual(["Open", "Delete"]);
+  expect(items[1].icon).toBe(icon);
+  items[1].run();
+  expect(run).toEqual([2]);
+});
+
+test("read-only hides rw actions from the menu, and no visible actions renders nothing", () => {
+  expect(
+    RowActions({
+      actions: [{ label: "Delete", hasWhen: false, requireMode: "rw" }],
+      readOnly: true,
+      onRun() {},
+    }),
+  ).toBeNull();
+  const items = itemsFor({
+    actions: [
+      { label: "Open", hasWhen: false },
+      { label: "Delete", hasWhen: false, requireMode: "rw" },
+    ],
+    readOnly: true,
+  });
+  expect(items.map((item) => item.label)).toEqual(["Open"]);
+});
+
+test("disabled propagates to every item", () => {
+  const items = itemsFor({ actions: two, disabled: true });
+  expect(items.map((item) => item.disabled)).toEqual([true, true]);
+  expect(itemsFor({ actions: two }).map((item) => !!item.disabled)).toEqual([
+    false,
+    false,
+  ]);
+});
+
+test("the document menu trigger is in tab order and stops row keyboard handling", () => {
+  const html = render(
+    h(RowActions, { actions, readOnly: false, documentMode: true, onRun() {} }),
+  );
+  expect(html).toContain('tabindex="0"');
+  const wrapper = wrapperFor({ documentMode: true });
   let stopped = 0;
-  button.props.onClick?.({ stopPropagation: () => stopped++ });
+  wrapper.props.onKeyDown?.({ stopPropagation: () => stopped++ });
   expect(stopped).toBe(1);
-  expect(run).toEqual([0]);
+  expect(wrapper.props.onMouseDown).toBeUndefined();
+});
+
+test("the panel menu trigger keeps input focus and stays out of tab order", () => {
+  const html = render(h(RowActions, { actions, readOnly: false, onRun() {} }));
+  expect(html).toContain('tabindex="-1"');
+  const wrapper = wrapperFor({});
+  let prevented = 0;
+  wrapper.props.onMouseDown?.({ preventDefault: () => prevented++ });
+  expect(prevented).toBe(1);
+  expect(wrapper.props.onKeyDown).toBeUndefined();
 });

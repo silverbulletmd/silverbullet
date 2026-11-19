@@ -1,31 +1,32 @@
-import { LoadingState } from "./loading.ts";
-import {
-  type ContentResult,
-  normalizeContent,
-  handle as runHook,
-} from "../registry.ts";
 import {
   allNodes,
   buildTree,
   nodeObject,
 } from "../../../plug-api/ui/tree_model.ts";
 import type { RowState, RowStates } from "../../../plug-api/ui/tree_types.ts";
-import { defaultSegmentIndex, type SegmentMasks } from "./segments.ts";
-import type { DropdownMasks } from "./dropdown.ts";
+import {
+  type ContentResult,
+  normalizeContent,
+  handle as runHook,
+} from "../registry.ts";
+import {
+  type IndexedViewRow,
+  indexViewRows,
+  rankViewRows,
+} from "../row_filter.ts";
 import type {
   DropdownOption,
   NavigatorHook,
+  ReorderRequest,
   Row,
   SourceCtx,
   ViewMeta,
   ViewNotice,
 } from "../types.ts";
-import {
-  indexViewRows,
-  rankViewRows,
-  type IndexedViewRow,
-} from "../row_filter.ts";
+import type { DropdownMasks } from "./dropdown.ts";
 import { IconResolver } from "./icon_resolver.ts";
+import { LoadingState } from "./loading.ts";
+import { defaultSegmentIndex, type SegmentMasks } from "./segments.ts";
 
 export type { RowState, RowStates };
 
@@ -232,14 +233,20 @@ export class NavigatorEngine {
     return this.handle(viewName, "move", { obj, newName });
   }
 
+  reorder(viewName: string, req: ReorderRequest): Promise<any> {
+    return this.handle(viewName, "reorder", { req });
+  }
+
   action(
     viewName: string,
     index: number,
     obj: Record<string, any>,
+    segment?: string,
   ): Promise<any> {
     return this.handle(viewName, "action", {
       index: index + 1,
       obj,
+      segment,
     });
   }
 

@@ -281,22 +281,29 @@ test.describe("inline view values", () => {
     await expect(list.locator(".sb-nav-icon svg")).toHaveCount(1);
     await expect(list.locator(".sb-nav-chip")).toHaveText("Active");
     await list.hover();
-    await expect(
-      list
-        .getByRole("button", { name: "Complete", exact: true })
-        .locator("svg"),
-    ).toHaveCount(1);
-    await list.getByRole("button", { name: "Complete", exact: true }).click();
+    // Row actions live in a ⋯ menu, drawn on <body>.
+    await list.getByRole("button", { name: "Actions", exact: true }).click();
+    const complete = sbPage.getByRole("menuitem", {
+      name: "Complete",
+      exact: true,
+    });
+    await expect(complete.locator("svg")).toHaveCount(1);
+    await complete.click();
     await expect(currentPage(sbPage)).toHaveValue("index");
     await expect(list.getByText("Finished", { exact: true })).toBeVisible();
+    // Its only action's `when` is now false: nothing left for a menu.
     await expect(
-      list.getByRole("button", { name: "Complete", exact: true }),
+      list.getByRole("button", { name: "Actions", exact: true }),
     ).toHaveCount(0);
     const tree = views.nth(0);
     await tree.getByText("Sketchbook", { exact: true }).click();
     await expect(tree.locator(".sb-nav-icon svg")).toHaveCount(2);
-    await tree.getByText("Cover ideas", { exact: true }).hover();
-    await tree.getByRole("button", { name: "Add study", exact: true }).click();
+    const cover = tree.locator(".sb-nav-row", { hasText: "Cover ideas" });
+    await cover.hover();
+    await cover.getByRole("button", { name: "Actions", exact: true }).click();
+    await sbPage
+      .getByRole("menuitem", { name: "Add study", exact: true })
+      .click();
     await expect(
       tree.getByText("Paper studies", { exact: true }),
     ).toBeVisible();
@@ -393,8 +400,12 @@ test.describe("table views", () => {
       ),
     );
     await expect(names).toHaveText(["Sketchbook", "Garden"]);
-    await table.locator("tbody tr").first().hover();
-    await table.getByRole("button", { name: "Refresh values" }).first().click();
+    const firstRow = table.locator("tbody tr").first();
+    await firstRow.hover();
+    await firstRow
+      .getByRole("button", { name: "Actions", exact: true })
+      .click();
+    await sbPage.getByRole("menuitem", { name: "Refresh values" }).click();
     await expect(names).toHaveText(["Sketchbook", "Garden"]);
     await expect(table.locator("tbody tr td:nth-child(2)")).toHaveText([
       "1/20",

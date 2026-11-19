@@ -12,6 +12,7 @@ import { highlightMatches } from "./highlight.tsx";
 import { HoverTracker, resolveHover, useHovered } from "./hover.ts";
 import { Icon } from "./icon.tsx";
 import { RowActions } from "./row_actions.tsx";
+import { handleRowMenuKey } from "./row_menu.tsx";
 import { RowText } from "./row_text.tsx";
 import { revealInClosest } from "./scroll.ts";
 import { allFolderPaths, findNode, type TreeNode } from "./tree_model.ts";
@@ -43,7 +44,7 @@ export function externalFilesDrag(
   );
 }
 
-type FileDragData = { mime: string; payload: string; downloadURL: string };
+type FileDragData = { mime: string; payload: string };
 
 export function targetFolderForPath(
   path: string | undefined,
@@ -54,6 +55,30 @@ export function targetFolderForPath(
   if (folders.has(path)) return path;
   const index = path.lastIndexOf(separator);
   return index === -1 ? "" : path.slice(0, index);
+}
+
+/**
+ * Where on a row a drop lands, from the pointer's offset into it: its top
+ * and bottom quarters insert before/after it, and a folder's middle half
+ * drops into it. A page has no "into", so it splits in half.
+ */
+export function dropZone(
+  offsetY: number,
+  height: number,
+  isFolder: boolean,
+): "before" | "into" | "after" {
+  if (!isFolder) return offsetY < height / 2 ? "before" : "after";
+  if (offsetY < height / 4) return "before";
+  if (offsetY >= (height * 3) / 4) return "after";
+  return "into";
+}
+
+/** Where a drag would land: into a folder (`""` = the root), or on a row's
+ * top or bottom edge, next to it. */
+type Drop = { kind: "into" | "before" | "after"; path: string };
+
+function sameDrop(a: Drop | undefined, b: Drop | undefined): boolean {
+  return a?.kind === b?.kind && a?.path === b?.path;
 }
 
 export function activateTreeRow<T extends { path: string; isFolder: boolean }>(
@@ -77,7 +102,6 @@ export type TreeViewProps = {
   /** Whether rows are drag sources / drop targets at all. */
   canDrag: boolean;
   fileDragData?: (node: TreeNode) => FileDragData | null;
-  nativeFileDrag?: (payload: string) => void;
   actions?: ActionMeta[];
   actionIcons?: (Element | undefined)[];
   documentActions?: boolean;
@@ -89,6 +113,13 @@ export type TreeViewProps = {
   onToggle: (path: string) => void;
   onSelect?: (node: TreeNode) => void;
   onMove: (draggedPath: string, targetFolder: string) => void;
+  /** Set to let a drop on a row's top or bottom edge place the dragged row
+   * next to it; without it every drop is a move into a folder. */
+  onReorder?: (
+    draggedPath: string,
+    anchorPath: string,
+    position: "before" | "after",
+  ) => void;
   onExternalFiles?: (transfer: DataTransfer, targetFolder: string) => void;
   onAction: (node: TreeNode, actionIndex: number) => void;
   scrollContainerSelector?: string;
@@ -107,7 +138,6 @@ export function TreeView({
   separator,
   canDrag,
   fileDragData,
-  nativeFileDrag,
   actions,
   actionIcons,
   documentActions,
@@ -118,6 +148,7 @@ export function TreeView({
   onToggle,
   onSelect,
   onMove,
+  onReorder,
   onExternalFiles,
   onAction,
   scrollContainerSelector,
@@ -130,9 +161,9 @@ export function TreeView({
   const hover = useMemo(() => new HoverTracker(), []);
   // dataTransfer.getData is unavailable until drop; dragover needs this ref.
   const dragging = useRef<string | undefined>(undefined);
-  const [dropTarget, setDropTarget] = useState<string | undefined>(undefined);
+  const [drop, setDropState] = useState<Drop | undefined>(undefined);
   // Mirror of the above, so the drag handlers never read a stale closure.
-  const dropRef = useRef<string | undefined>(undefined);
+  const dropRef = useRef<Drop | undefined>(undefined);
   const springTimer = useRef<number | undefined>(undefined);
 
   const folderPaths = useMemo(() => allFolderPaths(tree), [tree]);
@@ -213,28 +244,72 @@ export function TreeView({
     return to !== parentOf(from); // already there
   }
 
+  /** The edge drop at this point (only with `onReorder`): `undefined` for
+   * a drop into a folder. */
+  function edgeFor(e: DragEvent): Drop | undefined {
+    if (!onReorder) return undefined;
+    const row = (e.target as HTMLElement | null)?.closest?.(
+      "[data-path]",
+    ) as HTMLElement | null;
+    const path = row?.dataset?.path;
+    if (!row || path === undefined) return undefined;
+    const rect = row.getBoundingClientRect();
+    const zone = dropZone(
+      e.clientY - rect.top,
+      rect.height,
+      folderPaths.has(path),
+    );
+    if (zone === "into") return undefined;
+    // An open folder's bottom edge is where its first child starts, so the
+    // line there reads as "first inside", not "after the whole subtree".
+    if (zone === "after" && expanded.has(path)) {
+      const first = findNode(tree, path)?.children[0];
+      if (first) return { kind: "before", path: first.path };
+    }
+    return { kind: zone, path };
+  }
+
+  /** Where dropping here would land, or `undefined` where it can't. `from`
+   * is the dragged row's path, `undefined` for files from outside. */
+  function dropFor(e: DragEvent, from: string | undefined): Drop | undefined {
+    if (from === undefined) return { kind: "into", path: targetFor(e) };
+    const edge = edgeFor(e);
+    if (edge) {
+      const ownSubtree =
+        edge.path === from || edge.path.startsWith(from + separator);
+      return ownSubtree ? undefined : edge;
+    }
+    const to = targetFor(e);
+    return isValidTarget(from, to) ? { kind: "into", path: to } : undefined;
+  }
+
   function armSpringLoad(path: string) {
     clearTimeout(springTimer.current);
     springTimer.current = undefined;
     if (path === "" || expanded.has(path) || !folderPaths.has(path)) return;
     springTimer.current = setTimeout(() => {
       springTimer.current = undefined;
-      if (dropRef.current === path) onToggle(path);
+      const current = dropRef.current;
+      if (current?.kind === "into" && current.path === path) onToggle(path);
     }, SPRING_LOAD_MS) as unknown as number;
   }
 
-  function setTarget(path: string | undefined) {
-    if (dropRef.current === path) return;
-    dropRef.current = path;
-    setDropTarget(path);
-    if (path !== undefined) armSpringLoad(path);
+  function setDrop(next: Drop | undefined) {
+    if (sameDrop(dropRef.current, next)) return;
+    dropRef.current = next;
+    setDropState(next);
+    if (next?.kind === "into") armSpringLoad(next.path);
+    else {
+      clearTimeout(springTimer.current);
+      springTimer.current = undefined;
+    }
   }
 
   function endDrag() {
     clearTimeout(springTimer.current);
     springTimer.current = undefined;
     dragging.current = undefined;
-    setTarget(undefined);
+    setDrop(undefined);
   }
 
   function onDragStart(e: DragEvent) {
@@ -243,18 +318,12 @@ export function TreeView({
     if (!path) return;
     const node = findNode(tree, path);
     const file = node ? fileDragFor(node) : null;
-    if (file && nativeFileDrag) {
-      e.preventDefault();
-      nativeFileDrag(file.payload);
-      return;
-    }
     if (canDrag) {
       dragging.current = path;
       e.dataTransfer?.setData(DRAG_MIME, path);
     }
     if (file) {
       e.dataTransfer?.setData(file.mime, file.payload);
-      e.dataTransfer?.setData("DownloadURL", file.downloadURL);
     }
     if (e.dataTransfer)
       e.dataTransfer.effectAllowed = file
@@ -266,25 +335,16 @@ export function TreeView({
 
   function onDragOver(e: DragEvent) {
     const from = dragging.current;
-    if (
+    const external =
       from === undefined &&
-      externalFilesDrag([...(e.dataTransfer?.types ?? [])], !!onExternalFiles)
-    ) {
-      e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
-      setTarget(targetFor(e));
-      return;
-    }
-    if (from === undefined) return;
-    const to = targetFor(e);
-    if (!isValidTarget(from, to)) {
-      setTarget(undefined);
-      return;
-    }
+      externalFilesDrag([...(e.dataTransfer?.types ?? [])], !!onExternalFiles);
+    if (from === undefined && !external) return;
+    const next = dropFor(e, from);
+    setDrop(next);
+    if (!next) return;
     // The whole contract of HTML5 DnD: preventDefault means "droppable here".
     e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
-    setTarget(to);
+    if (e.dataTransfer) e.dataTransfer.dropEffect = external ? "copy" : "move";
   }
 
   function onDragLeave(e: DragEvent) {
@@ -292,9 +352,7 @@ export function TreeView({
     // pointer that actually left the container clears the highlight.
     const to = e.relatedTarget as Node | null;
     if (to && treeRef.current?.contains(to)) return;
-    clearTimeout(springTimer.current);
-    springTimer.current = undefined;
-    setTarget(undefined);
+    setDrop(undefined);
   }
 
   function onDrop(e: DragEvent) {
@@ -302,16 +360,22 @@ export function TreeView({
     const external = externalFilesDrag(types, !!onExternalFiles);
     if (!dragging.current && !external && !types.includes(DRAG_MIME)) return;
     e.preventDefault();
-    const from = dragging.current ?? e.dataTransfer?.getData(DRAG_MIME);
-    const to = targetFor(e);
+    const from = external
+      ? undefined
+      : (dragging.current ?? e.dataTransfer?.getData(DRAG_MIME));
+    // An in-app drag that lost its payload lands nowhere.
+    const target = external || from ? dropFor(e, from) : undefined;
     // Drags emit no pointer events; save the drop position for hover resolution.
     hover.track(e, pathAt);
     endDrag();
-    if (external && e.dataTransfer) {
-      onExternalFiles?.(e.dataTransfer, to);
-      return;
+    if (!target) return;
+    if (from === undefined) {
+      if (e.dataTransfer) onExternalFiles?.(e.dataTransfer, target.path);
+    } else if (target.kind === "into") {
+      onMove(from, target.path);
+    } else {
+      onReorder?.(from, target.path, target.kind);
     }
-    if (from && isValidTarget(from, to)) onMove(from, to);
   }
 
   if (tree.children.length === 0 && !onExternalFiles) {
@@ -322,7 +386,10 @@ export function TreeView({
     <ul
       ref={treeRef}
       role="tree"
-      class={"sb-tree" + (dropTarget === "" ? " sb-nav-droptarget" : "")}
+      class={
+        "sb-tree" +
+        (drop?.kind === "into" && drop.path === "" ? " sb-nav-droptarget" : "")
+      }
       // Delegated: one set of listeners for the whole tree, and the row a
       // drop resolves to isn't always the row under the pointer anyway.
       onDragStart={canDrag || fileDragData ? onDragStart : undefined}
@@ -335,9 +402,9 @@ export function TreeView({
       onPointerOver={(e) => hover.track(e, pathAt)}
       onPointerLeave={() => hover.set(undefined)}
     >
-      {dropTarget !== undefined && onExternalFiles && !dragging.current && (
+      {drop !== undefined && onExternalFiles && !dragging.current && (
         <li role="presentation" class="sb-nav-upload-target">
-          <span>Upload to {dropTarget || "Space root"}</span>
+          <span>Upload to {drop.path || "Space root"}</span>
         </li>
       )}
       <ChildList
@@ -349,7 +416,7 @@ export function TreeView({
           selectedPath,
           currentPath,
           hover,
-          dropTarget,
+          drop,
           draggable: canDrag,
           fileDragFor,
           phrase,
@@ -382,14 +449,14 @@ type RowHandlers = {
 };
 
 /** What every row of one tree shares. `expanded`, `selectedPath`,
- * `currentPath` and `dropTarget` are narrowed per row (see `rowProps`), which
+ * `currentPath` and `drop` are narrowed per row (see `rowProps`), which
  * is what lets a memoized row skip renders that can't change it. */
 type SharedRowProps = {
   expanded: Set<string>;
   selectedPath?: string;
   currentPath?: string;
   hover: HoverTracker;
-  dropTarget?: string;
+  drop?: Drop;
   draggable: boolean;
   fileDragFor: (node: TreeNode) => FileDragData | null;
   renderSummary?: TreeViewProps["renderSummary"];
@@ -436,7 +503,10 @@ function rowProps(node: TreeNode, shared: SharedRowProps): SharedRowProps {
         : NOTHING_EXPANDED,
     selectedPath: within(shared.selectedPath),
     currentPath: within(shared.currentPath),
-    dropTarget: within(shared.dropTarget),
+    drop:
+      shared.drop && within(shared.drop.path) !== undefined
+        ? shared.drop
+        : undefined,
   };
 }
 
@@ -666,7 +736,7 @@ function TreeItemRow(props: TreeItemProps) {
     selectedPath,
     currentPath,
     hover,
-    dropTarget,
+    drop,
     draggable,
     fileDragFor,
     phrase,
@@ -705,7 +775,11 @@ function TreeItemRow(props: TreeItemProps) {
           (node.isFolder && node.row ? " sb-nav-dual" : "") +
           (selected ? " sb-nav-selected" : "") +
           (!selectable && !node.isFolder ? " sb-nav-passive" : "") +
-          (dropTarget === node.path ? " sb-nav-droptarget" : "") +
+          (drop?.path !== node.path
+            ? ""
+            : drop.kind === "into"
+              ? " sb-nav-droptarget"
+              : ` sb-nav-drop-${drop.kind}`) +
           (node.row?.cssClass ? ` ${node.row.cssClass}` : "")
         }
         style={{
@@ -715,9 +789,10 @@ function TreeItemRow(props: TreeItemProps) {
         aria-current={currentPath === node.path ? "page" : undefined}
         draggable={draggable || fileDragFor(node) !== null}
         tabIndex={focusableRows ? 0 : undefined}
-        onKeyDown={
-          keyed ? (e) => handlers.keyDown(node, e as KeyboardEvent) : undefined
-        }
+        onKeyDown={(e) => {
+          if (handleRowMenuKey(e as KeyboardEvent)) return;
+          if (keyed) handlers.keyDown(node, e as KeyboardEvent);
+        }}
         onClick={
           selectable || node.isFolder
             ? () =>

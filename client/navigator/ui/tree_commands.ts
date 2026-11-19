@@ -1,3 +1,4 @@
+import { splitPath } from "@silverbulletmd/silverbullet/lib/tree_order";
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import {
   allFolderPaths,
@@ -93,8 +94,12 @@ export function createTreeCommands({
     });
   }
 
-  /** A completed drag: `targetFolder` is `""` for a drop on the root area. */
-  async function moveNode(draggedPath: string, targetFolder: string) {
+  /** A completed drag: `targetFolder` is `""` for a drop on the root area.
+   * Resolves to the row's new path, or `undefined` when nothing moved. */
+  async function moveNode(
+    draggedPath: string,
+    targetFolder: string,
+  ): Promise<string | undefined> {
     // The drag's own mousedown blurred the input (same exemption as above).
     inputRef.current?.focus();
     if (!view || !treeDisplay) return;
@@ -122,6 +127,41 @@ export function createTreeCommands({
     if (targetFolder) expandPath(targetFolder);
     // The rename's file events refresh us anyway; this only makes it prompt.
     refresh();
+    return plan.newName;
+  }
+
+  /** A drop on a row's edge: `draggedPath` goes `position` of `anchorPath`,
+   * moving into the anchor's folder first when it lives elsewhere. */
+  async function reorderNode(
+    draggedPath: string,
+    anchorPath: string,
+    position: "before" | "after",
+  ) {
+    inputRef.current?.focus();
+    if (!view || !treeDisplay) return;
+    const separator = view.meta.hierarchy.separator;
+    const split = (path: string) => splitPath(path, separator);
+    const { folder, name: anchor } = split(anchorPath);
+    let moved: string | undefined = draggedPath;
+    if (split(draggedPath).folder !== folder) {
+      moved = await moveNode(draggedPath, folder);
+      if (moved === undefined) return;
+    }
+    try {
+      await engine.reorder(view.name, {
+        folder,
+        name: split(moved).name,
+        anchor,
+        position,
+      });
+    } catch (e: any) {
+      await editor.flashNotification(
+        `Reorder failed: ${e?.message ?? e}`,
+        "error",
+      );
+      return;
+    }
+    refresh();
   }
 
   return {
@@ -130,5 +170,6 @@ export function createTreeCommands({
     expandAllFolders: () => setAllFoldersExpanded(true),
     collapseAllFolders: () => setAllFoldersExpanded(false),
     moveNode,
+    reorderNode,
   };
 }

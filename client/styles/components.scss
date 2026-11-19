@@ -499,44 +499,33 @@ body.sb-resizing-y {
   pointer-events: none;
 }
 
-.sb-row-action {
+// A row's actions are one ⋯ menu (plug-api/ui/row_actions.tsx)
+// The same 22px square the per-action buttons had: `.sb-button-icon` alone is
+// a 36px button with an 18px icon, sized for the management tables.
+.sb-row-actions > .sb-row-menu-trigger {
   pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex: 0 0 auto;
+  width: 22px;
   min-width: 22px;
   height: 22px;
-  padding: 0 3px;
-  border: 0;
+  padding: 0;
   border-radius: 2px;
-  background-color: transparent;
   color: var(--subtle-color);
-  font-family: inherit;
-  font-size: 11px;
-  line-height: 1;
-  cursor: pointer;
 }
 
-.sb-row-action:hover {
-  color: var(--action-button-hover-color);
-  background-color: var(--ui-surface-hover-background-color);
-}
-
-.sb-row-action-icon {
-  display: flex;
+.sb-row-actions > .sb-row-menu-trigger > svg {
   width: 15px;
   height: 15px;
 }
 
-.sb-row-action-icon svg {
-  width: 100%;
-  height: 100%;
-  display: block;
+.sb-row-actions > .sb-row-menu-trigger:hover {
+  color: var(--action-button-hover-color);
+  background-color: var(--ui-surface-hover-background-color);
 }
 
 .sb-nav-row:hover .sb-row-actions,
-.sb-nav-row.sb-nav-selected .sb-row-actions {
+.sb-nav-row.sb-nav-selected .sb-row-actions,
+.sb-row-actions:has(> [aria-expanded="true"]) {
   display: flex;
 }
 
@@ -834,11 +823,12 @@ a.sb-tab.sb-active { color: var(--ui-accent-text-color); }
 .sb-search-spaces-count { color: var(--subtle-color); font-variant-numeric: tabular-nums; }
 .sb-search-spaces-muted { color: var(--subtle-color); }
 .sb-search-spaces-footnote { margin-block: 0.4rem 0; color: var(--subtle-color); font-size: 13px; }
-/* A row's ⋯ menu (plug-api/ui/row_menu.tsx), fixed so a scrolling box doesn't clip it. */
+/* A row's ⋯ menu (plug-api/ui/row_menu.tsx), appended to <body> and fixed, so
+   no scrolling box clips it; it clears the modal panel layer (.sb-modal-backdrop, 100). */
 .sb-row-menu-trigger { display: inline-flex; align-items: center; line-height: 1; padding: 0.3em 0.45em; }
 .sb-row-menu {
   position: fixed;
-  z-index: 21;
+  z-index: 110;
   display: flex;
   flex-direction: column;
   min-width: 9rem;
@@ -854,6 +844,9 @@ a.sb-tab.sb-active { color: var(--ui-accent-text-color); }
   box-shadow: var(--ui-shadow-popover);
   &:focus { outline: none; }
   > button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     padding: 6px 10px;
     border: 0;
     border-radius: var(--ui-radius-sm);
@@ -869,6 +862,13 @@ a.sb-tab.sb-active { color: var(--ui-accent-text-color); }
       color: var(--modal-selected-option-color);
     }
     &:disabled { opacity: 0.5; cursor: default; }
+  }
+  .sb-row-menu-icon {
+    display: flex;
+    flex: none;
+    width: 15px;
+    height: 15px;
+    svg { width: 100%; height: 100%; display: block; }
   }
 }
 .sb-search-summary { margin-block: 0.5rem; font-size: 13px; }

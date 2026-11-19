@@ -17,7 +17,7 @@ import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 import TurndownService from "turndown";
 import type { Client } from "../../client.ts";
 import { lezerToParseTree } from "../../markdown_parser/parse_tree.ts";
-import { handleTreeFileDrop, insertTreeFileLink } from "./tree_file_drop.ts";
+import { handleTreeFileDrop } from "./tree_file_drop.ts";
 
 const turndownService = new TurndownService({
   hr: "---",
@@ -177,30 +177,6 @@ export function documentExtension(editor: Client) {
           // Without this the browser falls through to its default action
           // (navigating to the dropped file)
           event.preventDefault();
-          const desktopResolve = (
-            globalThis as typeof globalThis & {
-              silverbulletDesktop?: {
-                resolveSpaceFileDrop(file: File): Promise<{
-                  path: string;
-                  kind: "page" | "document";
-                  contentType?: string;
-                } | null>;
-              };
-            }
-          ).silverbulletDesktop?.resolveSpaceFileDrop;
-          if (payload.length === 1 && desktopResolve) {
-            const view = editor.editorView;
-            const coords = { x: event.clientX, y: event.clientY };
-            safeRun(async () => {
-              const file = await desktopResolve(payload[0]);
-              if (file) {
-                if (activeView === view) insertTreeFileLink(file, coords, view);
-              } else {
-                await processFileTransfer(payload);
-              }
-            });
-            return true;
-          }
           safeRun(async () => {
             await processFileTransfer(payload);
           });

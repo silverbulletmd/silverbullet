@@ -154,6 +154,26 @@ test("document lists render icons, positioned chips, and conditional actions wit
   expect(html).toContain('class="sb-nav-icon"');
   expect(html.indexOf("Before")).toBeLessThan(html.indexOf("Sketchbook"));
   expect(html.indexOf("After")).toBeGreaterThan(html.indexOf("Sketchbook"));
-  expect(html).toContain('aria-label="Complete"');
-  expect(html).not.toContain('aria-label="Delete"');
+  expect(html).toContain("sb-row-menu-trigger");
+  // With every action's `when` false, there is no menu to open.
+  const hidden = renderToString(
+    h(DocumentRowsBody, {
+      rows: [{ row }],
+      meta: {
+        ...meta,
+        actions: [
+          { label: "Complete", hasWhen: true },
+          { label: "Delete", hasWhen: true },
+        ],
+      },
+      client: {} as Client,
+      expanded: new Set<string>(),
+      onToggle() {},
+      onAction() {},
+      rowState: {
+        byRow: new WeakMap([[row, { actions: [false, false] }]]),
+      },
+    }),
+  );
+  expect(hidden).not.toContain("sb-row-menu-trigger");
 });

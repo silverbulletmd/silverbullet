@@ -98,6 +98,7 @@ function luaMeta(overrides: Partial<ViewMeta> = {}): ViewMeta {
     followEditor: false,
     refreshOn: [],
     hasMove: false,
+    hasReorder: false,
     hasCreate: false,
     refreshOnOpen: false,
     limit: 200,

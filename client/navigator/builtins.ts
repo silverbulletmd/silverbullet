@@ -25,8 +25,8 @@ import {
 } from "./views/revisions.ts";
 import { spaceTreeView } from "./views/space_tree.ts";
 import { tagPicker } from "./views/tags.ts";
-import { WORKBENCH_VIEW, workbenchView } from "./views/workbench.ts";
 import { type BuiltinView, NoticeError } from "./views/types.ts";
+import { WORKBENCH_VIEW, workbenchView } from "./views/workbench.ts";
 
 async function isReadOnly(): Promise<boolean> {
   if ((await system.getMode()) === "ro") return true;
@@ -98,6 +98,7 @@ export function builtinMeta(name: string): ViewMeta | undefined {
     name,
     builtin: true,
     hasMove: !!view.onMove,
+    hasReorder: !!view.onReorder,
     keys: view.keymap ? Object.keys(view.keymap) : undefined,
     actions: view.actions?.map((action) => ({
       icon: action.icon,
@@ -132,7 +133,6 @@ async function builtinRows(
       summary: view.row.summary?.(obj),
       decorations: view.row.decorations?.(obj),
       cssClass: view.row.cssClass?.(obj),
-      priority: view.row.priority?.(obj),
     }));
   } catch (e: any) {
     if (e instanceof NoticeError) {
@@ -262,7 +262,9 @@ export async function builtinHandle(
         );
         return undefined;
       }
-      return await runHandler("action", () => action.run(args.obj));
+      return await runHandler("action", () =>
+        action.run(args.obj, { segment: args.segment }),
+      );
     }
     case "move": {
       const view = views[name];
@@ -270,6 +272,18 @@ export async function builtinHandle(
       return await runHandler("onMove", () =>
         view.onMove!(args.obj, args.newName),
       );
+    }
+    case "reorder": {
+      const view = views[name];
+      if (!view?.onReorder) return undefined;
+      if (await isReadOnly()) {
+        await editor.flashNotification(
+          "navigator: Reorder is unavailable in read-only mode",
+          "error",
+        );
+        return undefined;
+      }
+      return await runHandler("onReorder", () => view.onReorder!(args.req));
     }
     default:
       return undefined;

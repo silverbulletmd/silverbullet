@@ -3,8 +3,6 @@ description: "Icons, prefixes, CSS classes and navigation rules for pages."
 tags: maturity/beta glossary
 pageDecoration:
   icon: gift
-  tree:
-    priority: -1
   cssClasses:
   - christmas-decoration
 references:
@@ -15,7 +13,6 @@ Page decorations add icons, prefixes, CSS classes and navigation rules to pages.
 # Supported decorations
 * `cssClasses`: (list of strings) Attaches one or more CSS classes the page’s `<body>` tag, wiki links, auto complete items and [[Page Picker]] entries for more advanced styling through a [[Space Style]] (see [[#Use case: pimp my page]] for an example).
 * `icon`: The icon drawn with the page in the top bar, [[View|views]], auto complete, and page links. Use an [[Icons|icon name]] (`star`). Run `Page: Set Icon` to pick one.
-* `tree.priority`: (number, default `0`) Floats the page above its lower-priority siblings in the space tree.
 * `tree.hide`: (boolean) Keeps the page out of the space tree only, leaving it in the page picker and in completions.
 * `prefix`: A textual string prefix to add to page names. It appears in the top bar, page picker, auto complete, and links to the page. Use `icon` instead when the prefix is only meant to be a visual symbol.
 * `hide`: (boolean) Keeps the page out of navigation [[View|views]] (the page picker and space tree) and out of page completions. The picker’s “All” segment still lists it.

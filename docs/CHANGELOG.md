@@ -31,6 +31,8 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * **Breaking (with migration wizard):** single-space mode is removed. SilverBullet Server now always runs with spaces and accounts managed in the [[Dashboard]]. For those still running in single-space mode, you will now launch into a migration wizard that will update your setup.
 * Full text & semantic [[Search]] is here: `Space: Search` (Cmd-Shift-f/Ctrl-Shift-f) searches every page through a full-text index and optionally a semantic search index (needs to be enabled explicitly, see [[Search#Semantic search]]).
 * [[Slash Command|Slash menu]]: now has grouping support.
+* [[Space Tree]]: drag rows onto the top or bottom edge of another row to reorder them. The order is saved in [[^Library/Space Tree Structure]], and Move up, Move down and Reset order are in each row's menu.
+  * **Breaking:** `pageDecoration.tree.priority` is removed; arrange the tree by dragging instead.
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
 * Native menus in [[Desktop]] now expose [[Workbench]] tabs, [[Search]] and [[Object Graph]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
@@ -55,7 +57,9 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Hashtags in headers and table rows are now recorded as tags, and every tag records the root tag it is used on as its `parent` (hashtags in paragraphs used to say `page`). Headers and table rows now get `itags` like other objects.
   * [[Tag/data]] block keys can no longer overwrite `ref`, `tag` or `itags`, and relations from data blocks now point at the object they’re written in. A data block named after a built-in tag (` ```#task `) is no longer indexed. Lint flags it.
 * The [[Object Graph]] is now a view with **Local** and **Global** tabs (`Graph: Explore`, `Graph: Global Page Map`) that can dock in a sidebar or the bottom panel, where the local graph follows the page you open.
+* [[Linked Mention|Linked Mentions]] no longer list links from `Library/` pages.
 * New context menus for widgets and views.
+  * Row actions in views (lists, trees, tables, and your own [[API/widget]] views) are now one ⋯ menu per row, which the menu key or Shift-F10 on the selected row also opens.
 * [[Icons]]: every icon in SilverBullet is now a [Lucide](https://lucide.dev/icons) icon name, around 2,100 of them (up from 287 Feather icons), and the same names work everywhere: page decorations, tags, action and markup buttons, slash commands, views, and the new command `icon` field shown in the command palette.
   * Pick one with `Page: Set Icon` (sets the page's `pageDecoration.icon`), from the [[Workbench/Data]] schema view for tags, or from Space Lua with `editor.pickIcon`. Typing `icon:` in frontmatter completes icon names.
   * A tag has a single `icon` field: it labels the tag and is the default icon of the pages carrying it.

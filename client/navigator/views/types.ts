@@ -1,6 +1,12 @@
-import type { RowSummary } from "../../../plug-api/ui/tree_types.ts";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
-import type { Decoration, Row, SourceCtx, ViewMeta } from "../types.ts";
+import type { RowSummary } from "../../../plug-api/ui/tree_types.ts";
+import type {
+  Decoration,
+  ReorderRequest,
+  Row,
+  SourceCtx,
+  ViewMeta,
+} from "../types.ts";
 
 // Re-exported so views importing shapes from "./types.ts" don't also need
 // "../types.ts" directly.
@@ -24,8 +30,6 @@ export type RowSpec<T = ObjectValue<Record<string, any>>> = {
   decorations?: (obj: T) => Decoration[] | undefined;
   cssClass?: (obj: T) => string | undefined;
   icon?: (obj: T) => string | undefined;
-  /** Tree mode: see `Row.priority`. */
-  priority?: (obj: T) => number | undefined;
 };
 
 export type Segment<T = ObjectValue<Record<string, any>>> = {
@@ -38,12 +42,16 @@ export type Segment<T = ObjectValue<Record<string, any>>> = {
   where?: (obj: T) => boolean;
 };
 
+/** Where an action runs: `segment` is the label of the segment the panel
+ * shows, if it has segments. */
+export type ActionCtx = { segment?: string };
+
 export type ActionSpec<T = ObjectValue<Record<string, any>>> = {
   icon?: string;
   label: string;
   requireMode?: "rw";
   when?: (obj: T) => boolean;
-  run: (obj: T) => Promise<any> | any;
+  run: (obj: T, ctx: ActionCtx) => Promise<any> | any;
 };
 
 export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
@@ -64,6 +72,7 @@ export type BuiltinView<T = ObjectValue<Record<string, any>>> = {
     (obj: T, ctx: { dock?: string }) => Promise<any> | any
   >;
   onMove?: (obj: T, newName: string) => Promise<any>;
+  onReorder?: (req: ReorderRequest) => Promise<any>;
 };
 
 /** Everything a view leaves at its defaults, so each one only says what differs. */
@@ -99,6 +108,7 @@ export function baseMeta(over: Partial<ViewMeta>): BuiltinView["meta"] {
     followEditor: false,
     refreshOn: [],
     hasMove: false,
+    hasReorder: false,
     hasCreate: false,
     refreshOnOpen: false,
     limit: 200,

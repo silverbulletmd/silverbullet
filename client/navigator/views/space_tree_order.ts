@@ -1,0 +1,191 @@
+import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
+import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
+import {
+  BasenameIndex,
+  resolvePath,
+} from "@silverbulletmd/silverbullet/lib/resolve_path";
+import {
+  compareTreePaths,
+  parseTreeOrder,
+  placeSibling,
+  renderTreeOrder,
+  TREE_ORDER_PAGE,
+  TreeIndex,
+  type TreeOrder,
+  treeOrderPreamble,
+} from "@silverbulletmd/silverbullet/lib/tree_order";
+import { config, editor, space } from "@silverbulletmd/silverbullet/syscalls";
+import type { QueryCollationConfig } from "@silverbulletmd/silverbullet/type/config";
+import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import type { ReorderRequest } from "../types.ts";
+import { spaceContents } from "./pages.ts";
+
+// Every listed page or document has a name; `PageObj` just doesn't say so.
+type ContentObj = Partial<ObjectValue<Record<string, any>>> & { name: string };
+
+async function listContents(): Promise<ContentObj[]> {
+  return (await spaceContents()) as ContentObj[];
+}
+
+/** Heads a freshly created order page. */
+const EXPLANATION =
+  "The order of the space tree. Drag rows in the tree to change it, or edit this list.";
+
+/** The parsed order page, keyed by the `lastModified` it was read at, so the
+ * (cheap) list refresh does not re-read and re-parse it every time. `ours`
+ * marks an order we just wrote: it stands until the listing shows the page
+ * at a new `lastModified`. */
+let cache: {
+  order: TreeOrder;
+  modified?: number | string;
+  ours: boolean;
+} | null = null;
+
+/** Maps a link target as written (bare, a path suffix, wrong case) to the
+ * listed name it resolves to, by SilverBullet's own link resolution rule.
+ * Unknown or ambiguous targets stay as written. */
+function linkResolver(names: string[]): (target: string) => string {
+  const index = new BasenameIndex();
+  index.rebuild(names);
+  return (target) => {
+    const r = resolvePath(target as Path, TREE_ORDER_PAGE as Path, index);
+    return r.exists && !r.ambiguous ? r.path : target;
+  };
+}
+
+/** Reads the saved tree order from the order page's entry in `contents`.
+ * Re-reads the page only when its `lastModified` differs from the cache. */
+export async function loadTreeOrder(
+  contents: { name: string; lastModified?: number | string }[],
+): Promise<TreeOrder> {
+  const page = contents.find((obj) => obj.name === TREE_ORDER_PAGE);
+  if (!page) {
+    // A freshly written order page may not be listed yet (index lag).
+    if (!cache?.ours) cache = null;
+    return cache?.order ?? new Map();
+  }
+  if (cache && cache.modified === page.lastModified) return cache.order;
+  let text: string;
+  try {
+    text = await space.readPage(TREE_ORDER_PAGE);
+  } catch {
+    // Deleted between listing and reading, or a failed read: an unordered
+    // tree beats no tree, and nothing is cached so the next load retries.
+    return new Map();
+  }
+  const order = parseTreeOrder(
+    text,
+    linkResolver(contents.map((obj) => obj.name)),
+  );
+  cache = { order, modified: page.lastModified, ours: false };
+  return order;
+}
+
+/** The order as of the last load (or write), for synchronous callers. */
+export function cachedTreeOrder(): TreeOrder {
+  return cache?.order ?? new Map();
+}
+
+/** Shows our own just-written order immediately; the cache key is left alone,
+ * so the next `lastModified` change replaces it with what is on disk. */
+export function primeTreeOrder(order: TreeOrder): void {
+  cache = { order, modified: cache?.modified, ours: true };
+}
+
+export function sortByTreeOrder<T extends { name: string }>(
+  objs: T[],
+  order: TreeOrder,
+  collate: (a: string, b: string) => number,
+): T[] {
+  return [...objs].sort((a, b) =>
+    compareTreePaths(String(a.name), String(b.name), order, collate),
+  );
+}
+
+/** How the tree collates names it has no saved order for: the space's
+ * `queryCollation` config, same as queries. */
+export async function treeCollate(): Promise<(a: string, b: string) => number> {
+  const collation = await config.get<QueryCollationConfig>(
+    "queryCollation",
+    {},
+  );
+  const collator = Intl.Collator(collation?.locale, collation?.options);
+  return (a, b) => compareCollated(a, b, collation, collator);
+}
+
+/** Moves `req.name` before/after `req.anchor` among all of `req.folder`'s
+ * children -- including ones the current segment hides -- and saves it. */
+export async function reorderSibling(req: ReorderRequest): Promise<void> {
+  const contents = await listContents();
+  const order = await loadTreeOrder(contents);
+  const prefix = req.folder === "" ? "" : `${req.folder}/`;
+  const siblings = sortByTreeOrder(
+    new TreeIndex(contents.map((obj) => obj.name))
+      .childrenOf(req.folder)
+      .map((name) => ({ name: prefix + name })),
+    order,
+    await treeCollate(),
+  ).map((obj) => obj.name.slice(prefix.length));
+  await saveFolderOrder(
+    req.folder,
+    placeSibling(siblings, req.name, req.anchor, req.position),
+  );
+}
+
+/** Saves `names` as the order of `folder`'s children; `null` forgets the
+ * folder's order (back to alphabetical). Rewrites the whole order page,
+ * building on its text on disk: the listing may not have caught up with it
+ * (a hand edit, a sync, index lag). */
+export async function saveFolderOrder(
+  folder: string,
+  names: string[] | null,
+): Promise<void> {
+  const [currentPage, contents] = await Promise.all([
+    editor.getCurrentPage(),
+    listContents(),
+  ]);
+  const open = currentPage === TREE_ORDER_PAGE;
+  // Someone may have the order page open, perhaps with unsaved hand edits:
+  // save those first so they are what we build on.
+  if (open) await editor.save();
+  const allNames = contents.map((obj) => obj.name);
+  let text: string | undefined;
+  try {
+    text = await space.readPage(TREE_ORDER_PAGE);
+  } catch {
+    // Not created yet -- unless it is listed: then writing now would rebuild
+    // it from an empty order and wipe every other folder's arrangement.
+    if (allNames.includes(TREE_ORDER_PAGE)) {
+      throw new Error(`Could not read ${TREE_ORDER_PAGE}`);
+    }
+  }
+  const order: TreeOrder =
+    text === undefined
+      ? new Map()
+      : parseTreeOrder(text, linkResolver(allNames));
+  if (names === null) order.delete(folder);
+  else order.set(folder, names);
+
+  const files = new Set(allNames);
+  const tree = new TreeIndex(allNames);
+  const previous = cache;
+  primeTreeOrder(order);
+  try {
+    await space.writePage(
+      TREE_ORDER_PAGE,
+      renderTreeOrder(
+        (text === undefined ? "" : treeOrderPreamble(text)) ||
+          `${EXPLANATION}\n\n`,
+        order,
+        (path) => files.has(path),
+        (path) => tree.isFolder(path),
+      ),
+    );
+  } catch (e) {
+    // Don't keep showing an order that never made it to disk.
+    cache = previous;
+    throw e;
+  }
+  // The editor doesn't follow a write it didn't make: show the new text.
+  if (open) await editor.reloadPage();
+}

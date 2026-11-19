@@ -298,25 +298,21 @@
     pointer-events: none;
   }
 
-  .sb-row-action {
+  .sb-row-actions > .sb-row-menu-trigger {
     pointer-events: none;
     height: 24px;
     min-width: 24px;
     padding: 3px;
-    font-size: 12px;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
   }
 
+  // Also while its menu is open: the pointer has left the row for the menu
   .sb-nav-row:hover,
-  .sb-nav-row:focus-within {
+  .sb-nav-row:focus-within,
+  .sb-nav-row:has(> .sb-row-actions [aria-expanded="true"]) {
     > .sb-row-actions {
       opacity: 1;
 
-      > .sb-row-action {
+      > .sb-row-menu-trigger {
         pointer-events: auto;
       }
     }
@@ -327,7 +323,7 @@
       opacity: 1;
     }
 
-    .sb-row-action {
+    .sb-row-actions > .sb-row-menu-trigger {
       pointer-events: auto;
       min-width: 44px;
       height: 44px;

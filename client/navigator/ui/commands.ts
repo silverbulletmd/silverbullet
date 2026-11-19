@@ -251,7 +251,7 @@ export function createCommands({
 
   async function runAction(index: number, obj: Record<string, any>) {
     if (!view) return;
-    await engine.action(view.name, index, obj);
+    await engine.action(view.name, index, obj, segments?.[segmentIndex]?.label);
     // Same contract as `runKeymap`: the panel keeps focus (a confirm dialog,
     // or an action that navigates, will have taken it in the meantime).
     inputRef.current?.focus();
