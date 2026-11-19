@@ -8,7 +8,7 @@ What do you still remember?
 
 * **Part of the page name:** use [[Page Picker]].
 * **A phrase inside the page:** use [[Search]]. 
-* **Its folder or filename:** use [[File Tree]]. 
+* **Its folder or filename:** use [[Space Tree]]. 
 * **A page that links to it:** use [[Link]] and [[Linked Mention]].
 * **A tag:** use [[Tag Picker]] or picker tag filter.
 

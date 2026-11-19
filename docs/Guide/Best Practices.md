@@ -5,7 +5,7 @@ tags: guide
 Choose conventions that make your pages easier to write and find, and add structure when it solves a problem you actually have.
 
 # Flat name space
-Start with top-level pages when you do not need a folder hierarchy. [[Link|Links]] connect related subjects, and tags can place the same page in several categories. You can use [[Folder|folders]] when a hierarchy is useful: `Folder/Page` appears under `Folder/` in the [[File Tree]]. Run `Navigate: Tree` to open it.
+Start with top-level pages when you do not need a folder hierarchy. [[Link|Links]] connect related subjects, and tags can place the same page in several categories. You can use [[Folder|folders]] when a hierarchy is useful: `Folder/Page` appears under `Folder/` in the [[Space Tree]]. Run `Navigate: Tree` to open it.
 
 Common folder conventions include `Inbox/` for quick notes and `Journal/` for dated entries. These are useful patterns, not prerequisites for taking notes. `Library/` is different: it holds installed [[Library|libraries and customizations]], and `space-lua` and `space-style` blocks only run from pages there. [[Guide/Finding Content]] compares the navigation options.
 

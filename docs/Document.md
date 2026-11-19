@@ -21,7 +21,7 @@ config.set("maximumDocumentSize", 100)
 # Management
 The `Navigate: Document Picker` command displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document.
 
-Alternatively the [[File Tree]] also has a segment for documents, from which you can open, rename and delete documents.
+Alternatively the [[Space Tree]] also has a segment for documents, from which you can open, rename and delete documents.
 
 # Linking
 Documents can be linked to in two ways:

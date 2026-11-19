@@ -41,6 +41,6 @@ The graph gives you another way to explore your pages through links you have alr
 #protip As you will discover, it is beneficial to _link liberally_. If you think some word or concept is significant and may need more elaboration (its own page) later — link it! Even if you don’t create the page you link to yet, it’s worth linking to. Once you linked to it once, future auto completes after typing `[[` will show it _even if it doesn’t exist yet_. Later you can create the page, even as one without content just so you can see all the locations that link to it with [[Linked Mention|Linked Mentions]].
 
 # Find a page without a link
-While using the [[Page Picker]] is a common way to move around, you may also like to use the [[File Tree]] instead.
+While using the [[Page Picker]] is a common way to move around, you may also like to use the [[Space Tree]] instead.
 
 If you remember the contents of a page, but not the title, open [[Search]] with **Cmd-Shift-f / Ctrl-Shift-f**. Search for `binoculars`. Open the `Photo Walk` result to return to its task.
