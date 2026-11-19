@@ -1,4 +1,7 @@
-import { placePopupMenu, placeSubmenu } from "./menu_placement.ts";
+import {
+  placePopupMenu,
+  placeSubmenu,
+} from "../../plug-api/ui/menu_placement.ts";
 
 /** SVG markup, a ready node, or one made when the row renders */
 export type PopupIcon = string | Node | (() => string | Node);

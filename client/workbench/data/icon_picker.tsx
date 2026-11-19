@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "preact/hooks";
 import { IconPicker as IconGrid } from "../../../plug-api/ui/icon_picker.tsx";
-import { placePopupMenu } from "../../components/menu_placement.ts";
+import { placePopupMenu } from "../../../plug-api/ui/menu_placement.ts";
 import { TagIcon } from "./tag_list_view.tsx";
 
 /** A tag's icon, opening the shared icon picker to change it. */

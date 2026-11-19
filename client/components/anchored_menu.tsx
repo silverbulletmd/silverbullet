@@ -1,6 +1,6 @@
 import { createPortal } from "preact/compat";
 import { useLayoutEffect, useRef } from "preact/hooks";
-import { placeMenu } from "./menu_placement.ts";
+import { placeMenu } from "../../plug-api/ui/menu_placement.ts";
 
 export type MenuItem = {
   name: string;
