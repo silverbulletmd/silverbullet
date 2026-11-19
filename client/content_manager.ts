@@ -928,7 +928,7 @@ export class ContentManager {
       .catch(console.error);
   }
 
-  private async refreshCurrentPageMeta(
+  async refreshCurrentPageMeta(
     pageName: string,
     fallbackMeta: PageMeta,
   ): Promise<void> {

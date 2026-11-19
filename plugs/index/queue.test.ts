@@ -193,3 +193,21 @@ test("nothing is deferred when the server is close enough that re-fetching is ch
   expect(indexed).toEqual(["A"]);
   expect(await mq.poll("indexQueue", 10)).toEqual([]);
 });
+
+test("page:indexed fires once a page's indexers have finished", async () => {
+  const { spacePrimitives, eventHook } = createMockSystem();
+  await spacePrimitives.writeFile("A.md", new TextEncoder().encode("# A"));
+
+  const order: string[] = [];
+  eventHook.addLocalListener("page:index", async () => {
+    await sleep(5);
+    order.push("indexer done");
+  });
+  eventHook.addLocalListener("page:indexed", (name: string) => {
+    order.push(`indexed ${name}`);
+  });
+
+  await processIndexQueue([msg("A.md")]);
+
+  expect(order).toEqual(["indexer done", "indexed A"]);
+});

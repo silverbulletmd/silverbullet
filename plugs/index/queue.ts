@@ -106,6 +106,9 @@ async function indexFile(path: string, alreadyCleared: boolean) {
       tree,
       text,
     } as IndexTreeEvent);
+    // The indexers above have stored the page's objects: the open page's
+    // metadata (decorations in the top bar) can now be read back
+    await events.dispatchEvent("page:indexed", name);
   } else {
     await events.dispatchEvent("document:index", path);
   }
