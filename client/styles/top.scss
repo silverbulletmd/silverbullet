@@ -84,6 +84,10 @@
         position: absolute;
         inset: 0;
         pointer-events: none;
+        // It inherits the drag region from #sb-current-page and sits on top of
+        // the input; native drag regions ignore pointer-events, so a drag here
+        // would swallow clicks on the title in Electron and window-controls PWAs
+        -webkit-app-region: no-drag;
         font-family: var(--ui-font);
         font-size: inherit;
         font-weight: bold;
