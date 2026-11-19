@@ -136,7 +136,7 @@ view.define {
       end
     },
     {
-      icon = "trash-2",
+      icon = "trash",
       label = "Delete task/item/paragraph",
       requireMode = "rw",
       when = function(obj) return not obj.isFolder and not obj.declared end,

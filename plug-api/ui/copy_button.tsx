@@ -1,4 +1,4 @@
-import { Check, Copy } from "preact-feather";
+import { Icon } from "./icon.tsx";
 import { Button, type ButtonProps } from "./button.tsx";
 
 export type CopyButtonProps = {
@@ -16,7 +16,7 @@ export function CopyButton({ copied, onClick }: CopyButtonProps) {
       aria-label={label}
       onClick={onClick}
     >
-      {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+      <Icon name={copied ? "check" : "copy"} />
     </Button>
   );
 }

@@ -1,3 +1,4 @@
+import { loadIcons } from "../../../plug-api/ui/icons/registry.ts";
 import {
   type ParseTree,
   renderToText,
@@ -223,6 +224,8 @@ export function markdownSyscalls(client: Client): SysCallMapping {
             );
           };
         }
+        // Rendered HTML is static: icons can't fill in after the fact
+        await loadIcons();
         if (options.expand) {
           const ctx = staticContextForClient(client, options, "page");
           return renderMarkdownStatic(text, ctx);

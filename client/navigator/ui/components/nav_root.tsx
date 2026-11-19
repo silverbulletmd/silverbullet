@@ -1,3 +1,4 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import type { RowSummary } from "../../../../plug-api/ui/tree_types.ts";
 import { RowSummaryText } from "./row_summary.tsx";
 import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
@@ -9,7 +10,6 @@ import {
   useRef,
   useState,
 } from "preact/hooks";
-import { MinusSquare, PlusSquare } from "preact-feather";
 import {
   clampDockSize,
   MIN_DOCK_SIZE,
@@ -485,7 +485,7 @@ export function NavRoot({
                   disabled={treeFiltering || openFolders === 0}
                   onClick={cmd.collapseAllFolders}
                 >
-                  <MinusSquare size={16} aria-hidden="true" />
+                  <Icon name="square-minus" size={16} />
                 </button>
                 <button
                   type="button"
@@ -494,7 +494,7 @@ export function NavRoot({
                   disabled={treeFiltering || openFolders === folderPaths.size}
                   onClick={cmd.expandAllFolders}
                 >
-                  <PlusSquare size={16} aria-hidden="true" />
+                  <Icon name="square-plus" size={16} />
                 </button>
               </div>
             )}

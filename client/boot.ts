@@ -25,6 +25,7 @@ import { hideBootIndicator } from "./lib/boot_indicator.ts";
 import { recordMark } from "./lib/perf.ts";
 import { bootBlocks } from "./tooling.ts";
 import { bootToolingCache } from "./tooling_cache.ts";
+import { configureIcons, loadIcons } from "../plug-api/ui/icons/registry.ts";
 import {
   fetchTooling,
   resolveBootTooling,
@@ -192,6 +193,7 @@ safeRun(async () => {
   // it after URL params are stripped.
   if (isHeadless) {
     globalThis.sbRuntime.headless = true;
+    globalThis.sbRuntime.unseen = true;
   }
 
   if (location.search) {
@@ -285,6 +287,12 @@ safeRun(async () => {
     console.info("Service worker disabled.");
   }
   if (!(await waitForLogout())) return;
+  // Relative, like other client assets, so a URL prefix keeps working
+  configureIcons({
+    url: ".client/icons.json",
+    keywordsUrl: ".client/icon-tags.json",
+  });
+  void loadIcons();
   const client = new Client(
     document.getElementById("sb-root")!,
     bootConfig!,

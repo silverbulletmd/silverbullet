@@ -1,4 +1,4 @@
-import { ChevronDown } from "preact-feather";
+import { Icon } from "./icon.tsx";
 import { useId } from "preact/hooks";
 import { cx } from "./cx.ts";
 import { Select } from "./select.tsx";
@@ -104,7 +104,7 @@ export function SectionNav({
                 </option>
               ))}
             </Select>
-            <ChevronDown size={16} aria-hidden="true" />
+            <Icon name="chevron-down" size={16} />
           </div>
         </div>
       )}

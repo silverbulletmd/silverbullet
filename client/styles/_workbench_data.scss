@@ -248,57 +248,16 @@
   }
 
   .sb-wbd-icongrid {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 5;
-    width: 280px;
+    // Placed by icon_picker.tsx
+    position: fixed;
+    z-index: 20;
+    width: 360px;
     margin-top: 4px;
-    padding: 6px;
+    padding: 0;
+    overflow: hidden;
     border: 1px solid var(--ui-surface-border-color);
     border-radius: 6px;
     background-color: var(--root-background-color);
-  }
-
-  .sb-wbd-icons {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 2px;
-    max-height: 200px;
-    margin-top: 6px;
-    overflow-y: auto;
-
-    button {
-      display: inline-flex;
-      justify-content: center;
-      padding: 5px;
-      border: 0;
-      border-radius: 4px;
-      background: none;
-      color: inherit;
-      cursor: pointer;
-
-      &:hover,
-      &[aria-pressed="true"] {
-        background-color: var(--ui-surface-hover-background-color);
-      }
-    }
-  }
-}
-
-.sb-wbd-iconpick .sb-wbd-noicon {
-  width: 100%;
-  margin-top: 6px;
-  padding: 3px 6px;
-  border: 1px dashed var(--ui-surface-border-color);
-  border-radius: 4px;
-  background: none;
-  color: var(--subtle-color);
-  font-size: 12px;
-  cursor: pointer;
-
-  &:hover {
-    background-color: var(--ui-surface-hover-background-color);
   }
 }
 

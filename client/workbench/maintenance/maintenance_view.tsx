@@ -1,15 +1,8 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
 import { Button, Progress } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import {
-  AlertCircle,
-  AlertTriangle,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Info,
-} from "preact-feather";
 import { SegmentedControl } from "../../../plug-api/ui/segmented_control.tsx";
 import type { Client } from "../../client.ts";
 import { showView } from "../../navigator/navigator.ts";
@@ -222,7 +215,7 @@ function GroupHeader(props: {
   onToggle: () => void;
 }) {
   const name = GROUPS[props.group];
-  const Chevron = props.open ? ChevronDown : ChevronRight;
+  const chevron = props.open ? "chevron-down" : "chevron-right";
   return (
     <button
       type="button"
@@ -230,7 +223,7 @@ function GroupHeader(props: {
       aria-expanded={props.open}
       onClick={props.onToggle}
     >
-      <Chevron size={14} className="sb-wbm-chevron" />
+      <Icon name={chevron} size={14} class="sb-wbm-chevron" />
       <span className="sb-wbm-name">{name}</span>
       <span className="sb-wbm-count">{fmt(props.count)}</span>
     </button>
@@ -241,7 +234,7 @@ function CleanGroup({ group }: { group: MaintenanceGroup }) {
   const name = GROUPS[group];
   return (
     <div className="sb-wbm-clean">
-      <Check size={14} className="sb-wbm-check" />
+      <Icon name="check" size={14} class="sb-wbm-check" />
       <span>{name}</span>
     </div>
   );
@@ -305,7 +298,7 @@ function DeepStatus(props: {
         </div>
       ) : state.found.length === 0 ? (
         <div className="sb-wbm-clean">
-          <Check size={14} className="sb-wbm-check" />
+          <Icon name="check" size={14} class="sb-wbm-check" />
           <span>No problems found</span>
         </div>
       ) : null}
@@ -344,9 +337,9 @@ function ProblemRows(props: {
 }
 
 const SEVERITY_ICONS = {
-  error: AlertCircle,
-  warning: AlertTriangle,
-  info: Info,
+  error: "circle-alert",
+  warning: "triangle-alert",
+  info: "info",
 };
 
 function ProblemRow({
@@ -371,7 +364,7 @@ function ProblemRow({
   };
   const line =
     ref?.details?.type === "linecolumn" ? `:${ref.details.line}` : "";
-  const Icon = SEVERITY_ICONS[problem.severity];
+  const severityIcon = SEVERITY_ICONS[problem.severity];
   const hint = refText ? ` (${refText})` : "";
   return (
     <div
@@ -399,7 +392,7 @@ function ProblemRow({
             : undefined
         }
       >
-        <Icon size={14} className="sb-wbm-icon" aria-hidden="true" />
+        <Icon name={severityIcon} size={14} class="sb-wbm-icon" />
         <span className="sb-wbm-label">
           {problem.label}
           {line}

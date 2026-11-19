@@ -10,6 +10,7 @@ type CommandRow = {
   priority: number;
   lastRun?: number;
   hint?: string;
+  icon?: string;
 };
 
 export const commandPalette: BuiltinView<CommandRow> = {
@@ -36,7 +37,7 @@ export const commandPalette: BuiltinView<CommandRow> = {
             },
           ]
         : undefined,
-    icon: () => "terminal",
+    icon: (obj) => obj.icon || "terminal",
   },
   source: async () => {
     const commands = await system.listPaletteCommands();

@@ -6,7 +6,6 @@ import {
   type Line,
 } from "@codemirror/state";
 import type { Client } from "../client.ts";
-import { iconElement } from "../components/chrome_icons.tsx";
 import type { PopupEntry } from "../components/popup_menu.ts";
 import {
   buttonHint,
@@ -16,7 +15,7 @@ import {
   markupSurfaces,
   runMarkupButton,
 } from "../lib/markup_buttons.ts";
-import { MarkupIcon } from "../lib/markup_icons.ts";
+import { iconElement as namedIconElement } from "../../plug-api/ui/icons/registry.ts";
 import { contextsAt, matchesNodeContexts } from "../lib/node_contexts.ts";
 import {
   type SlashMenuEntry,
@@ -82,14 +81,13 @@ function lineContexts(client: Client, state: EditorState, line: Line) {
  */
 function menuIcon(icon: string | undefined): string | Node {
   if (!icon) return "";
-  const node = MarkupIcon({ icon, size: 15 });
-  return node ? iconElement(node) : "";
+  return namedIconElement(icon, { size: 15 });
 }
 
 /** The labels the "Set state" menu gives the built-in states */
 const BUILTIN_TASK_STATES: [state: string, label: string, icon: string][] = [
   [" ", "Not done", "square"],
-  ["x", "Done", "check-square"],
+  ["x", "Done", "square-check-big"],
 ];
 
 /**

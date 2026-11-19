@@ -1,3 +1,4 @@
+import { Icon } from "./icon.tsx";
 import type { Decoration } from "./tree_types.ts";
 
 export function Chip({ decoration }: { decoration: Decoration }) {
@@ -6,7 +7,8 @@ export function Chip({ decoration }: { decoration: Decoration }) {
       className={"sb-nav-chip " + (decoration.cssClass ?? "")}
       title={decoration.title}
     >
-      {decoration.text ?? decoration.icon}
+      {decoration.icon ? <Icon name={decoration.icon} size={12} /> : null}
+      {decoration.text}
     </span>
   );
 }

@@ -13,7 +13,7 @@ vi.mock("../registry.ts", async (importOriginal) => ({
     .normalizeContent,
 }));
 
-const { NavigatorEngine, parseIcon } = await import("./engine.ts");
+const { NavigatorEngine } = await import("./engine.ts");
 
 function meta(overrides: Partial<ViewMeta> = {}): ViewMeta {
   return {
@@ -127,18 +127,6 @@ test("a failing dropdown hook leaves options absent without breaking the load", 
     expect.anything(),
   );
   errorSpy.mockRestore();
-});
-
-test("parseIcon takes a string starting with <svg as literal markup", () => {
-  const markup = "<svg viewBox='0 0 24 24'><path d='M0 0'/></svg>";
-  expect(parseIcon(markup)).toEqual({ kind: "svg", markup });
-});
-
-test("parseIcon reports an unrecognized namespace, not a Feather name", () => {
-  expect(parseIcon("lucide:lock")).toEqual({
-    kind: "unknown",
-    prefix: "lucide",
-  });
 });
 
 test("dropIfEphemeral evicts an ephemeral view's cache entry, and clears activeName if it was current", async () => {

@@ -819,11 +819,15 @@ describe("ObjectIndex tag page decorations", () => {
     const mq = new DataStoreMQ(ds, eventHook);
     const config = new Config();
     const objectIndex = new ObjectIndex(ds, config, eventHook, mq);
-    const decorate = (tag: string, pageDecoration: any) =>
+    // A tag's icon lives on the tag itself; the rest in its pageDecoration
+    const decorate = (tag: string, decoration: any) => {
+      const { icon, ...pageDecoration } = decoration ?? {};
       config.set(["tags", tag], {
         ...config.get(["tags", tag], {}),
-        pageDecoration,
+        icon,
+        pageDecoration: decoration ? pageDecoration : undefined,
       });
+    };
     const page = async (name: string, extra: Record<string, any> = {}) => {
       await objectIndex.indexObjects(name, [
         { ref: name, tag: "page", name, ...extra } as ObjectValue<any>,

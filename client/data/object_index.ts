@@ -60,7 +60,9 @@ type TagDefinition = {
   metatable?: any;
   mustValidate?: boolean;
   schema?: any;
-  /** Defaults for the `pageDecoration` of every page carrying this tag */
+  /** The tag's icon, and the default page icon for pages carrying it (except `page`) */
+  icon?: string;
+  /** Defaults for the `pageDecoration` of every page carrying this tag; its `icon` is ignored */
   pageDecoration?: Record<string, any>;
   validate?: (o: ObjectValue) => Promise<string | null | undefined>;
   transform?: (
@@ -1233,15 +1235,33 @@ function isRecord(v: unknown): v is Record<string, any> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
-/** Each tag's `pageDecoration`, serialized for comparison */
+/**
+ * What a tag contributes to its pages' decoration: its `pageDecoration`
+ * fields, with the tag's own `icon` as the icon. The `page` tag is on every
+ * page, so its icon only labels the tag.
+ */
+function tagPageDecoration(
+  tag: string,
+  def: TagDefinition | undefined,
+): Record<string, any> | undefined {
+  const { icon: _ignored, ...fields } = isRecord(def?.pageDecoration)
+    ? def.pageDecoration
+    : {};
+  const icon = (def as any)?.icon;
+  if (tag !== "page" && typeof icon === "string" && icon) {
+    return { ...fields, icon };
+  }
+  return Object.keys(fields).length > 0 ? fields : undefined;
+}
+
+/** Each tag's page decoration contribution, serialized for comparison */
 function tagDecorationsOf(
   tagDefinitions: Record<string, TagDefinition>,
 ): Record<string, string> {
   const result: Record<string, string> = {};
   for (const [tag, def] of Object.entries(tagDefinitions)) {
-    if (isRecord(def?.pageDecoration)) {
-      result[tag] = JSON.stringify(def.pageDecoration);
-    }
+    const decoration = tagPageDecoration(tag, def);
+    if (decoration) result[tag] = JSON.stringify(decoration);
   }
   return result;
 }
@@ -1257,8 +1277,8 @@ export function withTagDecorations<T>(
 ): ObjectValue<T> {
   if (obj.tag !== "page") return obj;
   const fromTags = [...(obj.tags ?? []), obj.tag]
-    .map((tag) => tagDefinitions[tag]?.pageDecoration)
-    .filter(isRecord);
+    .map((tag) => tagPageDecoration(tag, tagDefinitions[tag]))
+    .filter((d): d is Record<string, any> => d !== undefined);
   if (fromTags.length === 0) return obj;
   const own: Record<string, any> = isRecord((obj as any).pageDecoration)
     ? (obj as any).pageDecoration

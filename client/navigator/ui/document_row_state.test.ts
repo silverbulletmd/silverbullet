@@ -1,7 +1,9 @@
+// @vitest-environment happy-dom
 import { expect, test, vi } from "vitest";
 import type { Row } from "../../../plug-api/ui/tree_types.ts";
 import type { ViewMeta } from "../types.ts";
 import { createDocumentRowLoader } from "./document_row_state.ts";
+import { useFullIcons } from "../../../plug-api/ui/icons/test_icons.ts";
 
 const syscall = vi.fn<(name: string, ...args: any[]) => Promise<any>>();
 
@@ -135,11 +137,8 @@ test("views without conditional actions or row icons skip rowState", async () =>
   expect(result.actionIcons).toEqual([undefined]);
 });
 
-test("action and row Feather names resolve in one cached batch", async () => {
-  syscall.mockResolvedValue({
-    file: "<svg></svg>",
-    trash: "<svg></svg>",
-  });
+test("action and row icons render Lucide nodes without an icon syscall", async () => {
+  useFullIcons();
   const rows: Row[] = [{ primary: "Alpha", obj: { name: "Alpha" } }];
   const load = createDocumentRowLoader(
     async () => [{ icon: "feather:file" }],
@@ -152,11 +151,17 @@ test("action and row Feather names resolve in one cached batch", async () => {
     }),
   );
 
-  await load(rows);
-  await load(rows);
+  const result = await load(rows);
 
-  expect(syscall).toHaveBeenCalledExactlyOnceWith("icon.resolveFeather", [
-    "file",
-    "trash",
+  expect(result.actionIcons.map((n) => n?.getAttribute("class"))).toEqual([
+    expect.stringContaining("lucide-file"),
+    expect.stringContaining("lucide-trash"),
   ]);
+  expect(
+    result.rowState.byRow?.get(rows[0])?.icon?.getAttribute("class"),
+  ).toContain("lucide-file");
+  expect(syscall).not.toHaveBeenCalledWith(
+    "icon.resolveFeather",
+    expect.anything(),
+  );
 });

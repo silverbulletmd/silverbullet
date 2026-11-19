@@ -186,7 +186,7 @@ ${widget.new {
 * `createIcon`: Icon for a panel’s create row.
 * `columns`: Explicit table columns. Omit to derive them from the source objects.
 
-`presentation.row.primary` supplies list text. `label` overrides a tree path segment. `primary`, `label`, `description`, and `cssClass` each accept an object attribute name or a function of the object. `row.icon` accepts an icon string or a function returning one. An icon may be a Feather name such as `"lock"`, `"feather:lock"`, or literal `<svg...>` markup. Action, segment, and create-row icons use the same forms.
+`presentation.row.primary` supplies list text. `label` overrides a tree path segment. `primary`, `label`, `description`, and `cssClass` each accept an object attribute name or a function of the object. `row.icon` accepts an icon string or a function returning one. An icon is an [[Icons|icon name]] such as `"lock"`. Action, segment, create-row, and decoration (chip) icons take the same names.
 
 A string `row.description` appears inline and supports Markdown in document lists. For an excerpt below the primary text, return `{ text = "...", label = "...", highlights = { { start, end } } }`. The text and optional label are plain text. Highlights use zero-based UTF-16 offsets with exclusive ends. `row.decorations(obj)` returns chips with `text`, `icon`, `cssClass`, `position` (`"left"` or `"right"`), and `title`. The `sb-hashtag` class gives a tag pill. `sb-nav-chip-hint` right-aligns a hint.
 

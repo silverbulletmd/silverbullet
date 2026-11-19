@@ -14,7 +14,7 @@ Page decorations add icons, prefixes, CSS classes and navigation rules to pages.
 
 # Supported decorations
 * `cssClasses`: (list of strings) Attaches one or more CSS classes the page’s `<body>` tag, wiki links, auto complete items and [[Page Picker]] entries for more advanced styling through a [[Space Style]] (see [[#Use case: pimp my page]] for an example).
-* `icon`: The icon drawn with the page in the top bar, [[View|views]], auto complete, and page links. Use a [Feather](https://feathericons.com/) icon name (`star`), the same name namespaced (`feather:star`), or sanitized literal SVG markup.
+* `icon`: The icon drawn with the page in the top bar, [[View|views]], auto complete, and page links. Use an [[Icons|icon name]] (`star`). Run `Page: Set Icon` to pick one.
 * `tree.priority`: (number, default `0`) Floats the page above its lower-priority siblings in the space tree.
 * `tree.hide`: (boolean) Keeps the page out of the space tree only, leaving it in the page picker and in completions.
 * `prefix`: A textual string prefix to add to page names. It appears in the top bar, page picker, auto complete, and links to the page. Use `icon` instead when the prefix is only meant to be a visual symbol.
@@ -56,12 +56,13 @@ This block doesn’t run here, because this isn’t a [[Tool Page]]. The live co
 To adapt the decoration, copy the frontmatter to your own page and the style to a page under `Library/` in your space.
 
 # Apply to every page with a tag
-To decorate every page with a tag, give the tag a `pageDecoration` in [[API/tag|tag.define]] in your [[^Library/Config]]:
+To decorate every page with a tag, give the tag an `icon` and, for anything else, a `pageDecoration` in [[API/tag|tag.define]] in your [[^Library/Config]]:
 
 ```space-lua
 tag.define {
   name = "person",
-  pageDecoration = { icon = "user", cssClasses = { "person-page" } },
+  icon = "user",
+  pageDecoration = { cssClasses = { "person-page" } },
 }
 ```
 

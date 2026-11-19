@@ -27,7 +27,7 @@ function input(extra: Partial<TagListInput> = {}): TagListInput {
       task: { schema, icon: "check-square" },
       link: { schema },
       item: { schema },
-      project: { schema, pageDecoration: { icon: "briefcase" } },
+      project: { schema, icon: "briefcase" },
       glossary: { schema },
       contact: { schema },
     },
@@ -181,10 +181,10 @@ describe("tagIcon", () => {
     ).toBe("star");
   });
 
-  test("without an icon, the page decoration's icon is used", () => {
+  test("a tag-level page decoration icon is no longer the tag's icon", () => {
     expect(
       tagIcon({ book: { pageDecoration: { icon: "book" } } }, "book"),
-    ).toBe("book");
+    ).toBe("tag");
   });
 
   test("a tag without either gets the tag icon", () => {

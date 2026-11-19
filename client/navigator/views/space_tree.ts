@@ -55,7 +55,7 @@ export const spaceTreeSegments: Segment<TreeObj>[] = [
   },
   {
     label: "Tool Pages",
-    icon: "tool",
+    icon: "wrench",
     placeholder: "Tool page",
     where: inLibrary,
   },

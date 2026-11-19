@@ -9,10 +9,10 @@ const QUERY_ROOTS = (["root", "edge", "index"] as const).flatMap((kind) =>
   builtinTagsOfKind(kind),
 );
 
-/** The Feather icon a tag is shown with: its own, else its pages' decoration icon. */
+/** The icon a tag is shown with: its own, else the generic tag icon. */
 export function tagIcon(definitions: Record<string, any>, tag: string): string {
-  const def = definitions[tag];
-  return def?.icon ?? def?.pageDecoration?.icon ?? "tag";
+  const icon = definitions[tag]?.icon;
+  return typeof icon === "string" && icon ? icon : "tag";
 }
 
 export type TagListEntry = {

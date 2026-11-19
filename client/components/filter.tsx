@@ -1,7 +1,4 @@
-import type { ComponentProps } from "preact";
-import type { X } from "preact-feather";
-
-type FeatherProps = ComponentProps<typeof X>;
+type FeatherProps = { width?: number; height?: number; size?: number };
 
 import type { FilterOption } from "@silverbulletmd/silverbullet/type/client";
 import type { FunctionalComponent } from "preact";

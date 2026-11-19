@@ -64,6 +64,12 @@ export type AppViewState = {
   filterBoxNewHint?: string;
   filterBoxOnSelect: (option: FilterOption | undefined) => void;
 
+  iconPicker?: {
+    title?: string;
+    initial?: string;
+    onPick: (name: string | null | undefined) => void;
+  };
+
   showPrompt: boolean;
   promptMessage?: string;
   promptDefaultValue?: string;
@@ -159,6 +165,13 @@ export type Action =
       onSelect: (option: FilterOption | undefined) => void;
     }
   | { type: "hide-filterbox" }
+  | {
+      type: "show-iconpicker";
+      title?: string;
+      initial?: string;
+      onPick: (name: string | null | undefined) => void;
+    }
+  | { type: "hide-iconpicker" }
   | {
       type: "show-prompt";
       message: string;

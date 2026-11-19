@@ -13,7 +13,7 @@ actionButton.define {
 }
 
 actionButton.define {
-  icon = "github",
+  icon = "git-branch",
   description = "Github",
   priority = 2.6,
   run = function()
@@ -39,7 +39,7 @@ tag.define {
 
 tag.define {
   name = "person",
-  pageDecoration = { icon = "user" },
+  icon = "user",
 }
 
 -- Architecture Decision Records
@@ -93,7 +93,7 @@ tag.define {
 tag.define {
   name = "component",
   tagPage = "Architecture",
-  pageDecoration = { icon = "box" },
+  icon = "box",
 }
 
 -- Theming reference data (Theming/Variables/Data, Theming/Selectors). Keep the

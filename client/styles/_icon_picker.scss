@@ -1,0 +1,87 @@
+// Built from the page picker's header (sb-nav-header) and help strip
+// (sb-nav-help) so the two read as one family; see _navigator.scss
+.sb-icon-picker {
+  --sb-icon-cell: 36px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 15px;
+
+  .sb-icon-picker-status {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    min-height: 1.5em;
+  }
+
+  .sb-icon-picker-name {
+    color: var(--modal-color);
+    font-weight: 600;
+  }
+
+  .sb-icon-picker-count {
+    flex: 1 1 auto;
+    color: var(--modal-help-color);
+  }
+
+  .sb-icon-picker-remove {
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--modal-color);
+    }
+  }
+
+  .sb-icon-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--sb-icon-cell), 1fr));
+    gap: 2px;
+    // Six whole rows plus the padding; the next row peeks in by the bottom
+    // padding's height, showing there's more to scroll
+    max-height: calc(6 * (var(--sb-icon-cell) + 2px) + 18px);
+    box-sizing: border-box;
+    padding: 8px 10px 10px;
+    overflow-y: auto;
+
+    button {
+      display: grid;
+      place-items: center;
+      height: var(--sb-icon-cell);
+      padding: 0;
+      border: 0;
+      border-radius: var(--ui-radius-sm);
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .sb-icon-picker-active {
+      background-color: var(--modal-selected-option-background-color);
+      color: var(--modal-selected-option-color);
+    }
+
+    .sb-icon-picker-current {
+      box-shadow: inset 0 0 0 1.5px var(--modal-selected-option-color);
+    }
+  }
+}
+
+.sb-modal-box:has(> .sb-icon-picker) {
+  width: 520px;
+  margin-top: 100px;
+
+  @media only screen and (max-width: 600px) {
+    margin-top: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px));
+    width: calc(100% - 16px);
+    max-width: none;
+  }
+}

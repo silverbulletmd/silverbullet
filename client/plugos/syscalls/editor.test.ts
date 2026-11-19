@@ -315,3 +315,27 @@ test("setUiOption darkMode is a no-op when the scheme already matches", async ()
     warn.mockRestore();
   }
 });
+
+test("editor.pickIcon resolves with what the picker returns", async () => {
+  const pickIcon = vi.fn(async () => "house");
+  const client = { ui: { pickIcon } } as unknown as Client;
+  const callback = (editorSyscalls(client)["editor.pickIcon"] as any).callback;
+  expect(await callback({}, { initial: "book", title: "Page icon" })).toBe(
+    "house",
+  );
+  expect(pickIcon).toHaveBeenCalledWith({
+    initial: "book",
+    title: "Page icon",
+  });
+});
+
+test("editor.pickIcon gives nil on cancel and an empty string for no icon", async () => {
+  const pickIcon = vi
+    .fn<() => Promise<string | null | undefined>>()
+    .mockResolvedValueOnce(undefined)
+    .mockResolvedValueOnce(null);
+  const client = { ui: { pickIcon } } as unknown as Client;
+  const callback = (editorSyscalls(client)["editor.pickIcon"] as any).callback;
+  expect(await callback({})).toBeUndefined();
+  expect(await callback({})).toBe("");
+});

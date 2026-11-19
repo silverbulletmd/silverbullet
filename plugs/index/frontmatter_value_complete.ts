@@ -1,4 +1,5 @@
 import type { CompleteEvent } from "@silverbulletmd/silverbullet/type/client";
+import { frontmatterIconComplete } from "./icon_complete.ts";
 import { frontmatterTagComplete } from "./tags.ts";
 import {
   frontmatterAuthorComplete,
@@ -13,6 +14,7 @@ export async function frontmatterValueComplete(completeEvent: CompleteEvent) {
   return (
     (await frontmatterTagComplete(completeEvent)) ??
     (await frontmatterRecipientComplete(completeEvent)) ??
-    (await frontmatterAuthorComplete(completeEvent))
+    (await frontmatterAuthorComplete(completeEvent)) ??
+    (await frontmatterIconComplete(completeEvent))
   );
 }

@@ -20,7 +20,7 @@ import {
 import type { PageMeta } from "@silverbulletmd/silverbullet/type/index";
 import * as TagConstants from "../../plugs/index/constants.ts";
 import { parseHtmlTag } from "../codemirror/syntax/html_element.ts";
-import { resolveIconMarkup } from "../lib/icon.ts";
+import { iconSvg } from "../../plug-api/ui/icons/registry.ts";
 import { pageByPath } from "../lib/page_meta.ts";
 import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
 import { CustomSyntaxRenderedHtmlType, createMediaElement } from "./inline.ts";
@@ -950,7 +950,7 @@ export function renderMarkdownToHtml(
               ref.details?.type === "linecolumn"
             )
           ) {
-            const icon = resolveIconMarkup(pageMeta.pageDecoration?.icon);
+            const icon = iconSvg(pageMeta.pageDecoration?.icon);
             t.body = [
               ...(icon
                 ? [

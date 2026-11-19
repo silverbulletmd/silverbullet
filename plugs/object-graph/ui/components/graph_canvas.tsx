@@ -1,8 +1,8 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import * as d3 from "d3-force";
 import ForceGraphImpl from "force-graph";
 import { Component } from "preact";
-import { Maximize, ZoomIn, ZoomOut } from "preact-feather";
 import type { Edge, ForceSettings, ObjectNode } from "../../src/model.ts";
 import { STRUCTURAL_KINDS } from "../../src/model.ts";
 import { CanvasTheme } from "../canvas_theme.ts";
@@ -902,7 +902,7 @@ export class GraphCanvas extends Component<Props, State> {
             aria-label="Zoom in"
             onClick={this.zoomIn}
           >
-            <ZoomIn size={15} />
+            <Icon name="zoom-in" size={15} />
           </button>
           <button
             type="button"
@@ -910,7 +910,7 @@ export class GraphCanvas extends Component<Props, State> {
             aria-label="Zoom out"
             onClick={this.zoomOut}
           >
-            <ZoomOut size={15} />
+            <Icon name="zoom-out" size={15} />
           </button>
           <button
             type="button"
@@ -918,7 +918,7 @@ export class GraphCanvas extends Component<Props, State> {
             aria-label="Fit to view"
             onClick={this.recenter}
           >
-            <Maximize size={14} />
+            <Icon name="maximize" size={14} />
           </button>
         </div>
       </div>

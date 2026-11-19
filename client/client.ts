@@ -163,7 +163,10 @@ function pickerSegment(mode: "page" | "tool" | "document" | "all") {
 
 // Runtime API bridge: written by the client when running headless to evaluate Lua in the live client.
 export type SBRuntime = {
+  /** Exposes the Lua eval API. Desktop sets it in visible editor windows too. */
   headless?: boolean;
+  /** Loaded with `?headless`: no one sees or types into this window. */
+  unseen?: boolean;
   captureId?: string;
   ready?: boolean;
   evalLua?: (expr: string) => Promise<unknown>;
@@ -631,6 +634,16 @@ export class Client {
         }
       },
     );
+
+    // A save reads the page's metadata back before the index has caught up;
+    // refresh the top bar's decoration once the open page is re-indexed
+    this.eventHook.addLocalListener("page:indexed", (name: string) => {
+      const meta = this.currentPageMeta();
+      if (name !== this.currentName() || !meta) return;
+      this.contentManager
+        .refreshCurrentPageMeta(name, meta)
+        .catch(console.error);
+    });
 
     // Widgets that read a changed scope refresh on their own (live triggers);
     // the open page's directives re-key against its rebuilt scope
@@ -1118,6 +1131,7 @@ export class Client {
         // as is having a keyboard at all. A touch client gets no hint, so the
         // palette spends that width on the command's name instead.
         hint: isMobileDevice() ? undefined : keyboardHint(def),
+        icon: typeof def.icon === "string" ? def.icon : undefined,
       });
     }
     return out;

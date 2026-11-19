@@ -252,7 +252,7 @@ export const pagePicker: BuiltinView<PageObj> = {
     },
     {
       label: "Tool Pages",
-      icon: "tool",
+      icon: "wrench",
       placeholder: "Tool page",
       helpText:
         "Press Shift-Enter to create a new tool page with this exact name.",

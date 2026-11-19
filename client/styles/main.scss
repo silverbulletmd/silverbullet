@@ -5,6 +5,7 @@
 @use "top";
 @use "xray";
 @use "components";
+@use "icon_picker";
 // Navigator overrides rely on source order after components; its partials
 // follow for the same reason.
 @use "navigator";

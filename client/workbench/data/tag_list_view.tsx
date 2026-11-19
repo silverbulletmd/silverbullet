@@ -1,10 +1,10 @@
 import type { RefObject } from "preact";
-import { resolveIconMarkup } from "../../lib/icon.ts";
+import { iconSvg } from "../../../plug-api/ui/icons/registry.ts";
 import type { DataModel, DataSection } from "./data_model.ts";
 import { allEntries, filterTagList, type TagListEntry } from "./tag_list.ts";
 
 export function TagIcon({ icon }: { icon: string }) {
-  const markup = resolveIconMarkup(icon) ?? resolveIconMarkup("tag") ?? "";
+  const markup = iconSvg(icon) || iconSvg("tag");
   return (
     <span
       className="sb-wbd-icon"

@@ -1,7 +1,7 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { syscall } from "@silverbulletmd/silverbullet/syscall";
 import { Button, Input } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useMemo, useState } from "preact/hooks";
-import { ChevronRight } from "preact-feather";
 import {
   defaultForceSettings,
   type Edge,
@@ -256,7 +256,11 @@ function SectionHeader({
         aria-expanded={open}
         onClick={onToggle}
       >
-        <ChevronRight size={12} class={`gv-twisty${open ? " open" : ""}`} />
+        <Icon
+          name="chevron-right"
+          size={12}
+          class={`gv-twisty${open ? " open" : ""}`}
+        />
         {title}
       </button>
       <span class="gv-section-actions">{children}</span>

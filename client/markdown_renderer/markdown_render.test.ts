@@ -10,6 +10,7 @@ import type { Space } from "../space.ts";
 import { LuaEnv } from "../space_lua/runtime.ts";
 import type { SpaceLuaEnvironment } from "../space_lua.ts";
 import { mediaTestDocument } from "../test_media_dom.ts";
+import { useFullIcons } from "../../plug-api/ui/icons/test_icons.ts";
 import {
   CustomSyntaxRenderedHtmlType,
   createMediaElement,
@@ -189,6 +190,33 @@ test("Wiki link decoration icons never emit unsanitized literal SVG markup", () 
   expect(html).not.toContain("onload");
   expect(html).not.toContain("<script");
   expect(html).not.toContain("alert(");
+});
+
+function decoratedLinkHtml(icon: unknown): string {
+  useFullIcons();
+  const tree = parse(extendedMarkdownLanguage, "[[Some Page]]");
+  return renderMarkdownToHtml(tree, {}, [
+    {
+      ref: "Some Page",
+      tag: "page",
+      tags: [],
+      name: "Some Page",
+      perm: "rw",
+      lastModified: "0",
+      created: "0",
+      pageDecoration: { icon: icon as string },
+    },
+  ]);
+}
+
+test("Wiki link decoration icons resolve deprecated names to Lucide", () => {
+  expect(decoratedLinkHtml("md-home")).toContain("lucide-house");
+});
+
+test("Wiki link decoration icons render the fallback for inline SVG", () => {
+  const html = decoratedLinkHtml("<svg/>");
+  expect(html).toContain("lucide-circle-question-mark");
+  expect(html).not.toContain("&lt;svg/&gt;");
 });
 
 test("Smart hard break test", () => {

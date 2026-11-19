@@ -41,8 +41,6 @@ type RawRowState = {
   segments?: boolean[];
 };
 
-export { parseIcon } from "../../lib/icon.ts";
-
 export type ViewState = {
   meta: ViewMeta;
   rows: Row[];

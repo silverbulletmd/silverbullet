@@ -3,61 +3,57 @@ import { join } from "node:path";
 import ts from "typescript";
 import { expect, test, vi } from "vitest";
 
-const resolveFeatherIcons =
-  vi.fn<(names: string[]) => Record<string, string>>();
-
-vi.mock("../../lib/feather_icons.ts", () => ({
-  resolveFeatherIcons: (names: string[]) => resolveFeatherIcons(names),
-}));
+import { useFullIcons } from "../../../plug-api/ui/icons/test_icons.ts";
 
 const { iconSyscalls } = await import("./icon.ts");
 
-function callbacks() {
-  const syscalls = iconSyscalls();
-  return {
-    feather: (syscalls["icon.feather"] as any).callback,
-    resolveFeather: (syscalls["icon.resolveFeather"] as any).callback,
-  };
+function cb(name: string) {
+  return (iconSyscalls()[name] as any).callback;
 }
 
-test("icon.feather resolves a single name through the batch resolver", () => {
-  resolveFeatherIcons.mockReturnValueOnce({ lock: "<svg>lock</svg>" });
-  const { feather } = callbacks();
-
-  expect(feather({}, "lock")).toBe("<svg>lock</svg>");
-  expect(resolveFeatherIcons).toHaveBeenCalledWith(["lock"]);
+test("icon.svg renders a Lucide icon", async () => {
+  useFullIcons();
+  expect(await cb("icon.svg")({}, "book")).toContain("lucide-book");
 });
 
-test("icon.feather returns null for a name the resolver doesn't know", () => {
-  resolveFeatherIcons.mockReturnValueOnce({});
-  const { feather } = callbacks();
-
-  expect(feather({}, "not-a-real-icon")).toBeNull();
+test("icon.svg returns nil for an unknown name", async () => {
+  useFullIcons();
+  expect(await cb("icon.svg")({}, "nope")).toBeNull();
 });
 
-test("icon.feather guards a missing name instead of throwing", () => {
-  resolveFeatherIcons.mockClear();
-  const { feather } = callbacks();
-
-  expect(feather({}, undefined)).toBeNull();
-  expect(resolveFeatherIcons).not.toHaveBeenCalled();
+test("icon.svg resolves a deprecated name to its replacement", async () => {
+  useFullIcons();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  expect(await cb("icon.svg")({}, "md-home")).toContain("lucide-house");
 });
 
-test("icon.resolveFeather passes the batch through unchanged", () => {
-  const resolved = { lock: "<svg>lock</svg>", "trash-2": "<svg>trash</svg>" };
-  resolveFeatherIcons.mockReturnValueOnce(resolved);
-  const { resolveFeather } = callbacks();
-
-  expect(resolveFeather({}, ["lock", "trash-2"])).toBe(resolved);
-  expect(resolveFeatherIcons).toHaveBeenCalledWith(["lock", "trash-2"]);
+test("icon.resolve omits unknown names, keyed by the input name", async () => {
+  useFullIcons();
+  const out = await cb("icon.resolve")({}, ["book", "nope"]);
+  expect(Object.keys(out)).toEqual(["book"]);
 });
 
-test("icon.resolveFeather defaults a missing names argument to an empty batch", () => {
-  resolveFeatherIcons.mockReturnValueOnce({});
-  const { resolveFeather } = callbacks();
+test("icon.names lists canonical names", async () => {
+  useFullIcons();
+  const names: string[] = await cb("icon.names")({});
+  expect(names).toContain("house");
+  expect(names.length).toBeGreaterThan(2000);
+});
 
-  resolveFeather({}, undefined);
-  expect(resolveFeatherIcons).toHaveBeenCalledWith([]);
+test("deprecated icon.feather accepts the feather: prefix", async () => {
+  useFullIcons();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  expect(await cb("icon.feather")({}, "feather:lock")).toContain("lucide-lock");
+  expect(await cb("icon.feather")({}, undefined)).toBeNull();
+});
+
+test("deprecated icon.resolveFeather maps to icon.resolve", async () => {
+  useFullIcons();
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  expect(Object.keys(await cb("icon.resolveFeather")({}, ["lock"]))).toEqual([
+    "lock",
+  ]);
+  expect(await cb("icon.resolveFeather")({}, undefined)).toEqual({});
 });
 
 test("client_system.ts registers the icon syscalls", () => {

@@ -3,19 +3,19 @@ tags: api/syscall
 references:
 - plug-api/syscalls/icon.ts
 - client/plugos/syscalls/icon.ts
-- client/lib/feather_icons.ts
+- plug-api/ui/icons/registry.ts
 ---
 Render icons as SVG markup for [[Widget|widgets]] and custom panels.
 
 <!--#lua spacelua.renderApiDocumentation("icon") -->
-## icon.feather
-`icon.feather(name)`
+## icon.svg
+`icon.svg(name)`
 
-Renders a Feather icon to SVG markup by name, or nil when the name isn’t a Feather icon. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
+Renders a [Lucide](https://lucide.dev/icons) icon to SVG markup by name, or nil when the name isn’t an icon. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
 
 **Parameters:**
 
-- `name` (`string`) — A Feather icon name, e.g. `trash-2`.
+- `name` (`string`) — A Lucide icon name, e.g. `trash-2`.
 
 **Returns:**
 
@@ -24,23 +24,42 @@ Renders a Feather icon to SVG markup by name, or nil when the name isn’t a Fea
 **Example:**
 
 ```space-lua
-local lock = icon.feather("lock")
+local lock = icon.svg("lock")
 ```
 
-## icon.resolveFeather
-`icon.resolveFeather(names)`
+## icon.resolve
+`icon.resolve(names)`
 
-Renders a batch of Feather icons to SVG markup in one round trip, so panels can show icons without bundling the icon set themselves. Unknown names are omitted from the result. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
+Renders a batch of Lucide icons to SVG markup in one round trip, so panels can show icons without bundling the icon set themselves. Unknown names are omitted from the result. The markup carries no color of its own (`currentColor`) and a default 24x24 size, both of which CSS at the injection site can override.
 
 **Parameters:**
 
-- `names` (`table`) — Feather icon names, e.g. `trash-2`.
+- `names` (`table`) — Lucide icon names, e.g. `trash-2`.
 
 **Returns:**
 
 - `table` — Map of icon name to SVG markup.
+
+## icon.names
+`icon.names()`
+
+Lists every available Lucide icon name, sorted.
+
+**Returns:**
+
+- `table` — Icon names.
+
+## icon.feather
+`icon.feather(name)`
+
+Deprecated: use `icon.svg`.
+
+## icon.resolveFeather
+`icon.resolveFeather(names)`
+
+Deprecated: use `icon.resolve`.
 <!--/lua-->
 
-Use `icon.feather` for a single name in hand right away — widget HTML, a custom panel’s content. `icon.resolveFeather` batches several names in one round trip, which is what [[API/view|view]] icons use internally — don’t call either for those, though: name them in the view instead (`icon = "lock"`, or `icon = "feather:lock"`) and the view resolves them, lazily and in one batch per view refresh. See [[API/widget#Presentation]].
+Use `icon.svg` for a single name in hand right away — widget HTML, a custom panel’s content. `icon.resolve` batches several names in one round trip. Don’t call either for [[API/view|view]] icons, though: name them in the view instead (`icon = "lock"`) and the view renders them. See [[API/widget#Presentation]].
 
-[Feathericons.com](https://feathericons.com) lists the available names. The namespace is the point, not the implementation: `icon.feather`/`icon.resolveFeather` are the first of what could eventually be more than one icon set, each reached the same way (`icon.<set>...`) if and when a second one arrives — `icon.lucide`, say.
+See [[Icons]] for the icon names you can use. `icon.feather` and `icon.resolveFeather` still work for one release; they now render Lucide icons and log a deprecation warning.

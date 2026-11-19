@@ -29,6 +29,11 @@ config.defineCategory {
   priority = 50,
 }
 config.defineCategory {
+  name = "Layout",
+  description = "Which side panels people see the first time they open this space.",
+  priority = 45,
+}
+config.defineCategory {
   name = "Smart Quotes",
   description = "Replace straight quotes with typographic ones as you type, and pick which characters are used.",
   priority = 40,
@@ -427,6 +432,8 @@ config.define("commands", {
     type = "object",
     properties = {
       name = schema.string(),
+      -- Lucide icon name shown in the command palette
+      icon = schema.nullable "string",
       contexts = schema.nullableArray "string",
       priority = schema.nullable "number",
       key = {
@@ -530,12 +537,12 @@ config.define("tags", {
     type = "object",
     properties = {
       name = schema.string(),
-      -- Feather icon name for how the tag itself is shown (Workbench)
-      icon = schema.string(),
+      -- Lucide icon name for the tag; also the default icon of pages carrying it (except the page tag)
+      icon = schema.nullable("string"),
       schema = schema.schema(),
       -- Whether or not an object HAS to validate to be indexed (defaults to false), has a performance penalty
       mustValidate = schema.boolean(),
-      -- Page decoration defaults for every page with this tag
+      -- Page decoration defaults for every page with this tag (the icon comes from `icon`)
       pageDecoration = schema.object(),
       -- Additional custom validation logic
       validate = schema.func(),
@@ -553,7 +560,7 @@ config.define("actionButtons", {
     properties = {
       icon = {
         type = "string",
-        description = "Icon for the action button, from https://feathericons.com. The name 'profile' is reserved for the account menu."
+        description = "Lucide icon name (https://lucide.dev/icons) for the action button. The name 'profile' is reserved for the account menu."
       },
       description = {
         type = "string",
@@ -598,7 +605,7 @@ local function markupButtonSchema(extra)
   local properties = {
     icon = {
       type = "string",
-      description = "Icon name: a Feather icon (https://feathericons.com) or one of the md-* editor icons"
+      description = "Lucide icon name (https://lucide.dev/icons)"
     },
     description = schema.string(),
     command = {
@@ -675,8 +682,9 @@ config.define("workbench.pinnedTags", {
 })
 
 config.define("view.defaults", {
-  description = "Per-view presentation defaults, keyed by view name.",
+  description = "Per-view presentation defaults, keyed by view name. Arrange the side panels the way you want them, then use the current layout.",
   type = "object",
+  ui = { category = "Layout", label = "Default layout", layout = true },
   additionalProperties = {
     type = "object",
     properties = {
@@ -699,7 +707,7 @@ Default values that cannot be expressed as schema defaults (e.g. because they co
 -- boot: true
 config.set("actionButtons", {
   {
-    icon = "home",
+    icon = "house",
     description = "Go to the index page",
     command = "Navigate: Home",
     priority = 3,
@@ -726,7 +734,7 @@ config.set("actionButtons", {
     priority = 1,
   },
   {
-    icon = "tool",
+    icon = "wrench",
     description = "Toggle the Workbench",
     command = "Workbench: Toggle",
     priority = 0.5,
@@ -772,24 +780,24 @@ end
 
 -- The bar above the keyboard on phones and tablets, in this order
 config.set("markupBar.mobile", {
-  { icon = "md-format-list-bulleted", description = "Turn into bullet item", command = "Text: Listify Selection", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
-  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
-  { icon = "md-format-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
-  { icon = "md-format-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
-  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
-  { icon = "check-square", description = "Cycle task state", command = "Task: Cycle State", onlyContexts = {"Task"} },
+  { icon = "list", description = "Turn into bullet item", command = "Text: Listify Selection", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "list-checks", description = "Turn into task", command = "Text: Taskify Line", exceptContexts = {"ListItem", "FencedCode", "FrontMatter"} },
+  { icon = "list-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
+  { icon = "list-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
+  { icon = "list-checks", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  { icon = "square-check-big", description = "Cycle task state", command = "Task: Cycle State", onlyContexts = {"Task"} },
   { icon = "arrow-up", description = "Move up", command = "Outline: Move Up", onlyContexts = {"ListItem"} },
   { icon = "arrow-down", description = "Move down", command = "Outline: Move Down", onlyContexts = {"ListItem"} },
   { icon = "chevrons-right", description = "Tab", command = "Editor: Indent", onlyContexts = {"FencedCode"} },
   { icon = "chevrons-left", description = "Shift-Tab", command = "Editor: Outdent", onlyContexts = {"FencedCode"} },
-  { icon = "md-link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "paperclip", description = "Upload file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "letter-b", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "hash", description = "Tag", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
     insertCompletionTrigger("#")
   end },
-  { icon = [[<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="16" y1="4" x2="8" y2="20"/></svg>]], description = "Slash command", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
+  { icon = "slash", description = "Slash command", exceptContexts = {"FencedCode", "FrontMatter"}, run = function()
     insertCompletionTrigger("/")
   end },
   { icon = "rotate-ccw", description = "Undo", command = "Editor: Undo" },
@@ -799,12 +807,13 @@ config.set("markupBar.mobile", {
 
 -- The formatting bubble over selected text on desktop, in this order
 config.set("markupBar.selection", {
-  { icon = "md-format-bold", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-format-italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-code", description = "Code", command = "Text: Code", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "edit-3", description = "Highlight", command = "Text: Marker", exceptContexts = {"FencedCode", "FrontMatter"} },
-  { icon = "md-link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "letter-b", description = "Bold", command = "Text: Bold", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "italic", description = "Italic", command = "Text: Italic", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "code", description = "Code", command = "Text: Code", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "pen-line", description = "Highlight", command = "Text: Marker", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "link", description = "Link to page", command = "Text: Wiki Link", exceptContexts = {"FencedCode", "FrontMatter"} },
   { icon = "external-link", description = "Link to URL", command = "Text: Link Selection", exceptContexts = {"FencedCode", "FrontMatter"} },
+  { icon = "message-square", description = "Add comment", command = "Comment: Add", exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective"} },
 })
 
 -- The menu of the ⋮ line handle on desktop, in this order (after Add tag and
@@ -812,15 +821,15 @@ config.set("markupBar.selection", {
 -- blocks, which it also builds itself)
 config.set("markupBar.line", {
   -- A list item
-  { icon = "md-format-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
-  { icon = "md-format-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
+  { icon = "list-indent-increase", description = "Indent", command = "Outline: Move Right", onlyContexts = {"ListItem"} },
+  { icon = "list-indent-decrease", description = "Outdent", command = "Outline: Move Left", onlyContexts = {"ListItem"} },
   { icon = "arrow-up", description = "Move up", command = "Outline: Move Up", onlyContexts = {"ListItem"} },
   { icon = "arrow-down", description = "Move down", command = "Outline: Move Down", onlyContexts = {"ListItem"} },
   -- A heading
-  { icon = "md-format-size", description = "Heading 1", group = "Heading", command = "Text: Heading 1", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading1"} },
-  { icon = "md-format-size", description = "Heading 2", group = "Heading", command = "Text: Heading 2", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading2"} },
-  { icon = "md-format-size", description = "Heading 3", group = "Heading", command = "Text: Heading 3", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading3"} },
-  { icon = "md-format-size", description = "Heading 4", group = "Heading", command = "Text: Heading 4", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading4"} },
+  { icon = "letter-h", description = "Heading 1", group = "Heading", command = "Text: Heading 1", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading1"} },
+  { icon = "letter-h", description = "Heading 2", group = "Heading", command = "Text: Heading 2", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading2"} },
+  { icon = "letter-h", description = "Heading 3", group = "Heading", command = "Text: Heading 3", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading3"} },
+  { icon = "letter-h", description = "Heading 4", group = "Heading", command = "Text: Heading 4", onlyContexts = {"ATXHeading"}, activeContexts = {"ATXHeading4"} },
   { icon = "type", description = "Normal text", group = "Heading", command = "Text: Normal Text", onlyContexts = {"ATXHeading"} },
   { icon = "arrow-up", description = "Move section up", command = "Outline: Move Up", onlyContexts = {"ATXHeading"} },
   { icon = "arrow-down", description = "Move section down", command = "Outline: Move Down", onlyContexts = {"ATXHeading"} },
@@ -828,20 +837,23 @@ config.set("markupBar.line", {
   { icon = "arrow-up", description = "Move row up", command = "Outline: Move Up", onlyContexts = {"TableRow"} },
   { icon = "arrow-down", description = "Move row down", command = "Outline: Move Down", onlyContexts = {"TableRow"} },
   -- A paragraph
-  { icon = "md-format-size", description = "Heading 1", group = "Turn into heading", command = "Text: Heading 1", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
-  { icon = "md-format-size", description = "Heading 2", group = "Turn into heading", command = "Text: Heading 2", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
-  { icon = "md-format-size", description = "Heading 3", group = "Turn into heading", command = "Text: Heading 3", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
-  { icon = "md-format-size", description = "Heading 4", group = "Turn into heading", command = "Text: Heading 4", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
-  { icon = "md-format-list-bulleted", description = "Turn into bullet item", command = "Text: Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
-  { icon = "md-format-list-numbered", description = "Turn into numbered item", command = "Text: Number Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
-  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "letter-h", description = "Heading 1", group = "Turn into heading", command = "Text: Heading 1", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "letter-h", description = "Heading 2", group = "Turn into heading", command = "Text: Heading 2", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "letter-h", description = "Heading 3", group = "Turn into heading", command = "Text: Heading 3", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "letter-h", description = "Heading 4", group = "Turn into heading", command = "Text: Heading 4", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem"} },
+  { icon = "list", description = "Turn into bullet item", command = "Text: Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "list-ordered", description = "Turn into numbered item", command = "Text: Number Listify Selection", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
+  { icon = "list-checks", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"Paragraph"}, exceptContexts = {"ListItem", "Blockquote"} },
   { icon = "paperclip", description = "Upload file", command = "File: Upload", exceptContexts = {"FencedCode", "FrontMatter"} },
+  -- Comment on the selection (quoted) when it touches the line, else on the
+  -- line; a blank line gets Comment among the slash menu's blocks instead
+  { icon = "message-square", description = "Add comment", command = "Comment: Add", exceptContexts = {"FencedCode", "FrontMatter", "LuaDirective", "@blank"} },
   -- A list item that is no task yet
-  { icon = "md-checklist", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
+  { icon = "list-checks", description = "Turn into task", command = "Text: Taskify Line", onlyContexts = {"ListItem"}, exceptContexts = {"Task"} },
   -- A task, done or not
-  { icon = "trash-2", description = "Remove all completed tasks", command = "Task: Remove Completed", onlyContexts = {"Task"} },
+  { icon = "trash", description = "Remove all completed tasks", command = "Task: Remove Completed", onlyContexts = {"Task"} },
   -- A heading or a list item with nested items: Collapse when open, Expand when folded
-  { icon = "md-unfold-less", description = "Collapse", command = "Outline: Toggle Fold", onlyContexts = {"ATXHeading", "@hasChildren"}, exceptContexts = {"@folded"} },
-  { icon = "md-unfold-more", description = "Expand", command = "Outline: Toggle Fold", onlyContexts = {"@folded"} },
+  { icon = "chevrons-down-up", description = "Collapse", command = "Outline: Toggle Fold", onlyContexts = {"ATXHeading", "@hasChildren"}, exceptContexts = {"@folded"} },
+  { icon = "chevrons-up-down", description = "Expand", command = "Outline: Toggle Fold", onlyContexts = {"@folded"} },
 })
 ```

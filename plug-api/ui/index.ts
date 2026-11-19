@@ -1,4 +1,3 @@
-export { Sliders as SlidersIcon } from "preact-feather";
 export type { PanelStylesOptions } from "../lib/panel_styles.ts";
 export { panelStyles } from "../lib/panel_styles.ts";
 export type * from "../types/search_admin.ts";
@@ -124,6 +123,29 @@ export { SegmentedControl } from "./segmented_control.tsx";
 export type { SelectProps } from "./select.tsx";
 export { Select } from "./select.tsx";
 export { normalizePrefix, prefixFromName, slugify } from "./slugify.ts";
+export type {
+  GalleryChoice,
+  GalleryKit,
+  StarterGalleryProps,
+} from "./starter_gallery.tsx";
+export { StarterGallery } from "./starter_gallery.tsx";
+export type {
+  InterfaceLevel,
+  KitInfo,
+  PickableKit,
+  Starter,
+  StarterChoice,
+  StarterContent,
+  StarterOutcome,
+} from "./starter.tsx";
+export {
+  HAS_NOTES_MESSAGE,
+  HAS_NOTES_WARNING,
+  StarterFields,
+  StarterPicker,
+  starterNotice,
+  useStarterChoice,
+} from "./starter.tsx";
 export type { TabItem, TabsProps } from "./tabs.tsx";
 export { Tabs } from "./tabs.tsx";
 export type {
@@ -158,3 +180,21 @@ export type { UrlPrefixInputProps } from "./url_prefix_input.tsx";
 export { UrlPrefixInput } from "./url_prefix_input.tsx";
 export type { FitLevel } from "./use_fit_collapse.ts";
 export { useFitCollapse } from "./use_fit_collapse.ts";
+export {
+  configureIcons,
+  FALLBACK_ICON,
+  iconElement,
+  iconKeywords,
+  iconNames,
+  iconSvg,
+  iconSvgOrNull,
+  iconsLoaded,
+  loadIcons,
+  onIconsLoaded,
+  resolveIconName,
+} from "./icons/registry.ts";
+export type { IconSource, IconSvgOptions } from "./icons/registry.ts";
+export { DEPRECATED_ICONS } from "./icons/deprecations.ts";
+export type { IconData, IconKeywords, IconNode } from "./icons/types.ts";
+export { IconPicker } from "./icon_picker.tsx";
+export type { IconPickerProps } from "./icon_picker.tsx";

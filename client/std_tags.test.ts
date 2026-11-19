@@ -21,7 +21,9 @@ async function stdTagConfig(extraLua = "", rootTags = true) {
 test("built-in tags have icons", async () => {
   const config = await stdTagConfig();
   expect(config.get(["tags", "page", "icon"], undefined)).toBe("file-text");
-  expect(config.get(["tags", "task", "icon"], undefined)).toBe("check-square");
+  expect(config.get(["tags", "task", "icon"], undefined)).toBe(
+    "square-check-big",
+  );
 });
 
 test("tag.define accepts a string icon and rejects any other", async () => {

@@ -22,6 +22,8 @@ export type PaletteCommand = {
   lastRun?: number;
   /** Prettified key binding, e.g. `⌘K`. */
   hint?: string;
+  /** Lucide icon name */
+  icon?: string;
 };
 
 export type SlashCommand = SlashCommandDef & {

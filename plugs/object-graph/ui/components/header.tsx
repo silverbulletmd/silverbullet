@@ -1,6 +1,6 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { Button } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren } from "preact";
-import { Crosshair, Sliders } from "preact-feather";
 
 type Props = {
   /** Narrow (a sidebar dock): shorter labels, so the toolbar keeps to a row */
@@ -41,7 +41,7 @@ export function Header({
         label="Filters"
         onClick={onToggleFilters}
       >
-        <Sliders size={13} />
+        <Icon name="sliders-vertical" size={13} />
         {compact ? null : "Filters"}
       </Chip>
       <div class="gv-toolbar-group" role="group" aria-label="Show">
@@ -71,7 +71,7 @@ export function Header({
         aria-label="Focus"
         onClick={onCollapseAll}
       >
-        {compact ? <Crosshair size={14} /> : "Focus"}
+        {compact ? <Icon name="crosshair" size={14} /> : "Focus"}
       </Button>
       <Button
         title="Follow every shown relation outward until nothing is left to add"

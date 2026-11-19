@@ -13,7 +13,7 @@ import type { DecorationSet } from "@codemirror/view";
 import { Decoration, EditorView, WidgetType } from "@codemirror/view";
 import type { NodeType } from "@lezer/common";
 import type { Client } from "../client.ts";
-import { createIconElement } from "../lib/icon.ts";
+import { iconElement, iconSvg } from "../../plug-api/ui/icons/registry.ts";
 import {
   type DecorationBuilder,
   type IncrementalDecorations,
@@ -35,6 +35,15 @@ type LinkOptions = {
   content?: (label: HTMLElement) => Promise<unknown>;
 };
 
+/** A page-decoration icon wrapped for inline display, or undefined when there is none. */
+export function decorationIconElement(icon: unknown): HTMLElement | undefined {
+  if (!iconSvg(icon)) return undefined;
+  const el = iconElement(icon);
+  el.className = "sb-page-decoration-icon";
+  el.setAttribute("aria-hidden", "true");
+  return el;
+}
+
 export class LinkWidget extends WidgetType {
   constructor(readonly options: LinkOptions) {
     super();
@@ -43,10 +52,7 @@ export class LinkWidget extends WidgetType {
   toDOM(): HTMLElement {
     const anchor = document.createElement("a");
     anchor.className = this.options.cssClass;
-    const icon = createIconElement(
-      this.options.icon,
-      "sb-page-decoration-icon",
-    );
+    const icon = decorationIconElement(this.options.icon);
     if (icon) anchor.append(icon);
     if (this.options.content) {
       const label = document.createElement("span");

@@ -1,6 +1,5 @@
 import { EditorView } from "@codemirror/view";
 import { useEffect, useLayoutEffect, useState } from "preact/hooks";
-import * as featherIcons from "preact-feather";
 import type { Client } from "../client.ts";
 import {
   KEYBOARD_PRESENT_INSET,
@@ -13,7 +12,7 @@ import {
   markupSurfaces,
   runMarkupButton,
 } from "../lib/markup_buttons.ts";
-import { MarkupIcon } from "../lib/markup_icons.ts";
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { contextsAt, matchesNodeContexts } from "../lib/node_contexts.ts";
 
 /** Leaves room for at least a few editor lines next to the bar. */
@@ -130,7 +129,7 @@ export function KeyboardBar({
               aria-label={buttonLabel(button)}
               onClick={() => runMarkupButton(client, button)}
             >
-              <MarkupIcon icon={button.icon} />
+              <Icon name={button.icon} size={20} />
             </button>
           );
         })}
@@ -142,7 +141,7 @@ export function KeyboardBar({
         aria-label="Hide keyboard"
         onClick={() => client.editorView.contentDOM.blur()}
       >
-        <featherIcons.ChevronDown size={20} />
+        <Icon name="chevron-down" size={20} />
       </button>
     </div>
   );

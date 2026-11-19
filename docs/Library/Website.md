@@ -45,10 +45,10 @@ docsNav = docsNav or {}
 -- The tree in display order. Each section and each node is a table with:
 --   ref: page to open (omit for a plain folder, then give a label)
 --   label: tree label, defaulting to the last segment of ref
---   icon: Feather icon name
+--   icon: Lucide icon name
 --   childrenFrom: page prefix whose pages the Navigate view lists as children and its child nodes as array items.
 docsNav.sections = {
-  { name = "SilverBullet", ref = "SilverBullet", icon = "home",
+  { name = "SilverBullet", ref = "SilverBullet", icon = "house",
     description = "Documentation home.",
   },
   { name = "CHANGELOG", ref = "CHANGELOG", icon = "clock",

@@ -44,7 +44,6 @@ export type PredefinedMenuKind =
  * - `label`: overrides the command's display label in the menu only.
  * - `predefined`: emit an OS-native predefined item instead of a
  *   command-dispatching item.
- * - `icon`: optional icon identifier; platform support varies.
  */
 export type MenuContribution = {
   location: string;
@@ -52,7 +51,6 @@ export type MenuContribution = {
   order?: number;
   label?: string;
   predefined?: PredefinedMenuKind;
-  icon?: string;
 };
 
 /**
@@ -64,6 +62,9 @@ export type MenuPlacement = MenuContribution | MenuContribution[] | null;
 
 export type CommandDef = {
   name: string;
+
+  /** Lucide icon name shown in the command palette */
+  icon?: string;
 
   contexts?: string[];
 
@@ -156,7 +157,7 @@ export type SlashCommandDef = {
   /** The label shown in the menu instead of `name`, e.g. "Heading 1" for `h1` */
   displayName?: string;
   description?: string;
-  /** A Feather icon name, an `md-*` editor icon or inline `<svg>` markup */
+  /** A Lucide icon name (see the Icons docs page) */
   icon?: string;
   /** More words that find this command when typed after `/` */
   aliases?: string[];

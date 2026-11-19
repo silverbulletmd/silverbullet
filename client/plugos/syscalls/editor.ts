@@ -760,6 +760,37 @@ export function editorSyscalls(client: Client): SysCallMapping {
         },
       ],
     },
+    "editor.pickIcon": {
+      callback: (
+        _ctx,
+        opts?: { initial?: string; title?: string } | null,
+      ): Promise<string | undefined> => {
+        // Lua can't tell null from undefined: "No icon" is "", cancel is nil
+        return client.ui
+          .pickIcon(opts ?? {})
+          .then((name) => (name === null ? "" : name));
+      },
+      description:
+        'Shows the icon picker. Returns the picked Lucide icon name, an empty string when the user picks "No icon", or nil when they cancel.',
+      parameters: [
+        {
+          name: "opts",
+          type: "table",
+          description:
+            "Optional: `initial` (the icon to mark as current) and `title` (the dialog's heading).",
+        },
+      ],
+      returns: [
+        {
+          type: "string",
+          description:
+            'The picked icon name, "" for no icon, or nil when cancelled.',
+        },
+      ],
+      examples: [
+        { code: 'local name = editor.pickIcon { title = "Page icon" }' },
+      ],
+    },
     "editor.filterBox": {
       callback: (
         _ctx,

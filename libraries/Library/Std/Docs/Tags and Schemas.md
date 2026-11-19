@@ -14,7 +14,8 @@ All optional except `name`:
 * `schema`: a JSON Schema the tag's objects are checked against. Failures show as lint warnings in the editor.
 * `mustValidate`: when `true`, objects failing `schema` or `validate` are not indexed at all (errors go to the log). Default `false`.
 * `validate`: `function(o)` returning nil when valid, or an error message.
-* `pageDecoration`: a look for every page with the tag: `icon` (a Feather icon name), `prefix`, `cssClasses`, and the other page decoration fields. The page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` combine. Changing it re-indexes the pages with the tag automatically.
+* `icon`: a Lucide icon name for the tag, which is also the default icon of every page with the tag (the built-in `page` tag excepted).
+* `pageDecoration`: a look for every page with the tag: `prefix`, `cssClasses`, and the other page decoration fields (the icon comes from `icon`). The page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` combine. Changing it re-indexes the pages with the tag automatically.
 * `transform`: `function(o)` called for each indexed object with the tag. Change `o` and return it; return `{}` to skip indexing it; return `nil` to index it unchanged; or return a list of objects to index instead, one of which keeps the original `ref`.
 * `metatable`: a Lua metatable for the tag's objects, e.g. computed attributes through `__index`.
 * `renderFrontmatter`: `function(pageMeta, ctx)` returning a widget that replaces the frontmatter of pages with this tag.
@@ -35,7 +36,7 @@ tag.define {
       series = schema.ref("series"),
     },
   },
-  pageDecoration = { icon = "book" },
+  icon = "book",
 }
 ```
 
@@ -86,7 +87,8 @@ To give every page with a tag its own look, style the class instead of decoratin
 ```space-lua
 tag.define {
   name = "recipe",
-  pageDecoration = { icon = "coffee", cssClasses = { "recipe-page" } },
+  icon = "coffee",
+  pageDecoration = { cssClasses = { "recipe-page" } },
 }
 ```
 

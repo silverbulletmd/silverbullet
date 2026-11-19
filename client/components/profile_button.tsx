@@ -1,9 +1,9 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import {
   dashboardUrl,
   dashboardSessionRoutes,
 } from "../dashboard_navigation.ts";
 import type { FunctionalComponent } from "preact";
-import * as featherIcons from "preact-feather";
 import type { Client } from "../client.ts";
 import {
   logoutBrowserSession,
@@ -29,7 +29,7 @@ export function ProfileAvatar(
           className="sb-profile-avatar sb-profile-avatar-signed-out"
           style={{ width: `${size}px`, height: `${size}px` }}
         >
-          <featherIcons.User size={Math.round(size * 0.6)} />
+          <Icon name="user" size={Math.round(size * 0.6)} />
         </span>
       );
     }

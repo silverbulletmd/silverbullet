@@ -191,6 +191,7 @@ describe("line menu", () => {
       "Move section up",
       "Move section down",
       "Upload file",
+      "Add comment",
       "Expand",
       "",
       "Delete",
@@ -229,6 +230,7 @@ describe("line menu", () => {
       "Turn into numbered item",
       "Turn into task",
       "Upload file",
+      "Add comment",
       "",
       "Delete",
     ]);
@@ -247,6 +249,7 @@ describe("line menu", () => {
       "Move section up",
       "Move section down",
       "Upload file",
+      "Add comment",
       "Collapse",
       "",
       "Delete",
@@ -258,6 +261,7 @@ describe("line menu", () => {
       "Move up",
       "Move down",
       "Upload file",
+      "Add comment",
       "Turn into task",
       "Collapse",
       "",
@@ -269,6 +273,7 @@ describe("line menu", () => {
       "Move up",
       "Move down",
       "Upload file",
+      "Add comment",
       "Turn into task",
       "",
       "Delete",
@@ -280,6 +285,7 @@ describe("line menu", () => {
       "Move up",
       "Move down",
       "Upload file",
+      "Add comment",
       "Remove all completed tasks",
       "",
       "Delete",
@@ -288,15 +294,22 @@ describe("line menu", () => {
     expect(labels(doc, 10)).toEqual([
       "Turn into heading",
       "Upload file",
+      "Add comment",
       "",
       "Delete",
     ]);
     // A table with its source showing
-    expect(labels(doc, 12)).toEqual(["Upload file", "", "Delete"]);
+    expect(labels(doc, 12)).toEqual([
+      "Upload file",
+      "Add comment",
+      "",
+      "Delete",
+    ]);
     expect(labels(doc, 14)).toEqual([
       "Move row up",
       "Move row down",
       "Upload file",
+      "Add comment",
       "",
       "Delete",
     ]);

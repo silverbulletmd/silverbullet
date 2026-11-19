@@ -15,7 +15,7 @@ Supported keys in the spec:
 * `name`: name of the command: what you type after `/`
 * `displayName`: the label shown in the menu instead of `name`, e.g. `Heading 1` for `h1`. Typing the name keeps working.
 * `description`: Description of the command
-* `icon`: the icon shown in front of it: a [Feather](https://feathericons.com) icon name, an `md-*` editor icon (as on the [[API/markupBar|markup bar]]) or inline `<svg>` markup
+* `icon`: the icon shown in front of it, an [[Icons|icon name]]
 * `aliases`: more words that find the command when typed after `/`, e.g. `{"heading", "title"}`
 * `group`: the menu section it’s listed under, see [[#Groups]]
 * `priority`: higher sorts earlier within its group

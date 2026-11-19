@@ -280,7 +280,7 @@ tag.define {
 
 tag.define {
   name = "paragraph",
-  icon = "align-left",
+  icon = "text-align-start",
   schema = {
     type = "object",
     properties = {
@@ -304,7 +304,7 @@ tag.define {
 
 tag.define {
   name = "table",
-  icon = "grid",
+  icon = "grid-3x3",
   schema = {
     type = "object",
     -- One property per column
@@ -389,7 +389,7 @@ tag.define {
 
 tag.define {
   name = "ambiguous-link",
-  icon = "help-circle",
+  icon = "circle-question-mark",
   schema = {
     type = "object",
     properties = {
@@ -441,7 +441,7 @@ tag.define {
 
 tag.define {
   name = "task",
-  icon = "check-square",
+  icon = "square-check-big",
   schema = {
     type = "object",
     additionalProperties = true,

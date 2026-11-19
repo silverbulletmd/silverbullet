@@ -39,6 +39,7 @@
     "./type/datastore": "./plug-api/types/datastore.ts",
     "./type/event": "./plug-api/types/event.ts",
     "./type/revisions": "./plug-api/types/revisions.ts",
+    "./type/starter_kits": "./plug-api/types/starter_kits.ts",
     "./type/index": "./plug-api/types/index.ts",
     "./type/search_admin": "./plug-api/types/search_admin.ts"
   },
@@ -78,7 +79,8 @@
     "bench": "vitest bench",
     "index-stats": "tsx plugs/index/index_stats.ts",
     "test:e2e": "npx playwright test --project=chromium",
-    "test:e2e:headed": "npx playwright test --project=chromium --headed"
+    "test:e2e:headed": "npx playwright test --project=chromium --headed",
+    "build:icons": "tsx build/build_icons.ts"
   },
   "peerDependencies": {
     "preact": "^10.25.0"
@@ -122,8 +124,6 @@
     "js-yaml": "^4.3.2",
     "mime": "4.1.0",
     "preact": "^10.25.0",
-    "preact-feather": "4.3.0",
-    "react-icons": "5.7.0",
     "sass": "^1.105.0",
     "style-mod": "4.1.4",
     "turndown": "7.2.4"
@@ -139,6 +139,7 @@
     "@typescript/native": "npm:typescript@^7.0.2",
     "fake-indexeddb": "6.2.5",
     "happy-dom": "^20.14.5",
+    "lucide-static": "1.76.0",
     "preact-render-to-string": "^6.7.0",
     "tsx": "^4.23.15",
     "typescript": "npm:@typescript/typescript6@^6.0.2",

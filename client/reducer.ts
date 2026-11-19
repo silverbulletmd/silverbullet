@@ -156,6 +156,17 @@ export default function reducer(
         filterBoxOptions: [],
         filterBoxHelpText: "",
       };
+    case "show-iconpicker":
+      return {
+        ...state,
+        iconPicker: {
+          title: action.title,
+          initial: action.initial,
+          onPick: action.onPick,
+        },
+      };
+    case "hide-iconpicker":
+      return { ...state, iconPicker: undefined };
     case "show-prompt":
       return {
         ...state,

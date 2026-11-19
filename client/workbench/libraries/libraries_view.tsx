@@ -1,3 +1,4 @@
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { editor, markdown } from "@silverbulletmd/silverbullet/syscalls";
 import {
   Alert,
@@ -7,7 +8,6 @@ import {
 } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
-import { ChevronDown, ChevronRight, X } from "preact-feather";
 import type { Client } from "../../client.ts";
 import { copyText, openRef } from "../shared/action.ts";
 import { ActionMenu } from "../shared/action_menu.tsx";
@@ -366,7 +366,7 @@ function Banner(props: {
         {props.message}
       </span>
       <Button variant="icon" title="Dismiss" onClick={props.onDismiss}>
-        <X size={14} />
+        <Icon name="x" size={14} />
       </Button>
     </Alert>
   );
@@ -492,7 +492,7 @@ function Uri({ uri }: { uri: string }) {
 
 function Group({ libs, group }: { libs: Libraries; group: AvailableGroup }) {
   const [open, setOpen] = useState(true);
-  const Chevron = open ? ChevronDown : ChevronRight;
+  const chevron = open ? "chevron-down" : "chevron-right";
   return (
     <div className="sb-wb-lib-group">
       <button
@@ -501,7 +501,7 @@ function Group({ libs, group }: { libs: Libraries; group: AvailableGroup }) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <Chevron size={14} />
+        <Icon name={chevron} size={14} />
         <span>{group.label}</span>
         <span className="sb-wb-lib-count">{group.libraries.length}</span>
       </button>

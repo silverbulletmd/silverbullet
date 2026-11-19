@@ -615,3 +615,14 @@ export function isMobile(): Promise<boolean> {
 export function isNarrowScreen(): Promise<boolean> {
   return syscall("editor.isNarrowScreen");
 }
+
+/**
+ * Shows the icon picker.
+ * @returns the picked Lucide icon name, "" for "No icon", or undefined when cancelled
+ */
+export function pickIcon(opts?: {
+  initial?: string;
+  title?: string;
+}): Promise<string | undefined> {
+  return syscall("editor.pickIcon", opts);
+}

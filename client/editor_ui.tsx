@@ -10,7 +10,6 @@ import type {
 import { notificationDismissTimeouts } from "@silverbulletmd/silverbullet/type/client";
 import { h, render as preactRender } from "preact";
 import { useEffect, useMemo, useReducer, useState } from "preact/hooks";
-import * as featherIcons from "preact-feather";
 import { isMacLike, keyboardHint } from "../plug-api/lib/shortcut.ts";
 import type {
   ChooseVersionOptions,
@@ -42,7 +41,8 @@ import {
   profileMenuLabel,
 } from "./components/profile_button.tsx";
 import { TopBar } from "./components/top_bar.tsx";
-import { resolveButtonIcon } from "./lib/feather_icons.ts";
+import { iconComponent } from "./components/icon_component.tsx";
+import { IconPickerModal } from "./components/icon_picker_modal.tsx";
 import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
 import { markupButtons, markupSurfaces } from "./lib/markup_buttons.ts";
 import { toggleMobileDock } from "./navigator/navigator.ts";
@@ -277,6 +277,23 @@ export class MainUI {
     });
   }
 
+  pickIcon(
+    opts: { initial?: string; title?: string } = {},
+  ): Promise<string | null | undefined> {
+    return new Promise((resolve) => {
+      this.viewDispatch({
+        type: "show-iconpicker",
+        title: opts.title,
+        initial: opts.initial,
+        onPick: (name) => {
+          this.viewDispatch({ type: "hide-iconpicker" });
+          this.client.focus();
+          resolve(name);
+        },
+      });
+    });
+  }
+
   prompt(
     message: string,
     defaultValue = "",
@@ -504,6 +521,13 @@ export class MainUI {
             onSelect={viewState.filterBoxOnSelect}
           />
         )}
+        {viewState.iconPicker && (
+          <IconPickerModal
+            title={viewState.iconPicker.title}
+            initial={viewState.iconPicker.initial}
+            onPick={viewState.iconPicker.onPick}
+          />
+        )}
         {viewState.showPrompt && (
           <Prompt
             message={viewState.promptMessage!}
@@ -593,7 +617,7 @@ export class MainUI {
               .includes("hamburger")
               ? [
                   {
-                    icon: featherIcons.MoreVertical,
+                    icon: iconComponent("ellipsis-vertical"),
                     description: "Open Menu",
                     class: "expander",
                     callback: () => {
@@ -635,7 +659,7 @@ export class MainUI {
                 return {
                   icon: isProfileButton
                     ? profileAvatarComponent
-                    : resolveButtonIcon(button.icon),
+                    : iconComponent(button.icon),
                   description,
                   dropdown: button.dropdown,
                   hasPopup: isProfileButton ? true : undefined,

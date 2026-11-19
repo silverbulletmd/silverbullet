@@ -12,7 +12,7 @@ import {
   markupSurfaces,
   runMarkupButton,
 } from "../lib/markup_buttons.ts";
-import { MarkupIcon } from "../lib/markup_icons.ts";
+import { Icon } from "@silverbulletmd/silverbullet/ui";
 import { contextsAt, matchesNodeContexts } from "../lib/node_contexts.ts";
 
 /** Kept between the bubble and the viewport edges */
@@ -173,7 +173,7 @@ export function selectionBubblePlugin(client: Client): Extension {
               "aria-label": label,
               onClick: () => runMarkupButton(client, button),
             },
-            h(MarkupIcon, { icon: button.icon, size: 16 }),
+            h(Icon, { name: button.icon, size: 16 }),
           );
         }),
         bubble,

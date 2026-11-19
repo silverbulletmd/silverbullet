@@ -24,8 +24,8 @@ Defines a tag explicitly.
 * `metatable` to set a custom Lua metatable for objects with this tag.
 * `mustValidate` a boolean defining whether or not schema validation must pass for the object to be indexed
 * `schema` [[Schema]] to validate against
-* `icon` a [Feather](https://feathericons.com) icon name for the tag itself, shown in the [[Workbench]]. Unlike `pageDecoration`, it doesn't decorate the tag's pages; when it's absent, `pageDecoration.icon` is used.
-* `pageDecoration` [[Page Decorations|page decoration]] (`icon`, `prefix`, `cssClasses`, …) for every page with this tag. See [[Page Decorations#Apply to every page with a tag]].
+* `icon` an [[Icons|icon name]] for the tag, shown in the [[Workbench]] and views. It is also the default icon of every page with this tag, except for the built-in `page` tag, which every page carries. A page’s own `pageDecoration.icon` wins.
+* `pageDecoration` [[Page Decorations|page decoration]] (`prefix`, `cssClasses`, …) for every page with this tag; its icon comes from `icon`. See [[Page Decorations#Apply to every page with a tag]].
 * `validate` callback function invoked when an objects needs to be validated, returns `nil` or an error message.
 * `transform` callback function invoked when an object with tag `name` has been indexed. Allows you to make changes to it, skip indexing altogether or generate additional objects.
 * `renderFrontmatter` callback function `function(pageMeta, ctx)` that renders the [[Frontmatter]] of pages with this tag as a custom widget in the editor. See [[#Frontmatter live previews]].

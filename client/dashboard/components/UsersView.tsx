@@ -8,7 +8,7 @@ import {
   Input,
   SectionNav,
   Select,
-  SlidersIcon,
+  Icon,
 } from "@silverbulletmd/silverbullet/ui";
 import { useEffect, useState } from "preact/hooks";
 import {
@@ -119,7 +119,7 @@ export function UserList({
                         aria-label={`Settings for ${name}`}
                         title={`Settings for ${name}`}
                       >
-                        <SlidersIcon size={18} aria-hidden="true" />
+                        <Icon name="sliders-vertical" size={18} />
                       </ButtonLink>
                     </td>
                   </tr>

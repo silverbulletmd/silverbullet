@@ -14,7 +14,7 @@ The page picker has two main functions:
    * Based on the entered name
    * Based on [[Link|linked]] to, but not yet created page names
 
-The page picker can be invoked by clicking the 📔 icon in the top bar, or by pressing `Cmd-k` on Mac, or `Ctrl-k` on Windows/Linux.
+The page picker can be invoked by clicking the book icon in the top bar, or by pressing `Cmd-k` on Mac, or `Ctrl-k` on Windows/Linux.
 
 The main input is the **filter phrase** and can be used to narrow down the list of page results.
 

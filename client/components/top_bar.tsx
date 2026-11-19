@@ -3,8 +3,6 @@ import { Icon, Input } from "@silverbulletmd/silverbullet/ui";
 import type { ComponentChildren, FunctionalComponent } from "preact";
 import { createPortal } from "preact/compat";
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
-import { Sidebar } from "preact-feather";
-import { resolveIconNode } from "../lib/icon.ts";
 
 export type ActionButton = {
   icon: FunctionalComponent<any>;
@@ -40,7 +38,7 @@ function DockButton({
       aria-expanded={dock.expanded}
       onClick={dock.onClick}
     >
-      <Sidebar size={20} />
+      <Icon name="panel-left" size={20} />
     </button>
   );
 }
@@ -342,7 +340,6 @@ export function TopBar({
   leftDock?: MobileDockButton;
   rightDock?: MobileDockButton;
 }) {
-  const pageIconNode = resolveIconNode(pageIcon);
   return (
     <div id="sb-top" className={isOnline ? undefined : "sb-sync-error"}>
       <DockButton side="left" dock={leftDock} />
@@ -351,9 +348,7 @@ export function TopBar({
         <div className="inner">
           <div className="wrapper">
             <div className="sb-page-prefix">
-              {pageIconNode && (
-                <Icon node={pageIconNode} class="sb-page-decoration-icon" />
-              )}
+              <Icon name={pageIcon} class="sb-page-decoration-icon" />
               {pageNamePrefix}
             </div>
             <span

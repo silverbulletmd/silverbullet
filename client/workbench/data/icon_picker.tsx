@@ -1,10 +1,9 @@
-import { useMemo, useState } from "preact/hooks";
-import { featherIconNames } from "../../lib/feather_icons.ts";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
+import { IconPicker as IconGrid } from "../../../plug-api/ui/icon_picker.tsx";
+import { placePopupMenu } from "../../components/menu_placement.ts";
 import { TagIcon } from "./tag_list_view.tsx";
 
-const SHOWN = 120;
-
-/** A tag's icon, and a searchable grid of Feather icons to change it. */
+/** A tag's icon, opening the shared icon picker to change it. */
 export function IconPicker({
   icon,
   disabled,
@@ -16,10 +15,23 @@ export function IconPicker({
   onPick: (name: string | null) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [phrase, setPhrase] = useState("");
-  const all = useMemo(() => featherIconNames(), []);
-  const p = phrase.trim().toLowerCase();
-  const shown = (p ? all.filter((n) => n.includes(p)) : all).slice(0, SHOWN);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  // Fixed, so the Workbench panel's overflow can't clip it, and flipped
+  // above the button when it would run off the bottom of the window
+  useLayoutEffect(() => {
+    const button = buttonRef.current;
+    const popover = popoverRef.current;
+    if (!open || !button || !popover) return;
+    const { top, left } = placePopupMenu(
+      button.getBoundingClientRect(),
+      popover.getBoundingClientRect(),
+      { width: window.innerWidth, height: window.innerHeight },
+      "start",
+    );
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+  }, [open]);
   return (
     <span className="sb-wbd-iconpick">
       <button
@@ -27,6 +39,7 @@ export function IconPicker({
         className="sb-wbd-iconbutton"
         aria-label="Change icon"
         title={disabled ? icon : "Change icon"}
+        ref={buttonRef}
         aria-expanded={open}
         disabled={disabled}
         onClick={() => setOpen(!open)}
@@ -34,50 +47,21 @@ export function IconPicker({
         <TagIcon icon={icon} />
       </button>
       {open ? (
-        <div className="sb-wbd-icongrid" role="dialog" aria-label="Icons">
-          <input
-            type="search"
-            className="sb-wb-filter"
-            placeholder="Search icons"
-            aria-label="Search icons"
-            value={phrase}
-            ref={(el) => el?.focus()}
-            onInput={(e) => setPhrase(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                e.preventDefault();
-                e.stopPropagation();
-                setOpen(false);
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="sb-wbd-noicon"
-            onClick={() => {
-              onPick(null);
+        <div
+          className="sb-wbd-icongrid"
+          role="dialog"
+          aria-label="Icons"
+          ref={popoverRef}
+        >
+          <IconGrid
+            value={icon}
+            autoFocus
+            onCancel={() => setOpen(false)}
+            onPick={(name) => {
+              onPick(name);
               setOpen(false);
             }}
-          >
-            No icon
-          </button>
-          <div className="sb-wbd-icons">
-            {shown.map((name) => (
-              <button
-                key={name}
-                type="button"
-                title={name}
-                aria-label={name}
-                aria-pressed={name === icon}
-                onClick={() => {
-                  onPick(name);
-                  setOpen(false);
-                }}
-              >
-                <TagIcon icon={name} />
-              </button>
-            ))}
-          </div>
+          />
         </div>
       ) : null}
     </span>

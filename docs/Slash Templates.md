@@ -34,7 +34,7 @@ You can configure these optional [[Frontmatter]] keys:
 
 * `displayName`: The label shown in the menu instead of the name, e.g. `Code block` for `/code`. Typing the name keeps working.
 * `description`: The description shown in the slash command completion menu
-* `icon`: The icon shown in front of it: a [Feather](https://feathericons.com) icon name, an `md-*` editor icon (as on the [[API/markupBar|markup bar]]) or inline `<svg>` markup
+* `icon`: The icon shown in front of it, an [[Icons|icon name]]
 * `aliases`: More words that find the command when typed after `/`, e.g. `[divider, separator]`
 * `group`: The menu section it’s listed under (see [[API/slashCommand#Groups]]), e.g. `Basic blocks`
 * `priority`: Higher priority commands appear earlier in their group
@@ -51,7 +51,7 @@ For example, the standard `/hr`:
 tags: meta/template/slash
 displayName: Divider
 description: Insert a horizontal rule
-icon: md-horizontal-rule
+icon: minus
 group: Basic blocks
 aliases: [divider, separator, rule, line]
 block: insert

@@ -50,9 +50,9 @@ import type { Client } from "../client.ts";
 import { disableSpellcheck } from "../codemirror/spell_checking.ts";
 import { languageFor, lazyLanguages, loadLanguageFor } from "../languages.ts";
 import { isValidEditor } from "../lib/command_filters.ts";
-import { createIconElement } from "../lib/icon.ts";
+import { decorationIconElement } from "./util.ts";
 import { keyboardAwareTooltips } from "../lib/keyboard_viewport.ts";
-import { createMarkupIconElement } from "../lib/markup_icons.ts";
+import { iconElement } from "../../plug-api/ui/icons/registry.ts";
 import type { CustomSyntaxSpec } from "../markdown_parser/custom_syntax.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
 import { editorHighlightStyle } from "../style.ts";
@@ -233,10 +233,11 @@ export function buildSharedEditorExtensions(
     dropCursor(),
     indentUnits,
     indentOnInput(),
-    // Nobody types into the headless runtime, and a blinking cursor keeps
-    // repainting it: about four times the idle CPU.
+    // Nobody types into the unseen runtime, and a blinking cursor keeps
+    // repainting it: about four times the idle CPU. Not `headless`, which
+    // Desktop also sets in visible windows.
     drawSelection(
-      globalThis.sbRuntime?.headless ? { cursorBlinkRate: 0 } : undefined,
+      globalThis.sbRuntime?.unseen ? { cursorBlinkRate: 0 } : undefined,
     ),
     selectionEdges,
     selectedWidgets,
@@ -282,11 +283,13 @@ export function buildPageExtensions(
           render(completion) {
             const { icon, slashIcon } = completion as DecoratedCompletion;
             if (slashIcon !== undefined) {
-              return (
-                createMarkupIconElement(slashIcon, "sb-slash-icon", 16) ?? null
-              );
+              if (typeof slashIcon !== "string" || !slashIcon) return null;
+              const el = iconElement(slashIcon, { size: 16 });
+              el.className = "sb-slash-icon";
+              el.setAttribute("aria-hidden", "true");
+              return el;
             }
-            return createIconElement(icon, "sb-page-decoration-icon") ?? null;
+            return decorationIconElement(icon) ?? null;
           },
         },
       ],

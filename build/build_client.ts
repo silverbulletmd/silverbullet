@@ -4,6 +4,7 @@ import * as esbuild from "esbuild";
 import * as sass from "sass";
 
 import { patchBundledJS } from "../client/plugos/plug_compile.ts";
+import { writeIconAssets } from "./build_icons.ts";
 
 export async function buildClient(): Promise<void> {
   // esbuild never prunes its outdir: without this, every build's content-hashed
@@ -139,6 +140,7 @@ export async function buildClient(): Promise<void> {
 
 async function copyAssets(dist: string) {
   await mkdir(dist, { recursive: true });
+  await writeIconAssets(dist);
   await cp("client/fonts", dist, { recursive: true });
   await cp("client/html", dist, { recursive: true });
   await cp("client/images/favicon-96x96.png", `${dist}/favicon-96x96.png`);
@@ -229,17 +231,25 @@ const NOT_PRECACHED = new Set([
   "setup.js",
   "app.css",
   "LICENSE.md",
+  // Not an entry point: only the icon picker's keyword search reads it, so it
+  // loads on demand rather than adding ~64 KB gzipped to every install
+  "icon-tags.json",
 ]);
+
+/** The service worker's install-time precache for the files built into `.client/`. */
+export function precacheList(clientFiles: string[]): string[] {
+  return [
+    "/", // The index page
+    ...clientFiles
+      .filter((f) => !f.endsWith(".map") && !NOT_PRECACHED.has(f))
+      .map((f) => `/.client/${f}`),
+  ];
+}
 
 async function patchServiceWorker() {
   const clientDir = "client_bundle/client/.client";
   const allFiles = await readdir(clientDir);
-  const precacheFiles = [
-    "/", // The index page
-    ...allFiles
-      .filter((f) => !f.endsWith(".map") && !NOT_PRECACHED.has(f))
-      .map((f) => `/.client/${f}`),
-  ];
+  const precacheFiles = precacheList(allFiles);
   const precacheFilesStr = precacheFiles.join(",");
 
   let swCode = await readFile(

@@ -22,7 +22,7 @@ The markup bar is on by default. **Editor: Toggle Markup Bar** turns it off or o
 Appends a button to one surface's list. Keys:
 
 * `surface` (required): where the button goes: `"mobile"` (the bar above the keyboard), `"selection"` (the desktop bubble over selected text) or `"line"` (the desktop ⋮ line menu). To put a button in more than one place, define it once per surface.
-* `icon`: [feather icon](https://feathericons.com) name (bare or `feather:`-prefixed), one of the `md-*` editor icons (e.g. `md-format-bold`), or literal `<svg>` markup
+* `icon`: an [[Icons|icon name]], e.g. `letter-b`
 * `command` (optional): command name to run when tapped. Replaces `run`.
 * `run` (optional): function to run when tapped
 * `description` (optional): accessible label of the button
@@ -47,7 +47,7 @@ The name from before the keyboard bar became the markup bar. It still works and 
 -- A strikethrough button on the phone bar, everywhere but in code
 markupBar.define {
   surface = "mobile",
-  icon = "md-format-strikethrough",
+  icon = "strikethrough",
   description = "Strikethrough",
   command = "Text: Strikethrough",
   exceptContexts = {"FencedCode"},
@@ -65,7 +65,7 @@ markupBar.define {
 -- A button in the bubble over selected text on desktop
 markupBar.define {
   surface = "selection",
-  icon = "md-format-quote",
+  icon = "quote",
   description = "Quote",
   command = "Text: Quote Selection",
 }
@@ -82,7 +82,7 @@ markupBar.define {
 
 -- Replace the phone bar's buttons altogether
 config.set("markupBar.mobile", {
-  { icon = "md-format-bold", command = "Text: Bold" },
+  { icon = "letter-b", command = "Text: Bold" },
   { icon = "rotate-ccw", command = "Editor: Undo" },
 })
 ```
