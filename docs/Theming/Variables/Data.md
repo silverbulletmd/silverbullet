@@ -766,6 +766,17 @@ derivesFrom:
 since: "0.3.6"
 stability: stable
 description: "Top bar action icons on hover."
+---
+name: "--top-scroll-shadow-color"
+group: Top bar
+level: specific
+light: "color-mix(in srgb, var(--root-color) 4%, transparent)"
+dark: "rgba(0, 0, 0, 0.25)"
+derivesFrom:
+- "--root-color"
+since: "edge"
+stability: experimental
+description: "The shadow below the top bar once the page scrolls under it."
 ```
 
 
