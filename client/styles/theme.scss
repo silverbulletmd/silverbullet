@@ -246,7 +246,8 @@
   --editor-search-match-selected-background-color: var(--highlight-color);
   --editor-external-edit-color: var(--tone-warning-soft);
   --editor-external-caret-color: var(--tone-warning);
-  --editor-frontmatter-background-color: var(--ui-accent-surface-color);
+  // Translucent like code blocks, so the selection layer shows through
+  --editor-frontmatter-background-color: var(--editor-code-background-color);
   --editor-frontmatter-color: var(--subtle-color);
   --editor-frontmatter-marker-color: color-mix(in srgb, var(--meta-color) 50%, transparent);
   --editor-widget-background-color: var(--ui-accent-surface-color);

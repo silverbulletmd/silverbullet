@@ -921,9 +921,11 @@ $comment-border: 1px;
       display: flex;
       align-items: center;
       padding-right: 7px;
-      color: var(--editor-frontmatter-marker-color);
-      font-size: 80%;
-      opacity: 0.8;
+      // Chrome, like the form's keys: UI font, not the page's body font
+      font-family: var(--ui-font);
+      font-size: 0.68em;
+      font-weight: 500;
+      color: var(--subtle-color);
       pointer-events: none;
       user-select: none;
       transition: opacity 0.12s;
