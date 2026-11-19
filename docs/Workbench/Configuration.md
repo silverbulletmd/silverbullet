@@ -15,6 +15,8 @@ A sidebar on the left lists two sections. In a narrow panel it becomes a drop-do
 
 Under **Appearance**, **Theme** picks the [[Theming|theme]] for everyone using the space, and the font options pick the [[Fonts]]. Both preview as soon as you choose, before you save. When this device uses a theme of its own, a note under the theme says so, with a **Use space default** button that drops the device’s choice.
 
+Under **Layout**, **Default layout** decides which side panels someone opening the space for the first time sees, such as the Space Tree on the left. Arrange the sidebars and the bottom panel the way you want them, then click **Use current layout**: it saves which view is open in each, and its width or height, as `view.defaults`. Views you have closed are saved as closed. A summary lists what each side shows, and **Clear** drops the saved layout. `Navigate: Save Layout as Default` does the same from the command palette. People who have already moved panels around keep their own layout. `Navigate: Reset All Views` shows you the space as a newcomer sees it. On a phone-width window there is no layout to capture, so the button is disabled.
+
 The filter in the toolbar narrows the section showing: options by label, description and path, key bindings by command name.
 
 A dot marks an option or command you changed from its default. Its ⋯ menu offers:
@@ -24,10 +26,10 @@ A dot marks an option or command you changed from its default. Its ⋯ menu offe
 * *Remove binding* and *Run command* (key bindings).
 
 # Saving
-Changes stay pending until you click **Save and apply**, or press `Cmd-s`/`Ctrl-s` while the tab has focus. **Discard** drops them. While anything is pending, the tab’s label shows a `•`. Pending changes survive switching tabs and closing the Workbench, but not reloading the page.
+Changes save as you make them. A checkbox, list, picker, reset or recorded shortcut saves right away. A text or number field saves when you leave it or press **Enter**, and **Escape** puts back the saved value. Fonts and the accent color preview while you type.
 
-Saving writes only what you changed into a managed `space-lua` block in [[^Library/Config]], then reloads your configuration. Everything outside that block is left alone, and so are values in it that you didn’t touch here, such as those [[Share]] remembers. Simple hand edits to the managed block survive a round trip through this tab. If the block isn’t valid Lua, the tab shows the error and refuses to save until you fix it in `Library/Config`.
+Saving writes only what you changed into a managed `space-lua` block in [[^Library/Config]], then reloads your configuration. Everything outside that block is left alone, and so are values in it that you didn’t touch here, such as those [[Share]] remembers. Simple hand edits to the managed block survive a round trip through this tab. If the block isn’t valid Lua, the tab shows the error and keeps your changes until you fix it in `Library/Config`; they save as soon as it loads again. A save that fails says so, with **Retry** and **Discard**. While changes are unsaved, the tab’s label shows a `•`.
 
-The footer counts the options or commands, how many you changed, and how many changes are unsaved, and links to `Library/Config`.
+The footer counts the options or commands and how many you changed, shows *Saving…* while a save runs, and links to `Library/Config`.
 
 In a read-only space the tab shows the configuration but can’t change it.

@@ -21,7 +21,11 @@ import {
 import { isPageDock, isWindowDock } from "./types.ts";
 import { requestNativeFocus } from "./ui/native_views.ts";
 import { focusedSlot } from "./ui/slots.ts";
-import type { ViewDefaultsTable } from "./view_defaults.ts";
+import {
+  layoutDefaults,
+  normalizeViewDefaults,
+  type ViewDefaultsTable,
+} from "./view_defaults.ts";
 import {
   buildPickSpec,
   nextPickName,
@@ -31,6 +35,7 @@ import {
   wireMeta,
 } from "./view_spec.ts";
 import { normalizeDefineSpec } from "./view_value.ts";
+import { WORKBENCH_VIEW } from "./views/workbench.ts";
 
 export type OpenOptions = {
   segment?: string;
@@ -70,6 +75,25 @@ export const dockState = createDockState({
   store: datastore,
   spaceDefaults: (name) => viewDefaults[name],
 });
+
+/** `existing` (a raw `view.defaults` value) updated to the docked layout. */
+export async function currentLayoutDefaults(
+  existing: unknown,
+): Promise<ViewDefaultsTable> {
+  const normalized = normalizeViewDefaults(existing);
+  // Open because the layout is being saved from it, not part of the layout
+  const ignore = [WORKBENCH_VIEW];
+  return layoutDefaults(
+    normalized,
+    await lifecycle.docked(ignore),
+    (name) => normalized[name]?.dock ?? resolveMeta(name)?.dock,
+    ignore,
+  );
+}
+
+export function viewTitle(name: string): string {
+  return resolveMeta(name)?.title ?? name;
+}
 
 export async function resolvedDock(name: string): Promise<string | undefined> {
   const meta = resolveMeta(name);

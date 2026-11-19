@@ -104,6 +104,13 @@ describe("toLua / parseManagedBlock round-trip (tables)", () => {
   });
 });
 
+test("dotted keys round-trip", () => {
+  const value = { "std.spaceTree": { dock: "lhs", open: true } };
+  const text = toLua(value);
+  expect(text).toContain('["std.spaceTree"]');
+  expect(literal(text)).toEqual(value);
+});
+
 describe("parseManagedBlock", () => {
   test("multi-line table overrides alongside scalars and commands", () => {
     const block = `-- managed-by: configuration-manager

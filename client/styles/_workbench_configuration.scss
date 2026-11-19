@@ -347,3 +347,54 @@
     cursor: pointer;
   }
 }
+
+// Edits the Workbench couldn't save, in Configuration and Data → Schema
+.sb-workbench .sb-wb-cfg-unsaved {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 6px 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background-color: var(--alert-warning-background-color);
+  color: var(--alert-warning-color);
+  font-size: 12px;
+
+  span {
+    flex: 1 1 auto;
+  }
+}
+
+.sb-wb-cfg-default-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+
+  dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 8px;
+
+    div {
+      display: contents;
+    }
+  }
+
+  dt {
+    color: var(--subtle-color);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .sb-wb-cfg-default-layout-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}

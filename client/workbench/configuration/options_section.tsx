@@ -1,6 +1,6 @@
 import { Checkbox, Input, Select } from "@silverbulletmd/silverbullet/ui";
 import type { JSX } from "preact";
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import type { Client } from "../../client.ts";
 import { toLua } from "../../config_management/managed_lua.ts";
 import { resolvedColor } from "../../space_theme.ts";
@@ -10,6 +10,7 @@ import { BlockNote } from "../shared/block_ui.tsx";
 import { ChangedMark } from "./changed_mark.tsx";
 import type { ConfigurationModel } from "./configuration_model.ts";
 import { EditorSizeInput, FontSelect, useFontPreview } from "./font_select.tsx";
+import { LayoutControl } from "./layout_control.tsx";
 import { getValueAtPath, type UiSchema } from "./schema.ts";
 import { ThemeSelect } from "./theme_select.tsx";
 
@@ -155,7 +156,18 @@ type ControlProps = {
   disabled: boolean;
   showing: boolean;
   value: any;
+  /** Shows a value without saving it, while it is typed */
   set: (value: unknown) => void;
+  /** Sets and saves a value chosen in one go */
+  commit: (value: unknown) => void;
+  /** Saves a typed field when it is left, or drops its edit on Escape */
+  typed: TypedField;
+};
+
+export type TypedField = {
+  onBlur: () => void;
+  onConfirm: () => void;
+  onExit: () => void;
 };
 
 /**
@@ -170,7 +182,9 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
       slot={p.schema.ui.font === "code" ? "code" : "editor"}
       label={p.label}
       disabled={p.disabled}
-      onChange={p.set}
+      onChange={p.commit}
+      onType={p.set}
+      typed={p.typed}
     />
   ),
   fontSize: (p) => (
@@ -180,6 +194,7 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
       label={p.label}
       disabled={p.disabled}
       onChange={p.set}
+      typed={p.typed}
     />
   ),
   theme: (p) => (
@@ -192,19 +207,19 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
       }
       label={p.label}
       disabled={p.disabled}
-      onChange={p.set}
+      onChange={p.commit}
     />
   ),
-  color: ({ label, disabled, value, set }) => {
+  color: ({ label, disabled, value, set, commit, typed }) => {
     const shown = shownAccentHex();
     return (
       <span class="sb-config-color">
-        <input
-          type="color"
-          aria-label={`${label} picker`}
+        <ColorPicker
+          label={`${label} picker`}
           disabled={disabled}
           value={/^#[0-9a-f]{6}$/i.test(value ?? "") ? value : shown}
-          onInput={(e) => set(e.currentTarget.value)}
+          onInput={set}
+          onDone={commit}
         />
         <Input
           aria-label={label}
@@ -213,24 +228,33 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
           placeholder={`Theme default (${shown})`}
           value={value ?? ""}
           onInput={(e) => set(e.currentTarget.value)}
+          {...typed}
         />
       </span>
     );
   },
-  boolean: ({ label, disabled, value, set }) => (
+  layout: (p) => (
+    <LayoutControl
+      client={p.client}
+      model={p.model}
+      path={p.path}
+      disabled={p.disabled}
+    />
+  ),
+  boolean: ({ label, disabled, value, commit }) => (
     <Checkbox
       aria-label={label}
       disabled={disabled}
       checked={!!value}
-      onChange={(e) => set(e.currentTarget.checked)}
+      onChange={(e) => commit(e.currentTarget.checked)}
     />
   ),
-  enum: ({ schema, label, disabled, value, set }) => (
+  enum: ({ schema, label, disabled, value, commit }) => (
     <Select
       aria-label={label}
       disabled={disabled}
       value={value ?? ""}
-      onChange={(e) => set(e.currentTarget.value)}
+      onChange={(e) => commit(e.currentTarget.value)}
     >
       {schema.enum.map((opt: string) => (
         <option key={opt} value={opt}>
@@ -239,16 +263,17 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
       ))}
     </Select>
   ),
-  string: ({ schema, label, disabled, value, set }) => (
+  string: ({ schema, label, disabled, value, set, typed }) => (
     <Input
       aria-label={label}
       disabled={disabled}
       type={schema.ui?.inputType === "password" ? "password" : "text"}
       value={value ?? ""}
       onInput={(e) => set(e.currentTarget.value)}
+      {...typed}
     />
   ),
-  number: ({ label, disabled, value, set }) => (
+  number: ({ label, disabled, value, set, typed }) => (
     <Input
       aria-label={label}
       disabled={disabled}
@@ -258,13 +283,14 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
         const v = e.currentTarget.value;
         set(v === "" ? undefined : Number(v));
       }}
+      {...typed}
     />
   ),
 };
 
 /** Which of {@link CONTROLS} a field gets: its `ui` hint, else its type. */
 export function controlFor(schema: any): string | undefined {
-  const hint = ["font", "fontSize", "theme", "color"].find(
+  const hint = ["font", "fontSize", "theme", "color", "layout"].find(
     (h) => schema.ui?.[h],
   );
   if (hint) return hint;
@@ -274,7 +300,9 @@ export function controlFor(schema: any): string | undefined {
     : undefined;
 }
 
-function Control(props: Omit<ControlProps, "value" | "set">) {
+function Control(
+  props: Omit<ControlProps, "value" | "set" | "commit" | "typed">,
+) {
   const { model, path } = props;
   const name = controlFor(props.schema);
   if (!name) {
@@ -288,6 +316,46 @@ function Control(props: Omit<ControlProps, "value" | "set">) {
       {...props}
       value={model.valueOf(path)}
       set={(v) => model.setField(path, v)}
+      commit={(v) => model.commitField(path, v)}
+      typed={{
+        onBlur: () => void model.save(),
+        onConfirm: () => void model.save(),
+        onExit: () => model.revertField(path),
+      }}
+    />
+  );
+}
+
+/**
+ * A color input that shows colors while they are picked and hands over the
+ * last one when the picker closes. The native `change` event is listened to
+ * directly: preact/compat turns an `onChange` prop on an input into `input`.
+ */
+function ColorPicker(props: {
+  label: string;
+  disabled: boolean;
+  value: string;
+  onInput: (value: string) => void;
+  onDone: (value: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const done = useRef(props.onDone);
+  done.current = props.onDone;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const changed = () => done.current(el.value);
+    el.addEventListener("change", changed);
+    return () => el.removeEventListener("change", changed);
+  }, []);
+  return (
+    <input
+      ref={ref}
+      type="color"
+      aria-label={props.label}
+      disabled={props.disabled}
+      value={props.value}
+      onInput={(e) => props.onInput(e.currentTarget.value)}
     />
   );
 }

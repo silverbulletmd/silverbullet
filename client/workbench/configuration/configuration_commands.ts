@@ -1,3 +1,4 @@
+import { editor } from "@silverbulletmd/silverbullet/syscalls";
 import { isMacLike } from "../../../plug-api/lib/shortcut.ts";
 import type { Client } from "../../client.ts";
 import {
@@ -10,6 +11,7 @@ import { WORKBENCH_VIEW } from "../../navigator/views/workbench.ts";
 import type { CommandHook } from "../../plugos/hooks/command.ts";
 import { ConfigurationModel, type Section } from "./configuration_model.ts";
 import type { Commands } from "./keys.ts";
+import { saveCurrentLayout } from "./layout.ts";
 
 /** The Configuration tab's model, reading from and saving to this client. */
 export function configurationModel(client: Client): ConfigurationModel {
@@ -75,5 +77,36 @@ export function registerConfigurationCommands(
       label: "Keyboard Shortcuts…",
     },
     run: open("keyBindings"),
+  });
+  hook.registerCommand({
+    name: "Navigate: Save Layout as Default",
+    requireMode: "rw",
+    menu: {
+      location: "view",
+      group: "7_layout",
+      label: "Save Layout as Default",
+    },
+    run: async () => {
+      let result: Awaited<ReturnType<typeof saveCurrentLayout>>;
+      try {
+        result = await saveCurrentLayout(model);
+      } catch (e: any) {
+        await editor.flashNotification(
+          `Couldn't save the layout: ${e?.message ?? e}`,
+          "error",
+        );
+        return;
+      }
+      if (result === "narrow") {
+        await editor.flashNotification(
+          "Widen the window to capture a layout",
+          "error",
+        );
+      } else {
+        await editor.flashNotification(
+          "Saved this layout as the space's default",
+        );
+      }
+    },
   });
 }

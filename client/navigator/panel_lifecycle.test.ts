@@ -719,3 +719,43 @@ test("a boot restore leaves a view the user opened in its slot meanwhile, with t
   await lc.restoreDocks();
   expect(lc.current("bhs")).toMatchObject({ view: "w", segment: "Data" });
 });
+
+test("docked lists the view in each window slot with its saved size", async () => {
+  const { config, getMeta } = makeConfig();
+  getMeta.mockReturnValue({ dock: "lhs" });
+  datastore.get.mockImplementation(async (key) =>
+    key.join("/") === "navigator/a/width" ? 300 : undefined,
+  );
+  const lc = createPanelLifecycle(config);
+  await lc.open("a");
+
+  expect(await lc.docked()).toEqual([{ slot: "lhs", view: "a", size: 300 }]);
+});
+
+test("docked falls back to the starting size and skips the modal", async () => {
+  const { config, getMeta } = makeConfig({ defaultHeight: () => 250 });
+  getMeta.mockImplementation((name) =>
+    name === "b" ? { dock: "bhs" } : { dock: "modal" },
+  );
+  datastore.get.mockResolvedValue(undefined);
+  const lc = createPanelLifecycle(config);
+  await lc.open("b");
+  await lc.open("m");
+
+  expect(await lc.docked()).toEqual([{ slot: "bhs", view: "b", size: 250 }]);
+});
+
+test("docked reports the view an ignored one displaced", async () => {
+  const { config, getMeta } = makeConfig();
+  getMeta.mockReturnValue({ dock: "bhs" });
+  datastore.get.mockImplementation(async (key) =>
+    key.join("/") === "navigator/x/height" ? 240 : undefined,
+  );
+  const lc = createPanelLifecycle(config);
+  await lc.open("x");
+  await lc.open("w");
+
+  expect(await lc.docked(["w"])).toEqual([
+    { slot: "bhs", view: "x", size: 240 },
+  ]);
+});

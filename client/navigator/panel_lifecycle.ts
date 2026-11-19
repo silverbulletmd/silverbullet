@@ -8,6 +8,7 @@
 import { datastore, editor } from "@silverbulletmd/silverbullet/syscalls";
 import { clampDockSize } from "../../plug-api/ui/dock_size.ts";
 import { isNarrowScreen } from "../lib/mobile.ts";
+import { WINDOW_DOCKS } from "./types.ts";
 import {
   focusedSlot,
   hideSlot,
@@ -15,6 +16,7 @@ import {
   setDockTarget,
   showSlot,
 } from "./ui/slots.ts";
+import type { DockedView } from "./view_defaults.ts";
 
 export type PanelLifecycleMeta = {
   dock: string;
@@ -394,8 +396,27 @@ export function createPanelLifecycle(config: PanelLifecycleConfig) {
     }
   }
 
+  /**
+   * The view in each window dock right now, with the size it opens at. An
+   * `ignore`d view counts as the one it displaced, which comes back once it
+   * closes.
+   */
+  async function docked(ignore: string[] = []): Promise<DockedView[]> {
+    const out: DockedView[] = [];
+    for (const slot of WINDOW_DOCKS) {
+      let view = pendingActivation.get(slot)?.view;
+      if (view && ignore.includes(view)) view = displaced.get(slot);
+      if (!view) continue;
+      const saved = await datastore.get([NAMESPACE, view, sizeKey(slot)]);
+      const size = typeof saved === "number" ? saved : startingSize(view, slot);
+      out.push({ slot, view, size });
+    }
+    return out;
+  }
+
   return {
     current,
+    docked,
     open,
     replaceInSlot,
     resize,

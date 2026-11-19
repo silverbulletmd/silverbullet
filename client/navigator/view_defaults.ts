@@ -7,7 +7,7 @@
  */
 
 import { MAX_DOCK_WIDTH, MIN_DOCK_SIZE } from "../../plug-api/ui/dock_size.ts";
-import { ALL_DOCKS } from "./types.ts";
+import { ALL_DOCKS, WINDOW_DOCKS } from "./types.ts";
 
 export type ViewDefaults = {
   dock?: string;
@@ -84,6 +84,47 @@ export function mergeLegacyDocks(
       if (out[name]?.dock !== undefined) continue;
       out[name] = { ...out[name], dock };
     }
+  }
+  return out;
+}
+
+export type DockedView = {
+  slot: (typeof WINDOW_DOCKS)[number];
+  view: string;
+  size: number;
+};
+
+/**
+ * The `view.defaults` that reproduces `docked` for someone opening the space
+ * fresh. Views open on a window dock that aren't docked now are closed;
+ * page-docked and unrelated entries, and `ignore`d views, are kept as they are.
+ */
+export function layoutDefaults(
+  existing: ViewDefaultsTable,
+  docked: DockedView[],
+  dockOf: (name: string) => string | undefined,
+  ignore: string[] = [],
+): ViewDefaultsTable {
+  const out: ViewDefaultsTable = {};
+  for (const [name, entry] of Object.entries(existing)) {
+    if (ignore.includes(name)) {
+      out[name] = entry;
+      continue;
+    }
+    const dock = dockOf(name);
+    const onWindowDock =
+      dock !== undefined && (WINDOW_DOCKS as readonly string[]).includes(dock);
+    out[name] =
+      entry.open === true && onWindowDock ? { ...entry, open: false } : entry;
+  }
+  for (const { slot, view, size } of docked) {
+    if (ignore.includes(view)) continue;
+    out[view] = {
+      ...out[view],
+      dock: slot,
+      open: true,
+      [slot === "bhs" ? "height" : "width"]: size,
+    };
   }
   return out;
 }
