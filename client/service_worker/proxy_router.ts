@@ -468,7 +468,8 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     const files = await this.localSpacePrimitives.fetchFileList();
     const localFileNames = new Set(files.map((f) => f.name));
     for (const nonSyncedFile of this.nonSyncedFiles.values()) {
-      if (!localFileNames.has(nonSyncedFile.name)) {
+      // Snapshots persisted by older versions may hold entries without meta
+      if (nonSyncedFile && !localFileNames.has(nonSyncedFile.name)) {
         files.push(nonSyncedFile);
       }
     }
@@ -530,7 +531,10 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
         console.log("Handling file write for non-synced file", path);
         const resp = await fetch(request);
         // Update the nonSynced snapshot in place for later file listing consistency
-        this.nonSyncedFiles.set(path, headersToFileMeta(path, resp.headers)!);
+        const meta = headersToFileMeta(path, resp.headers);
+        if (meta) {
+          this.nonSyncedFiles.set(path, meta);
+        }
         return resp;
       } else {
         const body = await request.arrayBuffer();
