@@ -75,13 +75,26 @@
   }
 }
 
-.sb-modal-box:has(> .sb-icon-picker) {
+// The `editor.pickIcon` dialog wears the page picker's frame: see
+// `.sb-modal:has(> .sb-nav-root-modal)` in _navigator.scss
+.sb-modal-box:has(> .sb-icon-picker-modal) {
   width: 520px;
   margin-top: 100px;
+  border-radius: 14px;
+  border: 1px solid var(--ui-surface-border-color);
+  box-shadow: 0 1px 3px color-mix(in srgb, var(--root-color) 8%, transparent), 0 24px 60px -20px color-mix(in srgb, var(--root-color) 40%, transparent);
+  overflow: hidden;
 
   @media only screen and (max-width: 600px) {
     margin-top: calc(8px + var(--sb-top-height) + var(--sb-standalone-top-offset, 0px));
     width: calc(100% - 16px);
     max-width: none;
   }
+}
+
+// The page picker's help strip has no bottom padding (its rows follow with
+// their own); the grid needs the strip to close on its own. Specific enough
+// to win over `.sb-nav-root.sb-nav-root-modal .sb-nav-help`.
+.sb-nav-root.sb-nav-root-modal.sb-icon-picker-modal .sb-nav-help {
+  padding: 8px 18px;
 }

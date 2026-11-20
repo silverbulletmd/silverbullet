@@ -1,3 +1,4 @@
+import type { ComponentChildren } from "preact";
 import {
   useEffect,
   useLayoutEffect,
@@ -114,6 +115,8 @@ export type IconPickerProps = {
   autoFocus?: boolean;
   /** Shown before the search field, as in the page picker */
   title?: string;
+  /** Ends the header row, as the page picker's close button does */
+  headerEnd?: ComponentChildren;
 };
 
 /** A searchable grid of Lucide icons, styled after the page picker. */
@@ -123,6 +126,7 @@ export function IconPicker({
   onCancel,
   autoFocus,
   title,
+  headerEnd,
 }: IconPickerProps) {
   const [phrase, setPhrase] = useState("");
   const [names, setNames] = useState(() => iconNames());
@@ -232,6 +236,7 @@ export function IconPicker({
               }
             }}
           />
+          {headerEnd}
         </div>
       </div>
       <div className="sb-nav-help sb-icon-picker-status">
