@@ -141,6 +141,12 @@
   cursor: pointer;
 }
 
+// An inline svg sits on a text line, with descender space under it: the icon
+// would center a little high in the button.
+.sb-nav-tree-actions button svg {
+  display: block;
+}
+
 .sb-nav-tree-actions button:hover:not(:disabled) {
   background: var(--ui-surface-hover-background-color);
   color: var(--modal-color);

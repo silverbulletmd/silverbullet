@@ -610,13 +610,59 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
   // only where there's something to delete -- a bare folder has neither a
   // page nor a document behind it. Move up/down and Reset order (3-5) need
   // rows the tree has listed and a saved order, and these were never listed.
-  expect(folder.actions).toEqual([true, true, false, false, false, false]);
-  expect(page.actions).toEqual([false, true, true, false, false, false]);
-  expect(doc.actions).toEqual([false, true, true, false, false, false]);
-  expect(aspiring.actions).toEqual([false, true, true, false, false, false]);
+  // Set icon and Hide from tree (6-7) offer on anything but an aspiring page.
+  expect(folder.actions).toEqual([
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    true,
+    true,
+  ]);
+  expect(page.actions).toEqual([
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    true,
+    true,
+  ]);
+  expect(doc.actions).toEqual([
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    true,
+    true,
+  ]);
+  expect(aspiring.actions).toEqual([
+    false,
+    true,
+    true,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
   // A page that also heads a folder (a "dual") keeps its own Delete -- the
   // one case a bare folder-or-page pair doesn't exercise on either side.
-  expect(dual.actions).toEqual([true, true, true, false, false, false]);
+  expect(dual.actions).toEqual([
+    true,
+    true,
+    true,
+    false,
+    false,
+    false,
+    true,
+    true,
+  ]);
 });
 
 test("navigator:action New page here prompts, then navigates to the trimmed name", async () => {

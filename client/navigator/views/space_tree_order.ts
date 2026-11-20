@@ -10,6 +10,7 @@ import {
   placeSibling,
   renameInTreeOrder,
   renderTreeOrder,
+  splitPath,
   TREE_ORDER_PAGE,
   type TreeAttributes,
   TreeIndex,
@@ -124,23 +125,61 @@ export async function treeCollate(): Promise<(a: string, b: string) => number> {
   return (a, b) => compareCollated(a, b, collation, collator);
 }
 
-/** Moves `req.name` before/after `req.anchor` among all of `req.folder`'s
- * children -- including ones the current segment hides -- and saves it. */
-export async function reorderSibling(req: ReorderRequest): Promise<void> {
+/** `folder`'s children as the tree shows them now: all of them, including
+ * ones the current segment hides, in saved order. */
+async function currentSiblings(folder: string): Promise<string[]> {
   const contents = await listContents();
   const order = await loadTreeOrder(contents);
-  const prefix = req.folder === "" ? "" : `${req.folder}/`;
-  const siblings = sortByTreeOrder(
+  const prefix = folder === "" ? "" : `${folder}/`;
+  return sortByTreeOrder(
     new TreeIndex(contents.map((obj) => obj.name))
-      .childrenOf(req.folder)
+      .childrenOf(folder)
       .map((name) => ({ name: prefix + name })),
     order,
     await treeCollate(),
   ).map((obj) => obj.name.slice(prefix.length));
+}
+
+/** Moves `req.name` before/after `req.anchor` among all of `req.folder`'s
+ * children -- including ones the current segment hides -- and saves it. */
+export async function reorderSibling(req: ReorderRequest): Promise<void> {
   await saveFolderOrder(
     req.folder,
-    placeSibling(siblings, req.name, req.anchor, req.position),
+    placeSibling(
+      await currentSiblings(req.folder),
+      req.name,
+      req.anchor,
+      req.position,
+    ),
   );
+}
+
+/** Sets the `[key: value]` attribute on `path`'s entry in the order page,
+ * or removes it when `value` is null. An entry has to be listed to carry
+ * attributes: one that isn't yet gets listed by saving its folder's current
+ * order, so nothing moves. */
+export async function setTreeAttribute(
+  path: string,
+  key: string,
+  value: string | null,
+): Promise<void> {
+  const { folder, name } = splitPath(path);
+  const siblings = await currentSiblings(folder);
+  await updateTreeOrder((order, attributes) => {
+    const attrs = { ...attributes.get(path) };
+    if (value === null) delete attrs[key];
+    else attrs[key] = value;
+    if (Object.keys(attrs).length > 0) attributes.set(path, attrs);
+    else attributes.delete(path);
+    if (value !== null && !order.get(folder)?.includes(name)) {
+      // The index may not list it yet; it still needs its entry.
+      order.set(
+        folder,
+        siblings.includes(name) ? siblings : [...siblings, name],
+      );
+    }
+    return true;
+  });
 }
 
 /** Saves `names` as the order of `folder`'s children; `null` forgets the

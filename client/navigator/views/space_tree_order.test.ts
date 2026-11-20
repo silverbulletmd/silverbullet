@@ -410,3 +410,35 @@ test("a rename writes nothing without an order page, or when it is not in it", a
   await followRenames([{ from: "B.md", to: "Bee.md" }]);
   expect(space.writePage).not.toHaveBeenCalled();
 });
+
+test("an attribute on an unlisted entry lists its folder as shown, so nothing moves", async () => {
+  const { setTreeAttribute } = await load();
+  spaceContents.mockResolvedValue([...pages("A", "B", "C"), orderPage]);
+  space.readPage.mockResolvedValue("Intro\n\n* C\n");
+  await setTreeAttribute("B", "icon", "star");
+  // Unlisted names come first alphabetically, then the saved order.
+  expect(written()).toBe("Intro\n\n* A\n* B [icon: star]\n* Library\n* C\n");
+});
+
+test("an attribute on a listed entry keeps its others, and null removes it", async () => {
+  const { setTreeAttribute } = await load();
+  spaceContents.mockResolvedValue([...pages("A", "P/x"), orderPage]);
+  space.readPage.mockResolvedValue("Intro\n\n* P [icon: star]\n  * x\n* A\n");
+  await setTreeAttribute("P", "hide", "true");
+  expect(written()).toBe(
+    "Intro\n\n* P [icon: star] [hide: true]\n  * x\n* A\n",
+  );
+  space.writePage.mockClear();
+  space.readPage.mockResolvedValue("Intro\n\n* P [icon: star]\n  * x\n* A\n");
+  await setTreeAttribute("P", "icon", null);
+  expect(written()).toBe("Intro\n\n* P\n  * x\n* A\n");
+});
+
+test("an attribute on a page the index does not list yet still gets its entry", async () => {
+  const { setTreeAttribute } = await load();
+  spaceContents.mockResolvedValue([...pages("A"), orderPage]);
+  space.listPages.mockResolvedValueOnce([...pages("A", "New"), orderPage]);
+  space.readPage.mockResolvedValue("Intro\n\n* A\n");
+  await setTreeAttribute("New", "icon", "star");
+  expect(written()).toBe("Intro\n\n* Library\n* A\n* New [icon: star]\n");
+});

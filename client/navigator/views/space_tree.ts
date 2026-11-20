@@ -1,5 +1,6 @@
 import {
   splitPath,
+  TREE_ORDER_PAGE,
   type TreeAttributes,
   TreeIndex,
 } from "@silverbulletmd/silverbullet/lib/tree_order";
@@ -13,6 +14,7 @@ import {
   loadTreeOrder,
   reorderSibling,
   saveFolderOrder,
+  setTreeAttribute,
   sortByTreeOrder,
   treeCollate,
 } from "./space_tree_order.ts";
@@ -210,6 +212,28 @@ async function renameTreeRow(obj: TreeObj): Promise<void> {
   }
 }
 
+/** Picks the row's icon, saved as `[icon: …]` on its entry in the order
+ * page; "No icon" removes it. */
+async function pickTreeIcon(obj: TreeObj): Promise<void> {
+  const picked = await editor.pickIcon({
+    // What the row shows now, so the picker marks the right one as current.
+    initial: cachedTreeAttributes().get(obj.name)?.icon ?? treeIcon(obj),
+    // Short, like the page picker's "Open": the row it came from says which.
+    title: "Tree icon",
+  });
+  if (picked === undefined) return;
+  await setTreeAttribute(obj.name, "icon", picked === "" ? null : picked);
+}
+
+/** Hides the row, and with a folder everything under it, by saving
+ * `[hide: true]` on its entry in the order page. */
+async function hideTreeRow(obj: TreeObj): Promise<void> {
+  await setTreeAttribute(obj.name, "hide", "true");
+  await editor.flashNotification(
+    `Hid ${obj.name} from the tree; remove its [hide: true] in ${TREE_ORDER_PAGE} to show it again`,
+  );
+}
+
 async function deleteTreeRow(obj: TreeObj): Promise<void> {
   if (!(await editor.confirm(`Delete ${obj.name}?`))) return;
   if (obj.tag === "document") {
@@ -299,6 +323,20 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
       requireMode: "rw",
       when: (obj) => obj.isFolder === true && cachedTreeOrder().has(obj.name),
       run: (obj) => saveFolderOrder(obj.name, null),
+    },
+    {
+      icon: "smile",
+      label: "Set icon",
+      requireMode: "rw",
+      when: (obj) => !obj.isAspiring,
+      run: pickTreeIcon,
+    },
+    {
+      icon: "eye-off",
+      label: "Hide from tree",
+      requireMode: "rw",
+      when: (obj) => !obj.isAspiring,
+      run: hideTreeRow,
     },
   ],
   keymap: {
