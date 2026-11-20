@@ -391,6 +391,9 @@ fn check_draft(root: &Path, id: &str, repo: &Path, draft: &mut Draft) -> Result<
                 }
             }
         }
+        // The credential identity covers the upstream mapping, so it must be
+        // recorded against the branch that applying this draft will configure.
+        configure(&inspection.0, draft)?;
     }
     let local_head = git::run(
         &inspection.0,

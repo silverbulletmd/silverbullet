@@ -1919,6 +1919,63 @@ pub(crate) mod tests {
         assert_eq!(keys::public_key(dir.path(), &id).unwrap(), original);
     }
     #[tokio::test]
+    async fn empty_space_connects_to_remote_whose_default_branch_differs() {
+        let (router, cookie, id, dir) = git_fixture().await;
+        let repo = space_folder(dir.path(), &id);
+        git_run(&repo, &["symbolic-ref", "HEAD", "refs/heads/master"]);
+        let remote = tempfile::TempDir::new().unwrap();
+        git_run(remote.path(), &["init", "-q", "--bare", "-b", "main"]);
+        let seed = tempfile::TempDir::new().unwrap();
+        git_run(seed.path(), &["init", "-q", "-b", "main"]);
+        std::fs::write(seed.path().join("Remote.md"), "remote\n").unwrap();
+        git_run(seed.path(), &["add", "Remote.md"]);
+        git_run(
+            seed.path(),
+            &[
+                "-c",
+                "user.name=S",
+                "-c",
+                "user.email=s@example.test",
+                "commit",
+                "-qm",
+                "Remote",
+            ],
+        );
+        git_run(
+            seed.path(),
+            &["push", "-q", remote.path().to_str().unwrap(), "main"],
+        );
+        let draft = draft_request(&router, &cookie, &id, "POST", "/draft", json!({})).await;
+        let suffix = format!("/draft/{}", draft["id"].as_str().unwrap());
+        let updated = draft_request(&router,&cookie,&id,"PUT",&suffix,json!({"version":draft["version"],"url":remote.path(),"mode":"manual","pullIntervalSecs":0})).await;
+        let checked = draft_request(
+            &router,
+            &cookie,
+            &id,
+            "POST",
+            &format!("{suffix}/test"),
+            json!({"version":updated["version"]}),
+        )
+        .await;
+        assert_eq!(checked["test"]["kind"], "emptyRepo");
+        assert_eq!(checked["branch"], "master");
+        assert_eq!(checked["remoteBranch"], "main");
+        // The automatically detected branch must not invalidate the check.
+        draft_request(
+            &router,
+            &cookie,
+            &id,
+            "POST",
+            &format!("{suffix}/apply"),
+            json!({"version":checked["version"]}),
+        )
+        .await;
+        assert_eq!(
+            git_run(&repo, &["config", "--get", "branch.master.merge"]).trim(),
+            "refs/heads/main"
+        );
+    }
+    #[tokio::test]
     async fn checked_draft_apply_pause_resume_and_disconnect() {
         let (router, cookie, id, dir) = git_fixture().await;
         let remote = tempfile::TempDir::new().unwrap();
