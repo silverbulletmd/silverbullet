@@ -1,9 +1,14 @@
-Look up definitions, feature behavior, syntax and API contracts.
+Look up definitions, syntax and API contracts.
 
-* [[Reference/Concepts]] — pages, files, links, tasks and templates.
-* [[Markdown]] — writing syntax, formatting and extensions.
-* [[Reference/SilverBullet Features]] — the editing interface, visual tools and feature behavior.
-* [[Reference/Space Lua and APIs]] — language syntax, extension mechanisms and callable APIs.
-* [[Reference/Technical Reference]] — interfaces and internals for integrations, deployments and development.
+* [[Reference/Glossary]] — terminology used throughout SilverBullet.
+* [[Reference/Concepts]] — the building blocks of a space: pages, links, indexed data, mentions and the pieces you extend it with.
+* [[Reference/Markdown]] — writing syntax, formatting and extensions.
+* [[Reference/Space Lua]] — the scripting language and its query language.
+* [[Reference/API]] — the functions Space Lua can call.
+* [[Reference/Theming]] — themes, styles, fonts and icons.
+* [[Reference/Tag]] — the built-in tags and the fields of each.
+* [[Reference/Integrations]] — the CLI, MCP, Runtime API and HTTP API for working with a space from outside.
+* [[Reference/Internals]] — architecture, indexing, plugs and design decisions.
+* [[^Library/Std/Config|Configuration options]] — every configuration option, with its default.
 
-For a first introduction, use [[Getting Started]]. For practical tasks and workflows that combine features, use [[Guides]]. [[Glossary]] explains terminology used throughout the documentation.
+For what you can do with SilverBullet, see [[Features]]. For a first introduction, use [[Getting Started]]. For practical tasks and workflows that combine features, use [[Guides]]. To install and run SilverBullet, use [[Administration]].

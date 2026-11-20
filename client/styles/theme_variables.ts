@@ -32,7 +32,7 @@ export const LOCAL_VARIABLES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Declared for users' space-style (documented in docs/Space Style.md); the
+ * Declared for users' space-style (documented in docs/Reference/Theming/Space Style.md); the
  * client itself needn't consume them.
  */
 export const PUBLIC_API_VARIABLES: ReadonlySet<string> = new Set([

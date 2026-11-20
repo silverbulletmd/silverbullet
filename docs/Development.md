@@ -7,12 +7,12 @@ references:
 ---
 SilverBullet development can happen at various level.
 
-At its most basic level, you can do a lot using [[Space Lua]]. If this does not give enough power, you can upgrade to [[Plugs]]. If _that_ doesn’t suffice, you can contribute to SilverBullet’s core (see below).
+At its most basic level, you can do a lot using [[Reference/Space Lua]]. If this does not give enough power, you can upgrade to [[Reference/Internals/Plugs]]. If _that_ doesn’t suffice, you can contribute to SilverBullet’s core (see below).
 
 # Stack
 SilverBullet’s client is written in [TypeScript](https://www.typescriptlang.org/) and built on top of the excellent [CodeMirror 6](https://codemirror.net/) editor component. Additional UI is built using [Preact](https://preactjs.com/). [ES Build](https://esbuild.github.io) is used to build the frontend.
 
-[[Plugs]] are also written in TypeScript.
+[[Reference/Internals/Plugs]] are also written in TypeScript.
 
 The SilverBullet server is written in [Rust](https://www.rust-lang.org/) (a Cargo workspace).
 
@@ -111,6 +111,6 @@ docker run -p 3000:3000 -v <PATH-TO-YOUR-DATA-FOLDER>:/data zefhemel/silverbulle
 These are built by `.github/workflows/ci.yml`, which cross-compiles the binary natively (`cargo build --target` with installed musl cross-toolchains) and copies it into a small Alpine image.
 
 # In this section
-* [[Library/Development|Develop a library]]
-* [[Plugs/Development|Develop a plug]]
-* [[Plugs/Development/Distribution and Testing|Distribution and Testing]]
+* [[Development/Library Development|Develop a library]]
+* [[Development/Plug Development|Develop a plug]]
+* [[Development/Distribution and Testing|Distribution and Testing]]

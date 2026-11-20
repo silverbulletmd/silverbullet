@@ -19,7 +19,7 @@ Available keys:
 * `key`: Windows/Linux key binding (and mac, if not separately defined)
 * `mac`: Mac-specific key binding
 * `hide`: Hide this command from the Command Palette
-* `icon`: a [Lucide icon name](https://silverbullet.md/Icons) shown next to the command in the Command Palette (defaults to `terminal`)
+* `icon`: a [Lucide icon name](https://silverbullet.md/Reference/Theming/Icons) shown next to the command in the Command Palette (defaults to `terminal`)
 * `requireMode`: `rw` or `ro` — only enable this command in a particular mode (read-write, or read-only)
 * `opensInput`: set to `true` when the command opens a picker or another text input, so running it from a tap (an action button, say) on a phone or tablet brings up the on-screen keyboard right away
 
@@ -69,7 +69,7 @@ Supported keys in the spec:
 * `name`: name of the command, what you type after `/`
 * `displayName`: the label shown in the menu instead of `name` (e.g. "Heading 1" for `h1`)
 * `description`: Description of the command
-* `icon`: a [Lucide icon name](https://silverbullet.md/Icons)
+* `icon`: a [Lucide icon name](https://silverbullet.md/Reference/Theming/Icons)
 * `aliases`: more words that find the command when typed after `/`
 * `group`: the menu section it's listed under (e.g. `Basic blocks`)
 * `priority`: higher sorts earlier within its group

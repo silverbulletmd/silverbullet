@@ -251,7 +251,7 @@ export function FilterList({
                       }
                       className={
                         // `sb-option`/`sb-selected-option` are kept as hooks
-                        // for user CSS (see docs/Page Decorations.md)
+                        // for user CSS (see docs/Reference/Theming/Page Decorations.md)
                         (selectedOption === currentOptionIndex
                           ? "sb-nav-row sb-nav-selected sb-option sb-selected-option"
                           : "sb-nav-row sb-option") +

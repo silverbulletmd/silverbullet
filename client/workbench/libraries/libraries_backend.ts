@@ -251,7 +251,7 @@ async function pullFiles(
   );
 }
 
-/** What share.libraryInfo read: see docs/API/share.md */
+/** What share.libraryInfo read: see docs/Reference/API/share.md */
 type LibraryInfo = {
   uri: string;
   page: string;

@@ -1,0 +1,29 @@
+The index page is the [[Reference/Concepts/Page|page]] that opens by default when either clicking the “home” button in the [[Top Bar]], or when you visit your SilverBullet’s URL without a page name in the URL.
+
+The default index page’s name is `index`. You can change it per space in the [[Dashboard]], under **Space settings → General → Index page**.
+
+# How to set a dynamic index page
+Some people want to set their index page to be e.g. their daily note, and the daily note changes every... day.
+
+Doing this can be achieved with some [[Reference/Space Lua]] magic (the code below doesn’t run on this page; in your own space, put it on a page under `Library/`):
+
+```space-lua
+local function redirectToCustomIndex()
+  if editor.getCurrentPage() == "index" then
+    -- Change this to whatever page you want your index page to be
+    editor.navigate("Journal/" .. date.today())
+  end
+end
+
+-- Trigger the above function when the editor is first loaded
+event.listen {
+  name = "editor:init",
+  run = redirectToCustomIndex
+}
+
+-- And also when any page is loaded (because it may be the index page)
+event.listen {
+  name = "editor:pageLoaded",
+  run = redirectToCustomIndex
+}
+```

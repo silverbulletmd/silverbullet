@@ -3,7 +3,7 @@ description: Define tags (schema, validation, indexing, rendering) and query the
 tags: meta/api
 ---
 
-Functions for defining tags and accessing their objects. See [API/tag](https://silverbullet.md/API/tag) for use cases and longer examples.
+Functions for defining tags and accessing their objects. See [API/tag](https://silverbullet.md/Reference/API/tag) for use cases and longer examples.
 
 # API
 
@@ -13,11 +13,11 @@ Defines a tag, or extends an existing definition. Put `tag.define` calls in your
 `spec` is a table with these fields, all optional except `name`:
 * `name` (string): the tag's name, without `#`.
 * `tagPage` (string): the page to open when clicking the tag. Defaults to `tag:<name>`.
-* `schema` (table): a [JSON Schema](https://silverbullet.md/Schema) the tag's objects are validated against. Build it with the [[^Library/Std/APIs/Schema|schema]] helpers. Validation failures show as lint warnings in the editor.
+* `schema` (table): a [JSON Schema](https://silverbullet.md/Reference/Concepts/Schema) the tag's objects are validated against. Build it with the [[^Library/Std/APIs/Schema|schema]] helpers. Validation failures show as lint warnings in the editor.
 * `mustValidate` (boolean): when `true`, objects that fail `schema` or `validate` are not indexed. Defaults to `false`.
 * `validate` (function `function(object)`): custom validation; returns `nil` when valid, or an error message.
-* `icon` (string): a [Lucide icon name](https://silverbullet.md/Icons) for the tag, shown in the Workbench and views. It is also the default icon of every page with this tag (except for the built-in `page` tag, which every page carries). A page's own `pageDecoration.icon` wins.
-* `pageDecoration` (table): a [page decoration](https://silverbullet.md/Page%20Decorations) (`prefix`, `cssClasses`, …) for every page with this tag; its icon comes from `icon`. A page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` from all of them combine. Changing it re-indexes the pages with the tag.
+* `icon` (string): a [Lucide icon name](https://silverbullet.md/Reference/Theming/Icons) for the tag, shown in the Workbench and views. It is also the default icon of every page with this tag (except for the built-in `page` tag, which every page carries). A page's own `pageDecoration.icon` wins.
+* `pageDecoration` (table): a [page decoration](https://silverbullet.md/Reference/Theming/Page%20Decorations) (`prefix`, `cssClasses`, …) for every page with this tag; its icon comes from `icon`. A page's own `pageDecoration` wins, then the first of its tags that sets a field; `cssClasses` from all of them combine. Changing it re-indexes the pages with the tag.
 * `transform` (function `function(object)`): called for each indexed object with this tag. Change the object and return it, return `{}` to skip indexing it, return `nil` to index it unchanged, or return a list of objects to index instead (one of which must keep the original `ref`).
 * `metatable` (table): a Lua metatable set on the tag's objects, e.g. to add computed attributes via `__index`.
 * `renderFrontmatter` (function `function(pageMeta, ctx)`): renders the frontmatter of pages with this tag as a widget. See [[#Rendering objects]].

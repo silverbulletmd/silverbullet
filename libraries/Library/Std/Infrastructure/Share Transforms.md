@@ -1,4 +1,4 @@
-Push-time transforms for [[Share]]: what is rewritten or removed from a page before it leaves this space.
+Push-time transforms for Share: what is rewritten or removed from a page before it leaves this space.
 
 # Implementation
 ```space-lua

@@ -551,8 +551,8 @@ mod tests {
     }
 
     #[test]
-    fn glossary_lua_expression_does_not_create_markdown_links() {
-        let source = include_str!("../../docs/Glossary.md");
+    fn lua_template_wiki_links_do_not_create_markdown_links() {
+        let source = "Terms:\n${query[[\n  from p = tags.glossary\n  select template.new[==[\n    - [[${name}]]: ${description}\n]==](p)\n]]}\n";
         let html = render_page_markdown(source, "Glossary.md", None);
         assert!(!html.contains("<a "), "{html}");
         assert!(html.contains("template.new[==["), "{html}");

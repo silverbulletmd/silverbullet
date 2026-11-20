@@ -45,7 +45,7 @@ end
 
 tag.define {
   name = "adr",
-  tagPage = "ADR",
+  tagPage = "Reference/Internals/ADR",
   schema = {
     type = "object",
     properties = {
@@ -83,12 +83,12 @@ tag.define {
 -- Architecture components
 tag.define {
   name = "component",
-  tagPage = "Architecture",
+  tagPage = "Reference/Internals/Architecture",
   icon = "box",
 }
 
--- Theming reference data (Theming/Variables/Data, Theming/Selectors). Keep the
--- enums in step with client/styles/theme_docs.test.ts, which checks the same.
+-- Theming reference data (Reference/Theming/Variables/Data and
+-- Reference/Theming/Selectors/Data)
 local themeStability = {
   type = "string",
   enum = { "stable", "experimental", "deprecated" },
@@ -96,7 +96,7 @@ local themeStability = {
 
 tag.define {
   name = "theme-variable",
-  tagPage = "Theming/Variables",
+  tagPage = "Reference/Theming/Variables",
   icon = "droplet",
   schema = {
     type = "object",
@@ -120,7 +120,7 @@ tag.define {
 
 tag.define {
   name = "theme-selector",
-  tagPage = "Theming/Selectors",
+  tagPage = "Reference/Theming/Selectors",
   icon = "crosshair",
   schema = {
     type = "object",
@@ -163,8 +163,9 @@ tag.define {
 ```space-lua
 -- boot: true
 config.set("view.defaults", {
-  -- The curated Navigate tree (see [[^Library/Website]]) is this site's navigation
-  ["docs.navigate"] = { open = true, width = 360 },
+  -- The Space Tree is this site's navigation; its order and icons live in
+  -- [[^Library/Space Tree Structure]]
+  ["std.spaceTree"] = { open = true, width = 360 },
 })
 ```
 

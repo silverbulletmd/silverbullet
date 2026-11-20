@@ -172,7 +172,7 @@ export type TypedField = {
 
 /**
  * The control for each `ui` hint, then for each plain schema type; see the
- * Configuration tab guide in docs/API/config.md.
+ * Configuration tab guide in docs/Reference/API/config.md.
  */
 const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
   font: (p) => (

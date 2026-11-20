@@ -1,7 +1,7 @@
 ---
 description: Share pages to another SilverBullet space.
 ---
-Lets [SilverBullet Share](https://docs.silverbullet.md/Share) publish pages to (and sync them with) a page in another SilverBullet space (local or remote).
+Lets [SilverBullet Share](https://docs.silverbullet.md/Features/Share) publish pages to (and sync them with) a page in another SilverBullet space (local or remote).
 
 # Connecting
 Run `Share: Page` and pick **SilverBullet space**. The first time, choose `Another space…` and enter the URL of the other space (e.g. `https://example.com/notes`). SilverBullet checks that it really is a SilverBullet space, then signs you in with a device code: open the link that is shown, log in to the other space and approve the request. Finally enter the page path to share to; it defaults to the name of the current page.

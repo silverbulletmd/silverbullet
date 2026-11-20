@@ -17,7 +17,7 @@ Optional keys:
 
 * `displayName`: The label shown in the menu instead of the name (which still finds it when typed)
 * `description`: The description of the slash command
-* `icon`: A Lucide icon name (see https://silverbullet.md/Icons)
+* `icon`: A Lucide icon name (see https://silverbullet.md/Reference/Theming/Icons)
 * `aliases`: More words that find the slash command when typed after `/`
 * `group`: The menu section it's listed under, e.g. `Basic blocks`
 * `priority`: To prioritize the slash command higher in its group

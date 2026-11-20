@@ -1,0 +1,55 @@
+---
+description: "Rules for the types and values of object attributes."
+tags: glossary
+references:
+- plug-api/syscalls/jsonschema.ts
+- client/plugos/syscalls/jsonschema.ts
+- libraries/Library/Std/APIs/Schema.md
+---
+SilverBullet uses [JSON Schema](https://json-schema.org) for validation of structured data. Schemas ensure that [[Frontmatter]] attributes, [[Reference/Tag|tag]] fields, and configuration options conform to expected types and shapes.
+
+# Where schemas are used
+## Tag definitions
+When you define a tag with `tag.define`, you can provide a schema that describes the expected attributes. The schemas of the built-in tags are defined the same way, in [[^Library/Std/Infrastructure/Root Tags]]. SilverBullet validates objects against this schema and surfaces errors in the editor:
+
+```space-lua
+tag.define {
+  name = "contact",
+  schema = {
+    type = "object",
+    properties = {
+      email = schema.string(),
+      phone = schema.nullable("string"),
+      priority = schema.number(),
+    }
+  }
+}
+```
+
+Pages or objects tagged with `#contact` will be validated against this schema — if a field has the wrong type, you’ll see a lint warning in the editor.
+
+## Configuration definitions
+The `config.define` function uses schemas to validate configuration values:
+
+```space-lua
+config.define("myLibrary.config", {
+  type = "object",
+  properties = {
+    enabled = schema.boolean(),
+    maxItems = schema.number(),
+  }
+})
+```
+
+This ensures that `config.set("myLibrary.config", ...)` only accepts values matching the schema.
+
+# Schema helper functions
+The [[^Library/Std/APIs/Schema]] library provides convenience functions like `schema.string()`, `schema.number()`, `schema.array(typ)`, etc. for building JSON Schema objects in Lua. See the API page for the full list.
+
+# References
+`schema.ref("person")` describes a reference: a single quoted wikilink such as `owner: "[[Person/Alice]]"`, pointing at a page or at an object with an anchor (`"[[$alice]]"`).
+
+# How validation surfaces
+When schema validation fails for page and attributes, SilverBullet shows the error as a lint warning in the editor.
+
+See also: [[Reference/Tag#User tags]], [[API/jsonschema]], [[API/config]]

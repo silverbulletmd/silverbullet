@@ -534,7 +534,7 @@ local function shouldUpdate(installed, uri, remoteText)
 end
 
 -- What share.install(uri, opts) would write, without writing: see
--- docs/API/share.md
+-- docs/Reference/API/share.md
 function share.libraryInfo(uri, opts)
   opts = opts or {}
   local remoteText = net.readURI(uri, {encoding="text/markdown"})
@@ -560,7 +560,7 @@ function share.libraryInfo(uri, opts)
 end
 
 -- Writes what share.libraryInfo read, without reading or checking again: see
--- docs/API/share.md
+-- docs/Reference/API/share.md
 function share.installInfo(info)
   space.writePage(info.page, share.setFrontmatter({
     uri = info.uri,
@@ -569,7 +569,7 @@ function share.installInfo(info)
   }, info.text))
 end
 
--- The Library Manager's pull: see docs/API/share.md
+-- The Library Manager's pull: see docs/Reference/API/share.md
 function share.install(uri, opts)
   opts = opts or {}
   local info = share.libraryInfo(uri, opts)

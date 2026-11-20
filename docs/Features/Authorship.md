@@ -1,0 +1,46 @@
+---
+description: "Sign a page or block to credit its author."
+tags: glossary maturity/experimental
+references:
+- client/markdown_parser/parser.ts
+- plugs/index/relation.ts
+- plugs/index/identity.ts
+- libraries/Library/Std/Editor/Signature.md
+- docs/Recipient.md
+---
+An **author** is an [[Reference/Concepts/Identity]] you credit. A signature is an [[At-Mention]] used the other way around: an `@mention` **addresses** someone, while a signature **credits** someone. The same identities serve both — anyone you can mention, you can also sign as, including yourself.
+
+# The `-- @name` notation
+End a line or block with `-- @name` — or the em dash `— @name`, or the en dash `– @name` — to sign it.
+
+Rules:
+* The marker has to **end its line**. `-- @sam` followed by more text on the same line is not a signature. A single newline is enough.
+* Several names can sign together: `-- @jo @sam` credits both.
+
+# What signing does
+A signature is not a [[Recipient]] [[At-Mention]]. It does not enter somebody’s Mention Inbox. Instead, it **attributes** the text it signs: every `@mention` in that text is stamped with a `by` value naming who signed it, and the signature emits its own `authored` relation.
+
+“The block it ends” is usually the enclosing paragraph, list item, task, blockquote, or HTML comment. If a paragraph continues after a signed line, the signature credits the text before it on that line, while the following line remains unsigned. When a signature stands alone on its own line, it applies to the surrounding comment, list item, or blockquote instead of claiming just the empty-looking line it sits on, so the whole exchange above it is credited, not only the last line.
+
+# `authors:` frontmatter
+Declaring `authors:` in a page’s frontmatter credits the whole page, the same way `recipients:` addresses the whole page:
+
+```yaml
+---
+authors: ["jo", "sam"]
+---
+```
+
+A wiki-link value in `authors:`, like `[[Jo]]`, is not a name and is silently ignored — unlike `recipients:`, which keeps a wiki link as an ordinary page link.
+
+This does **not** cascade down to unsigned blocks in the page body: an `@mention` written elsewhere on the page without its own `-- @name` stays unattributed. Frontmatter `authors:` is page-level credit only — crediting a specific block still needs an inline signature on that block.
+
+# Signing your own text
+Rather than typing the notation by hand, run `Mention: Sign` (or the `/sign` slash command) to append `-- @you` to the end of the current block. This is what lets a person answer a mention without re-queuing the reply in their own inbox: signing a reply attributes it, it does not address it, so it never becomes a fresh request to yourself.
+
+# A signature is self-declared, not authenticated
+Nothing checks a signature against who is actually editing. Anyone with write access can type `-- @sam` whether or not they are Sam — SilverBullet takes it at face value, the same way it takes an `@mention` at face value. If you need to know who **actually** changed something, that’s what [[Revisions|commit attribution]] is for: it’s held server-side and derived from the account that made the change, not from text anyone can type.
+
+A signature is documentary, not a credential — useful for finding and querying who a piece of prose is by, but nothing security- or access-relevant should ever be decided based on one.
+
+For a complete request, reply and resolution workflow, see [[Guides/Comments, Mentions and Replies]].

@@ -1,17 +1,27 @@
-The building blocks of a SilverBullet space: pages, files, links, tasks and reusable content.
+The building blocks of a SilverBullet space: what it is made of, how its content is indexed and the pieces you extend it with.
 
-# Pages and files
-* [[Tag]] — categories for pages and other indexed objects, with a catalog of tag fields.
-* [[Space]] and [[Index Page]] — the workspace and its starting page.
-* [[Page]], [[Document]], [[Folder]] and [[Tool Page]] — content in a space and how it is stored.
-* [[Aspiring Pages]], [[Names]] and [[Paths]] — pages not yet created, naming rules and file locations.
+# Pages and links
+* [[Reference/Concepts/Space]] and [[Reference/Concepts/Index Page]] — the workspace and its starting page.
+* [[Reference/Concepts/Page]], [[Reference/Concepts/Document]] and [[Reference/Concepts/Folder]] — content in a space and how it is stored.
+* [[Reference/Concepts/Names]], [[Reference/Concepts/Paths]] and [[Reference/Concepts/Aspiring Pages]] — naming rules, file locations and pages not yet created.
+* [[Reference/Concepts/Link]], [[Reference/Markdown/Anchor]] and [[Reference/Concepts/Transclusions]] — linking to pages and passages, and showing content from elsewhere.
+* [[Reference/Concepts/URI]] — addresses for locations outside the space.
+* [[Reference/Concepts/Task]] — task lists and completion states.
+* [[Reference/Concepts/Knowledge Management System]] — what a space is for.
 
-# Links and transclusions
-* [[Link]] and [[Markdown/Anchor]] — links to pages, headings and specific passages.
-* [[Transclusions]] — displaying content from another page.
+# Data and metadata
+* [[Reference/Concepts/Object]] and [[Reference/Concepts/Object Index]] — the records SilverBullet extracts from your pages and the index that makes them queryable.
+* [[Reference/Concepts/Metadata]], [[Reference/Concepts/Frontmatter]], [[Reference/Concepts/Attribute]] and [[Reference/Concepts/YAML]] — describing pages and objects.
+* [[Reference/Tag]] and [[Reference/Concepts/Schema]] — categories for objects and rules for their fields.
+* [[Reference/Concepts/When Results Update]] and [[Reference/Concepts/Baked Sections]] — when live results refresh, and storing them in the page.
 
-# Tasks and templates
-* [[Task]] — task lists and completion states.
-* [[Page Template]] and [[Slash Templates]] — reusable starting content.
+# People and references
+* [[Reference/Concepts/Identity]], [[Reference/Concepts/At-Mention]] and [[Reference/Concepts/Recipient]] — addressing and crediting people.
+* [[Reference/Concepts/Linked Mention]] and [[Reference/Concepts/Linked Tasks]] — incoming links and tasks that point at a page.
 
-For tags, frontmatter and attributes, see [[Reference/SilverBullet Features#Data and queries]]. For editing commands and views of incoming links, see [[Reference/SilverBullet Features#Navigation and editing]].
+# Extending a space
+* [[Reference/Concepts/Library]], [[Reference/Concepts/Repository]], [[Reference/Concepts/Tool Page]] and [[Reference/Concepts/Extensions]] — where extensions come from and where they live.
+* [[Reference/Concepts/Command]], [[Reference/Concepts/Template]], [[Reference/Concepts/Page Template]] and [[Reference/Concepts/Slash Templates]] — actions and reusable content.
+* [[Reference/Concepts/Widget]], [[Reference/Concepts/View]] and [[Reference/Concepts/Virtual Pages]] — generated content in pages, panels and whole pages.
+
+For the scripting language behind extensions, see [[Reference/Space Lua]].

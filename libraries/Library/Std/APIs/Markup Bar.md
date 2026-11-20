@@ -5,7 +5,7 @@ tags: meta/api
 
 Defines the buttons of the markup bar: the phone bar above the keyboard (`mobile`), the desktop bubble over selected text (`selection`) and the desktop ⋮ line menu (`line`), each with its own list in [[^Library/Std/Config]].
 
-See [Markup Bar](https://docs.silverbullet.md/Markup%20Bar) for what it does and [API/markupBar](https://docs.silverbullet.md/API/markupBar) for the keys, contexts and examples.
+See [Markup Bar](https://docs.silverbullet.md/Features/Markup%20Bar) for what it does and [API/markupBar](https://docs.silverbullet.md/Reference/API/markupBar) for the keys, contexts and examples.
 
 # Implementation
 ```space-lua

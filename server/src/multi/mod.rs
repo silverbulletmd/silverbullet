@@ -1,6 +1,6 @@
 //! Multi-space server mode: N spaces served from one process, each bound to a
 //! URL prefix or hostname, configured via `spaces.json` and managed through
-//! the `/.dashboard` UI. See docs/Dashboard.md.
+//! the `/.dashboard` UI. See docs/Administration/Server/Dashboard.md.
 
 pub mod access;
 pub mod admin_api;

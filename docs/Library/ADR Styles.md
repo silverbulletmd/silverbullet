@@ -1,5 +1,5 @@
 # ADR frontmatter card
-Styling for the `adr` tag’s `renderFrontmatter` above. Open any [[ADR]] to see it.
+Styling for the `adr` tag’s `renderFrontmatter` above. Open any [[Reference/Internals/ADR]] to see it.
 ```space-style
 .adr-card {
   --adr-color: #8a8a8a;

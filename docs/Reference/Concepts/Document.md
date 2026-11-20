@@ -1,0 +1,47 @@
+---
+description: "A file other than a Markdown page, such as an image, PDF or source file."
+tags: glossary
+---
+While SilverBullet is aimed primarily at text-based content, documents let a space contain source files, images, PDFs, audio, video, and other attachments. Documents, like [[Reference/Concepts/Page|pages]], are ultimately just files on disk. Installed libraries can provide specialized editors, where possible, SilverBullet will make an effort to view/preview the content in the editor itself.
+
+# Uploading
+To upload documents you have a few options:
+
+* Use the `Upload: File` command (especially useful on mobile devices)
+* Drag & drop files or images onto a page
+* Copy & paste files or images onto a page
+
+All options will prompt you for a file name to use to store the document, and then include the document as an embedded image (if it was an image) or link to the file.
+
+By default the maximum allowed filesize for an upload is 10MB, you can change that with the `maximumDocumentSize` option.
+```space-lua
+config.set("maximumDocumentSize", 100)
+```
+
+# Management
+The `Navigate: Document Picker` command displays all documents in your SilverBullet space. A blue extension indicates that an installed plug, the built-in text editor, or a browser media viewer can handle the document.
+
+Alternatively the [[Space Tree]] also has a segment for documents, from which you can open, rename and delete documents.
+
+# Linking
+Documents can be linked to in two ways:
+* Via the regular link syntax: `[link text](document.pdf)`. URLs here are relative to the page, so on a page named `MyFolder/Hello`, `[link text](document.pdf)` would refer to a document stored in `MyFolder/document.pdf`.
+* Via the wiki link syntax: `[[document.pdf]]`. An exact path from the space root wins. If no exact path exists, SilverBullet looks for a matching name elsewhere in the space, just as it does for page links. For example, from `MyFolder/Hello`, `[[document.pdf]]` first looks for `document.pdf` at the space root. See [[Link#Link resolution]] for fallback matching and ambiguity.
+
+# Embedding
+Media can also be embedded using the [[#Linking]] syntax, but prefixed with an `!`. Images, video, audio, and PDFs are supported using the browser’s native media elements and range-capable file responses.
+
+* `![alternate text](image.png)`
+* `![[image.png]]`
+
+These follow the same relative/absolute path rules as links described before.
+
+## Media resizing
+In addition, media can be _sized_ using the following syntax:
+* Specifying only a width: `![Alt text|300](image.png)` or `![[image.png|300]]`
+* Specifying only a height: `![Alt text|x300](image.png)` or `![[image.png|x300]]`
+* Specifying both width and height: `![Hello|300x300](image.png)` or `![[image.png|300x300]]`
+* Specifying a percentage width: `![Alt text|30%](image.png)` or `![[image.png|30%]]`
+* Combining a percentage width with a pixel height: `![Alt text|30%x200](image.png)` or `![[image.png|30%x200]]`
+
+Numeric dimensions are in pixels. Percentage widths are relative to the containing content area and resize with it, rather than being a percentage of the image’s original size. Decimal percentages such as `12.5%` are supported. Specifying only a width preserves the image’s proportions. Specifying both dimensions can stretch it. Height must be in pixels. Percentage heights are not supported.

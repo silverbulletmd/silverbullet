@@ -9,7 +9,7 @@ APIs to more conveniently define action buttons (alternative to setting them via
 ## actionButton.define(spec)
 Keys to define:
 
-* `icon`: a [Lucide icon name](https://silverbullet.md/Icons) for your button. The name `profile` is reserved: it renders the current account's avatar and opens the account menu, and needs neither `command` nor `run`.
+* `icon`: a [Lucide icon name](https://silverbullet.md/Reference/Theming/Icons) for your button. The name `profile` is reserved: it renders the current account's avatar and opens the account menu, and needs neither `command` nor `run`.
 * `command` (optional): command name to invoke when clicked. When set, the command's keyboard shortcut is automatically shown in the tooltip. Replaces `run`.
 * `run` (optional): function to invoke once the button is pushed. Use this for custom logic that doesn't map to a single command.
 * `description` (optional): description of button (appears on hover)

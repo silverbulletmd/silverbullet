@@ -1,12 +1,12 @@
 ---
 description: Integration with Github repositories and gists.
 ---
-Support for [SilverBullet Share](https://docs.silverbullet.md/Share) for:
+Support for [SilverBullet Share](https://docs.silverbullet.md/Features/Share) for:
 
 * Github repo files
 * Github gists
 
-As well as [URI](https://docs.silverbullet.md/URI) support (both read and write) for the following schemes:
+As well as [URI](https://docs.silverbullet.md/Reference/Concepts/URI) support (both read and write) for the following schemes:
 * `https://github.com/username/repo/blob/branch/path`
 * `https://gist.github.com/username/gist-id`
 * `https://gist.github.com/username/gist-id/file` (one file of a gist, as collections use them)

@@ -1,6 +1,6 @@
 // Prints the first release that contained each theme variable declared in the
 // bundled theme SCSS, and each selector given, to seed `since` in
-// docs/Theming/Variables.md and Selectors.md. Run once; `since` is maintained
+// docs/Reference/Theming/Variables.md and Selectors.md. Run once; `since` is maintained
 // by hand afterwards, so this is not part of CI.
 //
 //   npx tsx scripts/theme_variables_since.ts [--selectors <selector>[=<search>] ...]

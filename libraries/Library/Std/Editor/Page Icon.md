@@ -1,4 +1,4 @@
-Adds a `Page: Set Icon` command that picks an [icon](https://silverbullet.md/Icons) for the current page and stores it as `pageDecoration.icon` in its frontmatter.
+Adds a `Page: Set Icon` command that picks an [icon](https://silverbullet.md/Reference/Theming/Icons) for the current page and stores it as `pageDecoration.icon` in its frontmatter.
 
 ```space-lua
 -- priority: 10
