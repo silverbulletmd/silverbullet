@@ -9,7 +9,7 @@ import {
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import { space } from "@silverbulletmd/silverbullet/syscalls";
-import { updateBacklinks } from "./refactor.ts";
+import { renameSourceOf, updateBacklinks } from "./refactor.ts";
 
 /**
  * Restores the "a bare link exists iff its basename is unique" invariant after
@@ -29,7 +29,11 @@ import { updateBacklinks } from "./refactor.ts";
 export async function requalifyCollisions(pageName: string): Promise<void> {
   const basename = fileName(`${pageName}.md`);
   const lookups = await space.lookupPaths([basename]);
-  const candidates = lookups[basename]?.candidates ?? [];
+  // A page being renamed into `pageName` is on its way out, not a rival
+  const renamedFrom = renameSourceOf(pageName);
+  const candidates = (lookups[basename]?.candidates ?? []).filter(
+    (path) => getNameFromPath(path) !== renamedFrom,
+  );
   if (candidates.length < 2) {
     return;
   }

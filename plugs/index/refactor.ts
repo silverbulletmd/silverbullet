@@ -1,4 +1,5 @@
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { race, sleep } from "@silverbulletmd/silverbullet/lib/async";
 import {
   linkWriteFormat,
   writtenLinkText,
@@ -136,6 +137,9 @@ export async function renameDocumentCommand(cmdDef: any) {
  * @param fileList An array of tuples containing [FileToBeRenamed, NewFileName]
  * @returns True if the rename succeeded; otherwise, false.
  */
+/** How long a rename waits for the index to catch up before going ahead. */
+const indexCatchUpTimeoutMs = 10_000;
+
 export async function batchRenameFiles(fileList: [string, string][]) {
   await editor.save();
 
@@ -155,6 +159,20 @@ export async function batchRenameFiles(fileList: [string, string][]) {
       ...(await space.listDocuments()).map((doc) => doc.name),
       ...(await space.listPages()).map((page) => `${page.name}.md`),
     ];
+    // Backlinks come from the index. Listing just queued any files changed
+    // outside the editor (a sync, a git pull) for reindexing; until that is
+    // done the index still holds their old links, and the rename would skip
+    // them silently. Bounded, so a long initial index can't hold the rename.
+    const indexCaughtUp = await race([
+      mq.awaitEmptyQueue("indexQueue").then(() => true),
+      sleep(indexCatchUpTimeoutMs).then(() => false),
+    ]);
+    if (!indexCaughtUp) {
+      await editor.flashNotification(
+        "Indexing is still catching up: links in recently changed pages may not be updated",
+        "error",
+      );
+    }
 
     for (const [oldName, newName] of fileList) {
       // It's a FILEname not a PAGEname.
@@ -220,6 +238,19 @@ async function existsWithExactCasing(path: string): Promise<boolean> {
   return (await space.listDocuments()).some((doc) => doc.name === path);
 }
 
+/** Pages a rename is writing right now, mapped to the page they replace. */
+const renameSources = new Map<string, string>();
+
+/**
+ * The page `pageName` replaces when a rename is writing it. Writing the new
+ * page fires `page:saved` while the old page still exists; that brief overlap
+ * is not a name collision, so requalification must leave the old page's links
+ * to the rename (which points them at the new page).
+ */
+export function renameSourceOf(pageName: string): string | undefined {
+  return renameSources.get(pageName);
+}
+
 // Rename a page, update any backlinks and linked documents
 async function renamePage(oldName: string, newName: string) {
   let text = await space.readPage(oldName);
@@ -283,7 +314,12 @@ async function renamePage(oldName: string, newName: string) {
     }
   }
 
-  await space.writePage(newName, text);
+  renameSources.set(newName, oldName);
+  try {
+    await space.writePage(newName, text);
+  } finally {
+    renameSources.delete(newName);
+  }
 
   if (documentsToMove.size > 0) {
     await batchRenameFiles([...documentsToMove]);

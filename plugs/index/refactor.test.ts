@@ -5,6 +5,7 @@ import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexPage } from "./indexer.ts";
 import { batchRenameFiles } from "./refactor.ts";
+import { requalifyAfterSave } from "./requalify.ts";
 import { applySplices, type Splice, yamlRegions } from "./refactor_yaml.ts";
 
 async function indexPageForTest(name: string, text: string) {
@@ -18,6 +19,35 @@ async function indexPageForTest(name: string, text: string) {
   };
   const tree = parseMarkdown(text);
   await indexPage({ name, tree, meta, text });
+}
+
+/** Indexes queued pages in the background, as the client's index queue
+ * consumer does; `costMs` stands in for the time real indexing takes. */
+function startIndexWorker(
+  { mq, space }: ReturnType<typeof createMockSystem>,
+  costMs = 0,
+) {
+  return mq.subscribe(
+    "indexQueue",
+    { batchSize: 10, pollInterval: 50 },
+    async (messages) => {
+      await new Promise((resolve) => setTimeout(resolve, costMs));
+      for (const { body } of messages) {
+        const path = typeof body === "string" ? body : body.path;
+        if (!path.endsWith(".md")) continue;
+        const name = path.slice(0, -3);
+        try {
+          await indexPageForTest(name, (await space.readPage(name)).text);
+        } catch {
+          // Deleted since it was queued
+        }
+      }
+      await mq.batchAck(
+        "indexQueue",
+        messages.map((m) => m.id),
+      );
+    },
+  );
 }
 
 test("cross-folder rename rewrites only the URL of relative markdown links", async () => {
@@ -306,4 +336,111 @@ test("applySplices counts only the splices it kept", () => {
   // The flow sequence can't hold the new name, so its splice is dropped
   expect(result.text).toBe("---\nrefs: ['[[A]]', 'x']\n---\nBody [[B's: C]]\n");
   expect(result.changed).toBe(1);
+});
+
+test("moving a page to another folder keeps bare and suffix links pointing at it", async () => {
+  const mock = createMockSystem();
+  const { space, system, eventHook, spacePrimitives } = mock;
+  await spacePrimitives.enable();
+  const worker = startIndexWorker(mock);
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+  // As in the index plug: a write that creates a page requalifies collisions
+  eventHook.addLocalListener("page:saved", requalifyAfterSave);
+
+  await space.writePage("Old/Group/Target", "# Target\n");
+  const bare = "See [[Target]] and [[Group/Target]].";
+  await space.writePage("Notes/Bare", bare);
+  await indexPageForTest("Notes/Bare", bare);
+
+  const ok = await batchRenameFiles([
+    ["Old/Group/Target.md", "New/Group/Target.md"],
+  ]);
+  expect(ok).toBe(true);
+
+  // The moved page keeps its name, so the brief moment both copies exist is
+  // not a collision to requalify: the links must follow the page (written in
+  // the default full-path format), never freeze onto the old one.
+  expect((await space.readPage("Notes/Bare")).text).toBe(
+    "See [[New/Group/Target]] and [[Group/Target]].",
+  );
+  worker.stop();
+});
+
+test("a rename that creates a real name collision still requalifies the other page's links", async () => {
+  const mock = createMockSystem();
+  const { space, system, eventHook, spacePrimitives } = mock;
+  await spacePrimitives.enable();
+  const worker = startIndexWorker(mock);
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+  eventHook.addLocalListener("page:saved", requalifyAfterSave);
+
+  await space.writePage("C/Notes", "# Notes\n");
+  await space.writePage("A/Foo", "# Foo\n");
+  const home = "See [[Notes]].";
+  await space.writePage("Home", home);
+  await indexPageForTest("Home", home);
+
+  expect(await batchRenameFiles([["A/Foo.md", "B/Notes.md"]])).toBe(true);
+
+  // B/Notes is new to the name, so links that meant C/Notes are qualified
+  expect((await space.readPage("Home")).text).toBe("See [[C/Notes]].");
+  worker.stop();
+});
+
+test("a rename waits for the index to catch up with files changed outside the editor", async () => {
+  const mock = createMockSystem();
+  const { space, system, eventHook, spacePrimitives, mq } = mock;
+  await spacePrimitives.enable();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.navigate": () => {},
+  });
+  // As in the client: a listing that finds changed files queues them, and a
+  // worker indexes them in the background
+  eventHook.addLocalListener("file:changedBatch", (changed: any[]) =>
+    mq.batchSend(
+      "indexQueue",
+      changed.map(({ name }) => ({ path: name })),
+    ),
+  );
+  // Indexing a real batch of changes takes longer than a rename's lookup
+  const worker = startIndexWorker(mock, 300);
+
+  try {
+    await space.writePage("Old/Target", "# Target\n");
+    await space.fetchPageList();
+    await mq.awaitEmptyQueue("indexQueue");
+
+    // Written behind the editor's back (a git pull, another tool): only the
+    // next file listing notices it
+    const linking = "See [[Old/Target]].";
+    await (spacePrimitives as any).wrapped.writeFile(
+      "Notes/Linking.md",
+      new TextEncoder().encode(linking),
+    );
+
+    expect(await batchRenameFiles([["Old/Target.md", "New/Target.md"]])).toBe(
+      true,
+    );
+    expect((await space.readPage("Notes/Linking")).text).toBe(
+      "See [[New/Target]].",
+    );
+  } finally {
+    worker.stop();
+  }
 });
