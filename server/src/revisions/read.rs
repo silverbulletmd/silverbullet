@@ -144,6 +144,13 @@ pub fn validate_space_path(path: &str) -> Result<(), String> {
     if path.starts_with('/') {
         return Err("invalid path: leading slash".to_string());
     }
+    // Windows reads `C:x` as drive-relative, resolving outside the repo.
+    if Path::new(path)
+        .components()
+        .any(|c| matches!(c, std::path::Component::Prefix(_)))
+    {
+        return Err("invalid path: drive prefix".to_string());
+    }
     if path
         .split(['/', '\\'])
         .any(|segment| segment.is_empty() || segment == "." || segment == "..")
@@ -1812,6 +1819,14 @@ mod tests {
             let err = validate_space_path(bad).unwrap_err();
             assert!(err.starts_with("invalid path"), "{bad:?} -> {err}");
         }
+    }
+
+    /// Windows reads `C:x` as drive-relative, outside the repo.
+    #[cfg(windows)]
+    #[test]
+    fn rejects_drive_prefix() {
+        let err = validate_space_path("C:secret.md").unwrap_err();
+        assert!(err.starts_with("invalid path"), "{err}");
     }
 
     #[test]
