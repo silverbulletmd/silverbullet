@@ -6,7 +6,7 @@ references:
 The `net` namespace provides network and URI access.
 
 ## Proxy request behavior
-`net.proxyFetch` sends HTTP requests through the SilverBullet server to avoid browser CORS restrictions. See [[Reference/Integrations/HTTP API]]. Its options table supports `method` (GET by default), `headers`, `body`, and `responseEncoding`. A table body is JSON-encoded automatically.
+`net.proxyFetch` sends HTTP requests through the SilverBullet server to avoid browser CORS restrictions. See [[Integrations/HTTP API]]. Its options table supports `method` (GET by default), `headers`, `body`, and `responseEncoding`. A table body is JSON-encoded automatically.
 
 The response table contains `ok` (true for a 2xx status), `status` (the remote server’s), `headers`, and `body`. JSON responses are parsed into Lua-compatible values, text and XML responses become strings, other content becomes a byte buffer, and an empty body becomes `nil`.
 

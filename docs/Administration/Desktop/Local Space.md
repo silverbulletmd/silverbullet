@@ -13,7 +13,7 @@ Because a space is a plain folder of Markdown files, you can also open it with o
 Bind system-wide keyboard shortcuts to any SilverBullet [[Reference/Concepts/Command]] in any space.
 
 # From the terminal
-The `sb` command opens files and folders in Desktop, evaluates [[Reference/Space Lua]] against a running space, and manages spaces. See [[CLI]].
+The `sb` command opens files and folders in Desktop, evaluates [[Reference/Space Lua]] against a running space, and manages spaces. See [[Integrations/CLI]].
 
 # Sharing configuration between spaces
 To make configuration and libraries available in every local space, use a [[Meta Space]].

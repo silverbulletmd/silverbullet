@@ -19,10 +19,10 @@ The data folder holds the server’s configuration and, by default, its spaces:
 
 * `spaces.json`: every space, with its address, folder, access, members and settings.
 * `users.json`: the accounts. A file containing just `{}` makes a server without accounts, see [[Dashboard#Servers without accounts]].
-* `server.json`: server-wide settings from the administrator’s screens in the [[Dashboard]], such as the [[Runtime API]], [[MCP]] and the semantic [[Features/Search]] model.
+* `server.json`: server-wide settings from the administrator’s screens in the [[Dashboard]], such as the [[Integrations/Runtime API]], [[Integrations/MCP]] and the semantic [[Features/Search]] model.
 * `spaces/`: the space folders created in the Dashboard. A space can also point to a folder elsewhere.
 * `search/`: the [[Features/Search]] indexes.
-* `.chrome-data`: the [[Runtime API]]’s browser profiles.
+* `.chrome-data`: the [[Integrations/Runtime API]]’s browser profiles.
 
 When the server starts with an empty data folder, it runs the setup wizard, see [[Dashboard#Setup wizard]]. Keep the data folder on persistent storage, and back it up as a whole.
 

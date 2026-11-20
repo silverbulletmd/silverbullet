@@ -70,7 +70,7 @@ Open **Settings → Advanced** and choose a model under **Semantic search**. The
 # Space Lua and the command line
 The same search is available from [[Reference/Space Lua]] as `search.status()` and `search.find()`. See [[API/search]].
 
-From the command line, run it with `sb lua` (see [[CLI]]):
+From the command line, run it with `sb lua` (see [[Integrations/CLI]]):
 
 ```bash
 sb lua 'search.find("garden plan")'

@@ -5,12 +5,12 @@ references:
 - server-common/src/space.rs
 - server-common/src/space/http.rs
 ---
-The Server owns file access and exposes the [[Reference/Integrations/HTTP API]]. It serves the browser client, authenticates requests, enforces space access and coordinates file changes, including concurrent-edit reconciliation.
+The Server owns file access and exposes the [[Integrations/HTTP API]]. It serves the browser client, authenticates requests, enforces space access and coordinates file changes, including concurrent-edit reconciliation.
 
 # Server services
 * [[Features/Search]] maintains a server-side full-text index and, when configured, a semantic index.
 * [[Revisions]] maintains or reads Git history and can synchronize a managed repository with a remote.
-* The [[Runtime API]] can run space operations through a managed headless client when configured and authorized.
+* The [[Integrations/Runtime API]] can run space operations through a managed headless client when configured and authorized.
 * Accounts, space membership and administration are managed through the [[Dashboard]].
 
 # Client responsibilities

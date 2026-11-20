@@ -14,14 +14,14 @@ Every client sees the same tools on every space:
 * `help`: the first call. Lists the spaces you can use, whether each has a runtime, and the skills available. Tools take a space by its name or its id, the id is needed only when two of your spaces share a name.
 * `read`, `write` and `edit`: read pages (a part of one, several at once, or rendered with queries evaluated and lint problems listed), write whole pages, or make targeted edits. Writing a page with Space Lua or Space Style reloads it and reports any load errors.
 * `search`: full-text (and, where enabled, semantic) [[Features/Search]] over a space.
-* `lua`: run [[Reference/Space Lua]] in the live space, with the result and console output. Needs the [[Runtime API]].
-* `screenshot`: render a page or part of it. Needs the [[Runtime API]].
+* `lua`: run [[Reference/Space Lua]] in the live space, with the result and console output. Needs the [[Integrations/Runtime API]].
+* `screenshot`: render a page or part of it. Needs the [[Integrations/Runtime API]].
 
 # Skills
 Skills are pages tagged `meta/skill` in their frontmatter (the ones bundled with SilverBullet, in installed libraries, and your own), plus library pages tagged `meta/library` outside `Library/Std`. `help` lists them with their descriptions (for a library without one, its first sentence), and an agent loads one by reading the page, similar to how an AI agent handles skills natively.
 
 # Access
-The assistant acts as the account that approved the connection, and only for the spaces you ticked on the consent page (all spaces where you can write are ticked by default). Other spaces are reported as unavailable. A connection follows your account: if your access to a space drops below write, or an admin removes your account, the assistant loses it at once. `lua` and `screenshot` additionally follow the account’s per-space [[Runtime API]] permission, and are unavailable while the Runtime API is disabled.
+The assistant acts as the account that approved the connection, and only for the spaces you ticked on the consent page (all spaces where you can write are ticked by default). Other spaces are reported as unavailable. A connection follows your account: if your access to a space drops below write, or an admin removes your account, the assistant loses it at once. `lua` and `screenshot` additionally follow the account’s per-space [[Integrations/Runtime API]] permission, and are unavailable while the Runtime API is disabled.
 
 # Setup
 Clients sign in with standard OAuth: you add the server URL, your browser opens a SilverBullet page where you log in, choose the spaces and press Allow, and the client keeps the connection.

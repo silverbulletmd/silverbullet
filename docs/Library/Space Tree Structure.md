@@ -89,6 +89,11 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
     * Zero Tracking
   * Troubleshooting
   * Log
+* Integrations [icon: blocks]
+  * HTTP API
+  * Runtime API
+  * CLI
+  * MCP
 * Reference [icon: bookmark]
   * Glossary
   * Concepts
@@ -166,11 +171,6 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
     * Space Style
     * Page Decorations
     * Upgrading Existing Styles
-  * Integrations
-    * HTTP API
-    * Runtime API
-    * CLI
-    * MCP
   * Internals
     * Architecture
     * Indexing Internals

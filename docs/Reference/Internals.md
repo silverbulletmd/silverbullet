@@ -9,4 +9,4 @@ How SilverBullet works inside, and the decisions that shaped it.
 * [[Reference/Internals/ADR]] — architecture decision records.
 * [[CHANGELOG]] — releases.
 
-To drive a space from outside, see [[Reference/Integrations]].
+To drive a space from outside, see [[Integrations]].

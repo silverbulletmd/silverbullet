@@ -43,8 +43,8 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * Sharing no longer changes the source page or stores `share.hash` in its frontmatter.
   * Support for publishing to other SilverBullet spaces (see [[^Library/Std/Infrastructure/SilverBullet Share]])
   * Sign in to GitHub with a device code instead of configuring a personal access token. Credentials stay on the current device and are never synced. `Credentials: List` and `Credentials: Clear` let you inspect and remove them. Sharing individual pages with another SilverBullet space now supports push, pull and sync with device-code sign-in. See [[API/auth]] and [[API/github]].
-* [[CLI]] unification. There is now a single `sb` CLI (installation instructions in [[CLI#Installation]]) that can be used both remotely with Server, and locally with [[Features/Desktop]].
-  * New `sb help` lists your spaces, the space's skills and an outline of it, and `sb help <topic>` prints a skill. The seven built-in skills are embedded in `sb`, and a reachable space's own copy wins. See [[CLI#`help [topic]`]].
+* [[Integrations/CLI]] unification. There is now a single `sb` CLI (installation instructions in [[Integrations/CLI#Installation]]) that can be used both remotely with Server, and locally with [[Features/Desktop]].
+  * New `sb help` lists your spaces, the space's skills and an outline of it, and `sb help <topic>` prints a skill. The seven built-in skills are embedded in `sb`, and a reachable space's own copy wins. See [[Integrations/CLI#`help [topic]`]].
   * `sb lua` runs a Lua expression or script (`sb eval` and `sb script` still work as aliases). Like `sb query` and the new `sb screenshot --page <name>`, it first lets the index catch up with recent file changes and prints a note on stderr when it could not, and console output goes to stderr so stdout holds only the result.
   * `sb fs read` can take several paths, `--outline`, `--offset`/`--limit` and `--rendered` (the page with queries evaluated, plus its lint problems).
   * `sb fs write`, `sb fs edit` and `sb fs rm` take `--revision` (`--if-match` still works). Writing or editing a page with Space Lua or Space Style now reloads its scripts and reports its load errors and lint problems, and exits with code 9 ("written, but its scripts have problems") when there are any; `--no-reload` skips it. After changing files outside `sb` you still need `sb lua 'system.reboot()'`.
@@ -80,7 +80,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
   * `markdown.expandMarkdown` takes a `pageName` option to evaluate the text as that page instead of the open one. See [[API/markdown]].
   * **Potentially breaking:** `command.define`, `slashCommand.define`, `identity.define`, `taskState.define`, `codeWidget.define`, `virtualPage.define` and `syntax.define` now _merge_ repeated definitions with the same name, like `tag.define` already did, so you can e.g. define a tag’s schema in one place and add a `transform` elsewhere. Previously, each call replaced the whole definition.
 * [[Publishing#Publish a folder as a website|Publish a folder as a website]]: `silverbullet publish ./docs` serves a folder as a public, read-only site.
-* [[MCP]]: SilverBullet Server can now serve an MCP endpoint at `/.mcp`, so AI assistants can directly read, write, search and query your spaces. Clients sign in with OAuth and act as the account that approved them, on the spaces chosen on a consent page. MCP is off by default: an admin turns it on in the APIs tab.
+* [[Integrations/MCP]]: SilverBullet Server can now serve an MCP endpoint at `/.mcp`, so AI assistants can directly read, write, search and query your spaces. Clients sign in with OAuth and act as the account that approved them, on the spaces chosen on a consent page. MCP is off by default: an admin turns it on in the APIs tab.
 * **Breaking:** the Docker image no longer runs a `CONTAINER_BOOT.md` file from the data folder at startup. To install extra packages or run setup steps, build your own image `FROM zefhemel/silverbullet` instead (see [[Administration/Server/Docker]]). This was a security-sketchy idea anyway.
 * [[Administration/Server/Configuration#Update check|Update check]]: the Server checks about once a day for new releases and security advisories and shows them to admins in the Dashboard. Disable it with `SB_UPDATE_CHECK=0`.
 * [[Starter Kits]]: creating a space now starts with a gallery of ready-made use cases (Personal space, Team space, Blank space), in the Dashboard's **New space** and the setup wizard, replacing the single welcome page. **From a Git repository** copies a public repository as a one-time starting point, or (in the Dashboard) creates the space and continues into [[Administration/Server/Git Sync]] to keep it in sync. Starter content is only added to folders without notes.
@@ -136,7 +136,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Page tags can define a **custom [[Live Preview]] for [[Frontmatter]]**, showing a page-specific header in place of the source while keeping the YAML one click away for editing. Go to definition jumps to the renderer’s Space Lua. See [[API/tag#Frontmatter live previews]]
 * Top and bottom page widgets and page-docked views now have a Go to definition button (`</>`) that jumps to the Space Lua defining them.
 * Pages and documents can be dragged from the Space tree into the editor to create links, or into a file manager to download them where supported.
-* The [[Runtime API]] and [[CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
+* The [[Runtime API]] and [[Integrations/CLI]] can capture screenshots again: `sb screenshot` saves a PNG of the runtime client, optionally clipped to one element with `--selector`.
 * Git sync connections can target a chosen remote branch, including when it differs from the space’s local branch. The connection overview shows both branches, and unrelated-history errors offer a recovery action to check and combine both histories. Automatic commits during the connection check no longer invalidate it, and a checked merge tolerates new commits on either side before its first sync.
 * Fix: rendered Markdown preserves application links such as `message:` and custom protocols, including URLs without `//`.
 * Fix: text you type right after another user’s newly added line (for example a comment at the end of a task they just wrote) is no longer highlighted as their change in your own editor.
@@ -217,7 +217,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 * Fix: [[Dashboard|multi-space]] mode silently ignored `SB_REMEMBER_ME_HOURS`, `SB_LOCKOUT_TIME`, and `SB_LOCKOUT_LIMIT`, hardcoding “remember me” sessions to 7 days and lockout to 10 attempts per minute. All three now apply there too — server-wide, like the session itself — matching what [[Administration/Server/Configuration]] documents.
 * The [[Runtime API]] now uses a separate Chrome process and temporary profile for each user and space, isolating cookies, browser storage, and logs. Runtime requests carry the user’s identity. Revoking access stops the affected browser. Chrome detection is reported at startup.
 * Fix: the Runtime API failed to start when authentication was enabled.
-* **[[CLI|CLI]] remote file operations:** `sb fs` lists, reads, creates, edits, and deletes space files without the Runtime API. Exact text replacements support batches and revision checks to detect concurrent changes.
+* **[[Integrations/CLI|CLI]] remote file operations:** `sb fs` lists, reads, creates, edits, and deletes space files without the Runtime API. Exact text replacements support batches and revision checks to detect concurrent changes.
 * Removed the experimental `sb repl` command and its dedicated runtime support. Use `sb lua`, `sb lua-script`, and `sb logs` for terminal access.
 * Fix: moving a page with an image linked only from that page now updates the image link when the image moves with it, so the image remains visible and can move back with the page.
 * Fix: plug projects can type-check against the published `@silverbulletmd/silverbullet/syscalls` package without errors from missing files and types inside the package.
@@ -300,7 +300,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 ## 2.8.0
 * [[X-Ray]]: an editor lens (run `Editor: Toggle X-Ray`) to inspect indexed objects inline.
 * New built-in [[Guides/Journal|Journal]] library.
-* Runtime API: Expose objects (with filter) `/.runtime/objects/*` for external integrations and the [[CLI]], see [[Runtime API]].
+* Runtime API: Expose objects (with filter) `/.runtime/objects/*` for external integrations and the [[Integrations/CLI]], see [[Runtime API]].
 * New `SB_DISABLE_SERVICE_WORKER` : server-side switch to disable the client service worker for all clients, this will disable sync (all loads and saves will go directly to the server) and disable any offline support.
 * UX: now showing spinners instead of underlying (Lua) code in states where widgets aren’t ready to render yet (e.g. before an initial index hasn’t completed)
 * Fix: indexed `range` for `data` blocks (and `#tag` data blocks) now points at the YAML content instead of the surrounding fence markers. Multi-document blocks now compute per-doc ranges correctly.
@@ -359,7 +359,7 @@ _These changes are available from the [edge builds](https://github.com/silverbul
 ## 2.6.1
 * **Technical: Deno → Node.js migration**: The TypeScript/client codebase has been migrated from Deno to Node.js, now using vitest for tests.
   * Bundle size optimization: chunked builds with ESBuild, JIT loading of larger modules (vim, syntax modes).
-* **[[Runtime API]]** and accompanying [[CLI]] (==Experimental==): programmatically interact with a (remote) SilverBullet server over via `silverbullet-cli` or a [[Runtime API|HTTP API]]: evaluate Lua expressions, run scripts, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state.
+* **[[Runtime API]]** and accompanying [[Integrations/CLI]] (==Experimental==): programmatically interact with a (remote) SilverBullet server over via `silverbullet-cli` or a [[Runtime API|HTTP API]]: evaluate Lua expressions, run scripts, and retrieve console logs. Powered by a headless Chrome instance running the full SilverBullet client via CDP, so all results reflect live client state.
 * New query shortcuts: `index.contentPages()` (pages excluding meta pages) and `index.metaPages()` (only meta pages) for convenient querying without manual tag filtering.
 * [[Outlines]] commands have been thoroughly reworked. Should now be more robust and better tested outline move/indent operations. New features:
   * Now also works with numbered items (and renumbers them)

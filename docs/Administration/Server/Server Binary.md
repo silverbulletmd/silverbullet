@@ -15,7 +15,7 @@ SilverBullet is distributed as a single server binary available for the followin
 > **note** Which file should I download?
 > The [releases page](https://github.com/silverbulletmd/silverbullet/releases) lists two families of zip files:
 > * `silverbullet-server-<os>-<arch>.zip`: **this is what you want**, the actual SilverBullet server.
-> * `sb-<os>-<arch>.zip` — the optional [[CLI]] tool (`sb`) for scripting against a _running_ server.
+> * `sb-<os>-<arch>.zip` — the optional [[Integrations/CLI]] tool (`sb`) for scripting against a _running_ server.
 
 # Steps
 We start by [downloading the `silverbullet-server-*` zip for your platform from GitHub](https://github.com/silverbulletmd/silverbullet/releases).

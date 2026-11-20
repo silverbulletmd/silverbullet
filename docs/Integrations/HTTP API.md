@@ -32,7 +32,7 @@ Every account carries a profile — a display name and email, used for attributi
 * `GET /.accounts`: Every account with access to this space, as `[{"username", "fullName", "me"}]`, with the caller’s own entry marked `me`. `username` is `null` where the deployment keeps no accounts (the caller is still reported, marked `me`, so their name is known even though they are nobody the space can address), `fullName` is omitted when unset, and `me` is omitted when false.
 
 # File system
-The space file system is exposed under the `/.fs` prefix. The [[CLI#`fs`: remote files|`sb fs` CLI commands]] use these endpoints directly, including metadata and conditional writes, without requiring the Runtime API:
+The space file system is exposed under the `/.fs` prefix. The [[Integrations/CLI#`fs`: remote files|`sb fs` CLI commands]] use these endpoints directly, including metadata and conditional writes, without requiring the Runtime API:
 
 * `GET /.fs` will return a full listing of all files in your space including metadata like when the file was last modified, as well as permissions in JSON format. This is primarily used for sync purposes with the client.
 * `GET /.fs/*`: _Reads_ and returns the content of the file at the given path. This means that if you `GET /.fs/index.md` you will receive the content of your `index` page. If the optional `X-Get-Meta` _request header_ is set, the server does not _need to_ return the body of the file (but it can). The `GET` _response_ will have a few additional SB-specific headers:
@@ -65,14 +65,14 @@ Present when [[Revisions]] are enabled for the space: every endpoint below answe
 * `GET /.revisions/<path>?format=diff`: With no `rev`, the *uncommitted* change instead — HEAD versus what is on disk, as `text/plain`. A file that has never been committed reads as wholly added. `404` when it matches HEAD after all.
 
 # Search
-The server answers [[Features/Search]] itself, so these work without the [[Runtime API]]. The [[CLI]]’s `sb search` and `sb related` use them. They need Read access. Public visitors only get the modes the server allows them, and no related pages. Bodies are JSON. Errors are 4xx JSON with an `error` code and a `message`.
+The server answers [[Features/Search]] itself, so these work without the [[Integrations/Runtime API]]. The [[Integrations/CLI]]’s `sb search` and `sb related` use them. They need Read access. Public visitors only get the modes the server allows them, and no related pages. Bodies are JSON. Errors are 4xx JSON with an `error` code and a `message`.
 
 * `GET /.search/status`: What search can do right now: `backend` (`null` when unavailable), `model`, `capabilities` (`modes`, the first being the default, and whether `related` is available), `ready`, `progress` (`{"done", "total"}` while building) and `reason`.
-* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`. Only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `tool` or `all` (`meta` still works as an alias of `tool`), `limit` is at most 50. Returns `items` (matches, best page first, each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching). With `X-Await-Index: 1`, a member’s query first lets the index catch up with recent file changes and the response carries `X-Index-Status`, as described in [[Runtime API#Waiting for the index]].
+* `POST /.search/query`: Body `{"query", "mode", "scope", "include", "exclude", "limit"}`. Only `query` is required. `mode` is `words`, `phrase` or `natural` (the **Semantic** mode), `scope` is `pages`, `tool` or `all` (`meta` still works as an alias of `tool`), `limit` is at most 50. Returns `items` (matches, best page first, each with `page`, `pos`, `line`, `heading`, `excerpt` and `highlights`), `total`, `partial` and `notice` (e.g. when semantic search fell back to word matching). With `X-Await-Index: 1`, a member’s query first lets the index catch up with recent file changes and the response carries `X-Index-Status`, as described in [[Integrations/Runtime API#Waiting for the index]].
 * `POST /.search/related`: Body `{"page", "limit", "exclude", "scope"}`: pages related in meaning to `page`, in the same shape as a query’s result. Needs semantic search.
 
 # Help
-`GET /.help`: What an assistant needs to start working in the space, as JSON with `"version": 1`: the skills available (pages tagged `meta/skill`: the built-in `Library/Std` ones, those of installed libraries and the space’s own, each with its page, description and source), an `outline` of the space (`folders` with page counts, a capped list of top-level `pages` with `pageCount`, whether an `AGENTS` page exists, and the `tags` and attributes used in page frontmatter), and `runtime`, whether the [[Runtime API]] is available to the caller. The [[CLI]]’s `sb help` and the [[MCP]]’s `help` tool render it. It needs a signed-in account or an API token, even on a public space: anonymous visitors get `401` (or the sign-in redirect), although they can read `/.fs`. While the space’s first scan is still running, `scanning` is true and only the built-in skills are listed.
+`GET /.help`: What an assistant needs to start working in the space, as JSON with `"version": 1`: the skills available (pages tagged `meta/skill`: the built-in `Library/Std` ones, those of installed libraries and the space’s own, each with its page, description and source), an `outline` of the space (`folders` with page counts, a capped list of top-level `pages` with `pageCount`, whether an `AGENTS` page exists, and the `tags` and attributes used in page frontmatter), and `runtime`, whether the [[Integrations/Runtime API]] is available to the caller. The [[Integrations/CLI]]’s `sb help` and the [[Integrations/MCP]]’s `help` tool render it. It needs a signed-in account or an API token, even on a public space: anonymous visitors get `401` (or the sign-in redirect), although they can read `/.fs`. While the space’s first scan is still running, `scanning` is true and only the built-in skills are listed.
 
 # RPC
 Some functionality is exposed as RPC-style calls
@@ -88,10 +88,10 @@ Some functionality is exposed as RPC-style calls
   * The `x-proxy-status-code` header contains the actual upstream HTTP status code. The proxy response itself always returns 200 to avoid interference.
 
 ## Runtime API
-Enabled when Chrome/Chromium is available and runtime access is permitted: use the administrator’s APIs controls and per-writer Runtime API permission in the [[Dashboard]]. See [[Runtime API]] for full documentation, setup instructions, and examples.
+Enabled when Chrome/Chromium is available and runtime access is permitted: use the administrator’s APIs controls and per-writer Runtime API permission in the [[Dashboard]]. See [[Integrations/Runtime API]] for full documentation, setup instructions, and examples.
 
 ## MCP
-`POST /.mcp` is a stateless [[MCP]] (Model Context Protocol) endpoint that authenticates with an OAuth access token (`Authorization: Bearer <token>`, issued to a connected app); API tokens are refused with `401` and a `WWW-Authenticate` challenge pointing at the resource metadata. These endpoints answer `404` unless an admin has turned MCP on (it is off by default) and when `SB_MCP=0` (except `/.auth/revoke`):
+`POST /.mcp` is a stateless [[Integrations/MCP]] (Model Context Protocol) endpoint that authenticates with an OAuth access token (`Authorization: Bearer <token>`, issued to a connected app); API tokens are refused with `401` and a `WWW-Authenticate` challenge pointing at the resource metadata. These endpoints answer `404` unless an admin has turned MCP on (it is off by default) and when `SB_MCP=0` (except `/.auth/revoke`):
 
 * `GET /.well-known/oauth-protected-resource/.mcp` (also at `/.well-known/oauth-protected-resource`): RFC 9728 resource metadata.
 * `GET /.well-known/oauth-authorization-server`: RFC 8414 authorization server metadata.
@@ -101,7 +101,7 @@ Enabled when Chrome/Chromium is available and runtime access is permitted: use t
 * `POST /.auth/mcp/token`: authorization code and refresh token grants (refresh tokens rotate). Public clients authenticate with PKCE only. A client whose metadata document registers `private_key_jwt` must also send `client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer` and an RFC 7523 `client_assertion` on both grants: signed (RS256, PS256 or ES256) with a key from its `jwks_uri` or `jwks`, `iss` and `sub` its client ID, `aud` the token endpoint or issuer URL, valid for at most 5 minutes, with a `jti` not used before. Failures answer `401` `invalid_client`.
 * `POST /.auth/revoke`: RFC 7009 revocation, always `200`.
 
-See [[MCP]].
+See [[Integrations/MCP]].
 
 # Client
 * `GET /.config`: Retrieve client configuration, JSON with the following keys:

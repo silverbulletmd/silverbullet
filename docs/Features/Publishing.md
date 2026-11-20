@@ -63,7 +63,7 @@ Set these as environment variables:
 A published site is always public and read-only. These can’t be changed:
 
 * There are no accounts and no sign-in. The login page at `/.auth` says the site is published read-only.
-* There is no [[Dashboard]], [[MCP]] endpoint, [[Runtime API]], shell, page history ([[Revisions]]) or [[Git]] sync.
+* There is no [[Dashboard]], [[Integrations/MCP]] endpoint, [[Integrations/Runtime API]], shell, page history ([[Revisions]]) or [[Git]] sync.
 * The site never shows where the folder is on the host. Clients see `published` as its path.
 
 ## Search
@@ -78,7 +78,7 @@ Second option: on a server with the [[Dashboard]], a space can be public while i
 ## Make a space public
 In the [[Dashboard]], open the space’s **Space settings → Access**. Under **Who has access**, set **Public (not signed in)** to **Read**. Anyone can now read the space without signing in. Page history and [[Revisions]] stay members-only.
 
-Visitors can’t reach capability endpoints such as the shell or the [[Runtime API]]. Members with `write` access keep editing as usual, and visitors see changes as soon as they’re saved. See [[Dashboard#Access]] for how public access combines with member roles.
+Visitors can’t reach capability endpoints such as the shell or the [[Integrations/Runtime API]]. Members with `write` access keep editing as usual, and visitors see changes as soon as they’re saved. See [[Dashboard#Access]] for how public access combines with member roles.
 
 Under **Space settings → General**, set **Index page** to choose the page visitors land on (see [[Index Page]]).
 

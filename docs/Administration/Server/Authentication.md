@@ -27,7 +27,7 @@ Account-managed servers can connect Google Workspace, Pocket ID, or another Open
 A server whose `users.json` contains just `{}` has no accounts, so nobody can sign in, and its spaces are reachable only according to their access setting. See [[Dashboard#Servers without accounts]].
 
 # API
-For programmatic access via the [[Reference/Integrations/HTTP API]], you can use bearer token authentication with an API token issued in the [[Dashboard]].
+For programmatic access via the [[Integrations/HTTP API]], you can use bearer token authentication with an API token issued in the [[Dashboard]].
 
 # Authentication proxies
 Alternatively, or in addition, you can use an [[Authentication Proxy]] to delegate authentication to an external system (like Authelia, Authentik, or a reverse proxy’s built-in auth). This is common in more complex self-hosted setups. Pair a proxy with **public** spaces so the proxy owns identity.

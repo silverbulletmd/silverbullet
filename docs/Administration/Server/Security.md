@@ -29,4 +29,4 @@ A few endpoints can reach beyond the space’s own content, and all require `wri
 
 * **Shell** (`/.shell`) — runs any command on the server. (Off by default)
 * **HTTP proxy** (`/.proxy`, exposed to Lua as [[API/net#net.proxyFetch(url, options?)|net.proxyFetch]]) — fetches an external URL through the server, on the server’s network.
-* **Runtime API** (`/.runtime`) — evaluates Lua and scripts via a headless browser instance, see [[Runtime API]].
+* **Runtime API** (`/.runtime`) — evaluates Lua and scripts via a headless browser instance, see [[Integrations/Runtime API]].

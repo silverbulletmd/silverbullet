@@ -9,10 +9,10 @@ The Runtime API lets you interact with a SilverBullet client programmatically vi
 Requests are evaluated via Chrome DevTools Protocol (CDP) in a headless Chrome instance, which does the actual execution so all results reflect the live client state.
 
 > **note** Note
-> The [[CLI]] provides a convenient command-line interface for the Runtime API — evaluate Lua, run scripts, and more, without writing raw HTTP requests.
+> The [[Integrations/CLI]] provides a convenient command-line interface for the Runtime API — evaluate Lua, run scripts, and more, without writing raw HTTP requests.
 
 > **note** Note
-> Searching the space does not need the Runtime API: see [[Reference/Integrations/HTTP API#Search]].
+> Searching the space does not need the Runtime API: see [[Integrations/HTTP API#Search]].
 
 # Setup
 The Runtime API is enabled automatically when Chrome, Chromium, or Chromium headless shell is detected on your system — no configuration needed. Auto-detection prefers headless shell when it is available on `PATH`.
@@ -107,9 +107,9 @@ curl -H "X-Timeout: 60" \
 ```
 
 # Waiting for the index
-The Lua endpoints and `/.runtime/screenshot` can first wait until the space’s index has caught up with recent file changes (edits made through the [[Reference/Integrations/HTTP API]], a script or another device), so a query sees a page written a moment ago. Send `X-Await-Index: 1` (`true` and `yes` also count). The server waits for its file watcher to pass changes on, then for the client’s index queue to empty, for at most the smaller of 5 seconds and `X-Timeout`. The request then runs with its full `X-Timeout`.
+The Lua endpoints and `/.runtime/screenshot` can first wait until the space’s index has caught up with recent file changes (edits made through the [[Integrations/HTTP API]], a script or another device), so a query sees a page written a moment ago. Send `X-Await-Index: 1` (`true` and `yes` also count). The server waits for its file watcher to pass changes on, then for the client’s index queue to empty, for at most the smaller of 5 seconds and `X-Timeout`. The request then runs with its full `X-Timeout`.
 
-`POST /.search/query` (see [[Reference/Integrations/HTTP API#Search]]) honors the same header: a signed-in member’s query first waits, for at most the smaller of 5 seconds and `X-Timeout`, until the search index has caught up with recent file changes. Public visitors’ queries do not wait and get `X-Index-Status: unknown`.
+`POST /.search/query` (see [[Integrations/HTTP API#Search]]) honors the same header: a signed-in member’s query first waits, for at most the smaller of 5 seconds and `X-Timeout`, until the search index has caught up with recent file changes. Public visitors’ queries do not wait and get `X-Index-Status: unknown`.
 
 The response carries `X-Index-Status`, only when the request had `X-Await-Index`:
 
@@ -122,7 +122,7 @@ The response carries `X-Index-Status`, only when the request had `X-Await-Index`
 curl -i -H "X-Await-Index: 1" -d 'index.pages()' http://localhost:3000/.runtime/lua
 ```
 
-The [[CLI]] (`sb lua`, `sb query`, `sb screenshot`, `sb fs read --rendered` and `sb search`) and the [[MCP]] (`lua`, `screenshot`, `read` with `rendered`, and `search`) send it on every call and report `behind` and `polling` as a note.
+The [[Integrations/CLI]] (`sb lua`, `sb query`, `sb screenshot`, `sb fs read --rendered` and `sb search`) and the [[Integrations/MCP]] (`lua`, `screenshot`, `read` with `rendered`, and `search`) send it on every call and report `behind` and `polling` as a note.
 
 # Results
 The `result` of `/.runtime/lua` and `/.runtime/lua_script` (and the output of `sb lua` and `sb query`) is always plain JSON:

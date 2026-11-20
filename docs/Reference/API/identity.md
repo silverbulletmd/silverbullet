@@ -25,7 +25,7 @@ The result contains `recipient` when filtered, `mentions`, `total`, and `truncat
 
 Each entry has `kind` (`mention` or `page`), `page`, `ref`, `target`, `snippet`, and `by` (author names). Inline mentions include `range`, `pos`, `nickname`, `fromTag`, and `inComment`. `replyTo` is the first signed author, or the current identity when no signed author is available. It is absent when neither is known. Page recipients use the current identity fallback, so inspect page authorship before replying. Signatures are self-declared and do not authenticate the author. References and offsets can become stale after an edit.
 
-From the [[CLI]]:
+From the [[Integrations/CLI]]:
 
 ```sh
 sb --space notes eval 'identity.mentions("helper", {limit=100})' --json

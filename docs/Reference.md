@@ -7,7 +7,7 @@ Look up definitions, syntax and API contracts.
 * [[Reference/API]] — the functions Space Lua can call.
 * [[Reference/Theming]] — themes, styles, fonts and icons.
 * [[Reference/Tag]] — the built-in tags and the fields of each.
-* [[Reference/Integrations]] — the CLI, MCP, Runtime API and HTTP API for working with a space from outside.
+* [[Integrations]] — the CLI, MCP, Runtime API and HTTP API for working with a space from outside.
 * [[Reference/Internals]] — architecture, indexing, plugs and design decisions.
 * [[^Library/Std/Config|Configuration options]] — every configuration option, with its default.
 
