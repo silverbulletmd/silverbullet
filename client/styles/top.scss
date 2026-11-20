@@ -95,12 +95,32 @@
         line-height: 1.35;
         white-space: pre;
         overflow: hidden;
-        text-overflow: ellipsis;
+        display: flex;
       }
 
+      // A long name gives up its folder first, cut from the left
+      // ("…Features/Workbench/Scripts"), so the page's own name stays whole.
+      // The ellipsis lands on the left because the folder box is right-to-left;
+      // the <bdi> inside keeps the path itself reading left to right.
       .sb-page-name-folder {
         color: var(--top-page-folder-color);
-        font-weight: var(--top-page-folder-font-weight);
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        direction: rtl;
+
+        > bdi {
+          direction: ltr;
+          unicode-bidi: isolate;
+        }
+      }
+
+      .sb-page-name-leaf {
+        flex: 0 0 auto;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .sb-input {

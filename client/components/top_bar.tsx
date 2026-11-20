@@ -288,7 +288,9 @@ function PageNameEditor({
       {!focused && (
         <span class="sb-page-name-display" aria-hidden="true">
           {slash >= 0 && (
-            <span class="sb-page-name-folder">{name.slice(0, slash + 1)}</span>
+            <span class="sb-page-name-folder">
+              <bdi>{name.slice(0, slash + 1)}</bdi>
+            </span>
           )}
           <span class="sb-page-name-leaf">{name.slice(slash + 1)}</span>
         </span>

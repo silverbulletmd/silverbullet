@@ -39,7 +39,6 @@ html {
     var(--subtle-color) 35%
   );
   --top-page-folder-color: currentColor;
-  --top-page-folder-font-weight: inherit;
   --progress-background-color: var(--top-border-color);
   --panel-background-color: color-mix(
     in srgb,
