@@ -100,7 +100,7 @@ export function htmlBlockPlugin(client: Client) {
         if (isCursorInRange(state, [from, to])) return;
 
         const sourceText = state.sliceDoc(from, to);
-        const parseTree = lezerToParseTree(state.sliceDoc(0, to), node.node);
+        const parseTree = lezerToParseTree(sourceText, node.node, 0, from);
 
         widgets.push(invisibleDecoration.range(from, to));
         widgets.push(
@@ -196,9 +196,12 @@ export function htmlInlinePlugin(client: Client) {
         let paragraphTree: ParseTree | null = null;
         const getParagraphTree = (): ParseTree => {
           if (!paragraphTree) {
+            // Only the block's text, so the tree keeps no copy of the page before it
             paragraphTree = lezerToParseTree(
-              state.sliceDoc(0, node.to),
+              state.sliceDoc(node.from, node.to),
               node.node,
+              0,
+              node.from,
             );
           }
           return paragraphTree;
