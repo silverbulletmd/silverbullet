@@ -202,6 +202,43 @@ test("Test NakedURL parser", () => {
   ]);
 });
 
+test.each([
+  [
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+  ],
+  [
+    "https://en.wikipedia.org/wiki/Quarter_(film) is a film.",
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+  ],
+  [
+    "https://en.wikipedia.org/wiki/Quarter_(film).",
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+  ],
+  ["(https://example.com/a_(b)).", "https://example.com/a_(b)"],
+  ["https://example.com/a_(b)))", "https://example.com/a_(b)"],
+  ["https://example.com/a_(b_(c))", "https://example.com/a_(b_(c))"],
+  ["(https://example.com/a_(b_(c))).", "https://example.com/a_(b_(c))"],
+  ["(https://example.com/path).", "https://example.com/path"],
+  ["(https://example.com/a_(b).)", "https://example.com/a_(b)"],
+  ["(https://example.com/%28film%29).", "https://example.com/%28film%29"],
+  ["https://example.com/%28film)", "https://example.com/%28film"],
+  [
+    "https://example.com/(film))?a=2.71,3.14;next=2",
+    "https://example.com/(film))?a=2.71,3.14;next=2",
+  ],
+])("naked URL parentheses in %s", (text, expected) => {
+  const urls = collectNodesOfType(parseMarkdown(text), "NakedURL");
+  expect(urls.map((url) => renderToText(url))).toEqual([expected]);
+});
+
+test("naked URLs exclude a long closing-parenthesis suffix", () => {
+  const url = "https://example.com/a_(b)";
+  const text = url + ")".repeat(10_000);
+  const urls = collectNodesOfType(parseMarkdown(text), "NakedURL");
+  expect(urls.map((node) => renderToText(node))).toEqual([url]);
+});
+
 const tableSample = `
 | Header A | Header B |
 |----------|----------|
