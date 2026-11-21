@@ -169,12 +169,11 @@ export function tablePlugin(editor: Client) {
 
         hideBlockSource(widgets, state, from, to, "start");
 
-        const text = state.sliceDoc(0, to);
         widgets.push(
           Decoration.widget({
             widget: new TableViewWidget(
               editor,
-              lezerToParseTree(text, node.node),
+              lezerToParseTree(state.sliceDoc(from, to), node.node, 0, from),
             ),
             block: true,
           }).range(from),
