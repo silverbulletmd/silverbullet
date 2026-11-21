@@ -79,20 +79,23 @@ test("local markdown link emits mention relation", async () => {
   expect(r!.alias).toEqual("the target");
 });
 
-test("external markdown link emits url relation", async () => {
-  createMockSystem();
-  const text = "Go to [home](https://example.com).";
-  const tree = parseMarkdown(text);
-  const fm = extractFrontMatter(tree);
-  const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
+test.each(["https://example.com", "<https://example.com>"])(
+  "external markdown link %s emits url relation",
+  async (url) => {
+    createMockSystem();
+    const text = `Go to [home](${url}).`;
+    const tree = parseMarkdown(text);
+    const fm = extractFrontMatter(tree);
+    const objects = await indexRelations(pageMeta("Source"), fm, tree, text);
 
-  const r = objects.find(
-    (o) => o.tag === "relation" && o.to === "https://example.com",
-  );
-  expect(r).toBeDefined();
-  expect(r!.kind).toEqual("mention");
-  expect(r!.toTag).toEqual("url");
-});
+    const r = objects.find(
+      (o) => o.tag === "relation" && o.to === "https://example.com",
+    );
+    expect(r).toBeDefined();
+    expect(r!.kind).toEqual("mention");
+    expect(r!.toTag).toEqual("url");
+  },
+);
 
 test("frontmatter scalar wikilink emits typed attribute relation", async () => {
   const { space } = createMockSystem();

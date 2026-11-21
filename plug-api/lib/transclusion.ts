@@ -12,6 +12,7 @@ import {
   type PathIndex,
   resolvePath,
 } from "@silverbulletmd/silverbullet/lib/resolve_path";
+import { stripMarkdownLinkBrackets } from "@silverbulletmd/silverbullet/lib/resolve";
 
 export type LinkType = "wikilink" | "markdownlink";
 /**
@@ -84,6 +85,7 @@ export function parseTransclusion(text: string): Transclusion | null {
   let match: RegExpMatchArray | null = null;
   if ((match = mdLinkRegex.exec(text)) && match.groups) {
     ({ url, title: alias } = match.groups);
+    url = stripMarkdownLinkBrackets(url);
 
     linktype = "markdownlink";
   } else if ((match = wikiLinkRegex.exec(text)) && match.groups) {

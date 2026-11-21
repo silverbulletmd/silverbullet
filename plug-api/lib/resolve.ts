@@ -4,6 +4,11 @@ export function isLocalURL(url: string): boolean {
   return !/^[a-z][a-z0-9+.-]*:/i.test(url);
 }
 
+/** Removes the optional angle brackets around a CommonMark link destination. */
+export function stripMarkdownLinkBrackets(url: string): string {
+  return url.startsWith("<") && url.endsWith(">") ? url.slice(1, -1) : url;
+}
+
 /**
  * Extracts the folder name from a page or document name or a path
  */
@@ -35,10 +40,7 @@ export function resolveMarkdownLink(
   absolute: string,
   relative: string,
 ): string {
-  // These are part of the commonmark spec for urls with spaces inbetween.
-  if (relative.startsWith("<") && relative.endsWith(">")) {
-    relative = relative.slice(1, -1);
-  }
+  relative = stripMarkdownLinkBrackets(relative);
 
   if (relative.startsWith("/")) {
     return relative.slice(1);
