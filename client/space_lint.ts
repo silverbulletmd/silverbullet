@@ -132,7 +132,9 @@ const notProse = new Set([
   "CommentBlock",
   // A baked section's marker holds Lua (and template text) as a comment
   "CommentMarkerBlock",
-  // An alias is shown as text, never evaluated
+  // A link's target and alias are never evaluated as directives; templates
+  // fill in a `${...}` there before the link is parsed (#2248)
+  "WikiLinkPage",
   "WikiLinkAlias",
 ]);
 

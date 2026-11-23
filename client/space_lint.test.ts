@@ -234,8 +234,10 @@ describe("lintPages", () => {
       Baked:
         '<!--#lua query[[\n  from p = index.pages()\n  select template.new[==[* [[${name}|${name:match("[^/]+$")}]]]==](p)\n]] -->\n* x\n<!--/lua-->\n',
       Linked: "Use a [[Space Lua#Expressions|`${...}` expression]] here.",
+      // #2248: a slash template building a link target
+      Target: "[[Journal/${date.today()}]]",
     });
-    expect(await lintPages(deps, ["Baked", "Linked"])).toEqual([]);
+    expect(await lintPages(deps, ["Baked", "Linked", "Target"])).toEqual([]);
   });
 
   test("timeouts and errors from Lua code widgets are reported too", async () => {
