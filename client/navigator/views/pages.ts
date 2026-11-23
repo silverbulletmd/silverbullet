@@ -40,6 +40,10 @@ export function isHiddenPage(obj: Record<string, any>): boolean {
   return obj.pageDecoration?.hide === true;
 }
 
+/** Dims a hidden row where it does show: in All, the one segment that keeps
+ * hidden rows. Shared with `space_tree.ts`. */
+export const HIDDEN_ROW_CLASS = "sb-nav-hidden";
+
 /** Names of the pages a Space Lua page decoration hides
  * (`pageDecoration.hide`), which only the client knows. Empty until the page
  * list is `loaded` from the index, so results then pass unfiltered. */
@@ -51,8 +55,8 @@ export function hiddenPageNames(
   return new Set(pages.filter(isHiddenPage).map((p) => p.name));
 }
 
-/** What `pageScopes` reads of a page; the picker's index rows carry no
- * typed `name`, so it is not required here. */
+/** What the segment predicates read of a row; the picker's index rows carry
+ * no typed `name`, so it is not required here. */
 type PageClassFields = {
   name?: string;
   tag?: string;
@@ -62,13 +66,16 @@ type PageClassFields = {
 
 export type PageInfo = PageClassFields & { name: string };
 
-/** The picker's Pages and Library segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
+/** The picker's segments other than All, which takes every row. Location
+ * decides first: anything under `Library/` is Library, whatever its kind.
+ * Server search classifies pages by the same tags but can't see page
+ * decorations, so the client drops hidden pages from its results. */
 export const pageScopes = {
   pages: (p: PageClassFields) =>
     p.tag === "page" && !inLibrary(p) && !isHiddenPage(p),
-  // Untagged rows count as pages; a Library document isn't a Library page
-  library: (p: PageClassFields) =>
-    (p.tag ?? "page") === "page" && inLibrary(p) && !isHiddenPage(p),
+  documents: (p: PageClassFields) =>
+    p.tag === "document" && !inLibrary(p) && !isHiddenPage(p),
+  library: (p: PageClassFields) => inLibrary(p) && !isHiddenPage(p),
 } satisfies Record<string, (p: PageInfo) => boolean>;
 
 let documentCapabilities = new Map<string, DocumentCapability>();
@@ -251,21 +258,21 @@ export const pagePicker: BuiltinView<PageObj> = {
       where: pageScopes.pages,
     },
     {
-      label: "Library Pages",
+      label: "Documents",
+      icon: "file",
+      placeholder: "Document",
+      helpText:
+        "Press Shift-Enter to create a new document with this exact name.",
+      where: pageScopes.documents,
+    },
+    {
+      label: "Library",
       icon: "wrench",
       placeholder: "Library page",
       helpText:
         "Press Shift-Enter to create a new Library page with this exact name.",
       prefix: "^",
       where: pageScopes.library,
-    },
-    {
-      label: "Documents",
-      icon: "file",
-      placeholder: "Document",
-      helpText:
-        "Press Shift-Enter to create a new document with this exact name.",
-      where: (obj) => obj.tag === "document",
     },
     // The one segment that keeps hidden pages.
     { label: "All", icon: "layers", placeholder: "Page or document" },
@@ -298,9 +305,13 @@ export const pagePicker: BuiltinView<PageObj> = {
     },
     cssClass: (obj) => {
       if (obj.isAspiring) return "sb-nav-aspiring";
-      const classes = obj.pageDecoration?.cssClasses;
-      if (!Array.isArray(classes)) return undefined;
-      return classes.join(" ").replaceAll(/[^a-zA-Z0-9-_ ]/g, "");
+      const classes = Array.isArray(obj.pageDecoration?.cssClasses)
+        ? obj.pageDecoration.cssClasses
+            .join(" ")
+            .replaceAll(/[^a-zA-Z0-9-_ ]/g, "")
+        : "";
+      const hidden = isHiddenPage(obj) ? HIDDEN_ROW_CLASS : "";
+      return [classes, hidden].filter(Boolean).join(" ") || undefined;
     },
     icon: spaceIcon,
   },

@@ -13,7 +13,7 @@ What do you still remember?
 * **A tag:** use [[Tag Picker]] or picker tag filter.
 
 # Search contents
-[[Features/Search]] has **Content**, **Library Pages** and **All** segments. Use **All words** when you remember several words anywhere in a page, or **Exact phrase** when their order matters. **Semantic** is available in spaces where meaning-based search has been enabled. Results include excerpts so you can recognize the right page before opening it.
+[[Features/Search]] has **Content**, **Library** and **All** segments. Use **All words** when you remember several words anywhere in a page, or **Exact phrase** when their order matters. **Semantic** is available in spaces where meaning-based search has been enabled. Results include excerpts so you can recognize the right page before opening it.
 
 # Give an important passage a stable destination
 A heading can be linked with `[[Page#Heading]]`. If a specific paragraph or task needs a durable name, add a unique anchor on the source page:

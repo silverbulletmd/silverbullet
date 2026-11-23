@@ -129,10 +129,6 @@ const fetchFileListInterval = 10000;
 const declareDivergentBaseTimeout = 5000;
 
 /**
- * The page navigator's browsing modes, as segments of `std.pages`. "page" is
- * that view's default segment, so it asks for nothing.
- */
-/**
  * The ping's network time, from Resource Timing where available: it runs
  * alongside plug loading, whose main-thread work would otherwise inflate a
  * wall-clock measurement past the "local server" threshold sync uses.
@@ -148,16 +144,21 @@ function pingDuration(start: number): number {
     : performance.now() - start;
 }
 
+/**
+ * The page navigator's browsing modes, as segments of `std.pages`. Each
+ * names its segment, the default one included: an open that names none goes
+ * back to the segment last picked, and the Page Picker command means Pages.
+ */
 function pickerSegment(mode: "page" | "library" | "document" | "all") {
   switch (mode) {
     case "library":
-      return "Library Pages";
+      return "Library";
     case "document":
       return "Documents";
     case "all":
       return "All";
     default:
-      return undefined;
+      return "Pages";
   }
 }
 

@@ -399,6 +399,11 @@
   color: var(--sb-nav-muted);
 }
 
+.sb-nav-hidden .sb-nav-primary,
+.sb-nav-hidden .sb-nav-icon {
+  color: var(--sb-nav-muted);
+}
+
 .sb-nav-error {
   margin: 4px;
   padding: 12px 10px;
@@ -771,6 +776,10 @@
     .sb-nav-icon {
       color: var(--ui-accent-text-color);
     }
+  }
+
+  .sb-nav-hidden:not(.sb-nav-selected) .sb-nav-primary {
+    color: var(--sb-nav-muted);
   }
 
   :is(.sb-nav-primary, .sb-nav-description) mark {

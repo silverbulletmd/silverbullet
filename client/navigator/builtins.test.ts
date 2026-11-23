@@ -204,9 +204,21 @@ test("pages are classified by location, not by the meta tag", () => {
   expect(pageScopes.library(library)).toBe(true);
   expect(pageScopes.library(config)).toBe(true);
   expect(pageScopes.library(legacyConfig)).toBe(false);
-  expect(pageScopes.library({ ...library, pageDecoration: { hide: true } })).toBe(
-    false,
-  );
+  expect(
+    pageScopes.library({ ...library, pageDecoration: { hide: true } }),
+  ).toBe(false);
+});
+
+test("picker segments put everything under Library/ in Library, whatever its kind", () => {
+  const font = { name: "Library/acme/Fonts/Lora.ttf", tag: "document" };
+  const logo = { name: "assets/logo.png", tag: "document" };
+  expect(pageScopes.documents(logo)).toBe(true);
+  expect(pageScopes.documents(font)).toBe(false);
+  expect(pageScopes.library(font)).toBe(true);
+  expect(pageScopes.pages(logo)).toBe(false);
+  expect(
+    pageScopes.documents({ ...logo, pageDecoration: { hide: true } }),
+  ).toBe(false);
 });
 
 test("indexed space contents hide documents whose paths start with an underscore", async () => {
@@ -565,21 +577,47 @@ test("std.spaceTree's ordering honors the space's queryCollation config, not raw
   ]);
 });
 
-test("std.spaceTree keeps everything under Library/ in Library Pages", async () => {
+test("std.spaceTree splits by location; only All shows hidden rows", async () => {
   const { spaceTreeSegments } = await import("./views/space_tree.ts");
+  expect(spaceTreeSegments.map((s) => s.label)).toEqual([
+    "Content",
+    "Library",
+    "All",
+  ]);
   const where = (label: string) =>
-    spaceTreeSegments.find((s) => s.label === label)!.where!;
+    spaceTreeSegments.find((s) => s.label === label)!.where ?? (() => true);
   const font = { name: "Library/acme/Fonts/Lora/Lora.ttf", tag: "document" };
   const libraryPage = { name: "Library/acme/Fonts/Lora", tag: "page" };
   const logo = { name: "assets/logo.png", tag: "document" };
-  for (const label of ["All", "Documents"]) {
-    expect(where(label)(font as any), label).toBe(false);
-    expect(where(label)(logo as any), label).toBe(true);
+  const page = { name: "Notes", tag: "page" };
+  const hidden = { name: "Drafts", tag: "page", isTreeHidden: true };
+  const hiddenLibrary = { ...libraryPage, isTreeHidden: true };
+  for (const obj of [logo, page]) {
+    expect(where("Content")(obj as any), obj.name).toBe(true);
+    expect(where("Library")(obj as any), obj.name).toBe(false);
   }
-  expect(where("All")(libraryPage as any)).toBe(false);
-  expect(where("Library Pages")(font as any)).toBe(true);
-  expect(where("Library Pages")(libraryPage as any)).toBe(true);
-  expect(where("Library Pages")(logo as any)).toBe(false);
+  for (const obj of [font, libraryPage]) {
+    expect(where("Content")(obj as any), obj.name).toBe(false);
+    expect(where("Library")(obj as any), obj.name).toBe(true);
+  }
+  for (const obj of [hidden, hiddenLibrary]) {
+    expect(where("Content")(obj as any), obj.name).toBe(false);
+    expect(where("Library")(obj as any), obj.name).toBe(false);
+  }
+  for (const obj of [font, libraryPage, logo, page, hidden, hiddenLibrary]) {
+    expect(where("All")(obj as any), obj.name).toBe(true);
+  }
+});
+
+test("std.spaceTree keeps hidden pages as flagged, dimmed rows", async () => {
+  await spaceTreeWith(["Notes"], [], ["Drafts"]);
+  const rows = (await builtinRows("std.spaceTree")) as any[];
+  const drafts = rows.find((r) => r.obj.name === "Drafts");
+  expect(drafts.obj.isTreeHidden).toBe(true);
+  expect(drafts.cssClass).toBe("sb-nav-hidden");
+  const notes = rows.find((r) => r.obj.name === "Notes");
+  expect(notes.obj.isTreeHidden).toBeUndefined();
+  expect(notes.cssClass).toBeUndefined();
 });
 
 test("std.spaceTree's row state: icon per kind, and the action mask", async () => {
@@ -911,13 +949,24 @@ async function resetTreeOrder() {
   );
 }
 
-async function spaceTreeWith(pages: string[], documents: string[] = []) {
+async function spaceTreeWith(
+  pages: string[],
+  documents: string[] = [],
+  hiddenPages: string[] = [],
+) {
   await resetTreeOrder();
   index.isAvailable.mockResolvedValue(true);
   index.queryLuaObjects.mockImplementation((tag) =>
     Promise.resolve(
       tag === "page"
-        ? pages.map((name) => ({ name, tag: "page" }))
+        ? [
+            ...pages.map((name) => ({ name, tag: "page" })),
+            ...hiddenPages.map((name) => ({
+              name,
+              tag: "page",
+              pageDecoration: { hide: true },
+            })),
+          ]
         : documents.map((name) => ({ name, tag: "document" })),
     ),
   );
@@ -935,7 +984,7 @@ test("std.spaceTree takes icon and hide from the order page's attributes", async
         ? [
             ...pages.map((name) => ({ name, tag: "page" })),
             {
-              name: "Library/Space Tree Structure",
+              name: "Library/Space Tree Outline",
               tag: "page",
               lastModified: "attrs-1",
             },
@@ -944,14 +993,15 @@ test("std.spaceTree takes icon and hide from the order page's attributes", async
     ),
   );
   space.readPage.mockResolvedValue(
-    "* [[Notes]]\n* [[Docs]] [icon: book-open]\n  * Group [icon: layers]\n* Fixtures [hide: true]\n",
+    "* Notes\n* Docs [icon: book-open]\n  * Group [icon: layers]\n* Fixtures [hide: true]\n",
   );
 
   const rows = (await builtinRows("std.spaceTree")) as any[];
-  const names = rows.map((r) => r.obj.name);
-  expect(names).not.toContain("Fixtures/X");
-  expect(names).not.toContain("Fixtures/Y");
-  expect(names).toEqual(expect.arrayContaining(["Notes", "Docs", "Docs/A"]));
+  const hidden = rows.filter((r) => r.obj.isTreeHidden).map((r) => r.obj.name);
+  expect(hidden).toEqual(["Fixtures/X", "Fixtures/Y"]);
+  expect(rows.map((r) => r.obj.name)).toEqual(
+    expect.arrayContaining(["Notes", "Docs", "Docs/A"]),
+  );
 
   const [docs, group, notes] = (await rowState("std.spaceTree", [
     { tag: "page", name: "Docs", ref: "Docs" },
@@ -971,10 +1021,10 @@ function moveUp(name: string, segment: string) {
   });
 }
 
-test("Move up skips a sibling the active segment hides (All hides Library)", async () => {
+test("Move up skips a sibling the active segment hides (Content hides Library)", async () => {
   await spaceTreeWith(["Journal", "Meetings", "Library/X"]);
 
-  await moveUp("Meetings", "All");
+  await moveUp("Meetings", "Content");
 
   // Anchored on Journal, not the invisible Library; Library stays after Journal.
   expect(space.writePage.mock.calls[0][1]).toContain(
@@ -982,42 +1032,42 @@ test("Move up skips a sibling the active segment hides (All hides Library)", asy
   );
 });
 
-test("Move up skips a document in the Pages segment", async () => {
-  await spaceTreeWith(["Journal", "Meetings"], ["Kite.png"]);
+test("Move up skips a hidden page in the Content segment", async () => {
+  await spaceTreeWith(["Journal", "Meetings"], [], ["Kite"]);
 
-  await moveUp("Meetings", "Pages");
+  await moveUp("Meetings", "Content");
 
   expect(space.writePage.mock.calls[0][1]).toContain(
-    "* Meetings\n* Journal\n* Kite.png\n",
+    "* Meetings\n* Journal\n* Kite\n",
   );
 });
 
 test("Move up with no visible neighbour in the segment writes nothing", async () => {
   await spaceTreeWith(["Meetings", "Library/X"]);
 
-  // Nor is it offered: in its own segment (All) Meetings has nothing above.
+  // Nor is it offered: in its own segment (Content) Meetings has nothing above.
   const [state] = (await rowState("std.spaceTree", [
     { tag: "page", name: "Meetings" },
   ])) as any[];
   expect(state.actions.slice(3, 5)).toEqual([false, false]);
 
-  await moveUp("Meetings", "All");
+  await moveUp("Meetings", "Content");
 
   expect(space.writePage).not.toHaveBeenCalled();
 });
 
 test("Move down in a segment counts a folder visible through its children", async () => {
-  await spaceTreeWith(["Alpha", "Projects/x"], ["Beta.png"]);
+  await spaceTreeWith(["Alpha", "Projects/x"], [], ["Beta"]);
 
   await builtinHandle("std.spaceTree", "action", {
     index: 5,
     obj: { tag: "page", name: "Alpha" },
-    segment: "Pages",
+    segment: "Content",
   });
 
-  // Past Projects (shown in Pages through its page), not the hidden Beta.png.
+  // Past Projects (shown in Content through its page), not the hidden Beta.
   expect(space.writePage.mock.calls[0][1]).toContain(
-    "* Beta.png\n* Projects\n* Alpha\n",
+    "* Beta\n* Projects\n* Alpha\n",
   );
 });
 

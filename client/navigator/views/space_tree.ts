@@ -7,7 +7,12 @@ import {
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
-import { inLibrary, isHiddenPage, spaceContents } from "./pages.ts";
+import {
+  HIDDEN_ROW_CLASS,
+  inLibrary,
+  isHiddenPage,
+  spaceContents,
+} from "./pages.ts";
 import {
   cachedTreeAttributes,
   cachedTreeOrder,
@@ -23,6 +28,9 @@ import { type BuiltinView, baseMeta, type Segment } from "./types.ts";
 type TreeObj = Partial<ObjectValue<Record<string, any>>> & {
   name: string;
   isFolder?: boolean;
+  /** Set by the source on rows hidden from navigation (see `isTreeHidden`),
+   * which only All shows. */
+  isTreeHidden?: boolean;
 };
 
 function treeIcon(obj: TreeObj): string {
@@ -43,41 +51,34 @@ function treeIcon(obj: TreeObj): string {
   return "file-text";
 }
 
+/** Content and Library split the space by location; All is both, plus
+ * the rows hidden from navigation. A folder synthesized from its children's
+ * names carries no flag of its own, so it shows wherever any child does. */
 export const spaceTreeSegments: Segment<TreeObj>[] = [
   {
-    label: "All",
-    icon: "layers",
+    label: "Content",
+    icon: "file-text",
     default: true,
     placeholder: "Page or document",
-    // `Library/` shows only under Library Pages
-    where: (obj) => !inLibrary(obj),
+    where: (obj) => !inLibrary(obj) && !obj.isTreeHidden,
   },
   {
-    label: "Pages",
-    icon: "file-text",
-    placeholder: "Page",
-    where: (obj) => obj.tag === "page" && !inLibrary(obj),
-  },
-  {
-    label: "Documents",
-    icon: "file",
-    placeholder: "Document",
-    where: (obj) => obj.tag === "document" && !inLibrary(obj),
-  },
-  {
-    label: "Library Pages",
+    label: "Library",
     icon: "wrench",
-    placeholder: "Library page",
-    where: inLibrary,
+    placeholder: "Library page or document",
+    where: (obj) => inLibrary(obj) && !obj.isTreeHidden,
   },
+  { label: "All", icon: "layers", placeholder: "Page or document" },
 ];
 
-/** Unlike the picker, the tree has no segment that keeps hidden pages: a page
- * hidden from navigation is hidden here too, and `tree.hide` hides it from
- * here alone. A hidden page with children still leaves its folder behind --
- * the folder is synthesized from the children's names. */
-function isTreeHidden(obj: TreeObj): boolean {
-  return isHiddenPage(obj) || obj.pageDecoration?.tree?.hide === true;
+/** A page hidden from navigation, `tree.hide`, or an `[hide: true]` on the
+ * row or one of its folders in the order page. */
+function isTreeHidden(obj: TreeObj, attributes: TreeAttributes): boolean {
+  return (
+    isHiddenPage(obj) ||
+    obj.pageDecoration?.tree?.hide === true ||
+    hiddenByStructure(obj.name, attributes)
+  );
 }
 
 /** Whether `name` or one of its ancestor folders is marked `[hide: true]` in
@@ -121,7 +122,7 @@ function siblingIndex(label: string | undefined): TreeIndex {
 }
 
 /** The first segment showing `obj`. Action masks are worked out once for all
- * segments, so Move up/down judge a row where it lives (All or Library Pages);
+ * segments, so Move up/down judge a row where it lives (Content, Library, or All for a hidden row);
  * in a narrower segment a move may find nothing to pass, and does nothing. */
 function homeSegment(obj: TreeObj): string | undefined {
   return spaceTreeSegments.find((s) => admits(s, obj))?.label;
@@ -135,8 +136,8 @@ async function spaceTreeSource(): Promise<TreeObj[]> {
   ]);
   const attributes = cachedTreeAttributes();
   lastRows = sortByTreeOrder(
-    contents.filter(
-      (obj) => !isTreeHidden(obj) && !hiddenByStructure(obj.name, attributes),
+    contents.map((obj) =>
+      isTreeHidden(obj, attributes) ? { ...obj, isTreeHidden: true } : obj,
     ),
     order,
     collate,
@@ -281,6 +282,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
   }),
   row: {
     icon: treeIcon,
+    cssClass: (obj) => (obj.isTreeHidden ? HIDDEN_ROW_CLASS : undefined),
   },
   segments: spaceTreeSegments,
   actions: [
@@ -335,7 +337,7 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
       icon: "eye-off",
       label: "Hide from tree",
       requireMode: "rw",
-      when: (obj) => !obj.isAspiring,
+      when: (obj) => !obj.isAspiring && !obj.isTreeHidden,
       run: hideTreeRow,
     },
   ],

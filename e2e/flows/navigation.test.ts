@@ -127,12 +127,12 @@ test.describe("space tree", () => {
     await expandAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
     await expect(expandAll).toBeDisabled();
-    // The buttons follow the segment: All leaves Library/ out, so its
-    // folder is still collapsed in Tool
-    await tree.getByRole("radio", { name: "Library Pages" }).click();
+    // The buttons follow the segment: Content leaves Library/ out, so its
+    // folder is still collapsed in Library
+    await tree.getByRole("radio", { name: "Library" }).click();
     await expect(expandAll).toBeEnabled();
     await expect(collapseAll).toBeDisabled();
-    await tree.getByRole("radio", { name: "All" }).click();
+    await tree.getByRole("radio", { name: "Content" }).click();
     await collapseAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 

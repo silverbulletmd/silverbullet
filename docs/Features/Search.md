@@ -12,9 +12,9 @@ Search searches the text of every page in your space. Open it from the command p
 Reopening search brings back your last query and its results in that browser tab, selected so you can type over it.
 
 # Segments
-Like the [[Page Picker]], search has three segments:
-* **Pages** searches regular pages.
-* **Library Pages** searches [[Library Page|Library pages]].
+Like the [[Space Tree]], search has three segments:
+* **Content** searches pages outside `Library/`.
+* **Library** searches [[Library Page|Library pages]].
 * **All** searches every page.
 
 # Modes

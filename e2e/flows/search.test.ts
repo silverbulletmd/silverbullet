@@ -55,11 +55,11 @@ test.describe("search", () => {
       .toEqual([0, "basil morning".length]);
   });
 
-  test("each segment searches its own scope: Library Pages finds Library pages", async ({
+  test("each segment searches its own scope: Library finds Library pages", async ({
     sbPage: page,
   }) => {
     const frame = await openPicker(page, shiftChord("f"), "Content");
-    await frame.getByRole("radio", { name: "Library Pages" }).click();
+    await frame.getByRole("radio", { name: "Library" }).click();
     await navInput(page).fill("pruning shears");
     await expect(
       frame.locator(".sb-nav-row", { hasText: "Tooling" }).first(),
