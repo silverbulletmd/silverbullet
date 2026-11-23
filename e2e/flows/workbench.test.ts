@@ -242,7 +242,7 @@ test.describe("query builder page scope", () => {
     },
   });
 
-  test("pages read content pages by default; Tool and All switch the scope", async ({
+  test("pages read content pages by default; Library and All switch the scope", async ({
     page,
     sbServer,
   }) => {
@@ -262,7 +262,7 @@ test.describe("query builder page scope", () => {
     await expect(results).toContainText("Garden Notes");
     await expect(results).not.toContainText("House Style");
 
-    await scope.getByRole("radio", { name: "Tool" }).click();
+    await scope.getByRole("radio", { name: "Library" }).click();
     await expect(code).toContainText("index.libraryPages()");
     await expect(results).toContainText("House Style");
     await expect(results).not.toContainText("Garden Notes");

@@ -185,12 +185,28 @@ impl Inference {
     }
 
     /// Stops the worker and cancels a running download (its `.partial`
-    /// stays for a later resume). Jobs queued afterwards fail with
-    /// "stopped"; a running job finishes on its own.
+    /// stays for a later resume). Jobs still queued, and jobs queued
+    /// afterwards, fail with "stopped"; a running job finishes on its own.
     pub fn stop(&self) {
         self.stop.cancel();
-        self.shared.lock().stop = true;
+        // Taken under the same lock `run_index` checks `stop` under, so no
+        // job slips in between; the worker won't run them once it sees
+        // `stop`, and their callers would wait on them forever.
+        let (queries, index) = {
+            let mut queue = self.shared.lock();
+            queue.stop = true;
+            (
+                std::mem::take(&mut queue.queries),
+                std::mem::take(&mut queue.index),
+            )
+        };
         self.shared.wake.notify_all();
+        for query in queries {
+            let _ = query.reply.send(Err(STOPPED.into()));
+        }
+        for job in index {
+            job(Err(STOPPED));
+        }
     }
 
     /// Resolves once [`Inference::stop`] ran (or the worker was dropped).
@@ -717,6 +733,27 @@ mod tests {
         assert_eq!(
             inference.embed_query("x", &cx()).await,
             Err(SearchError::Unavailable(STOPPED.into()))
+        );
+    }
+
+    /// A model switch stops the worker while a space's sync worker waits on
+    /// a queued job: that caller must get "stopped", not block forever (it
+    /// held a test runtime's shutdown for 45 minutes on CI).
+    #[test]
+    fn stopping_fails_the_jobs_still_queued() {
+        let inference = Inference::with_embedder(Arc::new(FakeEmbedder::new()));
+        let release = hold(&inference);
+        let (done, result) = std::sync::mpsc::channel();
+        let queued = inference.clone();
+        std::thread::spawn(move || {
+            let _ = done.send(queued.run_index(|_| ()));
+        });
+        until_blocking("the second job is queued", || inference.queued().1 == 1);
+        inference.stop();
+        drop(release);
+        assert_eq!(
+            result.recv_timeout(Duration::from_secs(10)),
+            Ok(Err(STOPPED.to_string()))
         );
     }
 
