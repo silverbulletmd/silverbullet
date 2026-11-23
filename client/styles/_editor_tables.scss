@@ -33,6 +33,30 @@
     overflow: clip;
   }
 
+  // A table wider than the text column breaks out of it, centred on the
+  // column, up to the editor's own width (the sb-editor-col container, so
+  // side panels count); beyond that it scrolls. A flex frame centres it:
+  // a transform would leave its untransformed box in the editor's scroll
+  // width. Top-level only: a nested table would spill out of its parent.
+  .cm-content > .sb-table-frame,
+  .cm-line > .sb-lua-wrapper:has(> .sb-lua-directive-block > div > .content > table:only-child, > .sb-lua-directive-block > div > .content > .wrapper:only-child > table:only-child) {
+    display: inline-flex;
+    justify-content: center;
+    vertical-align: top;
+    width: 100%;
+
+    > :is(.sb-table-widget, .sb-lua-directive-block) {
+      flex: none;
+      width: max-content;
+      min-width: 100%;
+      max-width: calc(100cqw - 56px);
+    }
+
+    > .sb-table-widget {
+      overflow-x: auto;
+    }
+  }
+
   .sb-html-widget {
     font-weight: normal;
   }
@@ -101,6 +125,18 @@
       font-size: 0.85em;
       font-weight: 650;
       border-bottom: 1px solid var(--ui-accent-muted-soft-color);
+    }
+
+    // Long text wraps rather than widening the table. A capped max-width
+    // only lowers the width the cell asks for: a table with room to spare
+    // still stretches it. Words stay whole: CodeMirror's line wrapping would
+    // let a squeezed column break them mid-word.
+    td[data-table-cell-wrap] {
+      white-space: normal;
+      overflow-wrap: normal;
+      word-break: normal;
+      min-width: 12em;
+      max-width: 22em;
     }
 
     tbody td:first-child {

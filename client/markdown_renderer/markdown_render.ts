@@ -26,6 +26,7 @@ import { Fragment, RawHtml, renderHtml, type Tag } from "./html_render.ts";
 import { CustomSyntaxRenderedHtmlType, createMediaElement } from "./inline.ts";
 import { attributeTag, wikiLinkTag } from "./inline_tags.ts";
 import { justifiedTableRender } from "./justified_tables.ts";
+import { isLongCellText } from "./result_render.ts";
 import { sanitizeTag } from "./sanitize_html.ts";
 import {
   LuaValueSlotType,
@@ -542,6 +543,9 @@ function render(t: ParseTree, options: MarkdownRenderOptions = {}): Tag | null {
       const cellHasHtml = t.children!.some((c) => c.type === "HTMLTag");
       return {
         name: "td",
+        attrs: isLongCellText(renderToText(t))
+          ? { "data-table-cell-wrap": "" }
+          : undefined,
         body: cleanTags(
           cellHasHtml
             ? groupInlineHtml(t.children!, options, posPreservingRender)

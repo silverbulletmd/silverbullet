@@ -1,6 +1,7 @@
 import {
   defaultTransformer,
   escapeRegularPipes,
+  isLongCellText,
   jsonToMDTable,
 } from "../markdown_renderer/result_render.ts";
 import { isSqlNull } from "../space_lua/sliq_null.ts";
@@ -383,7 +384,10 @@ function renderTd(
 ): string {
   if (isEmpty(v)) return "<td data-table-cell-empty></td>";
   const type = luaTypeName(v);
-  const attr = type ? ` data-table-cell-type="${type}"` : "";
+  let attr = type ? ` data-table-cell-type="${type}"` : "";
+  if (typeof v === "string" && isLongCellText(v)) {
+    attr += " data-table-cell-wrap";
+  }
   return `<td${attr}>${cellOverride?.(v) ?? renderCellContent(v)}</td>`;
 }
 

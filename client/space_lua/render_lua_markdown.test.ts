@@ -423,3 +423,24 @@ test("a list of strings renders as newline-joined lines", () => {
     renderResultToMarkdown(["* [ ] Alpha task", "* [x] Beta task"]).markdown,
   ).toBe("* [ ] Alpha task\n* [x] Beta task");
 });
+
+test("long text cells are marked to wrap, short ones are not", async () => {
+  const row = new LuaTable();
+  await row.rawSet("name", "Shed");
+  await row.rawSet(
+    "notes",
+    "Ask about the timber delivery window and the side gate",
+  );
+  await row.rawSet("created", "2026-11-13T07:44:03.558");
+  const tbl = new LuaTable();
+  await tbl.rawSet(1, row);
+
+  const { markdown } = renderResultToMarkdown(tbl);
+  expect(markdown).toContain(
+    '<td data-table-cell-type="string" data-table-cell-wrap>Ask about',
+  );
+  expect(markdown).toContain('<td data-table-cell-type="string">Shed</td>');
+  expect(markdown).toContain(
+    '<td data-table-cell-type="string">2026-11-13T07:44:03.558</td>',
+  );
+});

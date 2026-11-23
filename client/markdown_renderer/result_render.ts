@@ -59,6 +59,15 @@ export function escapeRegularPipes(s: string) {
   return result;
 }
 
+/**
+ * Whether a table cell holds prose that should wrap rather than widen its
+ * table. Shorter values (dates, names, ids) stay on one line: they can hold
+ * break points, like a date's hyphens, that read badly when wrapped.
+ */
+export function isLongCellText(text: string): boolean {
+  return text.trim().length > 40;
+}
+
 /** A GFM table; "*(empty table)*" when there are no columns. */
 export function gfmTable(headers: string[], rows: string[][]): string {
   if (headers.length === 0) return "*(empty table)*";

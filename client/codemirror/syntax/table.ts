@@ -52,8 +52,13 @@ export class TableViewWidget extends WidgetType {
   }
 
   toDOM(): HTMLElement {
+    // The frame spans the text column and centres a wider table on it
+    // (editor_tables.scss)
+    const frame = document.createElement("span");
+    frame.className = "sb-table-frame";
     const dom = document.createElement("span");
     dom.classList.add("sb-table-widget");
+    frame.appendChild(dom);
     // expandMarkdown is asynchronous. Reserve the widget's height until the
     // table is ready so its insertion does not collapse the scrollable area.
     dom.style.minHeight = `${this.estimatedHeight}px`;
@@ -100,11 +105,11 @@ export class TableViewWidget extends WidgetType {
         );
       });
     });
-    return dom;
+    return frame;
   }
 
-  override destroy(dom: HTMLElement): void {
-    destroyRenderTarget(dom);
+  override destroy(frame: HTMLElement): void {
+    destroyRenderTarget(frame.firstElementChild as HTMLElement);
   }
 
   override eq(other: WidgetType): boolean {

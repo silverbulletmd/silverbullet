@@ -542,3 +542,13 @@ test("Blank table header cells render as empty cells (#178)", () => {
     "<table><thead><tr><td></td><td>b</td></tr></thead><tr><td>1</td><td>2</td></tr></table>",
   );
 });
+
+test("Markdown table cells with long text are marked to wrap", () => {
+  const tree = parse(
+    extendedMarkdownLanguage,
+    "| name | notes |\n|---|---|\n| Shed | Ask about the timber delivery window and the side gate |",
+  );
+  const html = renderMarkdownToHtml(tree, { failOnUnknown: true });
+  expect(html).toContain("<td>Shed</td>");
+  expect(html).toContain('<td data-table-cell-wrap="">Ask about');
+});
