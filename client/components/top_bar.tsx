@@ -238,13 +238,24 @@ function PageNameEditor({
   pageName,
   readOnly,
   onRename,
+  onExpandedChange,
 }: {
   pageName?: string;
   readOnly: boolean;
   onRename: (newName?: string) => Promise<void>;
+  onExpandedChange: (expanded: boolean) => void;
 }) {
   const [name, setName] = useState(pageName ?? "");
   const [focused, setFocused] = useState(false);
+  // Once the actions are hidden the field widens and stops overflowing, so
+  // this latches until blur rather than tracking overflow, to avoid flicker.
+  const expanded = useRef(false);
+  const expandIfOverflowing = (input: HTMLInputElement) => {
+    if (!expanded.current && input.scrollWidth > input.clientWidth) {
+      expanded.current = true;
+      onExpandedChange(true);
+    }
+  };
   // Guards against the blur that fires when a successful rename refocuses the
   // editor, which would otherwise trigger a second (same-name) commit.
   const committing = useRef(false);
@@ -277,11 +288,21 @@ function PageNameEditor({
         class="sb-page-name-editor"
         value={name}
         readOnly={readOnly}
-        onInput={(e) => setName(e.currentTarget.value)}
+        onInput={(e) => {
+          setName(e.currentTarget.value);
+          expandIfOverflowing(e.currentTarget);
+        }}
         onConfirm={(value) => commit(value)}
-        onFocus={() => setFocused(true)}
+        onFocus={(e) => {
+          setFocused(true);
+          expandIfOverflowing(e.currentTarget);
+        }}
         onBlur={(e) => {
           setFocused(false);
+          if (expanded.current) {
+            expanded.current = false;
+            onExpandedChange(false);
+          }
           commit(e.currentTarget.value);
         }}
       />
@@ -342,13 +363,18 @@ export function TopBar({
   leftDock?: MobileDockButton;
   rightDock?: MobileDockButton;
 }) {
+  const [nameExpanded, setNameExpanded] = useState(false);
   return (
     <div id="sb-top" className={isOnline ? undefined : "sb-sync-error"}>
       <DockButton side="left" dock={leftDock} />
       {lhs}
       <div className="main">
         <div className="inner">
-          <div className="wrapper">
+          <div
+            className={
+              nameExpanded ? "wrapper sb-page-name-expanded" : "wrapper"
+            }
+          >
             <div className="sb-page-prefix">
               <Icon name={pageIcon} class="sb-page-decoration-icon" />
               {pageNamePrefix}
@@ -361,6 +387,7 @@ export function TopBar({
                 pageName={pageName}
                 readOnly={readOnly}
                 onRename={onRename}
+                onExpandedChange={setNameExpanded}
               />
             </span>
             <NotificationPanel

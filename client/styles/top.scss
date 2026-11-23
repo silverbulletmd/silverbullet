@@ -157,6 +157,12 @@
     }
   }
 
+  // Make room for a long page name while it is being edited; the bottom bar
+  // sits outside the row, so it stays
+  .sb-page-name-expanded .sb-actions:not(.bottom-bar) {
+    display: none;
+  }
+
   .progress-wrapper {
     position: relative;
     display: flex;
