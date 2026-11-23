@@ -137,7 +137,7 @@ fn login_for_jwt_typed(
 
 /// Build the shared reqwest blocking client (redirects disabled, given timeout).
 pub fn new_client(timeout: std::time::Duration) -> Result<Client, String> {
-    Client::builder()
+    silverbullet_server_common::http_client::blocking_client_builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(timeout)
         .build()

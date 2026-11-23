@@ -92,7 +92,7 @@ pub struct HttpSpacePrimitives {
 
 impl HttpSpacePrimitives {
     pub fn new(base_url: &str, credential: Option<AuthCredential>) -> Self {
-        let client = reqwest::blocking::Client::builder()
+        let client = crate::http_client::blocking_client_builder()
             .timeout(std::time::Duration::from_secs(30))
             .redirect(reqwest::redirect::Policy::none())
             .build()
@@ -143,7 +143,7 @@ impl HttpSpacePrimitives {
         username: &str,
         password: &str,
     ) -> Self {
-        let client = reqwest::blocking::Client::builder()
+        let client = crate::http_client::blocking_client_builder()
             .timeout(std::time::Duration::from_secs(30))
             .redirect(reqwest::redirect::Policy::none())
             .build()
@@ -339,7 +339,7 @@ pub fn authenticate_blocking(
     username: &str,
     password: &str,
 ) -> Result<String, String> {
-    let client = reqwest::blocking::Client::builder()
+    let client = crate::http_client::blocking_client_builder()
         .timeout(std::time::Duration::from_secs(10))
         .build()
         .map_err(|e| format!("HTTP client error: {e}"))?;

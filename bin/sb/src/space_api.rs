@@ -49,7 +49,7 @@ fn client_timeout(timeout: Duration) -> Duration {
 }
 
 fn new_client(timeout: Duration) -> Result<reqwest::Client, String> {
-    reqwest::Client::builder()
+    silverbullet_server_common::http_client::client_builder()
         .redirect(reqwest::redirect::Policy::none())
         .timeout(client_timeout(timeout))
         .build()

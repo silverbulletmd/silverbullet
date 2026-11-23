@@ -149,7 +149,7 @@ impl UpdateCheck {
 
     pub fn spawn(self: Arc<Self>, mut shutdown: tokio::sync::watch::Receiver<()>) {
         tokio::spawn(async move {
-            let client = match reqwest::Client::builder().build() {
+            let client = match silverbullet_server_common::http_client::client_builder().build() {
                 Ok(client) => client,
                 Err(error) => {
                     tracing::debug!("Update check disabled: {error}");

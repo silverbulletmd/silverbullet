@@ -105,7 +105,7 @@ pub struct ModelStore {
 
 impl ModelStore {
     pub fn new(root: PathBuf) -> Self {
-        let client = reqwest::Client::builder()
+        let client = silverbullet_server_common::http_client::client_builder()
             .connect_timeout(Duration::from_secs(10))
             .read_timeout(Duration::from_secs(60))
             .build()

@@ -163,7 +163,10 @@ pub fn fetch(repo_url: &str, dest: &Path) -> Result<(), StarterError> {
         }
         return Err(StarterError::UnsupportedHost);
     };
-    let resp = reqwest::blocking::get(&url).map_err(|e| StarterError::Network(e.to_string()))?;
+    let resp = crate::http_client::blocking_client_builder()
+        .build()
+        .and_then(|client| client.get(&url).send())
+        .map_err(|e| StarterError::Network(e.to_string()))?;
     let status = resp.status();
     if status == reqwest::StatusCode::NOT_FOUND {
         return Err(StarterError::NotFound);

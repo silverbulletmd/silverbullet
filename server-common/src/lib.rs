@@ -4,6 +4,7 @@
 
 pub mod crypto;
 pub mod git_starting_point;
+pub mod http_client;
 pub mod reconcile;
 pub mod revision;
 pub mod space;

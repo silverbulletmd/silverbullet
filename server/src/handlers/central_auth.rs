@@ -42,7 +42,7 @@ impl CentralAuth {
         bundle: Box<dyn SpacePrimitives>,
         destination_policy: DestinationPolicy,
     ) -> Result<Self, String> {
-        let mut builder = reqwest::Client::builder()
+        let mut builder = silverbullet_server_common::http_client::client_builder()
             .redirect(reqwest::redirect::Policy::none())
             .timeout(std::time::Duration::from_secs(10));
         if let Ok(path) = std::env::var("SB_OIDC_CA_FILE") {

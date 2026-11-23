@@ -224,7 +224,7 @@ impl CimdFetcher {
     fn build(resolver: PublicOnlyResolver, allow_http_loopback: bool) -> Self {
         let mut headers = HeaderMap::new();
         headers.insert(header::ACCEPT, HeaderValue::from_static("application/json"));
-        let client = reqwest::Client::builder()
+        let client = silverbullet_server_common::http_client::client_builder()
             .redirect(redirect::Policy::none())
             .timeout(TIMEOUT)
             .dns_resolver(Arc::new(resolver))

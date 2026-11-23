@@ -66,8 +66,11 @@ pub async fn handle_proxy(
     // async `reqwest` directly rather than the sync-core `spawn_blocking` seam.
     // One process-wide client so repeated fetches to the same host reuse
     // pooled connections and TLS sessions (`Client` is an `Arc` internally).
-    static CLIENT: std::sync::LazyLock<reqwest::Client> =
-        std::sync::LazyLock::new(reqwest::Client::new);
+    static CLIENT: std::sync::LazyLock<reqwest::Client> = std::sync::LazyLock::new(|| {
+        silverbullet_server_common::http_client::client_builder()
+            .build()
+            .expect("proxy HTTP client")
+    });
     let client = &*CLIENT;
     let rmethod =
         reqwest::Method::from_bytes(method.as_str().as_bytes()).unwrap_or(reqwest::Method::GET);

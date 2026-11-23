@@ -72,7 +72,10 @@ fn do_upgrade(
 
     println!("Downloading from {url}");
 
-    let resp = reqwest::blocking::get(&url).map_err(|e| format!("failed to download: {e}"))?;
+    let resp = crate::http_client::blocking_client_builder()
+        .build()
+        .and_then(|client| client.get(&url).send())
+        .map_err(|e| format!("failed to download: {e}"))?;
     let status = resp.status();
     if !status.is_success() {
         return Err(format!("download failed with status: {}", status.as_u16()));

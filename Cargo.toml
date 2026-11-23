@@ -27,12 +27,12 @@ libc = "0.2"
 mime_guess = "2"
 chrono = "0.4"
 filetime = "0.2"
-# Pinned to the 0.12 line on purpose: its `rustls-tls` feature uses the `ring`
+# Pinned to the 0.12 line on purpose: its rustls features use the `ring`
 # crypto provider, which cross-compiles cleanly to every static-musl target
 # (including armv7 and freebsd). reqwest 0.13's rustls path switched to
 # aws-lc-rs (C/CMake), which is fragile to cross-compile for those arches.
 # Revisit only once the full cross-compile/release matrix is in place.
-reqwest = { version = "0.12", features = ["rustls-tls", "json", "blocking", "stream"], default-features = false }
+reqwest = { version = "0.12", features = ["rustls-tls-webpki-roots", "rustls-tls-native-roots", "json", "blocking", "stream"], default-features = false }
 base64 = "0.23"
 similar = "3"
 percent-encoding = "2"

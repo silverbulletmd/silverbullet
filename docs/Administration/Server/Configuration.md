@@ -33,6 +33,12 @@ Configure spaces in the [[Dashboard]]. Settings it doesn’t show, such as a spa
 * `SB_PORT`: Sets the port to listen to, e.g. `SB_PORT=1234`, default is `3000`
 * `SB_UNIX_SOCKET`: Instead of listening to a TCP port, listen to a Unix socket at the specified path, e.g. `SB_UNIX_SOCKET=/tmp/silverbullet.sock`. This applies to the setup wizard and the running server. When this is set, `SB_HOSTNAME` and `SB_PORT` are ignored.
 
+# Certificates
+SilverBullet verifies the TLS certificates of servers it connects to, such as a sync server, a single sign-on provider, or a site fetched through the proxy. It trusts the certificate authorities built into SilverBullet and those in the operating system’s trust store (the Keychain on macOS, the certificate store on Windows, and the system CA bundle on Linux). To trust a private certificate authority, add it to the operating system’s trust store, or point `SB_CA_CERTS` at it. Changes apply after a restart.
+
+* `SB_CA_CERTS`: Path to a PEM file with one or more extra CA certificates to trust, e.g. `SB_CA_CERTS=/etc/silverbullet/company-ca.pem`. These are trusted in addition to the defaults. On Linux, `SSL_CERT_FILE` and `SSL_CERT_DIR` are also honoured, but they replace the system bundle rather than add to it.
+* `SB_ACCEPT_INVALID_CERTS`: Set to `1` (or `true`) to skip certificate verification for all outgoing connections. This is only meant for testing with self-signed certificates: it lets anyone on the network intercept those connections. Prefer `SB_CA_CERTS`.
+
 # Authentication
 These apply to every space and the [[Dashboard]]. Accounts and [[Authentication#API|API tokens]] are managed in the Dashboard.
 
