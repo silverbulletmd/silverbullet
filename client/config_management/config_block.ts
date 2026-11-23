@@ -1,4 +1,4 @@
-import { BOOT_MARKER } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { BOOT_MARKER } from "@silverbulletmd/silverbullet/lib/library_pages";
 
 export const MANAGED_MARKER = "-- managed-by: configuration-manager";
 export const SCHEMAS_MARKER = "-- managed-by: workbench-schemas";

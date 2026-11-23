@@ -1,4 +1,4 @@
-import { findToolBlocks } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { findToolBlocks } from "@silverbulletmd/silverbullet/lib/library_pages";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 
 /** The page's `space-lua` code, all blocks joined, for tests that run a page's scripts. */

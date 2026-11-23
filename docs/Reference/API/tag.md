@@ -202,7 +202,7 @@ a[data-tag-name="my-red-tag"] {
 }
 ```
 
-This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
+This block doesn’t run here, because this isn’t a [[Library Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
 
 # Render context
 An object’s YAML is shown by a render hook from the object’s [[API/tag|tag]]:

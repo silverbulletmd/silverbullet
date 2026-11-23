@@ -43,7 +43,7 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
   * Completion
   * Slash Command
   * Search
-  * Tool Page Picker
+  * Library Page Picker
   * Anything Picker
   * Tag Picker
   * Revisions
@@ -126,7 +126,7 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
     * Linked Tasks
     * Library
     * Repository
-    * Tool Page
+    * Library Page
     * Extensions
     * Command
     * Template

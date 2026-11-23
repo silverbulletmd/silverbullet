@@ -462,7 +462,7 @@ async function onFetchTooling(router: ProxyRouter): Promise<Response> {
   }
 }
 
-function routerWithToolPage(): ProxyRouter {
+function routerWithLibraryPage(): ProxyRouter {
   const router = new ProxyRouter("", "http://localhost/", {});
   router.localSpacePrimitives = {
     fetchFileList: async () => [
@@ -479,7 +479,7 @@ function routerWithToolPage(): ProxyRouter {
 }
 
 test("/.tooling is answered locally once full sync is confirmed", async () => {
-  const router = routerWithToolPage();
+  const router = routerWithLibraryPage();
   (router as any).fullSyncConfirmed = true;
   const fetchSpy = vi.fn();
   vi.stubGlobal("fetch", fetchSpy);
@@ -499,7 +499,7 @@ test("/.tooling is answered locally once full sync is confirmed", async () => {
 });
 
 test("/.tooling is answered locally when the server is unreachable", async () => {
-  const router = routerWithToolPage();
+  const router = routerWithLibraryPage();
   const fetchSpy = vi.fn().mockRejectedValue(new Error("Offline"));
   vi.stubGlobal("fetch", fetchSpy);
   try {
@@ -514,7 +514,7 @@ test("/.tooling is answered locally when the server is unreachable", async () =>
 });
 
 test("/.tooling is proxied while online before the first sync", async () => {
-  const router = routerWithToolPage();
+  const router = routerWithLibraryPage();
   const fetchSpy = vi.fn().mockResolvedValue(new Response("[]"));
   vi.stubGlobal("fetch", fetchSpy);
   try {

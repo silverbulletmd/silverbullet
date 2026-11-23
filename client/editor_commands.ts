@@ -585,7 +585,7 @@ export function registerEditorCommands(
     },
   });
   hook.registerCommand({
-    name: "Navigate: Tool Page Picker",
+    name: "Navigate: Library Page Picker",
     key: "Ctrl-Shift-k",
     mac: "Cmd-Shift-k",
     priority: 2,
@@ -593,11 +593,11 @@ export function registerEditorCommands(
       location: "navigate",
       group: "2_picker",
       order: 4,
-      label: "Tool Page...",
+      label: "Library Page...",
     },
     opensInput: true,
     run: async () => {
-      await client.startPageNavigate("tool");
+      await client.startPageNavigate("library");
       return false;
     },
   });

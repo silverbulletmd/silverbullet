@@ -3,7 +3,7 @@ description: Defines the schemas and built-in values of built-in configuration o
 ---
 SilverBullet uses the [config APIs](https://docs.silverbullet.md/Reference/API/config) to manage its runtime configuration. You can set most of these anywhere in your space, but the convention is to use your `Library/Config` page for this purpose.
 
-This tool page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your `Library/Config` page (use `space-lua` instead of `lua` in your actual page):
+This Library page defines the JSON Schema of all built-in configuration settings, as well as their default values. You can override them by e.g. putting the following in your `Library/Config` page (use `space-lua` instead of `lua` in your actual page):
 
 ```lua
 config.set("sync.documents", true)

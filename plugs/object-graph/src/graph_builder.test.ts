@@ -5,7 +5,7 @@ import {
   endpointMatchesRef,
   isHiddenTag,
   type RelationRow,
-  splitToolPages,
+  splitLibraryPages,
 } from "./graph_builder.ts";
 
 describe("endpointMatchesRef", () => {
@@ -40,16 +40,16 @@ describe("isHiddenTag", () => {
   });
 });
 
-describe("splitToolPages", () => {
-  it("separates Tool Pages by location, not by tag", () => {
-    const { pages, toolPageNames } = splitToolPages([
+describe("splitLibraryPages", () => {
+  it("separates Library Pages by location, not by tag", () => {
+    const { pages, libraryPageNames } = splitLibraryPages([
       { name: "Library/Config" },
       { name: "Library/Std/Config" },
       { name: "Notes", tags: ["meta/template"] },
       { name: "Libraryish" },
     ]);
     expect(pages.map((p) => p.name)).toEqual(["Notes", "Libraryish"]);
-    expect([...toolPageNames]).toEqual([
+    expect([...libraryPageNames]).toEqual([
       "Library/Config",
       "Library/Std/Config",
     ]);

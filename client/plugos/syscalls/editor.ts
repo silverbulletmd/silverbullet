@@ -1491,17 +1491,17 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.openPageNavigator": {
       callback: (
         _ctx,
-        mode: "page" | "tool" | "meta" | "document" | "all" = "page",
+        mode: "page" | "library" | "meta" | "document" | "all" = "page",
       ) => {
-        void client.startPageNavigate(mode === "meta" ? "tool" : mode);
+        void client.startPageNavigate(mode === "meta" ? "library" : mode);
       },
       description: `Opens the page picker in the requested browsing mode. Each mode maps to a segment of the \`std.pages\` view.`,
       parameters: [
         {
           name: "mode",
-          type: "page | tool | document | all",
+          type: "page | library | document | all",
           description:
-            "The picker mode. `meta` is a deprecated alias of `tool`.",
+            "The picker mode. `meta` is a deprecated alias of `library`.",
           optional: true,
         },
       ],

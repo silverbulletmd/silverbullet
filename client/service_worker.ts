@@ -105,7 +105,7 @@ const workerLogout = new WorkerLogout(
     await (await captureStore).destroy();
     // Must not stop the unregistration below
     await deleteToolingCaches().catch((e) =>
-      console.error("Could not delete cached tool pages:", e),
+      console.error("Could not delete cached Library pages:", e),
     );
     // @ts-expect-error: service worker API
     await self.registration.unregister();
@@ -183,7 +183,7 @@ self.addEventListener("message", async (event: any) => {
     case "wipe-data": {
       await (await captureStore).clear();
       await deleteToolingCaches().catch((e) =>
-        console.error("Could not delete cached tool pages:", e),
+        console.error("Could not delete cached Library pages:", e),
       );
       if (proxyRouter.syncEngine) {
         await proxyRouter.syncEngine.wipe();

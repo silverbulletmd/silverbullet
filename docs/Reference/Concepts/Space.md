@@ -11,7 +11,7 @@ Feel free to back up or manipulate your space’s folder and its files with what
 
 A space consists of
 * [[Folder|Folders]]
-* [[Reference/Concepts/Page|Pages]] and [[Tool Page|Tool Pages]]
+* [[Reference/Concepts/Page|Pages]] and [[Library Page|Library Pages]]
 * [[Reference/Concepts/Document|Documents]]
 
 # Who a space is for

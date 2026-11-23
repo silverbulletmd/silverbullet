@@ -11,7 +11,7 @@ Plugs are distributed as part of a [[Reference/Concepts/Library]] — the unit o
 
 Follow this recipe in your own writable space. Publishing also requires a configured destination. The recipe mirrors [[Development/Library Development]]:
 
-1. Create a [[Tool Page]] under `Library/yourname/Your Thing` with frontmatter that lists the plug file:
+1. Create a [[Library Page]] under `Library/yourname/Your Thing` with frontmatter that lists the plug file:
 
    ```yaml
    ---

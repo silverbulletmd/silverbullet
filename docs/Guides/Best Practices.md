@@ -24,7 +24,7 @@ If every page of a kind uses the same tag, you can query them together even when
 # Querying your space
 Begin in [[Workbench/Data]] to inspect records and build filters. [[Getting Started/Add Structure and Query]] teaches this without handwritten syntax. When you adapt the source:
 
-* Prefer `index.contentPages()` for ordinary page lists. It excludes [[Tool Page|tool pages]] such as library and configuration pages. Use `index.pages()` when you want those included.
+* Prefer `index.contentPages()` for ordinary page lists. It excludes [[Library Page|Library pages]] such as library and configuration pages. Use `index.pages()` when you want those included.
 * Choose the right kind: `index.tasks()` reads tasks. `index.contentPages()` reads pages. Both can be narrowed to a tag.
 * Use the [[Guides/Aggregator Pages|aggregator pattern]] for collections that would otherwise need a second membership list.
 * Inspect [[Aspiring Pages]] to find forward references that have not acquired content yet. Not every such link is a mistake.

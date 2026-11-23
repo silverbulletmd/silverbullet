@@ -8,7 +8,7 @@ Use the `lua` tool to query the space's index: an expression returns its value, 
 | Source | Selection |
 | --- | --- |
 | `index.pages("project")` | Pages tagged project (no argument: all pages) |
-| `index.contentPages()` / `index.toolPages()` | Content pages / tool pages (pages under `Library/`) |
+| `index.contentPages()` / `index.libraryPages()` | Content pages / Library pages (pages under `Library/`) |
 | `index.tasks("work")` | Tasks tagged work |
 | `index.items("decision")` | List items tagged decision |
 | `index.headers()`, `index.paragraphs()`, `index.tables()`, `index.data()` | Headings, paragraphs, table rows, data-block objects |
@@ -75,7 +75,7 @@ Semantic search (meaning, other wording, related pages) is a free feature of Ser
 search.find("soil drainage", {mode = "natural", limit = 10})
 ```
 
-`search.find` and `search.related("Garden Notes", {limit = 10})` return `{items, total, partial, notice}`; each item has `page`, `line`, `heading` and `excerpt`. `pos` is the match's position in the page, and `highlights` are `[start, end]` UTF-16 offsets into `excerpt`. `partial` or `notice` means the index is still building, which is not an empty result. `mode = "words"` (all words) and `mode = "phrase"` (exact phrase) are the full-text modes, offered when `capabilities.modes` lists them (the MCP `search` tool's `semantic` is `natural` here), better for names, codes and exact wording than `natural`; `scope` (`pages`, `meta` or `all`) narrows any of them. `search.related` returns one item per page, best first, and raises an error while related pages are unavailable or when the page is not in the semantic index yet. Always pass the page name: the runtime's current page need not be the one the user sees. Without semantic search, fall back to full-text search or SLIQ and say the coverage is narrower.
+`search.find` and `search.related("Garden Notes", {limit = 10})` return `{items, total, partial, notice}`; each item has `page`, `line`, `heading` and `excerpt`. `pos` is the match's position in the page, and `highlights` are `[start, end]` UTF-16 offsets into `excerpt`. `partial` or `notice` means the index is still building, which is not an empty result. `mode = "words"` (all words) and `mode = "phrase"` (exact phrase) are the full-text modes, offered when `capabilities.modes` lists them (the MCP `search` tool's `semantic` is `natural` here), better for names, codes and exact wording than `natural`; `scope` (`pages`, `library` or `all`) narrows any of them. `search.related` returns one item per page, best first, and raises an error while related pages are unavailable or when the page is not in the semantic index yet. Always pass the page name: the runtime's current page need not be the one the user sees. Without semantic search, fall back to full-text search or SLIQ and say the coverage is narrower.
 
 # Syntax summary
 ```lua

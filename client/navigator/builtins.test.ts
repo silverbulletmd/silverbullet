@@ -199,12 +199,12 @@ test("pages are classified by location, not by the meta tag", () => {
   const config = { name: "Library/Config", tag: "page", tags: [] };
   const legacyConfig = { name: "CONFIG", tag: "page", tags: [] };
   expect(pageScopes.pages(tagged)).toBe(true);
-  expect(pageScopes.tool(tagged)).toBe(false);
+  expect(pageScopes.library(tagged)).toBe(false);
   expect(pageScopes.pages(library)).toBe(false);
-  expect(pageScopes.tool(library)).toBe(true);
-  expect(pageScopes.tool(config)).toBe(true);
-  expect(pageScopes.tool(legacyConfig)).toBe(false);
-  expect(pageScopes.tool({ ...library, pageDecoration: { hide: true } })).toBe(
+  expect(pageScopes.library(library)).toBe(true);
+  expect(pageScopes.library(config)).toBe(true);
+  expect(pageScopes.library(legacyConfig)).toBe(false);
+  expect(pageScopes.library({ ...library, pageDecoration: { hide: true } })).toBe(
     false,
   );
 });
@@ -565,21 +565,21 @@ test("std.spaceTree's ordering honors the space's queryCollation config, not raw
   ]);
 });
 
-test("std.spaceTree keeps everything under Library/ in Tool Pages", async () => {
+test("std.spaceTree keeps everything under Library/ in Library Pages", async () => {
   const { spaceTreeSegments } = await import("./views/space_tree.ts");
   const where = (label: string) =>
     spaceTreeSegments.find((s) => s.label === label)!.where!;
   const font = { name: "Library/acme/Fonts/Lora/Lora.ttf", tag: "document" };
-  const toolPage = { name: "Library/acme/Fonts/Lora", tag: "page" };
+  const libraryPage = { name: "Library/acme/Fonts/Lora", tag: "page" };
   const logo = { name: "assets/logo.png", tag: "document" };
   for (const label of ["All", "Documents"]) {
     expect(where(label)(font as any), label).toBe(false);
     expect(where(label)(logo as any), label).toBe(true);
   }
-  expect(where("All")(toolPage as any)).toBe(false);
-  expect(where("Tool Pages")(font as any)).toBe(true);
-  expect(where("Tool Pages")(toolPage as any)).toBe(true);
-  expect(where("Tool Pages")(logo as any)).toBe(false);
+  expect(where("All")(libraryPage as any)).toBe(false);
+  expect(where("Library Pages")(font as any)).toBe(true);
+  expect(where("Library Pages")(libraryPage as any)).toBe(true);
+  expect(where("Library Pages")(logo as any)).toBe(false);
 });
 
 test("std.spaceTree's row state: icon per kind, and the action mask", async () => {

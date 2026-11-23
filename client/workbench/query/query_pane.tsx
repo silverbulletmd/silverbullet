@@ -122,10 +122,10 @@ const PAGE_SCOPES: {
     label: "Content",
     tooltip: "Pages outside Library/",
   },
-  { scope: "tool", label: "Tool", tooltip: "Pages under Library/" },
+  { scope: "library", label: "Library", tooltip: "Pages under Library/" },
 ];
 
-/** Narrows pages to content pages or tool pages; absent for other objects */
+/** Narrows pages to content pages or Library pages; absent for other objects */
 function PageScopeControl({
   source,
   onNarrow,

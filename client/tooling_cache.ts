@@ -5,7 +5,7 @@ import type { ToolingCache } from "./tooling_fetch.ts";
 const namePrefix = "silverbullet.";
 const nameSuffix = ".tooling";
 
-/** The cache that holds the tool pages of the space at `baseURI`. */
+/** The cache that holds the Library pages of the space at `baseURI`. */
 const toolingCacheName = (baseURI: string) =>
   `${namePrefix}${baseURI}${nameSuffix}`;
 
@@ -60,7 +60,7 @@ export function bootToolingCache(
     : cacheStorageToolingCache(baseURI);
 }
 
-/** Removes every space's cached tool pages: they hold plain page text. */
+/** Removes every space's cached Library pages: they hold plain page text. */
 export async function deleteToolingCaches(): Promise<void> {
   if (!globalThis.caches) return;
   const names = (await caches.keys()).filter(isToolingCacheName);

@@ -411,12 +411,12 @@ describe("querySource", () => {
       by: "root",
       scope: "content",
     });
-    for (const helper of ["toolPages", "metaPages"]) {
+    for (const helper of ["libraryPages", "metaPages"]) {
       expect(querySource(`query[[from p = index.${helper}()]]`)).toEqual({
         root: "page",
         tag: null,
         by: "root",
-        scope: "tool",
+        scope: "library",
       });
     }
   });

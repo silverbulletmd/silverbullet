@@ -5,7 +5,7 @@ const generationPattern = /^cache-(\d+)$/;
 
 /**
  * The caches an activating worker should delete: everything except its own
- * generation, the tool-page caches, and the newest previous generation. A tab
+ * generation, the Library-page caches, and the newest previous generation. A tab
  * that loaded before this worker took over still runs the previous client and
  * lazily imports that build's chunks, which neither this generation nor the
  * upgraded server has. Keeping one generation back lets those imports resolve

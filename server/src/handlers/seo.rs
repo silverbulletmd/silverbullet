@@ -8,7 +8,7 @@ use axum::{
 };
 use chrono::{TimeZone, Utc};
 use percent_encoding::{utf8_percent_encode, AsciiSet, NON_ALPHANUMERIC};
-use silverbullet_server_common::page::is_tool_page;
+use silverbullet_server_common::page::is_library_page;
 
 use crate::{router::run_blocking, state::ServerState};
 
@@ -81,7 +81,7 @@ pub async fn handle_sitemap(State(state): State<Arc<ServerState>>, headers: Head
         for file in files {
             let Some(page) = file.name.strip_suffix(".md") else { continue; };
             if file.name.split('/').any(|part| part.starts_with('.')) { continue; }
-            if is_tool_page(page) { continue; }
+            if is_library_page(page) { continue; }
             let loc = page_url(&state, &origin, page).replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;");
             xml.push_str(&format!("  <url><loc>{loc}</loc>"));
             if file.last_modified > 0 {
@@ -175,7 +175,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn sitemap_discovers_content_not_tool_pages() {
+    async fn sitemap_discovers_content_not_library_pages() {
         let (status, content_type, body) = request(public_state(), "/sitemap.xml").await;
         assert_eq!(status, 200);
         assert!(content_type.starts_with("application/xml"));

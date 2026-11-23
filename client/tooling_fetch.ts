@@ -10,7 +10,7 @@ export type Tooling = {
 };
 
 /**
- * Fetches every Tool Page from `/.tooling` (relative to the space's base URL)
+ * Fetches every Library Page from `/.tooling` (relative to the space's base URL)
  * and collects their scripts and styles in load order.
  */
 export async function fetchTooling(
@@ -39,7 +39,7 @@ export type ToolingCache = {
  * `cache` for boots that can't fetch it, a failed fetch falls back to that
  * copy. A cold service worker isn't configured yet and passes `/.tooling` to
  * the server, so offline or with the server down boot needs the copy, which
- * misses Tool Page edits not yet synced; they load on the next reload after
+ * misses Library Page edits not yet synced; they load on the next reload after
  * sync. With neither, boot carries on without scripts or styles.
  */
 export async function resolveBootTooling(
@@ -48,20 +48,20 @@ export async function resolveBootTooling(
 ): Promise<Tooling | undefined> {
   if (!(fetched instanceof Error)) {
     cache?.write(fetched.files).catch((e) => {
-      console.warn("Could not cache tool pages:", e);
+      console.warn("Could not cache Library pages:", e);
     });
     return fetched;
   }
   const files = await cache?.read().catch(() => undefined);
   if (files) {
     console.warn(
-      "Could not fetch tool pages, booting from cached copy:",
+      "Could not fetch Library pages, booting from cached copy:",
       fetched,
     );
     return { ...collectTooling(files), files };
   }
   console.error(
-    "Could not fetch tool pages, booting without space scripts and styles:",
+    "Could not fetch Library pages, booting without space scripts and styles:",
     fetched,
   );
   return undefined;

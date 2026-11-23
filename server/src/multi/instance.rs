@@ -285,7 +285,7 @@ fn try_build_parts(
     let folder_str = folder.to_string_lossy().to_string();
     if root.is_some() {
         // Read-only spaces migrate too: their configuration would otherwise stop
-        // loading, since CONFIG is no longer a Tool Page
+        // loading, since CONFIG is no longer a Library Page
         silverbullet_server_common::space::migrate_config_page(&folder, &config.space_ignore);
         silverbullet_server_common::space::remove_legacy_repository_pages(&folder);
     }

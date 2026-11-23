@@ -48,7 +48,7 @@ body.christmas-decoration #sb-top {
 }
 ```
 
-This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
+This block doesn’t run here, because this isn’t a [[Library Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
 
 To adapt the decoration, copy the frontmatter to your own page and the style to a page under `Library/` in your space.
 

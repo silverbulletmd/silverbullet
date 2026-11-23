@@ -6,14 +6,14 @@ references:
 - client/workbench/libraries/library_requires.ts
 - libraries/Library/Std/Infrastructure/Share.md
 ---
-SilverBullet is designed to be [[Reference/Concepts/Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Reference/Space Lua]] embedded in [[Tool Page|Tool Pages]], other functionality is implemented using [[Reference/Internals/Plugs]].
+SilverBullet is designed to be [[Reference/Concepts/Extensions|extensible]]. In fact, a lot of functionality in SilverBullet is implemented through [[Reference/Space Lua]] embedded in [[Library Page|Library Pages]], other functionality is implemented using [[Reference/Internals/Plugs]].
 
 A big part of the fun of SilverBullet is building your own extensions, big or small. Libraries are the way to [[Features/Share]] those extensions. Both for you to [[Development/Library Development|publish your own]] libraries, and to pull in other people’s creations.
 
 # Terms
 Let’s define terms:
 
-The [[Library]] is the **unit of distribution**, typically implemented as [[Tool Page|Tool Pages]]. Most libraries will be implemented in a single page (e.g. with a big [[Reference/Space Lua]] block), but more elaborate libraries may span multiple pages, some may wrap [[Reference/Internals/Plugs]].
+The [[Library]] is the **unit of distribution**, typically implemented as [[Library Page|Library Pages]]. Most libraries will be implemented in a single page (e.g. with a big [[Reference/Space Lua]] block), but more elaborate libraries may span multiple pages, some may wrap [[Reference/Internals/Plugs]].
 
 A [[Repository]] is a **discovery and curation mechanism** for libraries. They are collections of _pointers_ of _where_ to find libraries to install. SilverBullet ships with the [[^Library/Repository/Std]] and [[^Library/Repository/SilverBulletMD]] repositories, but you can install additional ones.
 

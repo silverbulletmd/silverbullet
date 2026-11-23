@@ -1,12 +1,12 @@
 ---
-description: "A filterable navigation tree of pages, documents and tool pages."
+description: "A filterable navigation tree of pages, documents and Library pages."
 ---
 The _Space Tree_ offers an alternative, more traditional approach to navigate your space. Launched via ${widgets.commandButton("Navigate: Tree")}, it provides a persistent tree  on the left (by default) that can be filtered based on name, and offers various segments:
 
 * All: showing both [[Reference/Concepts/Page|Pages]] and [[Reference/Concepts/Document|Documents]]
 * Pages: Showing just (content) pages
 * Documents: Showing just [[Reference/Concepts/Document|Documents]]
-* Tool Pages: Showing just [[Tool Page|tool pages]]
+* Library Pages: Showing just [[Library Page|Library pages]]
 
 # Reordering
 New pages, and pages you have not arranged yet, appear at the top of their folder in alphabetical order. Arranged pages follow in the order you saved.

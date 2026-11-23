@@ -9,7 +9,7 @@ references:
 To develop your own SilverBullet library follow these steps:
 
 # Decorate your library with frontmatter
-Put all functionality you like in a [[Tool Page]] somewhere under `Library/`. Scripts and styles only run from there. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
+Put all functionality you like in a [[Library Page]] somewhere under `Library/`. Scripts and styles only run from there. For name spacing purposes it’s good form to put your (Github) username in the path as well, so create, for instance `Library/myuser/My Library`.
 
 Then, decorate your library page with some [[Frontmatter]]. Here is an minimal example library that defines a new “Hello world” command:
 

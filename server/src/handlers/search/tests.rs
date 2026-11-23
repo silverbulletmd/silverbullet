@@ -337,7 +337,7 @@ async fn queries_accept_a_scope() {
     let state = disk_state(dir.path(), Grant(Some(AccessLevel::Read), Some("reader"))).await;
     for (scope, page) in [
         ("pages", "Fern"),
-        ("tool", "Library/Fern template"),
+        ("library", "Library/Fern template"),
         ("meta", "Library/Fern template"),
     ] {
         let (status, body) = call(

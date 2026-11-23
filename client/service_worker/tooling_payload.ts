@@ -1,10 +1,10 @@
-import { isToolPage } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { isLibraryPage } from "@silverbulletmd/silverbullet/lib/library_pages";
 import type { SpacePrimitives } from "../spaces/space_primitives.ts";
 import type { ToolingFile } from "../tooling.ts";
 
 /**
  * Local counterpart of the server's `/.tooling` endpoint: the text of every
- * tool page in the synced space, sorted by path.
+ * Library page in the synced space, sorted by path.
  */
 export async function buildToolingPayload(
   space: SpacePrimitives,
@@ -12,7 +12,7 @@ export async function buildToolingPayload(
   const decoder = new TextDecoder();
   const files: ToolingFile[] = [];
   for (const meta of await space.fetchFileList()) {
-    if (!meta.name.endsWith(".md") || !isToolPage(meta.name.slice(0, -3))) {
+    if (!meta.name.endsWith(".md") || !isLibraryPage(meta.name.slice(0, -3))) {
       continue;
     }
     const { data } = await space.readFile(meta.name);

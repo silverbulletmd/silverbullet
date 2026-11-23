@@ -120,7 +120,7 @@ describe("loadOverview", () => {
     expect(Object.values(stats).filter(Number.isNaN)).toEqual([]);
   });
 
-  test("rows from tool pages (under Library/) are excluded from pages, tasks and tags", async () => {
+  test("rows from Library pages (under Library/) are excluded from pages, tasks and tags", async () => {
     const stats = await loadOverview(
       fakeDeps({
         pages: async () => [

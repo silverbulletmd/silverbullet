@@ -51,7 +51,7 @@ if modes then
   -- The backend scope (`search.find`'s `scope`) each picker segment searches
   local segmentScopes = {
     ["Content"] = "pages",
-    ["Tool Pages"] = "tool",
+    ["Library Pages"] = "library",
     ["All"] = "all",
   }
 
@@ -91,7 +91,7 @@ if modes then
       rememberPhrase = true,
       segments = {
         { label = "Content", default = true, placeholder = "Content" },
-        { label = "Tool Pages", placeholder = "Tool Pages" },
+        { label = "Library Pages", placeholder = "Library Pages" },
         { label = "All", placeholder = "All Pages" },
       },
       dropdown = {

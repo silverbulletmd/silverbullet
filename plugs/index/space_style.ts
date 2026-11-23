@@ -1,7 +1,7 @@
 import {
   findToolBlocks,
-  isToolPage,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+  isLibraryPage,
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import type { ParseTree } from "@silverbulletmd/silverbullet/lib/tree";
 import type {
   ObjectValue,
@@ -19,7 +19,7 @@ export function indexSpaceStyle(
   _frontmatter: FrontMatter,
   tree: ParseTree,
 ): Promise<StyleObject[]> {
-  if (!isToolPage(pageMeta.name)) {
+  if (!isLibraryPage(pageMeta.name)) {
     return Promise.resolve([]);
   }
   return Promise.resolve(

@@ -29,19 +29,19 @@ Since [[ADR/005 Space Lua|Space Lua]] landed, `space-lua` and `space-style` bloc
 2. **Boot depends on the index.** Because scripts can be anywhere, the only way to find them is the [[ADR/003 Indexed Object Graph|object index]]. Boot runs a configuration pre-pass over four hardcoded pages, then loads scripts and styles from the index. On a fresh client nothing loads until the whole space is indexed. When indexing finishes, everything is reloaded and the editor rebuilt. Styles and fonts wait the same way. This is slow, and every step adds special cases.
 
 # Decision
-**Tooling pages (new name of meta pages) now _have to_ live under `Library/`.**
+**Scripts and styles now _have to_ live under `Library/`.**
 
-Pages there are **Tool Pages**, a term that replaces “meta page”. Only blocks on Tool Pages run. A `space-lua` or `space-style` block anywhere else is ordinary code: it is shown but never runs. It gets a lint warning, which a configuration option can turn off.
+Pages there are **Library Pages**, a term that replaces “meta page”. Only blocks on Library Pages run. A `space-lua` or `space-style` block anywhere else is ordinary code: it is shown but never runs. It gets a lint warning, which a configuration option can turn off.
 
 * **Defined by location, not by tag.** The `meta/...` tags keep their discovery role (templates, libraries, repositories), but a bare `#meta` tag no longer means anything.
 * **Configuration moves to `Library/Config`.** The root `CONFIG` page is gone as a special location. The server renames an existing `CONFIG.md` to `Library/Config.md` when a space starts, and logs it. Links to `[[CONFIG]]` still resolve by name.
-* **Loading without the index.** The server serves the raw text of all Tool Pages in one response.
+* **Loading without the index.** The server serves the raw text of all Library Pages in one response.
 * **A boot pass for configuration.** Some settings must apply before the client starts: sync settings, tag definitions the first index needs, action buttons on first render. Blocks marked `-- boot: true` run first, each on its own, in a restricted environment where only configuration calls work, and then again normally. `Library/Config` blocks always count as boot blocks.
 * **One ordering for scripts and styles.** Priority first, highest first, where no priority counts as 0. Ties are broken by page name, then by position on the page.
 * **The editor doesn't wait for the index.** Widgets render once scripts are loaded. On a fresh client, query results fill in while the first index runs, and an `index:ready` event lets scripts redo work that needs the full index (Std uses it for template commands).
-* **Indexing is unchanged**, except that `space-lua` and `space-style` objects are only produced for Tool Pages.
+* **Indexing is unchanged**, except that `space-lua` and `space-style` objects are only produced for Library Pages.
 * **Repositories move to `Library/Repository/`.** New library and repository installs always land under `Library/`. The server reports which repositories it ships. Existing repository pages are not migrated.
-* **Rename.** The UI says “Tool” and uses the tool icon. Lua APIs get `tool` names, and the old `meta` names keep working as aliases.
+* **Rename.** The UI says “Library”. Lua APIs get `library` names, and the old `meta` names keep working as aliases. An earlier draft of this decision called these pages “Library Pages”; that name was dropped before release, because a term defined as “a page under `Library/`” only repeated the folder’s name.
 
 # Consequences
 ## Positive
@@ -61,8 +61,8 @@ Pages there are **Tool Pages**, a term that replaces “meta page”. Only block
 * **Keep scripts anywhere and speed up the index path.** Rejected: boot would still depend on indexing the whole space, and tooling would stay scattered.
 * **Concatenate all blocks into one Lua chunk.** Rejected: each block's identity (`page@pos`) drives error locations, quarantine, the per-script time budget and the Workbench inspector.
 * **Extract blocks in Rust.** Rejected: a second Markdown parser would drift from the client's, for example on commented-out blocks or fences inside lists.
-* **Index Tool Pages only partially.** Rejected: renames, backlinks, heading links and data-block tooling all depend on full indexing, and the gain was small.
-* **Define Tool Pages by tag, or by tag or location.** Rejected: it keeps the opt-in concept alive and doesn't give boot a fixed place to look.
+* **Index Library Pages only partially.** Rejected: renames, backlinks, heading links and data-block tooling all depend on full indexing, and the gain was small.
+* **Define Library Pages by tag, or by tag or location.** Rejected: it keeps the opt-in concept alive and doesn't give boot a fixed place to look.
 * **Drop the boot pass and reorder boot instead.** Rejected: action buttons would pop in late, indexing would have to wait for scripts, and the service worker would be configured later.
 * **Run every script in the boot pass.** Rejected: every script would run twice, and library code runs only partly in the restricted environment.
 * **Require `-- boot: true` on `Library/Config` too.** Rejected: one forgotten marker would make sync and tag settings apply too late, with no visible error.

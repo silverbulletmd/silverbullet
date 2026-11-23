@@ -16,7 +16,7 @@ export async function deleteLocalSpaceData(): Promise<void> {
   if (typeof sessionStorage !== "undefined") sessionStorage.clear();
   // Must not stop the database deletion below
   await deleteToolingCaches().catch((e) =>
-    console.error("Could not delete cached tool pages:", e),
+    console.error("Could not delete cached Library pages:", e),
   );
   const databases = await indexedDB.databases();
   const deletions = await Promise.allSettled(

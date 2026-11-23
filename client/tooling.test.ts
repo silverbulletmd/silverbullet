@@ -9,7 +9,7 @@ const f = (path: string, text: string): ToolingFile => ({
 const lua = (code: string) => "```space-lua\n" + code + "\n```\n";
 
 describe("collectTooling", () => {
-  it("only takes blocks from Tool Pages", () => {
+  it("only takes blocks from Library Pages", () => {
     const { scripts } = collectTooling([
       f("Notes.md", lua("a=1")),
       f("CONFIG.md", lua("legacy=1")),

@@ -161,7 +161,7 @@ describe("inComment", () => {
     expect(objects.some((o: any) => o.tag === "space-style")).toBe(false);
   });
 
-  test("space-lua and space-style are indexed only on tool pages", async () => {
+  test("space-lua and space-style are indexed only on Library pages", async () => {
     createMockSystem();
     const text =
       "```space-lua\nx = 1\n```\n\n```space-style\nbody { color: red }\n```\n";

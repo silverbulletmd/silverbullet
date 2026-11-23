@@ -3,18 +3,18 @@ use pulldown_cmark::{Event, Parser, Tag};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageKind {
     Content,
-    Tool,
+    Library,
 }
 
-/// Whether a page (name without `.md`) is a Tool Page: anything under
-/// `Library/`. Agrees with `isToolPage` in `plug-api/lib/tool_pages.ts`.
-pub fn is_tool_page(name: &str) -> bool {
+/// Whether a page (name without `.md`) is a Library Page: anything under
+/// `Library/`. Agrees with `isLibraryPage` in `plug-api/lib/library_pages.ts`.
+pub fn is_library_page(name: &str) -> bool {
     name.starts_with("Library/")
 }
 
 pub fn page_kind(name: &str) -> PageKind {
-    if is_tool_page(name) {
-        PageKind::Tool
+    if is_library_page(name) {
+        PageKind::Library
     } else {
         PageKind::Content
     }
@@ -355,10 +355,10 @@ mod tests {
     }
 
     #[test]
-    fn tool_pages_are_the_library() {
+    fn library_pages_live_under_library() {
         for name in ["Library/Std/Config", "Library/X", "Library/Config"] {
-            assert!(is_tool_page(name), "{name}");
-            assert_eq!(page_kind(name), PageKind::Tool, "{name}");
+            assert!(is_library_page(name), "{name}");
+            assert_eq!(page_kind(name), PageKind::Library, "{name}");
         }
         for name in [
             "Library",
@@ -368,7 +368,7 @@ mod tests {
             "CONFIG/sub",
             "Notes",
         ] {
-            assert!(!is_tool_page(name), "{name}");
+            assert!(!is_library_page(name), "{name}");
             assert_eq!(page_kind(name), PageKind::Content, "{name}");
         }
     }

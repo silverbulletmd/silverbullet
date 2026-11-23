@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import { findFrontmatter, isToolPage, toolPageLua } from "./tool_pages.ts";
+import { findFrontmatter, isLibraryPage, libraryPageLua } from "./library_pages.ts";
 
-describe("isToolPage", () => {
+describe("isLibraryPage", () => {
   it("accepts Library/ pages, including Library/Config", () => {
-    expect(isToolPage("Library/Std/Config")).toBe(true);
-    expect(isToolPage("Library/Repository/Std")).toBe(true);
-    expect(isToolPage("Library/Config")).toBe(true);
+    expect(isLibraryPage("Library/Std/Config")).toBe(true);
+    expect(isLibraryPage("Library/Repository/Std")).toBe(true);
+    expect(isLibraryPage("Library/Config")).toBe(true);
   });
   it("rejects lookalikes", () => {
     for (const n of [
@@ -17,11 +17,11 @@ describe("isToolPage", () => {
       "CONFIG/sub",
       "CONFIG",
     ]) {
-      expect(isToolPage(n)).toBe(false);
+      expect(isLibraryPage(n)).toBe(false);
     }
   });
   it("builds a Lua predicate over .name", () => {
-    expect(toolPageLua("p")).toBe('string.startsWith(p.name, "Library/")');
+    expect(libraryPageLua("p")).toBe('string.startsWith(p.name, "Library/")');
   });
 });
 

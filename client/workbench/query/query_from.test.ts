@@ -1,4 +1,4 @@
-import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { libraryPageLua } from "@silverbulletmd/silverbullet/lib/library_pages";
 import { describe, expect, test } from "vitest";
 import {
   canNarrow,
@@ -21,7 +21,7 @@ const contentPages: QuerySource = {
   by: "root",
   scope: "content",
 };
-const toolPages: QuerySource = { ...contentPages, scope: "tool" };
+const libraryPages: QuerySource = { ...contentPages, scope: "library" };
 
 describe("sourceLua", () => {
   test("a root tag reads through its own helper, narrowed by a user tag", () => {
@@ -34,14 +34,14 @@ describe("sourceLua", () => {
     );
   });
 
-  test("pages can be only content pages or only tool pages", () => {
+  test("pages can be only content pages or only Library pages", () => {
     expect(sourceLua(contentPages)).toBe("index.contentPages()");
     expect(sourceLua({ ...contentPages, tag: "adr" })).toBe(
       'index.contentPages("adr")',
     );
-    expect(sourceLua(toolPages)).toBe("index.toolPages()");
-    expect(sourceLua({ ...toolPages, tag: "food" })).toBe(
-      'index.toolPages("food")',
+    expect(sourceLua(libraryPages)).toBe("index.libraryPages()");
+    expect(sourceLua({ ...libraryPages, tag: "food" })).toBe(
+      'index.libraryPages("food")',
     );
   });
 
@@ -76,7 +76,7 @@ describe("sourceLua", () => {
       rootSource("anchor"),
       tagSource("work"),
       contentPages,
-      { ...toolPages, tag: "food" },
+      { ...libraryPages, tag: "food" },
     ]) {
       const m = /^index\.(\w+)\((?:"(.*)")?\)$/.exec(sourceLua(s))!;
       expect(sourceFromCall(m[1], m[2] ?? null)).toEqual(s);
@@ -96,14 +96,14 @@ test("listedSource: page in the tag list means content pages", () => {
 
 test("sameSource tells the page scopes apart", () => {
   expect(sameSource(contentPages, rootSource("page"))).toBe(false);
-  expect(sameSource(contentPages, toolPages)).toBe(false);
+  expect(sameSource(contentPages, libraryPages)).toBe(false);
   expect(sameSource(contentPages, { ...contentPages })).toBe(true);
 });
 
 test("sourceLabel", () => {
   expect(sourceLabel(contentPages)).toBe("content page");
-  expect(sourceLabel({ ...toolPages, tag: "food" })).toBe(
-    "tool page tagged #food",
+  expect(sourceLabel({ ...libraryPages, tag: "food" })).toBe(
+    "library page tagged #food",
   );
   expect(sourceLabel(rootSource("task"))).toBe("task");
   expect(sourceLabel(tagSource("work"))).toBe("#work");
@@ -127,14 +127,14 @@ describe("sampleQuery", () => {
   });
 
   test("samples only the page scope's pages", () => {
-    const tool = toolPageLua("o");
+    const library = libraryPageLua("o");
     expect(sampleQuery(contentPages)).toEqual({
       key: "page",
-      where: `not (${tool})`,
+      where: `not (${library})`,
     });
-    expect(sampleQuery({ ...toolPages, tag: "food" })).toEqual({
+    expect(sampleQuery({ ...libraryPages, tag: "food" })).toEqual({
       key: "food",
-      where: `o.tag == "page" and ${tool}`,
+      where: `o.tag == "page" and ${library}`,
     });
   });
 });

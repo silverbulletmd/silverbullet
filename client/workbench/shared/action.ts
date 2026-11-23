@@ -1,5 +1,5 @@
 import type { Ref } from "@silverbulletmd/silverbullet/lib/ref";
-import type { ToolFence } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import type { ToolFence } from "@silverbulletmd/silverbullet/lib/library_pages";
 import type { Client } from "../../client.ts";
 import type { WidgetActionId } from "../../codemirror/widgets/widget_menu.ts";
 import {

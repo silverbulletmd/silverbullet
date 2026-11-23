@@ -9,7 +9,7 @@ Space Lua is a custom dialect and implementation of the [Lua programming languag
 
 In essence, Space Lua adds a few features to SilverBullet’s [[Reference/Markdown]] language:
 
-* [[#Definitions]]: Code written in `space-lua` code blocks on [[Tool Page|tool pages]] is enabled across your entire space.
+* [[#Definitions]]: Code written in `space-lua` code blocks on [[Library Page|Library pages]] is enabled across your entire space.
 * [[#Expressions]]: The `${expression}` syntax will [[Live Preview]] to its evaluated value. It is common to use this mechanism to render custom [[API/widget|Widgets]]. With `${name = expression}` it defines a [[#Page variables|page variable]] other expressions on the page can use.
 
 Have a look at [[Space Lua/Conventions]] for best practices around code style.
@@ -18,7 +18,7 @@ Have a look at [[Space Lua/Conventions]] for best practices around code style.
 > Code fences on these docs pages are examples and don’t run. To use one, put it on a page under `Library/`. Use [[Workbench/Console]] to try a one-off expression.
 
 # Definitions
-Space Lua definitions are defined in fenced code blocks with the `space-lua` language, on a [[Tool Page]]: a page under `Library/`. Configuration goes on [[^Library/Config]]. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
+Space Lua definitions are defined in fenced code blocks with the `space-lua` language, on a [[Library Page]]: a page under `Library/`. Configuration goes on [[^Library/Config]]. These blocks are active **across your entire space** (hence _Space_ Lua), not just on the page they appear on.
 
 To install a reusable definition, copy this example into a `space-lua` block on a page under `Library/` in your own space:
 
@@ -37,9 +37,9 @@ Function documentation uses the LuaLS/EmmyLua `---` convention. Contiguous docum
 Each `space-lua` block has its own local scope. However, following Lua semantics, when functions and variables are not explicitly defined as `local` they will be available globally across your [[Reference/Concepts/Space|space]]. This means that the `adder` function defined, can be called from anywhere in your space.
 
 ## Definition loading
-`space-lua` blocks only run from tool pages. A block on any other page is shown but never runs, and gets a lint warning. To turn that warning off, add `config.set("lint.inactiveBlocks", false)` to your [[^Library/Config]].
+`space-lua` blocks only run from Library pages. A block on any other page is shown but never runs, and gets a lint warning. To turn that warning off, add `config.set("lint.inactiveBlocks", false)` to your [[^Library/Config]].
 
-When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence. At boot, the scripts of all tool pages load in one request, without waiting for the index. On a fresh client the index is still being built then, so a script that queries the index when it loads should run that query in an `index:ready` [[Reference/Space Lua/Event|event]] listener as well.
+When your client boots, or if you explicitly run the `System: Reload` command, all these scripts are executed in sequence. At boot, the scripts of all Library pages load in one request, without waiting for the index. On a fresh client the index is still being built then, so a script that queries the index when it loads should run that query in an `index:ready` [[Reference/Space Lua/Event|event]] listener as well.
 
 Some configuration has to apply before syncing, indexing or the first render: `config.set` for sync settings, `tag.define` so the first index sees your tags and schemas, action buttons. For that, boot runs a restricted early pass over the **boot blocks**, before the client exists. A block is a boot block when it contains a `-- boot: true` comment line, and every block on [[^Library/Config]] is one automatically. In this pass only configuration calls work, and a statement that fails is skipped. Boot blocks then run again with all the others as described here, so a library page that must configure early can mark its block like this:
 

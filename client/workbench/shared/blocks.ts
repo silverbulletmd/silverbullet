@@ -2,7 +2,7 @@ import { parseToRef, type Ref } from "@silverbulletmd/silverbullet/lib/ref";
 import {
   findToolBlocks,
   type ToolFence,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import { parseMarkdown } from "../../markdown_parser/parser.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { scriptRefParts } from "./source_frames.ts";

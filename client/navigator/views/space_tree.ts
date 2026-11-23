@@ -49,7 +49,7 @@ export const spaceTreeSegments: Segment<TreeObj>[] = [
     icon: "layers",
     default: true,
     placeholder: "Page or document",
-    // `Library/` shows only under Tool Pages
+    // `Library/` shows only under Library Pages
     where: (obj) => !inLibrary(obj),
   },
   {
@@ -65,9 +65,9 @@ export const spaceTreeSegments: Segment<TreeObj>[] = [
     where: (obj) => obj.tag === "document" && !inLibrary(obj),
   },
   {
-    label: "Tool Pages",
+    label: "Library Pages",
     icon: "wrench",
-    placeholder: "Tool page",
+    placeholder: "Library page",
     where: inLibrary,
   },
 ];
@@ -121,7 +121,7 @@ function siblingIndex(label: string | undefined): TreeIndex {
 }
 
 /** The first segment showing `obj`. Action masks are worked out once for all
- * segments, so Move up/down judge a row where it lives (All or Tool Pages);
+ * segments, so Move up/down judge a row where it lives (All or Library Pages);
  * in a narrower segment a move may find nothing to pass, and does nothing. */
 function homeSegment(obj: TreeObj): string | undefined {
   return spaceTreeSegments.find((s) => admits(s, obj))?.label;

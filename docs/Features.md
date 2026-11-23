@@ -3,7 +3,7 @@ What you can do with SilverBullet: the editor and its tools, the Workbench, coll
 # Navigation and editing
 * [[Features/Editor]], [[Features/Top Bar]], [[Features/Page Namer]] and [[Features/Live Preview]] — the editing surface.
 * [[Features/Command Palette]] and [[Features/Slash Command]] — running commands and inserting content.
-* [[Features/Page Picker]], [[Features/Tool Page Picker]], [[Features/Anything Picker]], [[Features/Tag Picker]] and [[Features/Space Tree]] — finding and opening content.
+* [[Features/Page Picker]], [[Features/Library Page Picker]], [[Features/Anything Picker]], [[Features/Tag Picker]] and [[Features/Space Tree]] — finding and opening content.
 * [[Features/Search]], [[Features/Graph View]] and [[Features/X-Ray]] — searching and exploring connections.
 * [[Features/Markup Bar]] — editing buttons above the keyboard, over selected text and in the ⋮ line menu.
 * [[Features/Outlines]], [[Features/Completion]], [[Features/Vim]] and [[Features/Keyboard Shortcuts]] — editing and keyboard behavior.

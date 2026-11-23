@@ -3,7 +3,7 @@ import {
   isBuiltinTag,
   isMetaTag,
 } from "@silverbulletmd/silverbullet/lib/tags";
-import { isToolPage } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { isLibraryPage } from "@silverbulletmd/silverbullet/lib/library_pages";
 import { index, lua } from "@silverbulletmd/silverbullet/syscalls";
 import type {
   Edge,
@@ -304,22 +304,22 @@ export async function expandObject(ref: string): Promise<ExpansionResult> {
   return { object, neighbors, edges };
 }
 
-/** Equivalent of `index.contentPages()`: Tool Pages go, by name. */
-export function splitToolPages(allPages: IndexedObject[]): {
+/** Equivalent of `index.contentPages()`: Library Pages go, by name. */
+export function splitLibraryPages(allPages: IndexedObject[]): {
   pages: IndexedObject[];
-  toolPageNames: Set<string>;
+  libraryPageNames: Set<string>;
 } {
   const pages: IndexedObject[] = [];
-  const toolPageNames = new Set<string>();
+  const libraryPageNames = new Set<string>();
   for (const p of allPages) {
     const name = String(p.name ?? "");
-    if (isToolPage(name)) {
-      toolPageNames.add(name);
+    if (isLibraryPage(name)) {
+      libraryPageNames.add(name);
     } else {
       pages.push(p);
     }
   }
-  return { pages, toolPageNames };
+  return { pages, libraryPageNames };
 }
 
 /**
@@ -332,7 +332,7 @@ export async function buildGlobalGraph(
   rootRef: string | null,
 ): Promise<ExpansionResult | null> {
   const { relations, pagesByName } = await ensureCache();
-  const { pages, toolPageNames } = splitToolPages([...pagesByName.values()]);
+  const { pages, libraryPageNames } = splitLibraryPages([...pagesByName.values()]);
   if (pages.length === 0) return null;
   const rows = relations;
 
@@ -355,8 +355,8 @@ export async function buildGlobalGraph(
     }))
     .filter(
       (e) =>
-        !toolPageNames.has(e.source) &&
-        !toolPageNames.has(e.target) &&
+        !libraryPageNames.has(e.source) &&
+        !libraryPageNames.has(e.target) &&
         nodeByRef.has(e.source) &&
         nodeByRef.has(e.target),
     );

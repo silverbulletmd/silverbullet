@@ -1,4 +1,4 @@
-import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { libraryPageLua } from "@silverbulletmd/silverbullet/lib/library_pages";
 import type {
   IndexQueueBody,
   KV,
@@ -252,11 +252,11 @@ export class ObjectIndex {
   }
 
   contentPages(tagName?: string): LuaQueryCollection {
-    return this.pagesWhere((v) => `not (${toolPageLua(v)})`, tagName);
+    return this.pagesWhere((v) => `not (${libraryPageLua(v)})`, tagName);
   }
 
-  toolPages(tagName?: string): LuaQueryCollection {
-    return this.pagesWhere(toolPageLua, tagName);
+  libraryPages(tagName?: string): LuaQueryCollection {
+    return this.pagesWhere(libraryPageLua, tagName);
   }
 
   /** Pages matching `condition`, optionally only those carrying a user tag */

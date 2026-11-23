@@ -768,7 +768,7 @@ describe("ObjectIndex.countTag", () => {
   });
 });
 
-describe("ObjectIndex content and tool pages", () => {
+describe("ObjectIndex content and Library pages", () => {
   const page = (name: string, tags: string[]) =>
     ({
       ref: name,
@@ -799,13 +799,13 @@ describe("ObjectIndex content and tool pages", () => {
       "Recipes",
       "Tagged",
     ]);
-    expect(await names(objectIndex.toolPages())).toEqual([
+    expect(await names(objectIndex.libraryPages())).toEqual([
       "Library/Config",
       "Library/Food Template",
       "Library/Style",
     ]);
     expect(await names(objectIndex.contentPages("food"))).toEqual(["Recipes"]);
-    expect(await names(objectIndex.toolPages("food"))).toEqual([
+    expect(await names(objectIndex.libraryPages("food"))).toEqual([
       "Library/Food Template",
     ]);
   });

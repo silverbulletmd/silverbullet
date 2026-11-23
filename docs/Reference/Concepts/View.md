@@ -57,7 +57,7 @@ For examples with actions and the full option reference, see [[API/widget#Lists,
 * `Tab` / `Shift-Tab` step through the segments in lists and trees. In tables they move keyboard focus between controls. Use `Ctrl-Left` / `Ctrl-Right` in the filter input to switch segments.
 * `Shift-Enter` creates whatever you typed, in views that allow it. A create row also appears on its own: second in a list, pinned below the tree in a tree.
 * The **first character typed into an empty box can route**:
-  * `^` narrows the page picker to [[Tool Page|tool pages]].
+  * `^` narrows the page picker to [[Library Page|Library pages]].
   * `$` opens the anchor picker
   * `#` the tag picker
 * In the page picker, `Space` on an empty phrase inserts the folder you are currently in, and `Alt-Space` extends the phrase by one more path segment of the best match. A `#tag` anywhere in the phrase filters by tag rather than matching names.

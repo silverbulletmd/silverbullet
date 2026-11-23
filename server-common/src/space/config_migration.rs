@@ -1,5 +1,5 @@
 //! Moves a space's legacy root `CONFIG.md` to `Library/Config.md`, where
-//! configuration lives since it became an ordinary Tool Page.
+//! configuration lives since it became an ordinary Library Page.
 
 use std::path::Path;
 

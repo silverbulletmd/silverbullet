@@ -1,4 +1,4 @@
-/** Check if a tag is the `meta` tag or a `meta/...` subtag. It says nothing about page classification, which is by location (`isToolPage`). */
+/** Check if a tag is the `meta` tag or a `meta/...` subtag. It says nothing about page classification, which is by location (`isLibraryPage`). */
 export function isMetaTag(tag: string): boolean {
   return tag === "meta" || tag.startsWith("meta/");
 }

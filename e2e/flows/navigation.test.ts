@@ -129,7 +129,7 @@ test.describe("space tree", () => {
     await expect(expandAll).toBeDisabled();
     // The buttons follow the segment: All leaves Library/ out, so its
     // folder is still collapsed in Tool
-    await tree.getByRole("radio", { name: "Tool Pages" }).click();
+    await tree.getByRole("radio", { name: "Library Pages" }).click();
     await expect(expandAll).toBeEnabled();
     await expect(collapseAll).toBeDisabled();
     await tree.getByRole("radio", { name: "All" }).click();

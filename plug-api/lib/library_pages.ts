@@ -6,15 +6,15 @@ import {
   traverseTree,
 } from "./tree.ts";
 
-export const TOOL_PAGE_PREFIX = "Library/";
+export const LIBRARY_PAGE_PREFIX = "Library/";
 export const CONFIG_PAGE_NAME = "Library/Config";
 
-export function isToolPage(name: string): boolean {
-  return name.startsWith(TOOL_PAGE_PREFIX);
+export function isLibraryPage(name: string): boolean {
+  return name.startsWith(LIBRARY_PAGE_PREFIX);
 }
 
-export function toolPageLua(varName: string): string {
-  return `string.startsWith(${varName}.name, "${TOOL_PAGE_PREFIX}")`;
+export function libraryPageLua(varName: string): string {
+  return `string.startsWith(${varName}.name, "${LIBRARY_PAGE_PREFIX}")`;
 }
 
 export type ToolFence = "space-lua" | "space-style";

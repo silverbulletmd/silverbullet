@@ -1,7 +1,7 @@
 import {
   BOOT_MARKER,
   hasBootMarker,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import {
   CONFIG_BLOCK,
   findManagedBlock,

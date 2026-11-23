@@ -1,3 +1,3 @@
 # Notes
 
-Not a tool page.
+Not a Library page.

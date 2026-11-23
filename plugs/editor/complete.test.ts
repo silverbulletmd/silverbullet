@@ -50,8 +50,8 @@ test("page completions carry the page decoration icon without changing their lab
   });
 });
 
-describe("pageComplete tool-page caret prefix", () => {
-  test("[[^ returns only tool pages", async () => {
+describe("pageComplete Library-page caret prefix", () => {
+  test("[[^ returns only Library pages", async () => {
     createMockSystem();
     await indexPageMeta("Library/Config", []);
     await indexPageMeta("Library/Std", []);
@@ -79,7 +79,7 @@ describe("pageComplete tool-page caret prefix", () => {
     expect(result!.options.map((o) => o.label)).toContain("^Library/Config");
   });
 
-  test("[[ without caret excludes tool pages", async () => {
+  test("[[ without caret excludes Library pages", async () => {
     createMockSystem();
     await indexPageMeta("Library/Config", []);
     await indexPageMeta("RegularPage", []);

@@ -80,7 +80,7 @@ function share.isManaged(name, text)
   end)
 end
 
--- Tool Pages, and pages tagged meta or meta/* (such as templates), are shared
+-- Library Pages, and pages tagged meta or meta/* (such as templates), are shared
 -- as they are
 function share.isExempt(name, text)
   if name:startsWith("Library/") then

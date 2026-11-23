@@ -20,7 +20,7 @@ In SilverBullet, you can create links to pages or documents inside your space as
 
 # Link syntax (String refs)
 The link or “string refs” has to follow some specific formatting:
-* A string ref starting with `^` links to a tool page, see [[#Caret page links|caret page links]]
+* A string ref starting with `^` links to a Library page, see [[#Caret page links|caret page links]]
 * The “core” (After a possible `^` and before a `@` or `#`) of a string ref is a [[Names|name]] or [[Paths|path]].
   * The core of a  string ref can also be empty, an empty path points to the current page for links, and to the index page for `editor.navigate`
 * A string ref can end three ways:
@@ -70,8 +70,8 @@ config.set("linkWriteFormat", "shortest")
 ```
 
 # Caret page links
-[[Tool Page|Tool pages]] are excluded from link auto complete in many contexts. However, you may still want to reference a tool page from regular content. To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[Library/Std]]` — it resolves exactly the same way. The only difference is that auto complete will _only_ complete tool pages.
+[[Library Page|Library pages]] are excluded from link auto complete in many contexts. However, you may still want to reference a Library page from regular content. To make it easier to reference, you can use the caret syntax: `[[^Library/Std]]`. Semantically this has the same meaning as `[[Library/Std]]` — it resolves exactly the same way. The only difference is that auto complete will _only_ complete Library pages.
 
-Caret links are always written as **full paths**, whatever `linkWriteFormat` says: auto complete inserts the whole path, and renames rewrite them to the whole path. A tool page’s folder is what identifies it — shortening `[[^Library/Std/APIs/Tag]]` to `[[^Tag]]` would point at the ordinary `Tag` page instead.
+Caret links are always written as **full paths**, whatever `linkWriteFormat` says: auto complete inserts the whole path, and renames rewrite them to the whole path. A Library page’s folder is what identifies it — shortening `[[^Library/Std/APIs/Tag]]` to `[[^Tag]]` would point at the ordinary `Tag` page instead.
 
 See [[Reference/Concepts/URI]] for resource addresses and supported schemes.

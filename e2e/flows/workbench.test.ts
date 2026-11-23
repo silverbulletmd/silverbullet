@@ -233,7 +233,7 @@ test.describe("query builder", () => {
 });
 
 test.describe("query builder page scope", () => {
-  // A made-up content page and a tool page
+  // A made-up content page and a Library page
   test.use({
     spaceFiles: {
       "index.md": "Welcome",
@@ -263,7 +263,7 @@ test.describe("query builder page scope", () => {
     await expect(results).not.toContainText("House Style");
 
     await scope.getByRole("radio", { name: "Tool" }).click();
-    await expect(code).toContainText("index.toolPages()");
+    await expect(code).toContainText("index.libraryPages()");
     await expect(results).toContainText("House Style");
     await expect(results).not.toContainText("Garden Notes");
 

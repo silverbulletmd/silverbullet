@@ -5,7 +5,7 @@ use axum::extract::State;
 use axum::http::{header, HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
-use silverbullet_server_common::page::is_tool_page;
+use silverbullet_server_common::page::is_library_page;
 use silverbullet_server_common::revision::{etag_for_hash, sha256_hex};
 use silverbullet_server_common::SpaceError;
 
@@ -21,7 +21,7 @@ struct ToolingFile {
     text: String,
 }
 
-/// `GET /.tooling`: the raw text of every Tool Page in one response, so the
+/// `GET /.tooling`: the raw text of every Library Page in one response, so the
 /// client can load scripts and styles at boot without waiting for the index.
 pub async fn handle_tooling(
     State(state): State<Arc<ServerState>>,
@@ -36,7 +36,7 @@ pub async fn handle_tooling(
             .space
             .fetch_file_list()?
             .into_iter()
-            .filter(|m| m.name.strip_suffix(".md").is_some_and(is_tool_page))
+            .filter(|m| m.name.strip_suffix(".md").is_some_and(is_library_page))
             .collect();
         metas.sort_by(|a, b| a.name.cmp(&b.name));
 
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn returns_only_tool_pages() {
+    async fn returns_only_library_pages() {
         let state = Arc::new(test_state());
         for (p, t) in [
             ("Library/A.md", "a"),

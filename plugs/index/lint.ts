@@ -8,8 +8,8 @@ import { THEME_TAG } from "@silverbulletmd/silverbullet/lib/themes";
 import {
   findFrontmatter,
   findToolBlocks,
-  isToolPage,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+  isLibraryPage,
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import {
   findNodeOfType,
   renderToText,
@@ -43,7 +43,7 @@ export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
   // from the tree so edits in progress take effect immediately, rather than
   // waiting for the indexer to refresh pageMeta.
   const frontmatter = extractFrontMatter(tree);
-  const isLibraryPage = frontmatter.tags?.includes("meta/library") ?? false;
+  const declaresLibrary = frontmatter.tags?.includes("meta/library") ?? false;
 
   traverseTree(tree, (node) => {
     if (node.type === "FrontMatterCode") {
@@ -51,7 +51,7 @@ export function lintYAML({ tree, name }: LintEvent): LintDiagnostic[] {
       const lintResult = lintYamlBlock(
         yamlText,
         node.from!,
-        isLibraryPage ? name : undefined,
+        declaresLibrary ? name : undefined,
       );
       if (lintResult) {
         diagnostics.push(lintResult);
@@ -190,9 +190,9 @@ export async function lintLua({
         return true;
       }
       const codeLang = codeInfo.children![0].text!;
-      // space-lua only runs on Tool Pages; elsewhere it is an example, and
+      // space-lua only runs on Library Pages; elsewhere it is an example, and
       // fragments like a bare query[[...]] are not valid chunks.
-      if (codeLang !== "space-lua" || !isToolPage(name)) {
+      if (codeLang !== "space-lua" || !isLibraryPage(name)) {
         return true;
       }
       const codeText = findNodeOfType(node, "CodeText");
@@ -643,14 +643,14 @@ export async function lintRefTags({
 
 /**
  * Warn about space-lua and space-style blocks that are never loaded because
- * the page is not a tool page. Commented-out blocks are disabled on purpose.
+ * the page is not a Library page. Commented-out blocks are disabled on purpose.
  */
 export async function lintInactiveBlocks({
   tree,
   name,
   text,
 }: LintEvent): Promise<LintDiagnostic[]> {
-  if (isToolPage(name) || !(await config.get("lint.inactiveBlocks", true))) {
+  if (isLibraryPage(name) || !(await config.get("lint.inactiveBlocks", true))) {
     return [];
   }
   return withSource(

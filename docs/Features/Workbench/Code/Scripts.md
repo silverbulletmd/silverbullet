@@ -5,7 +5,7 @@ aliases:
 references:
 - client/workbench/scripts/**
 ---
-The **Space Lua** section of the [[Workbench/Code|Code]] tab lists every `space-lua` block on a [[Tool Page]] in your space, in the order SilverBullet loads them: by priority, highest first, then by page name and position (see [[Reference/Space Lua#Definition loading]]).
+The **Space Lua** section of the [[Workbench/Code|Code]] tab lists every `space-lua` block on a [[Library Page]] in your space, in the order SilverBullet loads them: by priority, highest first, then by page name and position (see [[Reference/Space Lua#Definition loading]]).
 
 ${widgets.commandButton("Workbench: Scripts")} opens the [[Workbench]] on this section.
 

@@ -3,7 +3,7 @@ import {
   isValidName,
   parseToRef,
 } from "@silverbulletmd/silverbullet/lib/ref";
-import { isToolPage } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { isLibraryPage } from "@silverbulletmd/silverbullet/lib/library_pages";
 import {
   editor,
   index,
@@ -26,11 +26,11 @@ import { type BuiltinView, baseMeta } from "./types.ts";
  * decoration adds. */
 type PageObj = ObjectValue<Record<string, any>>;
 
-/** Whether a row lives under `Library/`: a tool page, or a file that comes
+/** Whether a row lives under `Library/`: a Library page, or a file that comes
  * with one (a font library's font files, say). Location alone decides. Also
  * used by `space_tree.ts`, whose synthesized folders have only a `name`. */
 export function inLibrary(obj: { name?: string }): boolean {
-  return obj.name !== undefined && isToolPage(obj.name);
+  return obj.name !== undefined && isLibraryPage(obj.name);
 }
 
 /** Also used by `space_tree.ts`: a page hidden from navigation is hidden
@@ -62,12 +62,12 @@ type PageClassFields = {
 
 export type PageInfo = PageClassFields & { name: string };
 
-/** The picker's Pages and Tool segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
+/** The picker's Pages and Library segments. Server search classifies pages by the same tags but can't see page decorations, so the client drops hidden pages from its results. */
 export const pageScopes = {
   pages: (p: PageClassFields) =>
     p.tag === "page" && !inLibrary(p) && !isHiddenPage(p),
-  // Untagged rows count as pages; a Library document isn't a tool page
-  tool: (p: PageClassFields) =>
+  // Untagged rows count as pages; a Library document isn't a Library page
+  library: (p: PageClassFields) =>
     (p.tag ?? "page") === "page" && inLibrary(p) && !isHiddenPage(p),
 } satisfies Record<string, (p: PageInfo) => boolean>;
 
@@ -251,13 +251,13 @@ export const pagePicker: BuiltinView<PageObj> = {
       where: pageScopes.pages,
     },
     {
-      label: "Tool Pages",
+      label: "Library Pages",
       icon: "wrench",
-      placeholder: "Tool page",
+      placeholder: "Library page",
       helpText:
-        "Press Shift-Enter to create a new tool page with this exact name.",
+        "Press Shift-Enter to create a new Library page with this exact name.",
       prefix: "^",
-      where: pageScopes.tool,
+      where: pageScopes.library,
     },
     {
       label: "Documents",

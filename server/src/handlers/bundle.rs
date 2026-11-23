@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 
 use crate::handlers::{if_none_match_hits, seo};
-use silverbullet_server_common::page::{is_tool_page, parse_page};
+use silverbullet_server_common::page::{is_library_page, parse_page};
 use silverbullet_server_common::revision::{etag_for_hash, sha256_hex};
 
 #[derive(Default)]
@@ -310,7 +310,7 @@ async fn server_side_content(
                 });
             let text = String::from_utf8_lossy(&data);
             let parsed = parse_page(&text);
-            head.noindex = is_tool_page(&page_name);
+            head.noindex = is_library_page(&page_name);
             head.description = parsed
                 .metadata
                 .description

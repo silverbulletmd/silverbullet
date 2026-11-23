@@ -20,7 +20,7 @@ The building blocks of a SilverBullet space: what it is made of, how its content
 * [[Reference/Concepts/Linked Mention]] and [[Reference/Concepts/Linked Tasks]] — incoming links and tasks that point at a page.
 
 # Extending a space
-* [[Reference/Concepts/Library]], [[Reference/Concepts/Repository]], [[Reference/Concepts/Tool Page]] and [[Reference/Concepts/Extensions]] — where extensions come from and where they live.
+* [[Reference/Concepts/Library]], [[Reference/Concepts/Repository]], [[Reference/Concepts/Library Page]] and [[Reference/Concepts/Extensions]] — where extensions come from and where they live.
 * [[Reference/Concepts/Command]], [[Reference/Concepts/Template]], [[Reference/Concepts/Page Template]] and [[Reference/Concepts/Slash Templates]] — actions and reusable content.
 * [[Reference/Concepts/Widget]], [[Reference/Concepts/View]] and [[Reference/Concepts/Virtual Pages]] — generated content in pages, panels and whole pages.
 

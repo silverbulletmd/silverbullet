@@ -48,9 +48,9 @@ const emptyResult = (): SearchResult => ({
   notice: null,
 });
 
-/** The server takes `tool`; `meta` is the old name Lua callers may still pass. */
+/** The server takes `library`; `meta` is the old name Lua callers may still pass. */
 const serverScope = (scope: SearchScope | undefined) =>
-  scope === "meta" ? "tool" : scope;
+  scope === "meta" ? "library" : scope;
 
 /** `result` without the matches in `hidden` pages, counted out of `total`. */
 function withoutHidden(
@@ -121,7 +121,7 @@ export function createServerSearch(
       query: string,
       options: QueryOptions = {},
     ): Promise<SearchResult> {
-      // The server classifies Pages and Tool by each page's location; scope and
+      // The server classifies Pages and Library by each page's location; scope and
       // the explicit lists combine. Hidden pages are left out (see
       // `excludeHidden`), except that an explicit `include` asks for those
       // pages, hidden or not. The minimum query length is server

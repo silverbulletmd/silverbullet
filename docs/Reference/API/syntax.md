@@ -93,4 +93,4 @@ You can style these with [[Reference/Theming/Space Style]]:
 }
 ```
 
-This block doesn’t run here, because this isn’t a [[Tool Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].
+This block doesn’t run here, because this isn’t a [[Library Page]]. The live copy for this site is on [[^Library/Website/Doc Examples]].

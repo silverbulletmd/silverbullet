@@ -6,8 +6,8 @@ import {
   findFrontmatter,
   findToolBlocks,
   isBootScript,
-  isToolPage,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+  isLibraryPage,
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 
 export type ToolingFile = { path: string; lastModified: number; text: string };
@@ -44,7 +44,7 @@ export function collectTooling(files: ToolingFile[]): {
   const themes: ThemeInfo[] = [];
   for (const file of files) {
     const page = file.path.replace(/\.md$/, "");
-    if (!isToolPage(page)) {
+    if (!isLibraryPage(page)) {
       continue;
     }
     const tree = parseMarkdown(file.text);

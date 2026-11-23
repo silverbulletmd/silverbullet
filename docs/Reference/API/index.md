@@ -33,7 +33,7 @@ Drops every indexed object belonging to a file, so a re-index replaces them rath
 ## index.contentPages
 `index.contentPages(tagName?)`
 
-Returns non-tool pages, optionally filtered by a user tag, as a query collection.
+Returns non-Library pages, optionally filtered by a user tag, as a query collection.
 
 ## index.data
 `index.data(tagName?)`
@@ -142,7 +142,7 @@ Indexes Markdown text in memory and returns the objects extracted from it.
 ## index.metaPages
 `index.metaPages(tagName?)`
 
-Deprecated alias of index.toolPages
+Deprecated alias of index.libraryPages
 
 ## index.objects
 `index.objects(tagName)`
@@ -237,10 +237,10 @@ Returns all indexed tag objects as a query collection.
 
 Returns all tasks, optionally filtered by a user tag, as a query collection.
 
-## index.toolPages
-`index.toolPages(tagName?)`
+## index.libraryPages
+`index.libraryPages(tagName?)`
 
-Returns tool pages (everything under Library/), optionally filtered by a user tag, as a query collection.
+Returns Library pages (everything under Library/), optionally filtered by a user tag, as a query collection.
 
 ## index.validateObjects
 `index.validateObjects(page, objects)`

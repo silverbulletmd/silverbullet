@@ -10,6 +10,6 @@ By default, SilverBullet ships with two repositories: [[^Library/Repository/Std]
 
 The built-in repositories update like any other: the first update stores a copy in your space, which from then on takes the place of the shipped version. Deleting that copy brings the shipped version back, so built-in repositories can’t be removed.
 
-Repositories are implemented on top of a few SilverBullet mechanisms, specifically they are simply [[Tool Page|Tool Pages]] under `Library/Repository/` tagged with `#meta/repository` that contain [[Tag/data|data objects]] tagged with `#meta/library/remote` with a `name` and `uri` attribute. Libraries are kept up to date using the [[Features/Share]] mechanism.
+Repositories are implemented on top of a few SilverBullet mechanisms, specifically they are simply [[Library Page|Library Pages]] under `Library/Repository/` tagged with `#meta/repository` that contain [[Tag/data|data objects]] tagged with `#meta/library/remote` with a `name` and `uri` attribute. Libraries are kept up to date using the [[Features/Share]] mechanism.
 
 Repositories used to live under `Repositories/`. Pages there are no longer treated as repositories, so delete them by hand.

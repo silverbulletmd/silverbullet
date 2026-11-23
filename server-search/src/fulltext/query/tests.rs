@@ -464,7 +464,7 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
         (hits, tier)
     };
     let pages = scoped(SearchScope::Pages);
-    let meta = scoped(SearchScope::Tool);
+    let meta = scoped(SearchScope::Library);
     assert_eq!(
         sorted("bike", &pages),
         (
@@ -509,7 +509,7 @@ fn scope_applies_to_both_tiers_and_combines_with_the_lists() {
     assert_eq!(run(&fx.searcher, &fx.fields, &plan, 50).unwrap().total, 1);
     // With include/exclude: the intersection.
     let filter = PageFilter {
-        scope: SearchScope::Tool,
+        scope: SearchScope::Library,
         exclude: Some(vec!["Library/Bike theme".into()]),
         ..PageFilter::default()
     };

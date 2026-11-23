@@ -1,4 +1,4 @@
-Styles that the documentation examples rely on. A `space-style` block only applies on a [[Tool Page]], so the example pages show their CSS as inert fences and the working copies live here.
+Styles that the documentation examples rely on. A `space-style` block only applies on a [[Library Page]], so the example pages show their CSS as inert fences and the working copies live here.
 
 # Page Decorations
 Used by [[Reference/Theming/Page Decorations#Use case: pimp my page]].

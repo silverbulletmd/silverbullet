@@ -1,6 +1,6 @@
 //! Page text helpers: outlines, numbered line ranges and closest matches.
 
-use silverbullet_server_common::page::is_tool_page;
+use silverbullet_server_common::page::is_library_page;
 
 const LEVENSHTEIN_CHARS: usize = 200;
 
@@ -16,9 +16,9 @@ pub fn has_scripts(text: &str) -> bool {
 
 /// Whether writing `new` over `old` (`None` when there was no page) to
 /// `path` needs a script reload: removing a script needs one as much as
-/// adding one. Only Tool Pages load scripts.
+/// adding one. Only Library Pages load scripts.
 pub fn needs_reload(path: &str, old: Option<&str>, new: &str) -> bool {
-    path.strip_suffix(".md").is_some_and(is_tool_page)
+    path.strip_suffix(".md").is_some_and(is_library_page)
         && (old.is_some_and(has_scripts) || has_scripts(new))
 }
 

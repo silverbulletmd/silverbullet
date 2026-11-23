@@ -139,7 +139,7 @@ describe("Share Transforms.md", () => {
     const plain = "[[Other]] <!--c-->\n";
     expect(await resolved(plain, "Lib")).toBe(plain);
 
-    // Tool Pages by location, untagged
+    // Library Pages by location, untagged
     expect(await resolved(plain, "Library/Mine")).toBe(plain);
     expect(await resolved(plain, "Library/Config")).toBe(plain);
     expect(await resolved(plain, "CONFIG")).toBe("Other \n");

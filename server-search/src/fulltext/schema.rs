@@ -29,7 +29,7 @@ pub struct Fields {
     pub name_fold: Field,
     pub body_fold: Field,
     pub lang: Field,
-    /// [`KIND_CONTENT`] or [`KIND_TOOL`], by the page's location.
+    /// [`KIND_CONTENT`] or [`KIND_LIBRARY`], by the page's location.
     pub kind: Field,
     pub modified: Field,
     pub size: Field,
@@ -87,8 +87,9 @@ pub fn schema() -> (Schema, Fields) {
     )
 }
 
-/// `kind` of a Tool Page: anything under `Library/`.
-pub const KIND_TOOL: &str = "tool";
+/// `kind` of a Library Page: anything under `Library/`. The stored value stays
+/// `tool` so existing indexes keep matching.
+pub const KIND_LIBRARY: &str = "tool";
 /// `kind` of every other page.
 pub const KIND_CONTENT: &str = "content";
 
@@ -96,7 +97,7 @@ pub const KIND_CONTENT: &str = "content";
 /// server shares with SEO and the bundle.
 pub fn page_kind(path: &str) -> &'static str {
     match classify(path.strip_suffix(".md").unwrap_or(path)) {
-        PageKind::Tool => KIND_TOOL,
+        PageKind::Library => KIND_LIBRARY,
         PageKind::Content => KIND_CONTENT,
     }
 }
@@ -183,8 +184,8 @@ mod tests {
             let doc = document(&f, path, "x", stamp);
             doc.get_first(f.kind).unwrap().as_str().unwrap().to_string()
         };
-        assert_eq!(kind_for("Library/X.md"), KIND_TOOL);
-        assert_eq!(kind_for("Library/Config.md"), KIND_TOOL);
+        assert_eq!(kind_for("Library/X.md"), KIND_LIBRARY);
+        assert_eq!(kind_for("Library/Config.md"), KIND_LIBRARY);
         assert_eq!(kind_for("CONFIG.md"), KIND_CONTENT);
         assert_eq!(kind_for("Notes.md"), KIND_CONTENT);
     }

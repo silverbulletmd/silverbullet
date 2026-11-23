@@ -8,7 +8,7 @@ references:
 ---
 The Object Index stores [[Reference/Concepts/Object|Objects]] found in your [[Reference/Concepts/Space]].
 
-The [[Page Picker]], [[Tool Page Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
+The [[Page Picker]], [[Library Page Picker]] and [[Linked Mention|Linked Mentions]] use this index. Explore its records in [[Workbench/Data]], or read them through [[API/index]].
 
 # Indexing
 ## Initial indexing process
@@ -29,8 +29,8 @@ The Object Index is generally queried using [[Space Lua/Integrated Query]].
 
 Entry points are:
 * [[API/index#index.objects(tag)]], e.g.: `index.objects("page")` (or the convenience wrappers for each [[Reference/Tag#Root tags|root tag]], like `index.pages()`, `index.tasks()` or `index.data()`)
-* `index.contentPages(tag?)` — returns only content pages, **excluding [[Tool Page|Tool Pages]]** (pages under `Library/`).
-* `index.toolPages(tag?)` — returns only [[Tool Page|Tool Pages]], the other half of the split. `index.metaPages(tag?)` is a deprecated alias.
+* `index.contentPages(tag?)` — returns only content pages, **excluding [[Library Page|Library Pages]]** (pages under `Library/`).
+* `index.libraryPages(tag?)` — returns only [[Library Page|Library Pages]], the other half of the split. `index.metaPages(tag?)` is a deprecated alias.
 * `index.aspiringPages()` — returns all [[Aspiring Pages]] (pages linked to but not yet created). Useful for finding broken or forward-references.
 * `tags.*`: as a convenience — `tags.page` is equivalent to `index.objects("page")`
 

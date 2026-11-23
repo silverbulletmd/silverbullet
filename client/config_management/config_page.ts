@@ -2,7 +2,7 @@ import { editor, mq, space, sync } from "@silverbulletmd/silverbullet/syscalls";
 import {
   BOOT_MARKER,
   CONFIG_PAGE_NAME,
-} from "@silverbulletmd/silverbullet/lib/tool_pages";
+} from "@silverbulletmd/silverbullet/lib/library_pages";
 import { notFoundError } from "../../plug-api/constants.ts";
 import { CONFIG_BLOCK } from "./config_block.ts";
 import { applyManagedChanges, type ManagedChanges } from "./managed_edit.ts";

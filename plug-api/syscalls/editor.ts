@@ -129,7 +129,7 @@ export function open(
 }
 
 export function openPageNavigator(
-  mode: "page" | "tool" | "meta" | "document" | "all" = "page",
+  mode: "page" | "library" | "meta" | "document" | "all" = "page",
 ): Promise<void> {
   return syscall("editor.openPageNavigator", mode);
 }

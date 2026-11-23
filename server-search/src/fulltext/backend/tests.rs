@@ -174,7 +174,7 @@ async fn the_similar_tier_answers_without_a_notice() {
 }
 
 #[tokio::test]
-async fn scope_limits_queries_to_pages_or_tool_pages_by_location() {
+async fn scope_limits_queries_to_pages_or_library_pages_by_location() {
     let fx = ready(TestView::with(&[
         ("Garden/Fern.md", "Ferns like shade.\n"),
         ("Library/Fern style.md", "Fern colors for the theme.\n"),
@@ -205,7 +205,7 @@ async fn scope_limits_queries_to_pages_or_tool_pages_by_location() {
         ["Garden/Fern"]
     );
     assert_eq!(
-        found(scoped("fern", Some(SearchScope::Tool))).await,
+        found(scoped("fern", Some(SearchScope::Library))).await,
         ["Library/Fern log", "Library/Fern style"]
     );
     // Phrase mode and the similar tier are scoped too.
@@ -217,7 +217,7 @@ async fn scope_limits_queries_to_pages_or_tool_pages_by_location() {
         ["Garden/Fern"]
     );
     // Scope and the explicit lists intersect.
-    let mut both = scoped("fern", Some(SearchScope::Tool));
+    let mut both = scoped("fern", Some(SearchScope::Library));
     both.exclude = Some(vec!["Library/Fern log".into()]);
     assert_eq!(found(both).await, ["Library/Fern style"]);
     let mut both = scoped("fern", Some(SearchScope::Pages));
@@ -620,7 +620,7 @@ async fn admitted_applies_scope_include_and_exclude() {
     let fx = ready(view).await;
     assert_eq!(fx.backend.admitted(&PageFilter::default()).unwrap(), None);
     let meta = PageFilter {
-        scope: SearchScope::Tool,
+        scope: SearchScope::Library,
         ..PageFilter::default()
     };
     assert_eq!(

@@ -284,7 +284,7 @@ describe("lintLua", () => {
     expect(diagnostics).toEqual([]);
   });
 
-  test("reports a parse error in space-lua on a Tool Page", async () => {
+  test("reports a parse error in space-lua on a Library Page", async () => {
     const diagnostics = await lintLuaFor(
       "```space-lua\nfunction (\n```\n",
       "Library/A",
@@ -455,7 +455,7 @@ describe("lintInactiveBlocks", () => {
     } as LintEvent);
   }
 
-  test("warns on the opening fence of a block outside tool pages", async () => {
+  test("warns on the opening fence of a block outside Library pages", async () => {
     const diagnostics = await lintBlocks("Notes", `Intro\n\n${block}\n`);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0].severity).toBe("warning");
@@ -466,12 +466,12 @@ describe("lintInactiveBlocks", () => {
     expect(diagnostics[0].to).toBe(7 + "```space-style".length);
   });
 
-  test("is silent on tool pages", async () => {
+  test("is silent on Library pages", async () => {
     expect(await lintBlocks("Library/A", block)).toEqual([]);
     expect(await lintBlocks("Library/Config", block)).toEqual([]);
   });
 
-  test("warns on a legacy CONFIG page, which is no longer a tool page", async () => {
+  test("warns on a legacy CONFIG page, which is no longer a Library page", async () => {
     expect(await lintBlocks("CONFIG", block)).toHaveLength(1);
   });
 

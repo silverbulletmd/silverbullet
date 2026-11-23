@@ -148,10 +148,10 @@ function pingDuration(start: number): number {
     : performance.now() - start;
 }
 
-function pickerSegment(mode: "page" | "tool" | "document" | "all") {
+function pickerSegment(mode: "page" | "library" | "document" | "all") {
   switch (mode) {
-    case "tool":
-      return "Tool Pages";
+    case "library":
+      return "Library Pages";
     case "document":
       return "Documents";
     case "all":
@@ -886,7 +886,7 @@ export class Client {
   }
 
   async startPageNavigate(
-    mode: "page" | "tool" | "document" | "all",
+    mode: "page" | "library" | "document" | "all",
   ): Promise<void> {
     await this.openNavigatorView("std.pages", {
       segment: pickerSegment(mode),
@@ -1421,7 +1421,7 @@ export class Client {
         globalThis.fetch.bind(globalThis),
       );
     } catch (e) {
-      console.error("Could not fetch tool pages:", e);
+      console.error("Could not fetch Library pages:", e);
     }
     return this.toolingPayload;
   }

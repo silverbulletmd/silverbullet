@@ -4,7 +4,7 @@
  * `index.*()` helper.
  */
 import { builtinTagKind } from "@silverbulletmd/silverbullet/lib/tags";
-import { toolPageLua } from "@silverbulletmd/silverbullet/lib/tool_pages";
+import { libraryPageLua } from "@silverbulletmd/silverbullet/lib/library_pages";
 
 export type QuerySource = {
   /** Root tag; `data` also stands for the root tags data blocks define */
@@ -16,16 +16,16 @@ export type QuerySource = {
   tag: string | null;
   /** Which of the two was picked from the tag list; the other narrows it */
   by: "root" | "tag";
-  /** With root `page`: only content pages, or only tool pages; all when absent */
+  /** With root `page`: only content pages, or only Library pages; all when absent */
   scope?: PageScope;
 };
 
-export type PageScope = "content" | "tool";
+export type PageScope = "content" | "library";
 
 /** The helper reading each page scope's pages, narrowed by a user tag like `index.pages` */
 const SCOPE_HELPERS: Record<PageScope, string> = {
   content: "contentPages",
-  tool: "toolPages",
+  library: "libraryPages",
 };
 
 /** Root tags whose helper takes a user tag (or, for relations, a kind) to narrow by */
@@ -109,10 +109,10 @@ export function sourceFromCall(
   if (helper === "objects" || helper === "tag") {
     return arg === null ? null : sourceFor(arg);
   }
-  // `metaPages` is the deprecated name of `toolPages`.
+  // `metaPages` is the deprecated name of `libraryPages`.
   const scope = keyOf(
     SCOPE_HELPERS,
-    helper === "metaPages" ? "toolPages" : helper,
+    helper === "metaPages" ? "libraryPages" : helper,
   ) as PageScope | undefined;
   if (scope) return { root: "page", tag: arg, by: "root", scope };
   const narrowing = keyOf(NARROWING_HELPERS, helper);
@@ -156,7 +156,7 @@ export function sampleQuery(s: QuerySource): { key: string; where?: string } {
   if (s.root === null) return { key: s.tag ?? "" };
   if (s.scope) {
     const scoped =
-      s.scope === "tool" ? toolPageLua("o") : `not (${toolPageLua("o")})`;
+      s.scope === "library" ? libraryPageLua("o") : `not (${libraryPageLua("o")})`;
     if (s.tag === null) return { key: s.root, where: scoped };
     return { key: s.tag, where: `o.tag == "page" and ${scoped}` };
   }
