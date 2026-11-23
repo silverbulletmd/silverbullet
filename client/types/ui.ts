@@ -241,6 +241,9 @@ export type BootConfig = {
   ephemeralStorage?: boolean;
   syncProtocolVersion?: number;
   revisions?: "managed" | "unmanaged" | "disabled";
+  /** Where others reach this space: absent means `document.baseURI`, `null`
+   * means nowhere (a Desktop space that doesn't sync). Ends with a slash. */
+  publicUrl?: string | null;
   /** Every other space root on this origin, e.g. ["/private", "/work"]. */
   spacePrefixes?: string[];
   /** Repository pages (names without .md) the server ships, e.g. "Library/Repository/Std". */

@@ -135,6 +135,14 @@ export function getBaseURI(): Promise<string> {
 }
 
 /**
+ * Returns the base URI others can reach this space at, for shareable links,
+ * or null when there is none (a Desktop space that doesn't sync)
+ */
+export function getPublicURI(): Promise<string | null> {
+  return syscall("system.getPublicURI");
+}
+
+/**
  * Returns the SilverBullet version
  */
 export function getVersion(): Promise<string> {

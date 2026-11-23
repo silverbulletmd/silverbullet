@@ -276,6 +276,14 @@ export function systemSyscalls(
       description:
         "Returns the browser base URI for this SilverBullet instance.",
     },
+    "system.getPublicURI": {
+      callback: (): string | null =>
+        client.bootConfig.publicUrl === undefined
+          ? document.baseURI
+          : client.bootConfig.publicUrl,
+      description:
+        "Returns the base URI others can reach this space at, for shareable links, or nil when there is none (a Desktop space that doesn't sync with a server). Differs from system.getBaseURI when the space is served locally but synced from a server.",
+    },
     "system.getVersion": {
       callback: () => publicVersion,
       description: "Returns the running SilverBullet version.",

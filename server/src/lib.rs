@@ -70,6 +70,7 @@ mod test_support {
                 ephemeral_storage: false,
                 sync_protocol_version: 2,
                 revisions: RevisionsMode::Disabled,
+                public_url: None,
             },
             space_prefixes: Default::default(),
             bundled_repositories: Vec::new(),

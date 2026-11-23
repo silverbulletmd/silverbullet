@@ -561,6 +561,7 @@ fn try_build_parts(
             ephemeral_storage: false,
             sync_protocol_version: 2,
             revisions: revisions_mode,
+            public_url: None,
         },
         space_prefixes: Default::default(),
         bundled_repositories,

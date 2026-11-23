@@ -42,6 +42,11 @@ Returns rw for read-write mode or ro for read-only mode.
 
 The current user’s identity. `username` is “me” when the server has no account for this session.
 
+## system.getPublicURI
+`system.getPublicURI()`
+
+Returns the base URI others can reach this space at, for shareable links, or nil when there is none (a Desktop space that doesn't sync with a server). Differs from system.getBaseURI when the space is served locally but synced from a server.
+
 ## system.getSpaceConfig
 `system.getSpaceConfig(key, defaultValue?)`
 

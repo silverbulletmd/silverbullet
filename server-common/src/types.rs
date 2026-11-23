@@ -42,6 +42,23 @@ pub struct BootConfig {
     pub sync_protocol_version: u32,
     #[serde(default)]
     pub revisions: RevisionsMode,
+    /// Where others reach this space, for shareable links. `None` (omitted on
+    /// the wire) means the URL the client is served from; `Some(None)` (sent
+    /// as `null`) means nowhere. Desktop serves every space on localhost, so
+    /// it sends its sync remote, or `null` for a space that doesn't sync.
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        deserialize_with = "present_nullable"
+    )]
+    pub public_url: Option<Option<String>>,
+}
+
+/// Plain `Option` deserializing reads `null` as absent; keep them apart.
+fn present_nullable<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Option<String>>, D::Error> {
+    Option::<String>::deserialize(deserializer).map(Some)
 }
 
 fn default_sync_protocol_version() -> u32 {
@@ -174,6 +191,39 @@ mod tests {
             json.contains("\"contentType\":\"text/markdown\""),
             "got: {json}"
         );
+    }
+
+    #[test]
+    fn public_url_keeps_absent_null_and_url_apart() {
+        let mut config = BootConfig {
+            space_folder_path: "/space".into(),
+            space_name: "Notes".into(),
+            index_page: "index".into(),
+            read_only: false,
+            log_push: false,
+            enable_client_encryption: false,
+            account_managed: false,
+            shell_backend: "noop".into(),
+            disable_service_worker: false,
+            ephemeral_storage: false,
+            sync_protocol_version: 2,
+            revisions: RevisionsMode::Disabled,
+            public_url: None,
+        };
+        for (public_url, wire) in [
+            (None, None),
+            (Some(None), Some(serde_json::Value::Null)),
+            (
+                Some(Some("https://notes.example.com/".to_string())),
+                Some(serde_json::json!("https://notes.example.com/")),
+            ),
+        ] {
+            config.public_url = public_url.clone();
+            let json = serde_json::to_value(&config).unwrap();
+            assert_eq!(json.get("publicUrl").cloned(), wire);
+            let back: BootConfig = serde_json::from_value(json).unwrap();
+            assert_eq!(back.public_url, public_url);
+        }
     }
 
     #[test]
