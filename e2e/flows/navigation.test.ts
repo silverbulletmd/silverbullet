@@ -279,7 +279,7 @@ test.describe("space tree order", () => {
     },
   });
 
-  const orderPage = "Library/Space Tree Structure.md";
+  const orderPage = "Library/Space Tree Outline.md";
 
   async function readOrderPage(url: string): Promise<string | null> {
     const response = await fetch(
@@ -329,7 +329,7 @@ test.describe("space tree order", () => {
     await dragBAboveA(sbPage);
     await expect
       .poll(() => readOrderPage(sbServer.url))
-      .toMatch(/Order\/B\n[\s\S]*Order\/A\n/);
+      .toMatch(/\* Order \[order: auto\]\n {2}\* B\n {2}\* A\n/);
 
     await sbPage.reload();
     await openOrderFolder(sbPage);
@@ -367,7 +367,7 @@ test.describe("space tree order", () => {
     await expect.poll(() => orderRows(sbPage)).toEqual(["Order/B", "Order/A"]);
     await expect
       .poll(() => readOrderPage(sbServer.url))
-      .toMatch(/Order\/B\n[\s\S]*Order\/A\n/);
+      .toMatch(/\* Order \[order: auto\]\n {2}\* B\n {2}\* A\n/);
 
     await tree.locator("[data-path='Order/A']").click();
     await expect(currentPage(sbPage)).toHaveValue("Order/A");
@@ -389,7 +389,7 @@ test.describe("space tree order", () => {
     await dragBAboveA(sbPage);
     await expect
       .poll(() => readOrderPage(sbServer.url))
-      .toMatch(/Order\/B\n[\s\S]*Order\/A\n/);
+      .toMatch(/\* Order \[order: auto\]\n {2}\* B\n {2}\* A\n/);
 
     await gotoSilverBulletPage(sbPage, sbServer, "Order/A");
     await runCommandViaPalette(sbPage, "Page: Rename");
@@ -401,10 +401,10 @@ test.describe("space tree order", () => {
     // The rename is followed in the order page, which holds plain names.
     await expect
       .poll(() => readOrderPage(sbServer.url))
-      .toMatch(/Order\/B\n[\s\S]*Order\/Z\n/);
+      .toMatch(/\* Order \[order: auto\]\n {2}\* B\n {2}\* Z\n/);
     await expect
       .poll(async () => (await readOrderPage(sbServer.url)) ?? "")
-      .not.toMatch(/Order\/A\n/);
+      .not.toMatch(/\* A\n/);
     await openOrderFolder(sbPage);
     await expect.poll(() => orderRows(sbPage)).toEqual(["Order/B", "Order/Z"]);
   });

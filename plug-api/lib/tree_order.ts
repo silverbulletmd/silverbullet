@@ -1,8 +1,6 @@
-import { wikiLinkRegex } from "../../client/markdown_parser/constants.ts";
-
 /** Page holding the saved order of the space tree, as a nested list of
- * names. Older versions wrote wiki links; those still read. */
-export const TREE_ORDER_PAGE = "Library/Space Tree Structure";
+ * names. */
+export const TREE_ORDER_PAGE = "Library/Space Tree Outline";
 
 /** Folder path (`""` for the root) to its child segment names, in order. */
 export type TreeOrder = Map<string, string[]>;
@@ -12,8 +10,6 @@ export type TreeOrder = Map<string, string[]>;
 export type TreeAttributes = Map<string, Record<string, string>>;
 
 type OrderItem = {
-  /** Link target (as older versions wrote entries), or null for plain text */
-  link: string | null;
   text: string;
   attributes: Record<string, string>;
   children: OrderItem[];
@@ -21,8 +17,6 @@ type OrderItem = {
 
 const itemRegex = /^(\s*)[*+-]\s+(.*)$/;
 const attributeRegex = /\s*\[([^[\]:]*):([^[\]]*)\]\s*$/;
-// SilverBullet's own wiki link syntax, anchored to the whole item body.
-const linkRegex = new RegExp(`^${wikiLinkRegex.source}$`);
 
 function normalizeNewlines(text: string): string {
   return text.replace(/\r\n?/g, "\n");
@@ -43,12 +37,6 @@ export function splitPath(
   return i < 0
     ? { folder: "", name: path }
     : { folder: path.slice(0, i), name: path.slice(i + separator.length) };
-}
-
-/** `path` with its last `n` segments dropped. */
-function ancestorOf(path: string, n: number): string {
-  const segs = path.split("/");
-  return segs.slice(0, Math.max(0, segs.length - n)).join("/");
 }
 
 function join(folder: string, name: string): string {
@@ -90,12 +78,8 @@ function scanList(text: string): { start: number; roots: OrderItem[] } | null {
       body = body.slice(0, attr.index);
       attr = attributeRegex.exec(body);
     }
-    body = body.trim();
-    const ref = linkRegex.exec(body)?.groups?.stringRef;
     const item: OrderItem = {
-      // A body holding two links (`[[A]] and [[B]]`) is text, not one link.
-      link: ref === undefined || ref.includes("]]") ? null : ref.trim(),
-      text: body,
+      text: body.trim(),
       attributes: Object.fromEntries(found),
       children: [],
     };
@@ -109,84 +93,42 @@ function scanList(text: string): { start: number; roots: OrderItem[] } | null {
   return start < 0 ? null : { start, roots };
 }
 
-/**
- * Parses the order page into folder -> ordered child names. `resolve` maps a
- * link target as written (a bare or wrong-case name, say) to the path it
- * stands for; targets it does not know should come back unchanged.
- */
-export function parseTreeOrder(
-  text: string,
-  resolve: (target: string) => string = (target) => target,
-): TreeOrder {
-  return parseTree(text, resolve).order;
+/** Parses the outline into folder -> ordered child names. */
+export function parseTreeOrder(text: string): TreeOrder {
+  return parseTree(text).order;
 }
 
-/** Like `parseTreeOrder`, also returning each entry's attributes. */
-export function parseTree(
-  text: string,
-  resolve: (target: string) => string = (target) => target,
-): { order: TreeOrder; attributes: TreeAttributes } {
+/** Like `parseTreeOrder`, also returning each entry's attributes. Each entry
+ * is a name under its parent entry's path (a name with `/` in it, a path
+ * below it). */
+export function parseTree(text: string): {
+  order: TreeOrder;
+  attributes: TreeAttributes;
+} {
   const order: TreeOrder = new Map();
   const attributes: TreeAttributes = new Map();
   const list = scanList(normalizeNewlines(text));
   if (!list) return { order, attributes };
-  const resolveAll = (items: OrderItem[]) => {
-    for (const item of items) {
-      if (item.link !== null) item.link = resolve(item.link);
-      resolveAll(item.children);
-    }
-  };
-  resolveAll(list.roots);
 
   const add = (folder: string, name: string) => {
     const names = order.get(folder) ?? [];
     if (!names.includes(name)) names.push(name);
     order.set(folder, names);
   };
-  // Where each descendant link puts `item`: the link's target with one
-  // segment dropped per level of nesting below `item`.
-  const places = (item: OrderItem, depth = 1): string[] =>
-    item.children.flatMap((c) =>
-      (c.link === null ? [] : [ancestorOf(c.link, depth)]).concat(
-        places(c, depth + 1),
-      ),
-    );
-  const commonPrefix = (paths: string[]): string => {
-    const split = paths.map((t) => t.split("/").filter(Boolean));
-    let common = split[0];
-    for (const segs of split.slice(1)) {
-      let i = 0;
-      while (i < common.length && i < segs.length && common[i] === segs[i]) i++;
-      common = common.slice(0, i);
-    }
-    return common.join("/");
-  };
   const visit = (item: OrderItem, parentPath: string) => {
-    let path: string;
-    if (item.link !== null) {
-      path = item.link;
-    } else {
-      const targets = places(item);
-      if (targets.length > 0) {
-        path =
-          commonPrefix(targets) ||
-          (item.text === "" ? "" : join(parentPath, item.text));
-      } else if (item.text.includes("/")) {
-        // A folder written without its parent item: its full path.
-        path = item.text;
-      } else {
-        path = item.text === "" ? "" : join(parentPath, item.text);
-      }
-    }
+    const path = item.text === "" ? "" : join(parentPath, item.text);
     const { folder, name } = splitPath(path);
     if (name === "") {
       // Contributes nothing; children resolve against the parent's path.
       for (const child of item.children) visit(child, parentPath);
       return;
     }
-    add(folder, name);
-    if (Object.keys(item.attributes).length > 0) {
-      attributes.set(path, { ...attributes.get(path), ...item.attributes });
+    // `[order: auto]`: written for context (to nest what's below it, or to
+    // carry attributes), not placed among its siblings
+    const { [AUTO_KEY]: placement, ...attrs } = item.attributes;
+    if (placement !== AUTO_VALUE) add(folder, name);
+    if (Object.keys(attrs).length > 0) {
+      attributes.set(path, { ...attributes.get(path), ...attrs });
     }
     for (const child of item.children) visit(child, path);
   };
@@ -203,11 +145,20 @@ export function treeOrderPreamble(text: string): string {
   return normalized.trim() === "" ? "" : `${normalized.trimEnd()}\n\n`;
 }
 
+/** The marker on an entry that is in the outline only for context: to nest
+ * an ordered folder under its parents, or to carry attributes. It keeps
+ * its alphabetical place instead of being pinned among its siblings. */
+const AUTO_KEY = "order";
+const AUTO_VALUE = "auto";
+
 /**
- * Renders the canonical order page: preamble followed by the nested list of
- * plain names -- full paths at the top level, where no parent item gives
- * context. An entry is kept while `exists` says its page, document or folder
- * is still there (or something below it is).
+ * Renders the outline: preamble followed by one nested list, as short as it
+ * can be. It holds the folders with a saved order (their children in that
+ * order), entries with attributes, and the folders above those -- the
+ * latter two marked `[order: auto]` where their own folder has no saved
+ * order, so writing them doesn't pin them. An entry is kept while `exists`
+ * says its page, document or folder is still there (or something below it
+ * is).
  */
 export function renderTreeOrder(
   preamble: string,
@@ -215,35 +166,48 @@ export function renderTreeOrder(
   exists: (path: string) => boolean,
   attributes: TreeAttributes = new Map(),
 ): string {
-  const suffix = (path: string) =>
+  // Every path the outline has to show, and so every folder above them.
+  const needed = new Set<string>();
+  const need = (path: string) => {
+    for (let p = path; p !== "" && !needed.has(p); p = splitPath(p).folder) {
+      needed.add(p);
+    }
+  };
+  for (const [folder, names] of order) {
+    need(folder);
+    for (const name of names) if (name !== "") need(join(folder, name));
+  }
+  for (const path of attributes.keys()) need(path);
+  const context = new Map<string, string[]>();
+  for (const path of needed) {
+    const { folder, name } = splitPath(path);
+    if (order.get(folder)?.includes(name)) continue;
+    context.set(folder, [...(context.get(folder) ?? []), name]);
+  }
+
+  const suffix = (path: string, auto: boolean) =>
+    (auto ? ` [${AUTO_KEY}: ${AUTO_VALUE}]` : "") +
     Object.entries(attributes.get(path) ?? {})
       .map(([key, value]) => ` [${key}: ${value}]`)
       .join("");
-  const reached = new Set<string>();
   const walk = (folder: string, depth: number): string[] => {
-    reached.add(folder);
     const lines: string[] = [];
     const pad = "  ".repeat(depth);
-    for (const name of order.get(folder) ?? []) {
-      if (name === "") continue;
+    const pinned = (order.get(folder) ?? []).filter((name) => name !== "");
+    const auto = (context.get(folder) ?? []).sort();
+    for (const [name, isAuto] of [
+      ...pinned.map((n): [string, boolean] => [n, false]),
+      ...auto.map((n): [string, boolean] => [n, true]),
+    ]) {
       const path = join(folder, name);
       const children = walk(path, depth + 1);
       if (children.length > 0 || exists(path)) {
-        lines.push(
-          `${pad}* ${depth === 0 ? path : name}${suffix(path)}`,
-          ...children,
-        );
+        lines.push(`${pad}* ${name}${suffix(path, isAuto)}`, ...children);
       }
     }
     return lines;
   };
-  const lines = walk("", 0);
-  // Folders with a saved order that the root walk did not reach (no saved
-  // order on the way down) become top-level groups, so they are not lost.
-  for (const folder of [...order.keys()].sort()) {
-    if (!reached.has(folder)) lines.push(...walk(folder, 0));
-  }
-  return `${preamble}${lines.join("\n")}\n`;
+  return `${preamble}${walk("", 0).join("\n")}\n`;
 }
 
 /**

@@ -1,16 +1,10 @@
 import { compareCollated } from "@silverbulletmd/silverbullet/lib/collation";
-import type { Path } from "@silverbulletmd/silverbullet/lib/ref";
-import {
-  BasenameIndex,
-  resolvePath,
-} from "@silverbulletmd/silverbullet/lib/resolve_path";
 import {
   compareTreePaths,
   parseTree,
   placeSibling,
   renameInTreeOrder,
   renderTreeOrder,
-  splitPath,
   TREE_ORDER_PAGE,
   type TreeAttributes,
   TreeIndex,
@@ -32,7 +26,7 @@ async function listContents(): Promise<ContentObj[]> {
 
 /** Heads a freshly created order page. */
 const EXPLANATION =
-  "The order of the space tree. Drag rows in the tree to change it, or edit this list.";
+  "The order of the space tree. Drag rows in the tree to change it, or edit this list. Entries marked `[order: auto]` are only here to hold what's under them, and keep their alphabetical place.";
 
 /** The parsed order page, keyed by the `lastModified` it was read at, so the
  * (cheap) list refresh does not re-read and re-parse it every time. `ours`
@@ -44,18 +38,6 @@ let cache: {
   modified?: number | string;
   ours: boolean;
 } | null = null;
-
-/** Maps a link target as written (bare, a path suffix, wrong case) to the
- * listed name it resolves to, by SilverBullet's own link resolution rule.
- * Unknown or ambiguous targets stay as written. */
-function linkResolver(names: string[]): (target: string) => string {
-  const index = new BasenameIndex();
-  index.rebuild(names);
-  return (target) => {
-    const r = resolvePath(target as Path, TREE_ORDER_PAGE as Path, index);
-    return r.exists && !r.ambiguous ? r.path : target;
-  };
-}
 
 /** Reads the saved tree order from the order page's entry in `contents`.
  * Re-reads the page only when its `lastModified` differs from the cache. */
@@ -77,10 +59,7 @@ export async function loadTreeOrder(
     // tree beats no tree, and nothing is cached so the next load retries.
     return new Map();
   }
-  const { order, attributes } = parseTree(
-    text,
-    linkResolver(contents.map((obj) => obj.name)),
-  );
+  const { order, attributes } = parseTree(text);
   cache = { order, attributes, modified: page.lastModified, ours: false };
   return order;
 }
@@ -154,30 +133,20 @@ export async function reorderSibling(req: ReorderRequest): Promise<void> {
   );
 }
 
-/** Sets the `[key: value]` attribute on `path`'s entry in the order page,
- * or removes it when `value` is null. An entry has to be listed to carry
- * attributes: one that isn't yet gets listed by saving its folder's current
- * order, so nothing moves. */
+/** Sets the `[key: value]` attribute on `path`'s entry in the outline, or
+ * removes it when `value` is null. An entry the outline doesn't place yet
+ * is written as `[order: auto]`, so nothing moves. */
 export async function setTreeAttribute(
   path: string,
   key: string,
   value: string | null,
 ): Promise<void> {
-  const { folder, name } = splitPath(path);
-  const siblings = await currentSiblings(folder);
-  await updateTreeOrder((order, attributes) => {
+  await updateTreeOrder((_order, attributes) => {
     const attrs = { ...attributes.get(path) };
     if (value === null) delete attrs[key];
     else attrs[key] = value;
     if (Object.keys(attrs).length > 0) attributes.set(path, attrs);
     else attributes.delete(path);
-    if (value !== null && !order.get(folder)?.includes(name)) {
-      // The index may not list it yet; it still needs its entry.
-      order.set(
-        folder,
-        siblings.includes(name) ? siblings : [...siblings, name],
-      );
-    }
     return true;
   });
 }
@@ -253,7 +222,7 @@ async function updateTreeOrder(
   const { order, attributes } =
     text === undefined
       ? { order: new Map() as TreeOrder, attributes: new Map() }
-      : parseTree(text, linkResolver(allNames));
+      : parseTree(text);
   const files = new Set(allNames);
   const tree = new TreeIndex(allNames);
   const isFolder = (path: string) => tree.isFolder(path);

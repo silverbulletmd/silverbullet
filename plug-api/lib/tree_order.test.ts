@@ -14,46 +14,31 @@ import {
 
 const page = `The order of the space tree. Drag rows in the tree to change it, or edit this list.
 
-* [[Inbox]]
-* [[Projects]]
-  * [[Projects/Beta]]
-  * [[Projects/Alpha]]
+* Inbox
+* Projects
+  * Beta
+  * Alpha
 * Archive
-  * [[Archive/2025]]
+  * 2025
 `;
 
-test("links decide folder and order", () => {
+test("nesting decides folder, list position decides order", () => {
   const o = parseTreeOrder(page);
   expect(o.get("")).toEqual(["Inbox", "Projects", "Archive"]);
   expect(o.get("Projects")).toEqual(["Beta", "Alpha"]);
   expect(o.get("Archive")).toEqual(["2025"]);
 });
 
-test("a plain-text folder follows its children's links", () => {
-  const o = parseTreeOrder("* Old\n  * [[New/A]]\n");
-  expect(o.get("")).toEqual(["New"]);
-  expect(o.get("New")).toEqual(["A"]);
-});
-
-test("a link moved under the wrong parent is filed by its target", () => {
-  const o = parseTreeOrder("* [[Projects]]\n  * [[Archive/Beta]]\n");
-  expect(o.get("")).toEqual(["Projects"]);
-  expect(o.get("Archive")).toEqual(["Beta"]);
-  expect(o.get("Projects")).toBeUndefined();
-});
-
-test("tolerates other bullets, tab/4-space indent, aliases, attributes and stray text", () => {
+test("tolerates other bullets, tab/4-space indent, attributes and stray text", () => {
   const o = parseTreeOrder(
-    "intro\n\n- [[A|Alias]] [icon: inbox]\n\t+ [[A/x]]\n    * [[A/y]]\nstray\n* [[B]]\n",
+    "intro\n\n- A [icon: inbox]\n\t+ x\n    * y\nstray\n* B\n",
   );
   expect(o.get("")).toEqual(["A", "B"]);
   expect(o.get("A")).toEqual(["x", "y"]);
 });
 
 test("only the first top-level list counts", () => {
-  expect(parseTreeOrder("* [[A]]\n\n# Later\n\n* [[B]]\n").get("")).toEqual([
-    "A",
-  ]);
+  expect(parseTreeOrder("* A\n\n# Later\n\n* B\n").get("")).toEqual(["A"]);
 });
 
 test("empty or list-less text gives an empty order", () => {
@@ -149,51 +134,29 @@ test("placeSibling moves before or after an anchor, or to the end with null", ()
 });
 
 test("empty items contribute nothing and do not hang render", () => {
-  for (const text of [
-    "* [[A]]\n* \n",
-    "* [[A]]\n* [x: y]\n",
-    "* [[A]]\n* [[ ]]\n",
-  ]) {
+  for (const text of ["* A\n* \n", "* A\n* [x: y]\n"]) {
     const o = parseTreeOrder(text);
     expect(o.get("")).toEqual(["A"]);
     expect(renderTreeOrder("", o, () => true)).toBe("* A\n");
   }
-  const o = parseTreeOrder("* [[A]]\n* \n  * [[B]]\n");
+  const o = parseTreeOrder("* A\n* \n  * B\n");
   expect(o.get("")).toEqual(["A", "B"]);
 });
 
 test("an entry joins only its own folder's list, not its ancestors", () => {
-  expect(parseTreeOrder("* [[A/B/C]]\n")).toEqual(new Map([["A/B", ["C"]]]));
+  expect(parseTreeOrder("* A/B/C\n")).toEqual(new Map([["A/B", ["C"]]]));
 });
 
-test("a plain folder resolves to the common folder of all descendant links", () => {
-  expect(parseTreeOrder("* X\n  * [[A/x]]\n  * [[A/y]]\n")).toEqual(
-    new Map([
-      ["", ["A"]],
-      ["A", ["x", "y"]],
-    ]),
-  );
-  expect(parseTreeOrder("* Old\n  * Sub\n    * [[New/Sub/C]]\n")).toEqual(
-    new Map([
-      ["", ["New"]],
-      ["New", ["Sub"]],
-      ["New/Sub", ["C"]],
-    ]),
-  );
-  const split = parseTreeOrder("* X\n  * [[A/x]]\n  * [[B/y]]\n");
-  expect(split.get("")).toEqual(["X"]);
-});
-
-test("a plain item with no links and a slash in its text is a full path", () => {
-  expect(parseTreeOrder("* [[Inbox]]\n  * Projects/Sub\n")).toEqual(
+test("a name with a slash is a path below its parent entry", () => {
+  expect(parseTreeOrder("* Inbox\n  * Projects/Sub\n")).toEqual(
     new Map([
       ["", ["Inbox"]],
-      ["Projects", ["Sub"]],
+      ["Inbox/Projects", ["Sub"]],
     ]),
   );
 });
 
-test("folders the root walk does not reach are written as top-level groups", () => {
+test("an ordered folder nests under unpinned parents, after the pinned ones", () => {
   const order: TreeOrder = new Map([
     ["", ["Inbox"]],
     ["Projects/Sub", ["Sub2", "B"]],
@@ -210,11 +173,14 @@ test("folders the root walk does not reach are written as top-level groups", () 
   expect(renderTreeOrder("", order, (p) => files.has(p))).toBe(
     [
       "* Inbox",
-      "* Order/B",
-      "* Order/A",
-      "* Projects/Sub/Sub2",
-      "  * X",
-      "* Projects/Sub/B",
+      "* Order [order: auto]",
+      "  * B",
+      "  * A",
+      "* Projects [order: auto]",
+      "  * Sub [order: auto]",
+      "    * Sub2",
+      "      * X",
+      "    * B",
       "",
     ].join("\n"),
   );
@@ -270,29 +236,6 @@ test("orders without a saved ancestor survive parse(render(x))", () => {
   }
 });
 
-test("link targets go through the resolver, in visit and in places", () => {
-  const known = new Map([
-    ["Beta", "Projects/Beta"],
-    ["inbox", "Inbox"],
-    ["Gamma", "Old/Gamma"],
-  ]);
-  const resolve = (t: string) => known.get(t) ?? t;
-  const o = parseTreeOrder(
-    "* [[inbox]]\n* [[Projects]]\n  * [[Beta]]\n* Old\n  * [[Gamma]]\n",
-    resolve,
-  );
-  expect(o.get("")).toEqual(["Inbox", "Projects", "Old"]);
-  expect(o.get("Projects")).toEqual(["Beta"]);
-  expect(o.get("Old")).toEqual(["Gamma"]);
-});
-
-test("names containing brackets parse as links, with or without alias", () => {
-  const o = parseTreeOrder(
-    "* [[Meeting [Q3] notes]]\n* [[Plan [v2]|the plan]]\n",
-  );
-  expect(o.get("")).toEqual(["Meeting [Q3] notes", "Plan [v2]"]);
-});
-
 test("CRLF text parses like LF text", () => {
   const crlf = page.replace(/\n/g, "\r\n");
   expect(parseTreeOrder(crlf)).toEqual(parseTreeOrder(page));
@@ -318,9 +261,9 @@ test("splitPath splits on the last separator", () => {
   expect(splitPath("a::b", "::")).toEqual({ folder: "a", name: "b" });
 });
 
-test("attributes are kept per resolved path, for pages and plain folders", () => {
+test("attributes are kept per path, for pages and folders", () => {
   const { order, attributes } = parseTree(
-    "* [[Docs]] [icon: book-open]\n  * [[Docs/A]] [hide: true] [x: a:b]\n* Fixtures [hide: true]\n  * [[Fixtures/F]]\n* [x: y]\n",
+    "* Docs [icon: book-open]\n  * A [hide: true] [x: a:b]\n* Fixtures [hide: true]\n  * F\n* [x: y]\n",
   );
   expect(order.get("")).toEqual(["Docs", "Fixtures"]);
   expect(attributes.get("Docs")).toEqual({ icon: "book-open" });
@@ -331,7 +274,7 @@ test("attributes are kept per resolved path, for pages and plain folders", () =>
 
 test("a rewrite keeps every entry's attributes, wherever the reorder happened", () => {
   const text =
-    "intro\n\n* [[Docs]] [icon: book-open]\n  * [[Docs/A]]\n  * [[Docs/B]] [custom: kept]\n* Fixtures [hide: true]\n  * [[Fixtures/F]]\n";
+    "intro\n\n* Docs [icon: book-open]\n  * A\n  * B [custom: kept]\n* Fixtures [hide: true]\n  * F\n";
   const { order, attributes } = parseTree(text);
   order.set("Docs", ["B", "A"]);
   const files = new Set(["Docs", "Docs/A", "Docs/B", "Fixtures/F"]);
@@ -347,7 +290,7 @@ test("a rewrite keeps every entry's attributes, wherever the reorder happened", 
   expect(parseTree(rendered).attributes).toEqual(attributes);
 });
 
-test("plain entries are names under their parent, full paths at the top", () => {
+test("entries are names under their parent, paths at the top", () => {
   const { order, attributes } = parseTree(
     "* Projects [icon: folder]\n  * Beta\n  * Sub\n    * X\n* Inbox\n* Archive/2025\n  * Q1\n",
   );
@@ -361,21 +304,6 @@ test("plain entries are names under their parent, full paths at the top", () => 
     ]),
   );
   expect(attributes.get("Projects")).toEqual({ icon: "folder" });
-});
-
-test("an order page written with links reads the same as its plain rewrite", () => {
-  const legacy =
-    "* [[Projects]]\n  * [[Projects/Beta]] [hide: true]\n* [[Inbox]]\n";
-  const before = parseTree(legacy);
-  const files = new Set(["Projects", "Projects/Beta", "Inbox"]);
-  const plain = renderTreeOrder(
-    "",
-    before.order,
-    (p) => files.has(p),
-    before.attributes,
-  );
-  expect(plain).toBe("* Projects\n  * Beta [hide: true]\n* Inbox\n");
-  expect(parseTree(plain)).toEqual(before);
 });
 
 /** Applies `renames` to the order `text` describes, in a space holding
@@ -427,7 +355,7 @@ test("a folder moved under another one keeps its order there", () => {
       ],
       ["Archive/Projects/A", "Archive/Projects/B"],
     ),
-  ).toBe("* Archive\n* Archive/Projects/B\n* Archive/Projects/A\n");
+  ).toBe("* Archive\n  * Projects [order: auto]\n    * B\n    * A\n");
 });
 
 test("a page with pages under it, renamed in two steps, keeps one place", () => {
@@ -465,4 +393,24 @@ test("one page moved out of a folder that keeps other content moves nothing else
       ["A/Sub/Y", "B/Sub/X"],
     ),
   ).toBe("* A\n  * Sub\n    * Y\n");
+});
+
+test("[order: auto] nests without pinning, and attributes need no pinning", () => {
+  const { order, attributes } = parseTree(
+    "* Projects [order: auto] [icon: star]\n  * Sub [order: auto]\n    * B\n    * A\n",
+  );
+  expect(order).toEqual(new Map([["Projects/Sub", ["B", "A"]]]));
+  expect(attributes).toEqual(new Map([["Projects", { icon: "star" }]]));
+});
+
+test("an attribute on an unordered entry writes just that entry", () => {
+  const files = new Set(["A", "B", "P/x", "P/y"]);
+  expect(
+    renderTreeOrder(
+      "",
+      new Map(),
+      (p) => files.has(p) || p === "P",
+      new Map([["P/y", { hide: "true" }]]),
+    ),
+  ).toBe("* P [order: auto]\n  * y [order: auto] [hide: true]\n");
 });

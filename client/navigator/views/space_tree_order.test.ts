@@ -35,7 +35,7 @@ async function load() {
 
 beforeEach(() => {
   space.readPage.mockReset();
-  space.readPage.mockResolvedValue("* [[B]]\n* [[A]]\n");
+  space.readPage.mockResolvedValue("* B\n* A\n");
   space.writePage.mockReset();
   config.get.mockResolvedValue({});
   spaceContents.mockReset();
@@ -84,7 +84,7 @@ test("absent order page gives an empty order without reading", async () => {
 
 test("re-reads only when lastModified changes", async () => {
   const { loadTreeOrder } = await load();
-  const page = "Library/Space Tree Structure";
+  const page = "Library/Space Tree Outline";
   const first = await loadTreeOrder([{ name: page, lastModified: 1 }]);
   await loadTreeOrder([{ name: page, lastModified: 1 }]);
   expect(space.readPage).toHaveBeenCalledTimes(1);
@@ -97,14 +97,14 @@ test("a failing read yields an empty order", async () => {
   const { loadTreeOrder } = await load();
   space.readPage.mockRejectedValue(new Error("gone"));
   const order = await loadTreeOrder([
-    { name: "Library/Space Tree Structure", lastModified: 1 },
+    { name: "Library/Space Tree Outline", lastModified: 1 },
   ]);
   expect(order.size).toBe(0);
 });
 
 test("primed order wins until the page changes", async () => {
   const { loadTreeOrder, primeTreeOrder, cachedTreeOrder } = await load();
-  const page = "Library/Space Tree Structure";
+  const page = "Library/Space Tree Outline";
   await loadTreeOrder([{ name: page, lastModified: 1 }]);
   const x = new Map([["", ["Z"]]]);
   primeTreeOrder(x);
@@ -122,7 +122,7 @@ test("a primed order survives a listing that lacks the page", async () => {
   expect(await loadTreeOrder([{ name: "Other" }])).toBe(x);
   expect(space.readPage).not.toHaveBeenCalled();
   const fresh = await loadTreeOrder([
-    { name: "Library/Space Tree Structure", lastModified: 5 },
+    { name: "Library/Space Tree Outline", lastModified: 5 },
   ]);
   expect(space.readPage).toHaveBeenCalledTimes(1);
   expect(fresh.get("")).toEqual(["B", "A"]);
@@ -130,9 +130,9 @@ test("a primed order survives a listing that lacks the page", async () => {
   expect((await loadTreeOrder([{ name: "Other" }])).size).toBe(0);
 });
 
-const ORDER_PAGE = "Library/Space Tree Structure";
+const ORDER_PAGE = "Library/Space Tree Outline";
 const EXPLANATION =
-  "The order of the space tree. Drag rows in the tree to change it, or edit this list.";
+  "The order of the space tree. Drag rows in the tree to change it, or edit this list. Entries marked `[order: auto]` are only here to hold what's under them, and keep their alphabetical place.";
 const pages = (...n: string[]) => n.map((name) => ({ name, tag: "page" }));
 const orderPage = { name: ORDER_PAGE, tag: "page", lastModified: 1 };
 function written(): string {
@@ -166,7 +166,7 @@ test("siblings hidden by a segment keep their place", async () => {
     ...pages("B", "C"),
     orderPage,
   ]);
-  space.readPage.mockResolvedValue("* [[C]]\n* [[a.png]]\n* [[B]]\n");
+  space.readPage.mockResolvedValue("* C\n* a.png\n* B\n");
   await reorderSibling({
     folder: "",
     name: "B",
@@ -212,9 +212,7 @@ test("saveFolderOrder(null) drops a folder", async () => {
     ...pages("A", "Projects", "Projects/x", "Projects/y"),
     orderPage,
   ]);
-  space.readPage.mockResolvedValue(
-    "* [[Projects]]\n  * [[Projects/y]]\n  * [[Projects/x]]\n* [[A]]\n",
-  );
+  space.readPage.mockResolvedValue("* Projects\n  * y\n  * x\n* A\n");
   await saveFolderOrder("Projects", null);
   const text = written();
   expect(text).not.toContain("Projects/");
@@ -224,7 +222,7 @@ test("saveFolderOrder(null) drops a folder", async () => {
 test("an existing preamble is kept", async () => {
   const { saveFolderOrder } = await load();
   spaceContents.mockResolvedValue([...pages("A", "B"), orderPage]);
-  space.readPage.mockResolvedValue("My notes\n\n* [[A]]\n");
+  space.readPage.mockResolvedValue("My notes\n\n* A\n");
   await saveFolderOrder("", ["B", "A"]);
   expect(written()).toBe("My notes\n\n* B\n* A\n");
 });
@@ -262,29 +260,6 @@ test("a nested-only order survives the written page and leaves its folder unpinn
   ]);
 });
 
-test("loadTreeOrder resolves bare and wrong-case links against the space", async () => {
-  const { loadTreeOrder } = await load();
-  space.readPage.mockResolvedValue(
-    "* [[inbox]]\n* [[Projects]]\n  * [[Beta]]\n",
-  );
-  const order = await loadTreeOrder([
-    ...pages("Inbox", "Projects", "Projects/Beta", "Projects/Alpha"),
-    orderPage,
-  ]);
-  expect(order.get("")).toEqual(["Inbox", "Projects"]);
-  expect(order.get("Projects")).toEqual(["Beta"]);
-});
-
-test("an ambiguous bare link stays literal", async () => {
-  const { loadTreeOrder } = await load();
-  space.readPage.mockResolvedValue("* [[Notes]]\n");
-  const order = await loadTreeOrder([
-    ...pages("Projects/Notes", "Archive/Notes"),
-    orderPage,
-  ]);
-  expect(order.get("")).toEqual(["Notes"]);
-});
-
 test("a CRLF order page keeps its other folders when one is saved", async () => {
   const { saveFolderOrder } = await load();
   spaceContents.mockResolvedValue([
@@ -292,7 +267,7 @@ test("a CRLF order page keeps its other folders when one is saved", async () => 
     orderPage,
   ]);
   space.readPage.mockResolvedValue(
-    "Notes\r\n\r\n* [[Projects]]\r\n  * [[Projects/y]]\r\n  * [[Projects/x]]\r\n* [[A]]\r\n",
+    "Notes\r\n\r\n* Projects\r\n  * y\r\n  * x\r\n* A\r\n",
   );
   await saveFolderOrder("", ["A", "Projects", "B"]);
   expect(written()).toBe("Notes\n\n* A\n* Projects\n  * y\n  * x\n* B\n");
@@ -338,7 +313,7 @@ test("an open order page is saved before a reorder and reloaded after it", async
   });
   space.readPage.mockImplementation(async () => {
     calls.push("read");
-    return "* [[A]]\n* [[B]]\n";
+    return "* A\n* B\n";
   });
   space.writePage.mockImplementation(async () => {
     calls.push("write");
@@ -376,17 +351,17 @@ test("a save builds on the page text, not a stale or missing listing", async () 
     { name: "Projects/X" },
     { name: "Projects/Y" },
   ]);
-  space.readPage.mockResolvedValue("* [[D]]\n* [[C]]\n");
+  space.readPage.mockResolvedValue("* D\n* C\n");
   await m.saveFolderOrder("Projects", ["Y", "X"]);
   const written = space.writePage.mock.calls[0][1];
   expect(written).toMatch(/\* D\n\* C\n/);
-  expect(written).toMatch(/Projects\/Y[\s\S]*Projects\/X/);
+  expect(written).toMatch(/\* Projects \[order: auto\]\n {2}\* Y\n {2}\* X\n/);
 });
 
 test("a rename keeps the renamed page's place in the order page", async () => {
   const { followRenames, cachedTreeOrder } = await load();
   spaceContents.mockResolvedValue([...pages("A", "Bee", "C"), orderPage]);
-  space.readPage.mockResolvedValue("* [[A]]\n* [[B]] [icon: star]\n* [[C]]\n");
+  space.readPage.mockResolvedValue("* A\n* B [icon: star]\n* C\n");
   await followRenames([{ from: "B.md", to: "Bee.md" }]);
   expect(written()).toContain("\n\n* A\n* Bee [icon: star]\n* C\n");
   expect(cachedTreeOrder().get("")).toEqual(["A", "Bee", "C"]);
@@ -411,13 +386,13 @@ test("a rename writes nothing without an order page, or when it is not in it", a
   expect(space.writePage).not.toHaveBeenCalled();
 });
 
-test("an attribute on an unlisted entry lists its folder as shown, so nothing moves", async () => {
-  const { setTreeAttribute } = await load();
+test("an attribute on an unplaced entry writes it unpinned, so nothing moves", async () => {
+  const { setTreeAttribute, cachedTreeOrder } = await load();
   spaceContents.mockResolvedValue([...pages("A", "B", "C"), orderPage]);
   space.readPage.mockResolvedValue("Intro\n\n* C\n");
   await setTreeAttribute("B", "icon", "star");
-  // Unlisted names come first alphabetically, then the saved order.
-  expect(written()).toBe("Intro\n\n* A\n* B [icon: star]\n* Library\n* C\n");
+  expect(written()).toBe("Intro\n\n* C\n* B [order: auto] [icon: star]\n");
+  expect(cachedTreeOrder().get("")).toEqual(["C"]);
 });
 
 test("an attribute on a listed entry keeps its others, and null removes it", async () => {
@@ -440,5 +415,5 @@ test("an attribute on a page the index does not list yet still gets its entry", 
   space.listPages.mockResolvedValueOnce([...pages("A", "New"), orderPage]);
   space.readPage.mockResolvedValue("Intro\n\n* A\n");
   await setTreeAttribute("New", "icon", "star");
-  expect(written()).toBe("Intro\n\n* Library\n* A\n* New [icon: star]\n");
+  expect(written()).toBe("Intro\n\n* A\n* New [order: auto] [icon: star]\n");
 });

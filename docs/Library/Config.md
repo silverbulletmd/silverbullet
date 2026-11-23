@@ -164,7 +164,7 @@ tag.define {
 -- boot: true
 config.set("view.defaults", {
   -- The Space Tree is this site's navigation; its order and icons live in
-  -- [[^Library/Space Tree Structure]]
+  -- [[^Library/Space Tree Outline]]
   ["std.spaceTree"] = { open = true, width = 360 },
 })
 ```

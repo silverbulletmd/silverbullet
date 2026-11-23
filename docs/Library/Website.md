@@ -1,4 +1,4 @@
-Widgets, styles and redirects for the docs.silverbullet.md site and Desktop’s built-in Help. Navigation is the plain Space Tree, ordered by [[^Library/Space Tree Structure]].
+Widgets, styles and redirects for the docs.silverbullet.md site and Desktop’s built-in Help. Navigation is the plain Space Tree, ordered by [[^Library/Space Tree Outline]].
 
 ```space-lua
 view.define {
