@@ -465,6 +465,10 @@ $comment-border: 1px;
   .sb-line-hr {
     margin-top: 1em;
     margin-bottom: -1em;
+
+    .cm-widgetBuffer {
+      position: static;
+    }
   }
 
   .sb-hr {
