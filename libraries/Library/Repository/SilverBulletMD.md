@@ -2,7 +2,7 @@
 share:
   uri: "github:silverbulletmd/silverbullet-libraries@main/Library/Repository/SilverBulletMD.md"
   mode: pull
-  hash: "7b00b8c4"
+  hash: "be7ab8d3"
 name: Repositories/SilverBulletMD
 tags: meta/repository
 ---
@@ -13,6 +13,13 @@ name: Dashboard
 author: SilverBullet
 description: Chips, bars, number cards and responsive grids for dashboards.
 uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Dashboard.md
+```
+
+```#meta/library/remote
+name: Pele
+author: SilverBullet
+description: Fast Mermaid-syntax diagrams with zoom, pan and theme-aware colors, drawn by Pele.
+uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Pele.md
 ```
 
 ```#meta/library/remote
