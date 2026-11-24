@@ -2,16 +2,24 @@ import type { ParseTree } from "../../plug-api/lib/tree.ts";
 import type { SyntaxNode } from "@lezer/common";
 import type { Language } from "@codemirror/language";
 
+/**
+ * Converts a lezer node into a ParseTree.
+ *
+ * `text` holds the node's source starting at position `textFrom` of the tree
+ * (0: the whole document). Passing only the node's own text keeps the tree
+ * from holding on to a copy of everything before it.
+ */
 export function lezerToParseTree(
   text: string,
   n: SyntaxNode,
   offset = 0,
+  textFrom = 0,
 ): ParseTree {
   let children: ParseTree[] = [];
   let nodeText: string | undefined;
   let child = n.firstChild;
   while (child) {
-    children.push(lezerToParseTree(text, child, offset));
+    children.push(lezerToParseTree(text, child, offset, textFrom));
     child = child.nextSibling;
   }
 
@@ -20,7 +28,7 @@ export function lezerToParseTree(
       {
         from: n.from + offset,
         to: n.to + offset,
-        text: text.substring(n.from, n.to),
+        text: text.substring(n.from - textFrom, n.to - textFrom),
       },
     ];
   } else {
@@ -28,7 +36,10 @@ export function lezerToParseTree(
     let startIndex = n.from + offset;
     for (const child of children) {
       // indices are shifted with offset, so first need to shift back to get text
-      const s = text.substring(startIndex - offset, child.from! - offset);
+      const s = text.substring(
+        startIndex - offset - textFrom,
+        child.from! - offset - textFrom,
+      );
       if (s) {
         newChildren.push({
           from: startIndex,
@@ -39,7 +50,7 @@ export function lezerToParseTree(
       newChildren.push(child);
       startIndex = child.to!;
     }
-    const s = text.substring(startIndex - offset, n.to);
+    const s = text.substring(startIndex - offset - textFrom, n.to - textFrom);
     if (s) {
       newChildren.push({
         from: startIndex,
