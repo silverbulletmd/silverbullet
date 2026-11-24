@@ -53,5 +53,5 @@ tag.define {
 }
 config.set({"tags", "person", "icon"}, "circle-user")
 config.set({"tags", "meeting", "icon"}, "users")
-config.set({"tags", "decision", "icon"}, "rocket")
+config.set({"tags", "decision", "icon"}, "stamp")
 ```

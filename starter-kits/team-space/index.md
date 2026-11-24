@@ -1,19 +1,15 @@
-Your team's meetings, decisions and action items, in one place.
+Your team’s meetings, decisions and action items in one space.
+
+Want to understand how this is set up? Read [[^Library/Setup Explanation]].
 
 # Open action items
 ${query[[
   from t = index.tasks()
-  where not t.done and table.includes(t.itags, "meeting")
+  where not t.done
+    and table.includes(t.itags, "meeting")
   order by t.due, t.page
-  select {
-    ["Action item"] = t.name,
-    Owner = t.owner,
-    Due = t.due,
-    Meeting = markdown.link(t)
-  }
+  select templates.taskItem(t)
 ]]}
-
-Action items are tasks on meeting pages with an `[owner: …]` and an optional `[due: …]`. Tick them off on their meeting page.
 
 # Latest [[Meetings]]
 ${query[[
