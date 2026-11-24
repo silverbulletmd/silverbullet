@@ -8,6 +8,7 @@ import {
 import {
   isLocalURL,
   resolveMarkdownLink,
+  stripMarkdownLinkBrackets,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   lookupIndex,
@@ -406,10 +407,11 @@ export async function indexRelations(
         mdLinkRegex.lastIndex = 0;
         const match = mdLinkRegex.exec(renderToText(n));
         if (!match) return false;
-        const { title: alias, url } = match.groups as {
+        const { title: alias, url: destination } = match.groups as {
           url: string;
           title: string;
         };
+        const url = stripMarkdownLinkBrackets(destination);
         const { from, fromTag } = innermostContainer(n, pageMeta.name);
         const base = {
           from,
