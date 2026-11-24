@@ -12,6 +12,10 @@ use crate::tool::{Caller, ToolSet};
 const LATEST_INITIALIZE_VERSION: &str = "2025-11-25";
 const SUPPORTED_INITIALIZE_VERSIONS: [&str; 2] = ["2025-06-18", "2025-11-25"];
 const DISCOVER_VERSION: &str = "2026-07-28";
+/// Freshness hint for the cacheable results (`tools/list`, `server/discover`);
+/// both are static per authorization context, but `listChanged` is false so
+/// clients have no push signal and must be told when to re-fetch.
+const CACHE_TTL_MS: u64 = 300_000;
 
 const PARSE_ERROR: i64 = -32700;
 const INVALID_REQUEST: i64 = -32600;
@@ -104,6 +108,7 @@ pub(crate) async fn handle(
         return rpc_error(StatusCode::BAD_REQUEST, id, HEADER_MISMATCH, &message);
     }
 
+    let era = discover_era(&headers, rpc_method);
     let outcome = match rpc_method {
         "initialize" => Ok(initialize(&*state.tools, &params)),
         "server/discover" => Ok(discover(&*state.tools)),
@@ -113,10 +118,28 @@ pub(crate) async fn handle(
         other => Err((METHOD_NOT_FOUND, format!("method not found: {other}"))),
     };
     match outcome {
-        Ok(result) => {
+        Ok(mut result) => {
+            if era {
+                complete_result(rpc_method, &mut result);
+            }
             axum::Json(json!({ "jsonrpc": "2.0", "id": id, "result": result })).into_response()
         }
         Err((code, message)) => rpc_error(StatusCode::OK, id, code, &message),
+    }
+}
+
+/// Results in the 2026-07-28 era carry a required `resultType`; the
+/// discovery and list results additionally implement `CacheableResult` and
+/// must carry `ttlMs` and `cacheScope`. The tool set varies with the
+/// caller's granted scopes, so cached responses are never shareable: private.
+fn complete_result(rpc_method: &str, result: &mut Value) {
+    let Some(map) = result.as_object_mut() else {
+        return;
+    };
+    map.insert("resultType".into(), json!("complete"));
+    if matches!(rpc_method, "tools/list" | "server/discover") {
+        map.insert("ttlMs".into(), json!(CACHE_TTL_MS));
+        map.insert("cacheScope".into(), json!("private"));
     }
 }
 
@@ -172,16 +195,25 @@ fn origin_allowed(headers: &HeaderMap) -> bool {
         && normalize_authority(origin_authority, &scheme) == normalize_authority(own, &scheme)
 }
 
+/// The 2026-07-28 era is announced by its routing header, or by the
+/// `server/discover` probe that a client sends before negotiating one.
+fn discover_era(headers: &HeaderMap, rpc_method: &str) -> bool {
+    rpc_method == "server/discover"
+        || headers
+            .get("mcp-protocol-version")
+            .and_then(|v| v.to_str().ok())
+            == Some(DISCOVER_VERSION)
+}
+
 /// For the 2026-07-28 era the routing headers must agree with the body.
 fn header_mismatch(headers: &HeaderMap, rpc_method: &str) -> Option<String> {
+    if !discover_era(headers, rpc_method) {
+        return None;
+    }
     let version = headers
         .get("mcp-protocol-version")
         .and_then(|v| v.to_str().ok());
     let declared_method = headers.get("mcp-method").and_then(|v| v.to_str().ok());
-    let discover_era = rpc_method == "server/discover" || version == Some(DISCOVER_VERSION);
-    if !discover_era {
-        return None;
-    }
     if version.is_some_and(|v| v != DISCOVER_VERSION) {
         return Some("MCP-Protocol-Version header does not match the request".into());
     }
@@ -331,6 +363,20 @@ mod tests {
         serde_json::from_slice(&bytes).unwrap()
     }
 
+    async fn rpc_versioned(body: Value) -> Value {
+        let (res, bytes) = send(
+            "POST",
+            &[
+                ("authorization", "Bearer ok"),
+                ("mcp-protocol-version", DISCOVER_VERSION),
+            ],
+            Some(body),
+        )
+        .await;
+        assert_eq!(res.status(), 200);
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
     fn req(method: &str, params: Value) -> Value {
         json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params})
     }
@@ -413,6 +459,9 @@ mod tests {
         let v: Value = serde_json::from_slice(&bytes).unwrap();
         assert_eq!(v["result"]["instructions"], "Use help first.");
         assert!(v["result"]["capabilities"]["tools"].is_object());
+        assert_eq!(v["result"]["resultType"], "complete");
+        assert_eq!(v["result"]["cacheScope"], "private");
+        assert_eq!(v["result"]["ttlMs"], CACHE_TTL_MS);
     }
 
     #[tokio::test]
@@ -440,6 +489,37 @@ mod tests {
         assert_eq!(tool["name"], "echo");
         assert!(tool["inputSchema"].is_object());
         assert!(tool["annotations"].is_object());
+        assert!(
+            v["result"].get("resultType").is_none(),
+            "pre-2026-07-28 results keep their shape"
+        );
+    }
+
+    #[tokio::test]
+    async fn discover_era_tools_list_is_a_cacheable_complete_result() {
+        let v = rpc_versioned(req("tools/list", json!({}))).await;
+        assert_eq!(v["result"]["resultType"], "complete");
+        assert_eq!(v["result"]["cacheScope"], "private");
+        assert_eq!(v["result"]["ttlMs"], CACHE_TTL_MS);
+        assert_eq!(v["result"]["tools"][0]["name"], "echo");
+    }
+
+    #[tokio::test]
+    async fn discover_era_tools_call_carries_result_type() {
+        let v = rpc_versioned(req(
+            "tools/call",
+            json!({"name": "echo", "arguments": {"text": "hi"}}),
+        ))
+        .await;
+        assert_eq!(v["result"]["resultType"], "complete");
+        assert_eq!(v["result"]["content"][0]["text"], "hi");
+        assert!(v["result"].get("ttlMs").is_none());
+    }
+
+    #[tokio::test]
+    async fn discover_era_ping_is_a_complete_result() {
+        let v = rpc_versioned(req("ping", json!({}))).await;
+        assert_eq!(v["result"], json!({"resultType": "complete"}));
     }
 
     #[tokio::test]
