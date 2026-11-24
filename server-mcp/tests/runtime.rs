@@ -444,9 +444,12 @@ async fn a_failed_reload_is_retried_only_for_its_writer_and_space() {
     assert_eq!(reboots.load(Ordering::SeqCst), 1, "{:?}", script.codes());
     let r = call("writer-one", &alpha, "lua", lua.clone()).await;
     assert_eq!(reboots.load(Ordering::SeqCst), 2, "{:?}", script.codes());
-    // The retry runs before the call, which then answers without a note.
+    // The retry runs before the call, which then answers without the note a
+    // failed retry leaves. Other notes are about the space's watcher, not the
+    // reload: a space still registering its native watcher polls meanwhile,
+    // and how long that takes depends on the machine.
     assert!(!is_error(&r), "{r}");
-    assert!(!text(&r).contains("Note:"), "{r}");
+    assert!(!text(&r).contains("may not reflect your last write"), "{r}");
     let codes = script.codes();
     assert_eq!(codes[codes.len() - 2..], ["system.reboot()", "return 1"]);
     // Once retried, it is not retried again.
