@@ -2,7 +2,6 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
 
 `[icon: …]` sets a row's icon, `[hide: true]` hides it and everything under it (see [[Features/Space Tree#Icons and hiding]]).
 
-* Library
 * SilverBullet [icon: house]
 * CHANGELOG [icon: activity]
 * Getting Started [icon: book-open]
@@ -184,6 +183,7 @@ The order of the space tree. Drag rows in the tree to change it, or edit this li
   * Library Development
   * Plug Development
   * Distribution and Testing
+* Library
 * Screenshots [hide: true]
 * Examples [hide: true]
 * Example [hide: true]
