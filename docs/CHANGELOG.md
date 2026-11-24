@@ -1,7 +1,6 @@
 An attempt at documenting the changes/new features introduced in each release.
 
-## Edge (3.0 edition)
-_These changes are available from the [edge builds](https://github.com/silverbulletmd/silverbullet/releases/tag/edge)_
+## 3.0.0
 
 * [[Reference/Theming]]: themes are here along with a significant visual refresh. Themes can can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select`.
   * A theme is a `Library/` page tagged `meta/theme`: a few base colors give a complete theme, and it can suggest fonts. See [[Theming/Creating a Theme]].

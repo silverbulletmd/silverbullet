@@ -23,8 +23,6 @@ The default image includes Chromium and enables the [[Integrations/Runtime API]]
 
 To publish a folder as a read-only website, use the `publish` image: `:publish` (the same as `:latest-publish`), `:edge-publish`, or a version with `-publish` appended, such as `:2.12.1-publish`. See [[#Publishing a website]].
 
-Until the next release, use `:edge-publish`: `:publish` and `:latest-publish` only exist once a release includes the publish image.
-
 # Container
 * The container binds to port `3000`, so be sure to port-map that, e.g. via `-p 3000:3000` (note: the first `3000` is the external port)
 * The container uses whatever is volume-mapped to `/data` as the data root folder. You can connect a docker volume, or a host folder to this, e.g. `-v /home/myuser/silverbullet:/data`

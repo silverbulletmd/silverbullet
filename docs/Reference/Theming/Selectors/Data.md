@@ -15,7 +15,7 @@ A test in `client/styles/theme_docs.test.ts` fails when a class, id or attribute
 ```#theme-selector
 selector: "html[data-sb-scheme]"
 description: "`light` or `dark`: the scheme of the active theme. Read it, don’t set it; pick a theme instead."
-since: edge
+since: "3.0.0"
 stability: stable
 ---
 selector: "html[data-theme]"
@@ -25,7 +25,7 @@ stability: deprecated
 ---
 selector: "html[data-sb-theme]"
 description: "The page name of the active theme, such as `Library/Std/Themes/SilverBullet Dark`. Match the end with `$=` or a part with `*=`."
-since: edge
+since: "3.0.0"
 stability: stable
 ---
 selector: "#sb-root"

@@ -92,7 +92,7 @@ light: "color-mix(in srgb, var(--ui-accent-color), black 20%)"
 dark: "color-mix(in srgb, var(--ui-accent-color), black 40%)"
 derivesFrom:
 - "--ui-accent-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "A darker accent fill that carries light text, for a theme that fills hashtag pills or the selected completion with the accent, as Classic does. With a very light accent, set it yourself."
 ---
@@ -102,7 +102,7 @@ level: base
 light: "color-mix(in srgb, var(--ui-accent-color) 8%, white)"
 derivesFrom:
 - "--ui-accent-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text on `--ui-accent-strong-color`. Assumes the strong fill comes out dark; a theme with a very light accent sets both."
 ```
@@ -174,7 +174,7 @@ group: Tones
 level: base
 light: "#1f7a43"
 dark: "#6cc487"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for success. Use it in your own styles too."
 ---
@@ -183,7 +183,7 @@ group: Tones
 level: base
 light: "#e2f2e7"
 dark: "#1c3424"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-success`."
 ---
@@ -192,7 +192,7 @@ group: Tones
 level: base
 light: "#94570a"
 dark: "#e7b05a"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for warning. Use it in your own styles too."
 ---
@@ -201,7 +201,7 @@ group: Tones
 level: base
 light: "#fbeed8"
 dark: "#3a2c14"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-warning`."
 ---
@@ -210,7 +210,7 @@ group: Tones
 level: base
 light: "#b4232f"
 dark: "#f08a8a"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for danger and errors. Use it in your own styles too."
 ---
@@ -219,7 +219,7 @@ group: Tones
 level: base
 light: "#fbe2e4"
 dark: "#3d2023"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-danger`."
 ---
@@ -228,7 +228,7 @@ group: Tones
 level: base
 light: "#1d5fa8"
 dark: "#8fc4ef"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for information. Use it in your own styles too."
 ---
@@ -237,7 +237,7 @@ group: Tones
 level: base
 light: "#e1ecf8"
 dark: "#192c40"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-info`."
 ---
@@ -248,7 +248,7 @@ light: "color-mix(in srgb, var(--subtle-color), var(--root-color) 25%)"
 derivesFrom:
 - "--subtle-color"
 - "--root-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for neutral badges. Use it in your own styles too."
 ---
@@ -259,7 +259,7 @@ light: "color-mix(in srgb, var(--root-background-color), var(--ui-surface-border
 derivesFrom:
 - "--root-background-color"
 - "--ui-surface-border-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-neutral`."
 ---
@@ -269,7 +269,7 @@ level: base
 light: "var(--ui-accent-color)"
 derivesFrom:
 - "--ui-accent-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Text and marks for accent. Use it in your own styles too."
 ---
@@ -280,7 +280,7 @@ light: "color-mix(in srgb, var(--ui-accent-color) 14%, transparent)"
 dark: "color-mix(in srgb, var(--ui-accent-color) 22%, transparent)"
 derivesFrom:
 - "--ui-accent-color"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Background that goes with `--tone-accent`."
 ```
@@ -400,7 +400,7 @@ name: "--editor-font-size"
 group: Fonts
 level: base
 light: "18px"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "Page text size. Set by [[Reference/Theming/Fonts]]."
 ---
@@ -408,7 +408,7 @@ name: "--editor-font-x-height"
 group: Fonts
 level: base
 light: "none"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The editor font's x-height as a fraction of its size, which code in the editor is scaled to match (`font-size-adjust`). Measured by [[Reference/Theming/Fonts]]; `none` turns the scaling off."
 ---
@@ -416,7 +416,7 @@ name: "--editor-column-width"
 group: Fonts
 level: base
 light: "1ch"
-since: "edge"
+since: "3.0.0"
 stability: stable
 description: "One step of list, quote and comment indentation in the editor. `1ch` is the width of a `0` in the editor font; a proportional font may want it wider. See [[Reference/Theming/Fonts#Indent width]]."
 ```
@@ -441,7 +441,7 @@ level: specific
 light: "oklch(from var(--ui-accent-color) l calc(c * 0.25) h)"
 derivesFrom:
 - "--ui-accent-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The accent's hue at a quarter of its strength. The accent itself marks what you act on (links, the caret, selection, checkboxes, buttons); this muted version tints everything else (washes, bullets, quote bars), so a bright accent doesn't turn the whole page that color."
 ---
@@ -452,7 +452,7 @@ light: "color-mix(in srgb, var(--ui-accent-muted-color) 14%, transparent)"
 dark: "color-mix(in srgb, var(--ui-accent-muted-color) 22%, transparent)"
 derivesFrom:
 - "--ui-accent-muted-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "A translucent muted accent for pills and hairlines: hashtags, attributes, card and table header borders."
 ---
@@ -463,7 +463,7 @@ light: "color-mix(in oklab, var(--root-color), var(--subtle-color) 25%)"
 derivesFrom:
 - "--root-color"
 - "--subtle-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Labels: table headers, card titles, frontmatter keys, hashtags and picker titles. Ink rather than accent."
 ---
@@ -474,7 +474,7 @@ light: "color-mix(in srgb, var(--ui-accent-muted-color) 6%, var(--root-backgroun
 derivesFrom:
 - "--ui-accent-muted-color"
 - "--root-background-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "A faint wash of the accent behind cards, frontmatter, code blocks and panels."
 ---
@@ -532,7 +532,7 @@ name: "--ui-radius-sm"
 group: Shared surfaces
 level: specific
 light: "6px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Corner radius of small parts: menu items and completion rows."
 ---
@@ -540,7 +540,7 @@ name: "--ui-radius-md"
 group: Shared surfaces
 level: specific
 light: "8px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Corner radius of controls: buttons, fields, picker and sidebar rows."
 ---
@@ -548,7 +548,7 @@ name: "--ui-radius-lg"
 group: Shared surfaces
 level: specific
 light: "10px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Corner radius of popovers and blocks: menus, notifications, completion, code blocks, callouts and widgets."
 ---
@@ -556,7 +556,7 @@ name: "--ui-radius-xl"
 group: Shared surfaces
 level: specific
 light: "12px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Corner radius of cards and dialogs: tables, page widgets, the frontmatter form and prompts."
 ---
@@ -564,7 +564,7 @@ name: "--ui-radius-pill"
 group: Shared surfaces
 level: specific
 light: "99px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Corner radius of pills: badges, chips, attributes and segmented controls."
 ---
@@ -575,7 +575,7 @@ light: "0 1px 2px color-mix(in srgb, var(--root-color) 6%, transparent), 0 8px 2
 derivesFrom:
 - "--root-color"
 - "--ui-accent-muted-color"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Shadow of a card lifted off the page: tables, notifications, input menus and footnote previews."
 ---
@@ -585,7 +585,7 @@ level: specific
 light: "0 12px 32px -8px var(--modal-shadow-color)"
 derivesFrom:
 - "--modal-shadow-color"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Shadow of popovers: completion and row menus."
 ---
@@ -595,7 +595,7 @@ level: specific
 light: "3px solid var(--tone-accent-soft)"
 derivesFrom:
 - "--tone-accent-soft"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "The `outline` of a control with keyboard focus."
 ---
@@ -603,7 +603,7 @@ name: "--ui-font-size-sm"
 group: Shared surfaces
 level: specific
 light: "13.5px"
-since: edge
+since: "3.0.0"
 stability: stable
 description: "Interface text in controls: buttons, input menus and notifications."
 ```
@@ -695,7 +695,7 @@ level: specific
 light: "var(--subtle-color)"
 derivesFrom:
 - "--subtle-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The folder part of the page name in the top bar, such as `Projects/` in `Projects/Phoenix`. Set it to `currentColor` to follow the page name's color."
 ---
@@ -766,7 +766,7 @@ light: "color-mix(in srgb, var(--root-color) 4%, transparent)"
 dark: "rgba(0, 0, 0, 0.25)"
 derivesFrom:
 - "--root-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The shadow below the top bar once the page scrolls under it."
 ```
@@ -862,7 +862,7 @@ group: Modals and pickers
 level: specific
 light: "rgba(20, 22, 40, 0.2)"
 dark: "rgba(0, 0, 0, 0.55)"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Shadow under a modal."
 ---
@@ -1316,7 +1316,7 @@ level: specific
 light: "color-mix(in srgb, var(--highlight-color) 70%, transparent)"
 derivesFrom:
 - "--highlight-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Matches of the find bar (Mod-f) in the page."
 ---
@@ -1326,7 +1326,7 @@ level: specific
 light: "var(--highlight-color)"
 derivesFrom:
 - "--highlight-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The current match of the find bar, a stronger version of the other matches."
 ---
@@ -1409,7 +1409,7 @@ level: specific
 light: "var(--tone-accent-soft)"
 derivesFrom:
 - "--tone-accent-soft"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "The selected autocomplete option."
 ---
@@ -1419,7 +1419,7 @@ level: specific
 light: "var(--ui-accent-text-color)"
 derivesFrom:
 - "--ui-accent-text-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Text of the selected autocomplete option."
 ---
@@ -1605,7 +1605,7 @@ level: specific
 light: "underline 1.5px color-mix(in srgb, var(--ui-accent-text-color) 40%, transparent)"
 derivesFrom:
 - "--ui-accent-text-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Decoration of wiki links and bare URLs, in the editor and in widgets. `underline` draws them like links written with `[text](url)`, which are always underlined."
 ---
@@ -1641,7 +1641,7 @@ name: "--editor-hashtag-border-radius"
 group: Editor links and tags
 level: specific
 light: "99px"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Corner radius of hashtag pills, in the editor and in pickers. A large value such as `1em` gives round pills."
 ---
@@ -1691,7 +1691,7 @@ level: specific
 light: "var(--ui-label-color)"
 derivesFrom:
 - "--ui-label-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Page variable names. Experimental because [[Reference/Space Lua#]]ge variables|page variables]] are experimental."
 ---
@@ -1701,7 +1701,7 @@ level: specific
 light: "var(--ui-accent-muted-soft-color)"
 derivesFrom:
 - "--ui-accent-muted-soft-color"
-since: "edge"
+since: "3.0.0"
 stability: experimental
 description: "Background of page variable names. Experimental because [[Reference/Space Lua#Page variables|page variables]] are experimental."
 ```

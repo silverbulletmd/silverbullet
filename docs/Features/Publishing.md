@@ -42,8 +42,6 @@ The container runs as user and group `65534` (`nobody`), so the files must be re
 
 The image is tagged `publish` (the same as `latest-publish`), `<version>-publish` (such as `2.12.1-publish`) and `edge-publish`. See [[Administration/Server/Docker]].
 
-Until the next release, use `:edge-publish`: `:publish` and `:latest-publish` only exist once a release includes the publish image.
-
 ## Settings
 Set these as environment variables:
 
