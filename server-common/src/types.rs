@@ -42,6 +42,10 @@ pub struct BootConfig {
     pub sync_protocol_version: u32,
     #[serde(default)]
     pub revisions: RevisionsMode,
+    /// Whether this server has real folders: `/.fs?folders=1` listings and
+    /// `PUT`/`DELETE` on `/.fs/{folder}/`. Older servers omit it.
+    #[serde(default)]
+    pub folders: bool,
     /// Where others reach this space, for shareable links. `None` (omitted on
     /// the wire) means the URL the client is served from; `Some(None)` (sent
     /// as `null`) means nowhere. Desktop serves every space on localhost, so
@@ -103,6 +107,10 @@ pub enum SpaceError {
     PreconditionFailed,
     #[error("Reconcile ineligible")]
     ReconcileIneligible,
+    #[error("Folder not empty")]
+    FolderNotEmpty,
+    #[error("Not supported: {0}")]
+    Unsupported(String),
 }
 
 pub(crate) fn range_read_error(path: &str) -> SpaceError {
@@ -112,7 +120,35 @@ pub(crate) fn range_read_error(path: &str) -> SpaceError {
     ))
 }
 
+/// Every file and every folder in a space: the `/.fs?folders=1` wire shape.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct Listing {
+    pub files: Vec<FileMeta>,
+    /// Every folder, empty or not, as a relative path without a trailing
+    /// slash ("Projects/Archive"). `None` when the backend has no folders of
+    /// its own (an older server, or a backend without folder support): then
+    /// folders are only what file paths imply, and sync leaves them alone.
+    pub folders: Option<Vec<String>>,
+}
+
+/// The folders a file path implies: "a/b/c.md" -> ["a", "a/b"].
+pub fn parent_folders(path: &str) -> impl Iterator<Item = &str> {
+    path.match_indices('/').map(move |(i, _)| &path[..i])
+}
+
+/// Whether `path` lies somewhere below `folder` (given without slashes at
+/// either end): "a/b/c.md" is in "a" and in "a/b", but not in "a/b/c.md".
+pub fn is_in_folder(path: &str, folder: &str) -> bool {
+    path.strip_prefix(folder)
+        .is_some_and(|rest| rest.starts_with('/'))
+}
+
 /// The core storage abstraction for a space's files.
+///
+/// Folders behave like a normal file system's: a folder exists until it is
+/// deleted, whether or not anything is in it. A backend without real folders
+/// keeps the defaults: its listing has no folders (`None`), and folder
+/// operations are `Unsupported`.
 pub trait SpacePrimitives: Send + Sync {
     fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError>;
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError>;
@@ -138,6 +174,24 @@ pub trait SpacePrimitives: Send + Sync {
         meta: Option<&FileMeta>,
     ) -> Result<FileMeta, SpaceError>;
     fn delete_file(&self, path: &str) -> Result<(), SpaceError>;
+
+    /// Every file and folder, in one go where the backend can.
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        Ok(Listing {
+            files: self.fetch_file_list()?,
+            folders: None,
+        })
+    }
+    /// Creates the folder and any missing parents; a no-op if it exists.
+    fn create_folder(&self, _path: &str) -> Result<(), SpaceError> {
+        Err(SpaceError::Unsupported("folders".into()))
+    }
+    /// Deletes a folder: `NotFound` if it doesn't exist. Unless `recursive`,
+    /// only an empty one (`FolderNotEmpty` otherwise); with it, the folder
+    /// and everything in it, files and subfolders, in one operation.
+    fn delete_folder(&self, _path: &str, _recursive: bool) -> Result<(), SpaceError> {
+        Err(SpaceError::Unsupported("folders".into()))
+    }
 }
 
 impl<T: SpacePrimitives + ?Sized> SpacePrimitives for std::sync::Arc<T> {
@@ -169,11 +223,52 @@ impl<T: SpacePrimitives + ?Sized> SpacePrimitives for std::sync::Arc<T> {
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
         (**self).delete_file(path)
     }
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        (**self).fetch_listing()
+    }
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        (**self).create_folder(path)
+    }
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        (**self).delete_folder(path, recursive)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn boot_config_from_an_older_server_has_no_folders() {
+        let json = serde_json::json!({
+            "spaceFolderPath": "/space",
+            "spaceName": "Notes",
+            "indexPage": "index",
+            "readOnly": false,
+            "logPush": false,
+            "enableClientEncryption": false,
+            "shellBackend": "noop",
+            "disableServiceWorker": false,
+        });
+        let config: BootConfig = serde_json::from_value(json).unwrap();
+        assert!(!config.folders);
+    }
+
+    #[test]
+    fn parent_folders_of_a_path() {
+        assert_eq!(parent_folders("a/b/c.md").collect::<Vec<_>>(), ["a", "a/b"]);
+        assert_eq!(parent_folders("c.md").count(), 0);
+    }
+
+    #[test]
+    fn a_path_is_in_the_folders_above_it_only() {
+        assert!(is_in_folder("a/b/c.md", "a"));
+        assert!(is_in_folder("a/b/c.md", "a/b"));
+        assert!(is_in_folder("a/b", "a"));
+        assert!(!is_in_folder("a/b/c.md", "a/b/c.md"));
+        assert!(!is_in_folder("ab/c.md", "a"));
+        assert!(!is_in_folder("a", "a"));
+    }
 
     #[test]
     fn file_meta_serializes_camel_case() {
@@ -207,6 +302,7 @@ mod tests {
             disable_service_worker: false,
             ephemeral_storage: false,
             sync_protocol_version: 2,
+            folders: true,
             revisions: RevisionsMode::Disabled,
             public_url: None,
         };

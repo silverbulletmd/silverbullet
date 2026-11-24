@@ -12,6 +12,6 @@ pub mod starter_kits;
 pub mod types;
 pub mod upgrade;
 
-pub use types::{BootConfig, FileMeta, RevisionsMode, SpaceError, SpacePrimitives};
+pub use types::{BootConfig, FileMeta, Listing, RevisionsMode, SpaceError, SpacePrimitives};
 
 pub mod page;

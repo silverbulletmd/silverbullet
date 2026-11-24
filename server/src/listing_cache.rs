@@ -10,11 +10,12 @@
 //! another host on a network filesystem, a folder moved in from outside).
 //! Without an attached watcher every listing walks, as before.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
 use silverbullet_server_common::space::disk::DiskSpacePrimitives;
+use silverbullet_server_common::types::{parent_folders, Listing};
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 use tokio::sync::broadcast;
 
@@ -67,8 +68,27 @@ impl ListingCachedSpace {
 
 impl SpacePrimitives for ListingCachedSpace {
     fn fetch_file_list(&self) -> Result<Vec<FileMeta>, SpaceError> {
+        Ok(self.fetch_listing()?.files)
+    }
+
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
         self.cache
-            .fetch(|| self.disk.fetch_file_list(), &*self.disk)
+            .fetch_listing(|| self.disk.fetch_listing(), &*self.disk)
+    }
+
+    // The watcher doesn't report folders, so folder changes drop the cached
+    // listing rather than patch it: that drops every cached file and folder
+    // under a deleted one too. They're rare next to file writes.
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        let created = self.disk.create_folder(path);
+        self.cache.invalidate();
+        created
+    }
+
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        let deleted = self.disk.delete_folder(path, recursive);
+        self.cache.invalidate();
+        deleted
     }
 
     fn get_file_meta(&self, path: &str) -> Result<FileMeta, SpaceError> {
@@ -164,18 +184,31 @@ struct Files {
     by_folded: HashMap<String, String>,
     /// The listing as last served, rebuilt after any change.
     sorted: Option<Vec<FileMeta>>,
+    /// Every folder, empty or not: the disk always lists them. Files only
+    /// ever add to it: a folder
+    /// outlives its files, and a folder deleted outside the server arrives as
+    /// a delete event for a path that isn't a file, which drops the cache.
+    folders: BTreeSet<String>,
 }
 
 impl Files {
-    fn from_list(list: &[FileMeta], case_insensitive: bool) -> Self {
-        let mut files = Files::default();
-        for meta in list {
+    fn from_listing(listing: &Listing, case_insensitive: bool) -> Self {
+        let mut files = Files {
+            folders: listing.folders.iter().flatten().cloned().collect(),
+            ..Files::default()
+        };
+        for meta in &listing.files {
             files.upsert(meta.clone(), case_insensitive);
         }
         files
     }
 
     fn upsert(&mut self, meta: FileMeta, case_insensitive: bool) {
+        for folder in parent_folders(&meta.name) {
+            if !self.folders.contains(folder) {
+                self.folders.insert(folder.to_string());
+            }
+        }
         if case_insensitive {
             let folded = meta.name.to_lowercase();
             if let Some(previous) = self.by_folded.insert(folded, meta.name.clone()) {
@@ -200,14 +233,19 @@ impl Files {
         true
     }
 
-    fn listing(&mut self) -> Vec<FileMeta> {
-        self.sorted
+    fn listing(&mut self) -> Listing {
+        let files = self
+            .sorted
             .get_or_insert_with(|| {
                 let mut list: Vec<FileMeta> = self.by_name.values().cloned().collect();
                 list.sort_by(|a, b| a.name.cmp(&b.name));
                 list
             })
-            .clone()
+            .clone();
+        Listing {
+            files,
+            folders: Some(self.folders.iter().cloned().collect()),
+        }
     }
 }
 
@@ -225,7 +263,7 @@ impl ListingCache {
         self.state.lock().unwrap_or_else(|e| e.into_inner())
     }
 
-    fn fresh(&self) -> Option<Vec<FileMeta>> {
+    fn fresh(&self) -> Option<Listing> {
         let mut state = self.lock();
         if !state.live || state.walked_at?.elapsed() >= self.revalidate_after {
             return None;
@@ -233,11 +271,11 @@ impl ListingCache {
         Some(state.files.as_mut()?.listing())
     }
 
-    fn fetch(
+    fn fetch_listing(
         &self,
-        walk: impl FnOnce() -> Result<Vec<FileMeta>, SpaceError>,
+        walk: impl FnOnce() -> Result<Listing, SpaceError>,
         disk: &dyn ListableMeta,
-    ) -> Result<Vec<FileMeta>, SpaceError> {
+    ) -> Result<Listing, SpaceError> {
         if let Some(list) = self.fresh() {
             return Ok(list);
         }
@@ -261,7 +299,7 @@ impl ListingCache {
             if !state.live {
                 return Ok(list);
             }
-            state.files = Some(Files::from_list(&list, self.case_insensitive));
+            state.files = Some(Files::from_listing(&list, self.case_insensitive));
             state.walked_at = Some(Instant::now());
         }
         // The walk may have passed these before or after they changed.
@@ -350,9 +388,12 @@ mod tests {
             self.files.lock().unwrap().remove(name);
         }
 
-        fn walk(&self) -> Result<Vec<FileMeta>, SpaceError> {
+        fn walk(&self) -> Result<Listing, SpaceError> {
             self.walks.fetch_add(1, Ordering::SeqCst);
-            Ok(self.files.lock().unwrap().values().cloned().collect())
+            Ok(Listing {
+                files: self.files.lock().unwrap().values().cloned().collect(),
+                folders: Some(vec![]),
+            })
         }
     }
 
@@ -375,6 +416,11 @@ mod tests {
         list.iter().map(|m| m.name.as_str()).collect()
     }
 
+    /// The files of a listing through `cache`, walking `disk` if it must.
+    fn files(cache: &ListingCache, disk: &FakeDisk) -> Vec<FileMeta> {
+        cache.fetch_listing(|| disk.walk(), disk).unwrap().files
+    }
+
     fn event(name: &str, action: FsAction) -> FsEvent {
         FsEvent {
             name: name.to_string(),
@@ -390,8 +436,8 @@ mod tests {
         let disk = FakeDisk::default();
         disk.put("a.md", 1);
         let cache = ListingCache::new(false, Duration::from_secs(60));
-        cache.fetch(|| disk.walk(), &disk).unwrap();
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
+        files(&cache, &disk);
         assert_eq!(disk.walks.load(Ordering::SeqCst), 2);
     }
 
@@ -401,10 +447,7 @@ mod tests {
         disk.put("b.md", 1);
         disk.put("a.md", 1);
         let cache = live_cache(false);
-        assert_eq!(
-            names(&cache.fetch(|| disk.walk(), &disk).unwrap()),
-            ["a.md", "b.md"]
-        );
+        assert_eq!(names(&files(&cache, &disk)), ["a.md", "b.md"]);
 
         disk.put("c.md", 2);
         cache.apply(&event("c.md", FsAction::Change), &disk);
@@ -413,10 +456,62 @@ mod tests {
         disk.drop_file("b.md");
         cache.apply(&event("b.md", FsAction::Delete), &disk);
 
-        let list = cache.fetch(|| disk.walk(), &disk).unwrap();
+        let list = files(&cache, &disk);
         assert_eq!(names(&list), ["a.md", "c.md"]);
         assert_eq!(list[0].last_modified, 5);
         assert_eq!(disk.walks.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn a_live_cache_keeps_folders_their_files_leave() {
+        let disk = FakeDisk::default();
+        disk.put("Notes/a.md", 1);
+        let cache = live_cache(false);
+        let walk = || {
+            disk.walk().map(|listing| Listing {
+                folders: Some(vec!["Empty".to_string(), "Notes".to_string()]),
+                ..listing
+            })
+        };
+        assert_eq!(
+            cache.fetch_listing(walk, &disk).unwrap().folders.unwrap(),
+            ["Empty", "Notes"]
+        );
+
+        disk.put("Deep/Er/b.md", 2);
+        cache.apply(&event("Deep/Er/b.md", FsAction::Change), &disk);
+        disk.drop_file("Notes/a.md");
+        cache.apply(&event("Notes/a.md", FsAction::Delete), &disk);
+
+        let listing = cache.fetch_listing(walk, &disk).unwrap();
+        assert_eq!(
+            listing.folders.unwrap(),
+            ["Deep", "Deep/Er", "Empty", "Notes"]
+        );
+        assert_eq!(names(&listing.files), ["Deep/Er/b.md"]);
+        assert_eq!(disk.walks.load(Ordering::SeqCst), 1);
+    }
+
+    #[test]
+    fn folder_changes_drop_the_cached_listing() {
+        let dir = tempfile::tempdir().unwrap();
+        let space = ListingCachedSpace::new(DiskSpacePrimitives::new(dir.path(), "").unwrap());
+        space.cache.lock().live = true;
+        let folders = |space: &ListingCachedSpace| space.fetch_listing().unwrap().folders.unwrap();
+        assert!(folders(&space).is_empty());
+
+        space.create_folder("Projects").unwrap();
+        assert_eq!(folders(&space), ["Projects"]);
+        space.delete_folder("Projects", false).unwrap();
+        assert!(folders(&space).is_empty());
+
+        // A recursive delete drops the files and folders under it too
+        space.write_file("Projects/Deep/a.md", b"a", None).unwrap();
+        space.write_file("b.md", b"b", None).unwrap();
+        assert_eq!(folders(&space), ["Projects", "Projects/Deep"]);
+        space.delete_folder("Projects", true).unwrap();
+        assert!(folders(&space).is_empty());
+        assert_eq!(names(&space.fetch_file_list().unwrap()), ["b.md"]);
     }
 
     #[test]
@@ -424,18 +519,15 @@ mod tests {
         let disk = FakeDisk::default();
         disk.put("Folder/a.md", 1);
         let cache = live_cache(false);
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
 
         disk.drop_file("Folder/a.md");
         disk.put("Renamed/a.md", 1);
         cache.apply(&event("Folder", FsAction::Delete), &disk);
-        assert_eq!(
-            names(&cache.fetch(|| disk.walk(), &disk).unwrap()),
-            ["Renamed/a.md"]
-        );
+        assert_eq!(names(&files(&cache, &disk)), ["Renamed/a.md"]);
 
         cache.apply(&event("", FsAction::Resync), &disk);
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
         assert_eq!(disk.walks.load(Ordering::SeqCst), 3);
     }
 
@@ -445,10 +537,10 @@ mod tests {
         disk.put("a.md", 1);
         let cache = ListingCache::new(false, Duration::from_millis(5));
         cache.lock().live = true;
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
         std::thread::sleep(Duration::from_millis(20));
         disk.put("from-another-host.md", 1);
-        let list = cache.fetch(|| disk.walk(), &disk).unwrap();
+        let list = files(&cache, &disk);
         assert_eq!(names(&list), ["a.md", "from-another-host.md"]);
     }
 
@@ -458,7 +550,7 @@ mod tests {
         disk.put("a.md", 1);
         let cache = live_cache(false);
         let list = cache
-            .fetch(
+            .fetch_listing(
                 || {
                     let walked = disk.walk();
                     // Lands after the walk passed it, before it finished.
@@ -470,7 +562,8 @@ mod tests {
                 },
                 &disk,
             )
-            .unwrap();
+            .unwrap()
+            .files;
         assert_eq!(names(&list), ["a.md", "new.md"]);
         assert_eq!(list[0].last_modified, 9);
     }
@@ -481,7 +574,7 @@ mod tests {
         disk.put("a.md", 1);
         let cache = live_cache(false);
         cache
-            .fetch(
+            .fetch_listing(
                 || {
                     let walked = disk.walk();
                     cache.apply(&event("", FsAction::Resync), &disk);
@@ -490,7 +583,7 @@ mod tests {
                 &disk,
             )
             .unwrap();
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
         assert_eq!(disk.walks.load(Ordering::SeqCst), 2);
     }
 
@@ -499,14 +592,11 @@ mod tests {
         let disk = FakeDisk::default();
         disk.put("page.md", 1);
         let cache = live_cache(true);
-        cache.fetch(|| disk.walk(), &disk).unwrap();
+        files(&cache, &disk);
         disk.drop_file("page.md");
         disk.put("Page.md", 2);
         cache.apply(&event("Page.md", FsAction::Change), &disk);
-        assert_eq!(
-            names(&cache.fetch(|| disk.walk(), &disk).unwrap()),
-            ["Page.md"]
-        );
+        assert_eq!(names(&files(&cache, &disk)), ["Page.md"]);
     }
 
     #[test]
@@ -519,7 +609,7 @@ mod tests {
                 let (disk, cache) = (disk.clone(), cache.clone());
                 std::thread::spawn(move || {
                     cache
-                        .fetch(
+                        .fetch_listing(
                             || {
                                 std::thread::sleep(Duration::from_millis(30));
                                 disk.walk()
@@ -527,6 +617,7 @@ mod tests {
                             &*disk,
                         )
                         .unwrap()
+                        .files
                 })
             })
             .collect();

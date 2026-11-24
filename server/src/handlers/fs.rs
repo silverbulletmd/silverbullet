@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::extract::{Extension, Path, State};
+use axum::extract::{Extension, Path, RawQuery, State};
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use silverbullet_server_common::reconcile::{
@@ -11,6 +11,7 @@ use silverbullet_server_common::revision::{
     etag_for_hash, hash_from_etag, sha256_hex, CONTENT_REVISION_HEADER,
 };
 use silverbullet_server_common::space::disk::{is_merge_eligible, MERGE_SIZE_LIMIT};
+use silverbullet_server_common::types::is_in_folder;
 use silverbullet_server_common::{FileMeta, SpaceError};
 use silverbullet_server_merge::{contains_conflict_markers, merge, MergeOutcome};
 
@@ -79,11 +80,47 @@ fn is_inline_file_content_type(content_type: &str) -> bool {
 /// browser the octet-stream copy; `private` keeps them out entirely.
 const FILE_CACHE_CONTROL: &str = "private, no-cache";
 
-pub async fn handle_fs_list(State(state): State<Arc<ServerState>>) -> impl IntoResponse {
+/// Whether the request's query sets the flag `name` (`name`, `name=1` or
+/// `name=true`).
+fn query_flag(query: Option<&str>, name: &str) -> bool {
+    query.is_some_and(|q| {
+        q.split('&').any(|pair| match pair.split_once('=') {
+            Some((key, value)) => key == name && matches!(value, "1" | "true"),
+            None => pair == name,
+        })
+    })
+}
+
+/// The space's files: a plain array, as every client has always read it, or,
+/// for `?folders=1` on a space with folders of its own, `{ files, folders }`
+/// with every folder in it. A space without folders answers the plain array
+/// either way, exactly as an older server (which ignores the parameter)
+/// does, so a client tells the two apart by the response's shape.
+pub async fn handle_fs_list(
+    State(state): State<Arc<ServerState>>,
+    RawQuery(query): RawQuery,
+) -> impl IntoResponse {
+    let with_folders = query_flag(query.as_deref(), "folders");
     let state_inner = state.clone();
-    match run_blocking(move || state_inner.space.fetch_file_list()).await {
-        Ok(files) => {
-            let json = serde_json::to_string(&files).unwrap_or_else(|e| {
+    let listed = run_blocking(move || {
+        if !with_folders {
+            return state_inner
+                .space
+                .fetch_file_list()
+                .map(|files| serde_json::to_string(&files));
+        }
+        state_inner
+            .space
+            .fetch_listing()
+            .map(|listing| match listing.folders {
+                Some(_) => serde_json::to_string(&listing),
+                None => serde_json::to_string(&listing.files),
+            })
+    })
+    .await;
+    match listed {
+        Ok(serialized) => {
+            let json = serialized.unwrap_or_else(|e| {
                 tracing::error!("failed to serialize file list: {e}");
                 "[]".to_string()
             });
@@ -627,13 +664,115 @@ fn precondition_failed_response(current: CurrentRevision) -> Response {
         .unwrap()
 }
 
+/// The folder a `/.fs/{path}/` request addresses, if the path has the
+/// trailing slash that marks it as one.
+fn folder_path(path: &str) -> Option<&str> {
+    path.strip_suffix('/')
+}
+
+/// What a `PUT`/`DELETE` on `/.fs/{folder}/` does to the folder.
+#[derive(Clone, Copy)]
+enum FolderOp {
+    Create,
+    Delete { recursive: bool },
+}
+
+/// `PUT`/`DELETE` on `/.fs/{folder}/`: creates (with any missing parents,
+/// idempotently) or deletes a folder, an empty one unless the delete has
+/// `?recursive=1`. 204 on success; deleting answers 404 for a missing folder
+/// and 409 for one that isn't empty (never for a recursive delete).
+async fn handle_folder_mutation(
+    state: Arc<ServerState>,
+    folder: &str,
+    op: FolderOp,
+    actor: Actor,
+    headers: &HeaderMap,
+) -> Response {
+    let folder = folder.trim_matches('/').to_string();
+    if folder.is_empty() {
+        return space_error_response(SpaceError::PathOutsideRoot);
+    }
+    let client_id = client_id_header(headers);
+    let source = source_header(headers);
+    let result = run_blocking(move || {
+        let _mutation = state
+            .fs_guard
+            .mutation
+            .read()
+            .unwrap_or_else(|e| e.into_inner());
+        match op {
+            FolderOp::Create => state.space.create_folder(&folder),
+            FolderOp::Delete { recursive: false } => state.space.delete_folder(&folder, false),
+            FolderOp::Delete { recursive: true } => {
+                delete_folder_recursively(&state, &folder, actor, client_id, source)
+            }
+        }
+    })
+    .await;
+    match result {
+        Ok(()) => Response::builder()
+            .status(StatusCode::NO_CONTENT)
+            .header("Cache-Control", "no-store")
+            .body(Body::empty())
+            .unwrap(),
+        Err(e) => space_error_response(e),
+    }
+}
+
+/// Deletes `folder` and everything in it, then does for each file it held
+/// what deleting that file alone does: forgets its hash and records the
+/// delete as this actor's, so the watcher attributes the per-file delete
+/// events it reports (and the index learns of each), and tells the revision
+/// engine once. Without a watcher, the space's `WriteEvents` layer reports
+/// each file's delete itself.
+fn delete_folder_recursively(
+    state: &ServerState,
+    folder: &str,
+    actor: Actor,
+    client_id: Option<String>,
+    source: Option<String>,
+) -> Result<(), SpaceError> {
+    let doomed: Vec<(FileMeta, Option<String>)> = state
+        .space
+        .fetch_file_list()?
+        .into_iter()
+        .filter(|file| is_in_folder(&file.name, folder))
+        .map(|file| {
+            let hash = state.fs_guard.hash_for(&*state.space, &file.name).ok();
+            (file, hash)
+        })
+        .collect();
+    state.space.delete_folder(folder, true)?;
+    for (file, hash) in &doomed {
+        state.fs_guard.forget(&file.name);
+        if let Some(hash) = hash {
+            state.fs_guard.record_expected_write_with_meta(
+                &file.name,
+                hash,
+                actor.clone(),
+                client_id.clone(),
+                source.clone(),
+                file.size,
+                file.last_modified,
+            );
+        }
+    }
+    if let Some(engine) = state.revisions.as_ref().filter(|_| !doomed.is_empty()) {
+        engine.notify_file_saved();
+    }
+    Ok(())
+}
+
 pub async fn handle_fs_put(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
     Extension(actor): Extension<Actor>,
     headers: HeaderMap,
     body: axum::body::Bytes,
-) -> impl IntoResponse {
+) -> Response {
+    if let Some(folder) = folder_path(&path) {
+        return handle_folder_mutation(state, folder, FolderOp::Create, actor, &headers).await;
+    }
     let meta = file_meta_from_headers(&headers, &path);
     let if_match = headers
         .get(axum::http::header::IF_MATCH)
@@ -712,8 +851,14 @@ pub async fn handle_fs_delete(
     State(state): State<Arc<ServerState>>,
     Path(path): Path<String>,
     Extension(actor): Extension<Actor>,
+    RawQuery(query): RawQuery,
     headers: HeaderMap,
-) -> impl IntoResponse {
+) -> Response {
+    if let Some(folder) = folder_path(&path) {
+        let recursive = query_flag(query.as_deref(), "recursive");
+        let op = FolderOp::Delete { recursive };
+        return handle_folder_mutation(state, folder, op, actor, &headers).await;
+    }
     let if_match = headers
         .get(axum::http::header::IF_MATCH)
         .map(|v| v.to_str().unwrap_or("").to_string());
@@ -1111,11 +1256,12 @@ mod tests {
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Arc;
 
-    use super::is_inline_safe;
+    use super::{is_inline_safe, query_flag};
     use crate::test_support::test_state;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use silverbullet_server_common::revision::etag_for_hash;
+    use silverbullet_server_common::revision::sha256_hex;
     use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
     use tower::ServiceExt;
 
@@ -1407,6 +1553,173 @@ mod tests {
             .unwrap()
             .iter()
             .any(|f| f["name"] == "a.md"));
+    }
+
+    async fn send(
+        state: &Arc<crate::state::ServerState>,
+        method: &str,
+        uri: &str,
+    ) -> (StatusCode, Vec<u8>) {
+        let resp = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method(method)
+                    .uri(uri)
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = resp.status();
+        let bytes = axum::body::to_bytes(resp.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        (status, bytes.to_vec())
+    }
+
+    #[tokio::test]
+    async fn list_includes_folders_only_when_asked() {
+        let state = Arc::new(test_state());
+        state
+            .space
+            .write_file("Notes/a.md", b"hello", None)
+            .unwrap();
+        state.space.create_folder("Empty").unwrap();
+
+        let (status, body) = send(&state, "GET", "/.fs?folders=1").await;
+        assert_eq!(status, StatusCode::OK);
+        let listing: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(listing["folders"], serde_json::json!(["Empty", "Notes"]));
+        let files = listing["files"].as_array().unwrap();
+        assert_eq!(files.len(), 1);
+        assert_eq!(files[0]["name"], "Notes/a.md");
+
+        // Without the parameter: the plain array every client has always read
+        let (status, body) = send(&state, "GET", "/.fs").await;
+        assert_eq!(status, StatusCode::OK);
+        let files: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(files.as_array().unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn folders_are_created_and_deleted_with_a_trailing_slash() {
+        let state = Arc::new(test_state());
+        let folders = |state: &Arc<crate::state::ServerState>| {
+            state.space.fetch_listing().unwrap().folders.unwrap()
+        };
+
+        let (status, _) = send(&state, "PUT", "/.fs/Projects/Archive/").await;
+        assert_eq!(status, StatusCode::NO_CONTENT);
+        let (status, _) = send(&state, "PUT", "/.fs/Projects/Archive/").await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "creating is idempotent");
+        assert_eq!(folders(&state), ["Projects", "Projects/Archive"]);
+        assert!(
+            state.space.fetch_file_list().unwrap().is_empty(),
+            "no file named after the folder"
+        );
+
+        let (status, _) = send(&state, "DELETE", "/.fs/Projects/").await;
+        assert_eq!(status, StatusCode::CONFLICT, "not empty");
+        let (status, _) = send(&state, "DELETE", "/.fs/Projects/Archive/").await;
+        assert_eq!(status, StatusCode::NO_CONTENT);
+        let (status, _) = send(&state, "DELETE", "/.fs/Missing/").await;
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        assert_eq!(folders(&state), ["Projects"]);
+    }
+
+    #[tokio::test]
+    async fn folder_mutations_are_refused_in_a_read_only_space() {
+        // Read-only servers wrap their space, as `multi::instance` does
+        let mut state = test_state();
+        state.space = Arc::new(
+            silverbullet_server_common::space::readonly::ReadOnlySpacePrimitives::new(Box::new(
+                silverbullet_server_common::space::MemorySpacePrimitives::new(),
+            )),
+        );
+        let state = Arc::new(state);
+        for (method, uri) in [
+            ("PUT", "/.fs/Projects/"),
+            ("DELETE", "/.fs/Projects/"),
+            ("DELETE", "/.fs/Projects/?recursive=1"),
+        ] {
+            let (status, _) = send(&state, method, uri).await;
+            assert_eq!(status, StatusCode::FORBIDDEN, "{method} {uri}");
+        }
+        assert_eq!(state.space.fetch_listing().unwrap().folders, Some(vec![]));
+    }
+
+    #[tokio::test]
+    async fn a_recursive_delete_takes_everything_and_attributes_each_file() {
+        let state = Arc::new(test_state());
+        state
+            .space
+            .write_file("Projects/Plan.md", b"Plan", None)
+            .unwrap();
+        state
+            .space
+            .write_file("Projects/Archive/Old.md", b"Old", None)
+            .unwrap();
+        state.space.write_file("Keep.md", b"Keep", None).unwrap();
+
+        let resp = crate::build_router(state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("DELETE")
+                    .uri("/.fs/Projects/?recursive=1")
+                    .header("X-Client-Id", "client-1")
+                    .header("X-Source", "editor")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::NO_CONTENT);
+
+        let names: Vec<String> = state
+            .space
+            .fetch_file_list()
+            .unwrap()
+            .into_iter()
+            .map(|f| f.name)
+            .collect();
+        assert_eq!(names, ["Keep.md"]);
+        assert_eq!(state.space.fetch_listing().unwrap().folders, Some(vec![]));
+        for (path, content) in [
+            ("Projects/Plan.md", &b"Plan"[..]),
+            ("Projects/Archive/Old.md", b"Old"),
+        ] {
+            let (hash, expected) = state
+                .fs_guard
+                .latest_expected_write_for_path(path)
+                .expect("each deleted file is attributed");
+            assert_eq!(hash, sha256_hex(content), "{path}");
+            assert_eq!(expected.client_id.as_deref(), Some("client-1"));
+            assert_eq!(expected.size, Some(content.len() as i64));
+        }
+
+        let (status, _) = send(&state, "DELETE", "/.fs/Projects/?recursive=1").await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "already gone");
+    }
+
+    #[tokio::test]
+    async fn a_space_without_folders_lists_the_plain_array_even_when_asked() {
+        let mut state = test_state();
+        state.space = Arc::new(silverbullet_server_common::space::EmptySpacePrimitives);
+        let state = Arc::new(state);
+        let (status, body) = send(&state, "GET", "/.fs?folders=1").await;
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(body, b"[]");
+    }
+
+    #[test]
+    fn query_flags_take_bare_one_or_true() {
+        for query in ["recursive", "recursive=1", "a=b&recursive=true"] {
+            assert!(query_flag(Some(query), "recursive"), "{query}");
+        }
+        for query in ["recursive=0", "recursively=1", "x=recursive"] {
+            assert!(!query_flag(Some(query), "recursive"), "{query}");
+        }
+        assert!(!query_flag(None, "recursive"));
     }
 
     #[tokio::test]

@@ -1,14 +1,18 @@
 //! In-memory `SpacePrimitives` for tests in this crate and downstream crates.
 //! Enabled via the `testing` feature.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::sync::Mutex;
 
-use crate::types::{FileMeta, SpaceError, SpacePrimitives};
+use crate::space::conditional::ConditionalSpacePrimitives;
+use crate::types::{is_in_folder, parent_folders, FileMeta, Listing, SpaceError, SpacePrimitives};
 
 #[derive(Default)]
 pub struct MemorySpacePrimitives {
     files: Mutex<HashMap<String, (Vec<u8>, FileMeta)>>,
+    /// Every folder, like a file system's: created by writes and
+    /// `create_folder`, removed only by `delete_folder`.
+    folders: Mutex<BTreeSet<String>>,
 }
 
 impl MemorySpacePrimitives {
@@ -67,6 +71,10 @@ impl SpacePrimitives for MemorySpacePrimitives {
             .lock()
             .unwrap()
             .insert(path.to_string(), (data.to_vec(), meta.clone()));
+        self.folders
+            .lock()
+            .unwrap()
+            .extend(parent_folders(path).map(str::to_string));
         Ok(meta)
     }
 
@@ -78,7 +86,48 @@ impl SpacePrimitives for MemorySpacePrimitives {
             .map(|_| ())
             .ok_or(SpaceError::NotFound)
     }
+
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        Ok(Listing {
+            files: self.fetch_file_list()?,
+            folders: Some(self.folders.lock().unwrap().iter().cloned().collect()),
+        })
+    }
+
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        let path = path.trim_matches('/');
+        if path.is_empty() {
+            return Err(SpaceError::PathOutsideRoot);
+        }
+        let mut folders = self.folders.lock().unwrap();
+        folders.extend(parent_folders(path).map(str::to_string));
+        folders.insert(path.to_string());
+        Ok(())
+    }
+
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        let path = path.trim_matches('/');
+        let mut folders = self.folders.lock().unwrap();
+        if !folders.contains(path) {
+            return Err(SpaceError::NotFound);
+        }
+        let mut files = self.files.lock().unwrap();
+        if recursive {
+            files.retain(|name, _| !is_in_folder(name, path));
+            folders.retain(|folder| !is_in_folder(folder, path));
+        } else if folders.iter().any(|f| is_in_folder(f, path))
+            || files.keys().any(|f| is_in_folder(f, path))
+        {
+            return Err(SpaceError::FolderNotEmpty);
+        }
+        folders.remove(path);
+        Ok(())
+    }
 }
+
+/// Unconditional, like any backend without revisions: lets a memory space
+/// stand in for a sync remote in tests.
+impl ConditionalSpacePrimitives for MemorySpacePrimitives {}
 
 #[cfg(test)]
 mod tests {
@@ -105,5 +154,17 @@ mod tests {
     fn passes_read_write_conformance() {
         let sp = MemorySpacePrimitives::new();
         crate::space::conformance::run_read_write_conformance(&sp);
+    }
+
+    #[test]
+    fn passes_folder_conformance() {
+        crate::space::conformance::run_folder_conformance(&MemorySpacePrimitives::new());
+    }
+
+    #[test]
+    fn passes_recursive_folder_delete_conformance() {
+        crate::space::conformance::run_recursive_folder_delete_conformance(
+            &MemorySpacePrimitives::new(),
+        );
     }
 }

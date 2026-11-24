@@ -218,6 +218,7 @@ mod tests {
         assert_eq!(v["spaceName"], "Test");
         assert_eq!(v["indexPage"], "index");
         assert_eq!(v["readOnly"], false);
+        assert_eq!(v["folders"], true);
     }
 
     #[tokio::test]

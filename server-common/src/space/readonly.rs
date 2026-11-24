@@ -1,7 +1,7 @@
 //! A `SpacePrimitives` wrapper that makes any inner space read-only: reads pass
 //! through; writes and deletes are rejected. Used for `SB_READ_ONLY` servers.
 
-use crate::types::{FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{FileMeta, Listing, SpaceError, SpacePrimitives};
 
 pub struct ReadOnlySpacePrimitives {
     inner: Box<dyn SpacePrimitives>,
@@ -46,6 +46,19 @@ impl SpacePrimitives for ReadOnlySpacePrimitives {
             "Cannot delete file {path}: read-only mode"
         )))
     }
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        self.inner.fetch_listing()
+    }
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        Err(SpaceError::ReadOnly(format!(
+            "Cannot create folder {path}: read-only mode"
+        )))
+    }
+    fn delete_folder(&self, path: &str, _recursive: bool) -> Result<(), SpaceError> {
+        Err(SpaceError::ReadOnly(format!(
+            "Cannot delete folder {path}: read-only mode"
+        )))
+    }
 }
 
 #[cfg(test)]
@@ -83,6 +96,12 @@ mod tests {
         let ro = ro();
         assert!(ro.write_file("b.md", b"x", None).is_err());
         assert!(ro.delete_file("a.md").is_err());
+        for recursive in [false, true] {
+            assert!(matches!(
+                ro.delete_folder("Notes", recursive),
+                Err(SpaceError::ReadOnly(_))
+            ));
+        }
         assert!(ro.read_file("a.md").is_ok());
     }
 }

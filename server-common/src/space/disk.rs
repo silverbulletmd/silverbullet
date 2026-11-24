@@ -8,7 +8,7 @@ use ignore::gitignore::GitignoreBuilder;
 use walkdir::WalkDir;
 
 use crate::space::case;
-use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{range_read_error, FileMeta, Listing, SpaceError, SpacePrimitives};
 
 /// A snapshot of a space's gitignore-style ignore rules, for checking whether
 /// paths are visible without rebuilding the matcher on every call. See
@@ -253,6 +253,22 @@ impl DiskSpacePrimitives {
         &self,
         mut visit: impl FnMut(String, &walkdir::DirEntry) -> ControlFlow<T>,
     ) -> Option<T> {
+        self.walk_entries(|relative, entry, is_dir| {
+            if is_dir {
+                ControlFlow::Continue(())
+            } else {
+                visit(relative, entry)
+            }
+        })
+    }
+
+    /// Walk every listable file and every folder (below the root) the walk
+    /// enters, with `is_dir` telling them apart. Hidden and ignored folders
+    /// are pruned along with everything in them.
+    fn walk_entries<T>(
+        &self,
+        mut visit: impl FnMut(String, &walkdir::DirEntry, bool) -> ControlFlow<T>,
+    ) -> Option<T> {
         let matcher = self.gitignore_matcher();
 
         let root_path = self.root_path.clone();
@@ -280,7 +296,18 @@ impl DiskSpacePrimitives {
             let path = entry.path();
             let is_dir = entry.file_type().is_dir();
 
-            if !is_dir && entry.file_name().to_string_lossy().starts_with('.') {
+            if is_dir {
+                if entry.depth() == 0 {
+                    continue;
+                }
+                if let ControlFlow::Break(value) = visit(self.path_to_filename(path), &entry, true)
+                {
+                    return Some(value);
+                }
+                continue;
+            }
+
+            if entry.file_name().to_string_lossy().starts_with('.') {
                 continue;
             }
 
@@ -294,7 +321,7 @@ impl DiskSpacePrimitives {
                 continue;
             }
 
-            if let ControlFlow::Break(value) = visit(relative, &entry) {
+            if let ControlFlow::Break(value) = visit(relative, &entry, false) {
                 return Some(value);
             }
         }
@@ -314,18 +341,14 @@ impl DiskSpacePrimitives {
         .is_some()
     }
 
-    /// Remove empty parent directories up to (but not including) root_path.
-    fn clean_orphaned(&self, deleted_file: &Path) {
-        let mut current = deleted_file.parent().map(Path::to_path_buf);
-        while let Some(dir) = current {
-            if dir == self.root_path || !dir.starts_with(&self.root_path) {
-                break;
-            }
-            if fs::remove_dir(&dir).is_err() {
-                break;
-            }
-            current = dir.parent().map(Path::to_path_buf);
+    /// A folder path the folder operations accept: inside the space, and not
+    /// the space itself.
+    fn safe_folder_path(&self, path: &str) -> Result<PathBuf, SpaceError> {
+        let trimmed = path.trim_matches('/');
+        if trimmed.is_empty() {
+            return Err(SpaceError::PathOutsideRoot);
         }
+        self.safe_path(trimmed)
     }
 }
 
@@ -473,16 +496,82 @@ impl SpacePrimitives for DiskSpacePrimitives {
             }
         }
 
+        // Folders outlive their files, as in any file system: the folder a
+        // deleted file leaves empty stays until it is deleted itself.
         fs::remove_file(&local_path).map_err(|e| {
             if e.kind() == std::io::ErrorKind::NotFound {
                 SpaceError::NotFound
             } else {
                 SpaceError::Io(e)
             }
-        })?;
-        self.clean_orphaned(&local_path);
-        Ok(())
+        })
     }
+
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        let mut files = Vec::new();
+        let mut folders = Vec::new();
+        self.walk_entries::<()>(|relative, entry, is_dir| {
+            if is_dir {
+                folders.push(relative);
+            } else if let Ok(metadata) = entry.metadata() {
+                files.push(self.file_info_to_meta(&relative, &metadata));
+            }
+            ControlFlow::Continue(())
+        });
+        folders.sort();
+        Ok(Listing {
+            files,
+            folders: Some(folders),
+        })
+    }
+
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        let local_path = self.safe_folder_path(path)?;
+        fs::create_dir_all(&local_path).map_err(|e| SpaceError::WriteError(format!("{path}: {e}")))
+    }
+
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        let local_path = self.safe_folder_path(path)?;
+        if !local_path.is_dir() {
+            return Err(SpaceError::NotFound);
+        }
+        if recursive {
+            // Doesn't follow symlinks: a linked folder inside loses the link only
+            return fs::remove_dir_all(&local_path).map_err(|e| match e.kind() {
+                std::io::ErrorKind::NotFound => SpaceError::NotFound,
+                _ => SpaceError::Io(e),
+            });
+        }
+        remove_os_metadata_if_alone(&local_path)?;
+        fs::remove_dir(&local_path).map_err(|e| match e.kind() {
+            std::io::ErrorKind::NotFound => SpaceError::NotFound,
+            std::io::ErrorKind::DirectoryNotEmpty => SpaceError::FolderNotEmpty,
+            _ => SpaceError::Io(e),
+        })
+    }
+}
+
+/// Files operating systems drop into folders they show: not content, but
+/// they'd keep a folder that looks empty from being deleted.
+const OS_METADATA_FILES: [&str; 3] = [".DS_Store", "Thumbs.db", "desktop.ini"];
+
+/// Removes `dir`'s OS metadata files when they are all it holds, so the
+/// folder can be deleted. Anything else in it, hidden or not, leaves it as is.
+fn remove_os_metadata_if_alone(dir: &Path) -> Result<(), SpaceError> {
+    let mut metadata_files = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let is_metadata = entry.file_type()?.is_file()
+            && OS_METADATA_FILES.contains(&entry.file_name().to_string_lossy().as_ref());
+        if !is_metadata {
+            return Ok(());
+        }
+        metadata_files.push(entry.path());
+    }
+    for file in metadata_files {
+        fs::remove_file(file)?;
+    }
+    Ok(())
 }
 
 /// Determine MIME type from file extension.
@@ -853,148 +942,9 @@ mod merge_eligible_tests {
 /// the filesystem traversal contract (follow symlinks; skip-and-continue on
 /// errors; terminate on cycles).
 #[cfg(all(test, unix))]
-mod unix_walk_tests {
-    use super::*;
-    use crate::types::SpacePrimitives;
-    use std::os::unix::fs::symlink;
-    use tempfile::tempdir;
+#[path = "disk_walk_tests.rs"]
+mod unix_walk_tests;
 
-    fn names(sp: &DiskSpacePrimitives) -> Vec<String> {
-        let mut v: Vec<String> = sp
-            .fetch_file_list()
-            .unwrap()
-            .into_iter()
-            .map(|m| m.name)
-            .collect();
-        v.sort();
-        v
-    }
-
-    #[test]
-    fn symlink_to_in_space_file_is_listed() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.write_file("a.md", b"hello", None).unwrap();
-        symlink("a.md", dir.path().join("b.md")).unwrap();
-        let n = names(&sp);
-        assert!(n.contains(&"a.md".to_string()));
-        assert!(
-            n.contains(&"b.md".to_string()),
-            "symlink to an in-space file should be followed and listed: {n:?}"
-        );
-    }
-
-    #[test]
-    fn symlink_to_in_space_dir_contents_listed() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.write_file("sub/c.md", b"hi", None).unwrap();
-        symlink("sub", dir.path().join("link")).unwrap();
-        let n = names(&sp);
-        assert!(n.contains(&"sub/c.md".to_string()));
-        assert!(
-            n.contains(&"link/c.md".to_string()),
-            "contents under a followed dir-symlink should be listed: {n:?}"
-        );
-    }
-
-    #[test]
-    fn broken_symlink_is_skipped() {
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.write_file("real.md", b"x", None).unwrap();
-        symlink("does-not-exist.md", dir.path().join("dangling.md")).unwrap();
-        let n = names(&sp);
-        assert!(n.contains(&"real.md".to_string()));
-        assert!(
-            !n.contains(&"dangling.md".to_string()),
-            "a dangling symlink must be skipped, not surfaced or errored: {n:?}"
-        );
-    }
-
-    #[test]
-    fn symlink_loop_terminates() {
-        // A directory symlink cycle must not hang the walk; walkdir cuts it via
-        // dev/ino loop detection and the non-looping content is still listed.
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        std::fs::create_dir(dir.path().join("d")).unwrap();
-        sp.write_file("d/x.md", b"x", None).unwrap();
-        symlink(dir.path().join("d"), dir.path().join("d/loop")).unwrap();
-        let n = names(&sp);
-        assert!(
-            n.contains(&"d/x.md".to_string()),
-            "walk must terminate and still list non-looping content: {n:?}"
-        );
-    }
-
-    #[test]
-    fn symlink_to_outside_file_is_listed_and_readable() {
-        // Linking an external file into a space is supported: it must be both
-        // listed and readable (the OS follows the link on read).
-        let outside = tempdir().unwrap();
-        std::fs::write(outside.path().join("external.md"), b"external content").unwrap();
-
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.write_file("inside.md", b"x", None).unwrap();
-        symlink(
-            outside.path().join("external.md"),
-            dir.path().join("ext.md"),
-        )
-        .unwrap();
-
-        let n = names(&sp);
-        assert!(
-            n.contains(&"ext.md".to_string()),
-            "an outside-pointing symlink should be listed: {n:?}"
-        );
-
-        let (data, _meta) = sp.read_file("ext.md").unwrap();
-        assert_eq!(data, b"external content", "must read through the symlink");
-    }
-
-    #[test]
-    fn symlink_to_outside_dir_contents_listed_and_readable() {
-        let outside = tempdir().unwrap();
-        std::fs::create_dir(outside.path().join("shared")).unwrap();
-        std::fs::write(outside.path().join("shared/doc.md"), b"shared doc").unwrap();
-
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        symlink(outside.path().join("shared"), dir.path().join("shared")).unwrap();
-
-        let n = names(&sp);
-        assert!(
-            n.contains(&"shared/doc.md".to_string()),
-            "contents under an external dir-symlink should be listed: {n:?}"
-        );
-
-        let (data, _meta) = sp.read_file("shared/doc.md").unwrap();
-        assert_eq!(data, b"shared doc");
-    }
-
-    #[test]
-    fn permission_denied_dir_is_skipped() {
-        use std::os::unix::fs::PermissionsExt;
-        let dir = tempdir().unwrap();
-        let sp = DiskSpacePrimitives::new(dir.path(), "").unwrap();
-        sp.write_file("visible.md", b"x", None).unwrap();
-        sp.write_file("secret/hidden.md", b"x", None).unwrap();
-        let secret = dir.path().join("secret");
-        std::fs::set_permissions(&secret, std::fs::Permissions::from_mode(0o000)).unwrap();
-
-        let result = sp.fetch_file_list();
-        // Restore perms before asserting so tempdir cleanup always succeeds.
-        let _ = std::fs::set_permissions(&secret, std::fs::Permissions::from_mode(0o755));
-
-        let list = result.expect("walk must not fail on an unreadable subdirectory");
-        let listed: Vec<_> = list.iter().map(|m| m.name.as_str()).collect();
-        assert!(
-            listed.contains(&"visible.md"),
-            "accessible sibling files are still listed: {listed:?}"
-        );
-        // (When tests run as root, permission bits are ignored and the secret
-        // file may appear; we assert only the robust skip-and-continue invariant.)
-    }
-}
+#[cfg(test)]
+#[path = "disk_folder_tests.rs"]
+mod folder_tests;

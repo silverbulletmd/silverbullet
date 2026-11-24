@@ -53,6 +53,8 @@ pub(crate) fn space_error_response(e: SpaceError) -> Response {
         SpaceError::Unauthorized => (StatusCode::UNAUTHORIZED, e.to_string()),
         SpaceError::ReadOnly(_) => (StatusCode::FORBIDDEN, e.to_string()),
         SpaceError::ReconcileIneligible => (StatusCode::CONFLICT, e.to_string()),
+        SpaceError::FolderNotEmpty => (StatusCode::CONFLICT, e.to_string()),
+        SpaceError::Unsupported(_) => (StatusCode::METHOD_NOT_ALLOWED, e.to_string()),
         _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
     };
     Response::builder()

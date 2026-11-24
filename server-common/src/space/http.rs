@@ -4,7 +4,7 @@ use std::sync::RwLock;
 use crate::reconcile::{ReconcileRequest, ReconcileResponse};
 use crate::revision::{etag_for_hash, hash_from_etag, CONTENT_REVISION_HEADER};
 use crate::space::conditional::{ConditionalSpacePrimitives, WritePrecondition};
-use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{range_read_error, FileMeta, Listing, SpaceError, SpacePrimitives};
 
 /// How to authenticate HTTP requests to the remote server.
 #[derive(Clone)]
@@ -293,6 +293,32 @@ impl HttpSpacePrimitives {
         }
     }
 
+    /// Sends the request `build` makes, once more after reauthenticating if
+    /// the first attempt was refused as unauthorized. `conflict` is what a
+    /// 409 means for this operation, if anything specific.
+    fn send_checked(
+        &self,
+        operation: &str,
+        path: &str,
+        conflict: Option<fn() -> SpaceError>,
+        build: impl Fn(&Self) -> reqwest::blocking::RequestBuilder,
+    ) -> Result<reqwest::blocking::Response, SpaceError> {
+        let attempt = |this: &Self| -> Result<reqwest::blocking::Response, SpaceError> {
+            let mut resp = build(this).send().map_err(Self::map_error)?;
+            if let Some(conflict) = conflict {
+                if resp.status() == reqwest::StatusCode::CONFLICT {
+                    return Err(conflict());
+                }
+            }
+            Self::check_response(&mut resp, operation, path)?;
+            Ok(resp)
+        };
+        match attempt(self) {
+            Err(SpaceError::Unauthorized) if self.try_reauth() => attempt(self),
+            result => result,
+        }
+    }
+
     fn map_error(e: reqwest::Error) -> SpaceError {
         if e.status() == Some(reqwest::StatusCode::NOT_FOUND) {
             SpaceError::NotFound
@@ -501,6 +527,60 @@ impl SpacePrimitives for HttpSpacePrimitives {
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
         self.delete_file_conditional(path, None)
     }
+
+    /// One request for files and folders. A server without folder support
+    /// ignores the parameter and answers with the plain file array, which is
+    /// how this tells the two apart.
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        let resp = self.send_checked("fetch_listing", "/", None, |this| {
+            this.request(reqwest::Method::GET, "")
+                .query(&[("folders", "1")])
+        })?;
+        let body: serde_json::Value = resp
+            .json()
+            .map_err(|e| SpaceError::WriteError(e.to_string()))?;
+        let parse_error = |e: serde_json::Error| SpaceError::WriteError(e.to_string());
+        if body.is_array() {
+            return Ok(Listing {
+                files: serde_json::from_value(body).map_err(parse_error)?,
+                folders: None,
+            });
+        }
+        let listing: Listing = serde_json::from_value(body).map_err(parse_error)?;
+        Ok(Listing {
+            folders: Some(listing.folders.unwrap_or_default()),
+            ..listing
+        })
+    }
+
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        let folder = format!("{path}/");
+        self.send_checked("create_folder", &folder, None, |this| {
+            this.apply_client_headers(this.request(reqwest::Method::PUT, &folder))
+        })?;
+        Ok(())
+    }
+
+    /// `DELETE /.fs/{folder}/`, with `?recursive=1` for the folder and
+    /// everything in it.
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        let folder = format!("{path}/");
+        self.send_checked(
+            "delete_folder",
+            &folder,
+            Some(|| SpaceError::FolderNotEmpty),
+            |this| {
+                let request = this.request(reqwest::Method::DELETE, &folder);
+                let request = if recursive {
+                    request.query(&[("recursive", "1")])
+                } else {
+                    request
+                };
+                this.apply_client_headers(request)
+            },
+        )?;
+        Ok(())
+    }
 }
 
 impl ConditionalSpacePrimitives for HttpSpacePrimitives {
@@ -705,6 +785,86 @@ mod tests {
             String::from_utf8(request[..read].to_vec()).unwrap()
         });
         (format!("http://{address}"), handle)
+    }
+
+    /// A response with `body`, leaked so `serve_once` can hold it.
+    fn response(status: &str, body: &str) -> &'static [u8] {
+        Box::leak(
+            format!(
+                "HTTP/1.1 {status}\r\nContent-Length: {}\r\nContent-Type: application/json\r\nConnection: close\r\n\r\n{body}",
+                body.len()
+            )
+            .into_boxed_str(),
+        )
+        .as_bytes()
+    }
+
+    const FILE_JSON: &str = r#"{"name":"Notes/a.md","created":1,"lastModified":1,"contentType":"text/markdown","size":1,"perm":"rw"}"#;
+
+    #[test]
+    fn listing_reads_folders_from_a_server_that_keeps_them() {
+        let body = format!(r#"{{"files":[{FILE_JSON}],"folders":["Empty","Notes"]}}"#);
+        let (base_url, request) = serve_once(response("200 OK", &body));
+        let listing = HttpSpacePrimitives::new(&base_url, None)
+            .fetch_listing()
+            .unwrap();
+        assert_eq!(listing.folders.unwrap(), ["Empty", "Notes"]);
+        assert_eq!(listing.files[0].name, "Notes/a.md");
+        assert!(request.join().unwrap().starts_with("GET /?folders=1 "));
+    }
+
+    #[test]
+    fn listing_from_an_older_server_has_no_folders() {
+        let (base_url, request) = serve_once(response("200 OK", &format!("[{FILE_JSON}]")));
+        let listing = HttpSpacePrimitives::new(&base_url, None)
+            .fetch_listing()
+            .unwrap();
+        assert!(listing.folders.is_none());
+        assert_eq!(listing.files[0].name, "Notes/a.md");
+        request.join().unwrap();
+    }
+
+    #[test]
+    fn folder_calls_use_the_trailing_slash_path() {
+        let (base_url, request) = serve_once(response("204 No Content", ""));
+        HttpSpacePrimitives::new(&base_url, None)
+            .create_folder("My Notes/Ideas")
+            .unwrap();
+        assert!(request
+            .join()
+            .unwrap()
+            .starts_with("PUT /My%20Notes/Ideas/ "));
+
+        let (base_url, request) = serve_once(response("204 No Content", ""));
+        HttpSpacePrimitives::new(&base_url, None)
+            .delete_folder("Notes", false)
+            .unwrap();
+        assert!(request.join().unwrap().starts_with("DELETE /Notes/ "));
+
+        let (base_url, request) = serve_once(response("204 No Content", ""));
+        HttpSpacePrimitives::new(&base_url, None)
+            .delete_folder("My Notes", true)
+            .unwrap();
+        assert!(request
+            .join()
+            .unwrap()
+            .starts_with("DELETE /My%20Notes/?recursive=1 "));
+    }
+
+    #[test]
+    fn deleting_a_folder_that_isnt_empty_says_so() {
+        let (base_url, request) = serve_once(response("409 Conflict", "Folder not empty"));
+        let result = HttpSpacePrimitives::new(&base_url, None).delete_folder("Notes", false);
+        assert!(
+            matches!(result, Err(SpaceError::FolderNotEmpty)),
+            "{result:?}"
+        );
+        request.join().unwrap();
+
+        let (base_url, request) = serve_once(response("404 Not Found", ""));
+        let result = HttpSpacePrimitives::new(&base_url, None).delete_folder("Gone", true);
+        assert!(matches!(result, Err(SpaceError::NotFound)), "{result:?}");
+        request.join().unwrap();
     }
 
     #[test]

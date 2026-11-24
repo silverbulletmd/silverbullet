@@ -560,6 +560,7 @@ fn try_build_parts(
             disable_service_worker: deps.disable_service_worker,
             ephemeral_storage: false,
             sync_protocol_version: 2,
+            folders: true,
             revisions: revisions_mode,
             public_url: None,
         },

@@ -5,7 +5,9 @@ use std::{fs, io::Read, io::Seek};
 use walkdir::WalkDir;
 
 use super::disk::lookup_content_type;
-use crate::types::{range_read_error, FileMeta, SpaceError, SpacePrimitives};
+use crate::types::{
+    is_in_folder, parent_folders, range_read_error, FileMeta, Listing, SpaceError, SpacePrimitives,
+};
 
 /// Compile-time build timestamp (unix millis), injected by build.rs.
 /// Used as the constant lastModified for every file in this read-only space.
@@ -322,6 +324,51 @@ impl SpacePrimitives for FallthroughSpacePrimitives {
             )));
         }
         self.primary.delete_file(path)
+    }
+
+    /// The primary's listing plus the fallback files it doesn't shadow. A
+    /// primary with folders of its own also lists the folders those fallback
+    /// files imply; one without keeps `None`.
+    fn fetch_listing(&self) -> Result<Listing, SpaceError> {
+        let Listing { mut files, folders } = self.primary.fetch_listing()?;
+        let existing: std::collections::HashSet<String> =
+            files.iter().map(|f| f.name.clone()).collect();
+        let fallback_files: Vec<FileMeta> = self
+            .fallback
+            .fetch_file_list()?
+            .into_iter()
+            .filter(|f| !existing.contains(&f.name))
+            .collect();
+        let folders = folders.map(|folders| {
+            let mut all: std::collections::BTreeSet<String> = folders.into_iter().collect();
+            for file in &fallback_files {
+                all.extend(parent_folders(&file.name).map(str::to_string));
+            }
+            all.into_iter().collect()
+        });
+        files.extend(fallback_files);
+        Ok(Listing { files, folders })
+    }
+
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        self.primary.create_folder(path)
+    }
+
+    /// Only ever touches the primary: bundled files can't be deleted, so a
+    /// folder holding any isn't empty, and a recursive delete leaves them.
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        if !recursive {
+            let folder = path.trim_matches('/');
+            if self
+                .fallback
+                .fetch_file_list()?
+                .iter()
+                .any(|f| is_in_folder(&f.name, folder))
+            {
+                return Err(SpaceError::FolderNotEmpty);
+            }
+        }
+        self.primary.delete_folder(path, recursive)
     }
 }
 
@@ -646,5 +693,38 @@ mod tests {
 
         ft.delete_file("page.md").unwrap();
         assert!(!primary_td.path().join("page.md").exists());
+    }
+
+    #[test]
+    fn folders_combine_with_the_fallback_and_deletes_only_touch_the_primary() {
+        use crate::space::MemorySpacePrimitives;
+        let primary = MemorySpacePrimitives::new();
+        primary.write_file("Library/Mine.md", b"x", None).unwrap();
+        primary.create_folder("Empty").unwrap();
+        let fallback = MemorySpacePrimitives::new();
+        fallback
+            .write_file("Library/Std/Bundled.md", b"x", None)
+            .unwrap();
+        let ft = FallthroughSpacePrimitives::new(Box::new(primary), Box::new(fallback));
+
+        let folders = |ft: &FallthroughSpacePrimitives| ft.fetch_listing().unwrap().folders;
+        assert_eq!(folders(&ft).unwrap(), ["Empty", "Library", "Library/Std"]);
+        assert!(matches!(
+            ft.delete_folder("Library", false),
+            Err(SpaceError::FolderNotEmpty)
+        ));
+        ft.delete_folder("Library", true).unwrap();
+        assert!(matches!(
+            ft.read_file("Library/Mine.md"),
+            Err(SpaceError::NotFound)
+        ));
+        assert!(ft.read_file("Library/Std/Bundled.md").is_ok());
+
+        // A primary without folders of its own keeps the listing without any
+        let ft = FallthroughSpacePrimitives::new(
+            Box::new(EmptySpacePrimitives),
+            Box::new(MemorySpacePrimitives::new()),
+        );
+        assert!(folders(&ft).is_none());
     }
 }

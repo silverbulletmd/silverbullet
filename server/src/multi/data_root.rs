@@ -165,6 +165,29 @@ impl SpacePrimitives for ServerControlFileFilter {
         }
         self.inner.delete_file(path)
     }
+
+    fn fetch_listing(&self) -> Result<silverbullet_server_common::Listing, SpaceError> {
+        let mut listing = self.inner.fetch_listing()?;
+        listing.files.retain(|file| !reserved(&file.name));
+        if let Some(folders) = &mut listing.folders {
+            folders.retain(|folder| !reserved(folder));
+        }
+        Ok(listing)
+    }
+
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        if reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.create_folder(path)
+    }
+
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        if reserved(path) {
+            return Err(SpaceError::NotFound);
+        }
+        self.inner.delete_folder(path, recursive)
+    }
 }
 
 /// Why `folder` can't be the folder of space `id` on data root `root`: it

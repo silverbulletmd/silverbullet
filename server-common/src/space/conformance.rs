@@ -197,3 +197,101 @@ fn list_names(sp: &dyn SpacePrimitives) -> Vec<String> {
         .map(|m| m.name)
         .collect()
 }
+
+/// Run the folder contract against a fresh, empty, writable space that
+/// supports folders: folders behave like a normal file system's, and are
+/// never removed implicitly.
+pub fn run_folder_conformance(sp: &dyn SpacePrimitives) {
+    let folders = |sp: &dyn SpacePrimitives| {
+        let mut folders = sp
+            .fetch_listing()
+            .unwrap()
+            .folders
+            .expect("a space with folders lists them");
+        folders.sort();
+        folders
+    };
+    assert_eq!(folders(sp), Vec::<String>::new(), "starts without folders");
+
+    // Creating a folder creates its parents, and is idempotent
+    sp.create_folder("Projects/Archive").unwrap();
+    sp.create_folder("Projects/Archive").unwrap();
+    assert_eq!(folders(sp), ["Projects", "Projects/Archive"]);
+
+    // Writing a file creates its parent folders, deleting it keeps them
+    sp.write_file("Notes/2026/Today.md", b"Hi", None).unwrap();
+    assert_eq!(
+        folders(sp),
+        ["Notes", "Notes/2026", "Projects", "Projects/Archive"]
+    );
+    sp.delete_file("Notes/2026/Today.md").unwrap();
+    assert!(
+        folders(sp).contains(&"Notes/2026".to_string()),
+        "deleting a folder's last file keeps the folder"
+    );
+    let listing = sp.fetch_listing().unwrap();
+    assert!(listing.files.is_empty(), "listing has no files left");
+
+    // Only empty folders can be deleted
+    assert!(matches!(
+        sp.delete_folder("Projects", false),
+        Err(SpaceError::FolderNotEmpty)
+    ));
+    sp.write_file("Notes/Page.md", b"Hi", None).unwrap();
+    sp.delete_folder("Notes/2026", false).unwrap();
+    assert!(matches!(
+        sp.delete_folder("Notes", false),
+        Err(SpaceError::FolderNotEmpty)
+    ));
+    assert!(matches!(
+        sp.delete_folder("Missing", false),
+        Err(SpaceError::NotFound)
+    ));
+
+    sp.delete_file("Notes/Page.md").unwrap();
+    sp.delete_folder("Notes", false).unwrap();
+    sp.delete_folder("Projects/Archive", false).unwrap();
+    sp.delete_folder("Projects", false).unwrap();
+    assert_eq!(folders(sp), Vec::<String>::new(), "ends without folders");
+}
+
+/// Run the recursive-delete contract against a fresh, empty, writable space
+/// that supports folders: a recursive delete takes the folder with every
+/// file and subfolder in it, and nothing else.
+pub fn run_recursive_folder_delete_conformance(sp: &dyn SpacePrimitives) {
+    let folders = |sp: &dyn SpacePrimitives| {
+        let mut folders = sp.fetch_listing().unwrap().folders.unwrap();
+        folders.sort();
+        folders
+    };
+    sp.write_file("Projects/Plan.md", b"Plan", None).unwrap();
+    sp.write_file("Projects/Archive/2025/Old.md", b"Old", None)
+        .unwrap();
+    sp.create_folder("Projects/Empty").unwrap();
+    sp.write_file("Projects Other/Keep.md", b"Keep", None)
+        .unwrap();
+    sp.write_file("Keep.md", b"Keep", None).unwrap();
+
+    sp.delete_folder("Projects", true).unwrap();
+    let mut names = list_names(sp);
+    names.sort();
+    assert_eq!(names, ["Keep.md", "Projects Other/Keep.md"]);
+    assert_eq!(folders(sp), ["Projects Other"]);
+    assert!(matches!(
+        sp.read_file("Projects/Plan.md"),
+        Err(SpaceError::NotFound)
+    ));
+
+    // An empty folder goes too, and a missing one is NotFound either way
+    sp.create_folder("Empty").unwrap();
+    sp.delete_folder("Empty", true).unwrap();
+    assert!(matches!(
+        sp.delete_folder("Projects", true),
+        Err(SpaceError::NotFound)
+    ));
+    assert!(matches!(
+        sp.delete_folder("Keep.md/", true),
+        Err(SpaceError::NotFound)
+    ));
+    assert_eq!(folders(sp), ["Projects Other"]);
+}

@@ -5,6 +5,7 @@
 use std::sync::Arc;
 
 use server_space_tools::ops::IndexStatus;
+use silverbullet_server_common::types::is_in_folder;
 use silverbullet_server_common::{FileMeta, SpaceError, SpacePrimitives};
 use silverbullet_server_search::{ChangeFeed, FeedEvent, SearchBackend};
 use tokio::sync::broadcast::{self, error::RecvError};
@@ -129,6 +130,36 @@ impl SpacePrimitives for WriteEvents {
     fn delete_file(&self, path: &str) -> Result<(), SpaceError> {
         self.inner.delete_file(path)?;
         self.report(path, FsAction::Delete, 0);
+        Ok(())
+    }
+
+    fn fetch_listing(&self) -> Result<silverbullet_server_common::Listing, SpaceError> {
+        self.inner.fetch_listing()
+    }
+
+    // A folder holds nothing to index of its own
+    fn create_folder(&self, path: &str) -> Result<(), SpaceError> {
+        self.inner.create_folder(path)
+    }
+
+    /// Reports each file a recursive delete took, as deleting them one by
+    /// one would: listed first, since they're gone after.
+    fn delete_folder(&self, path: &str, recursive: bool) -> Result<(), SpaceError> {
+        let folder = path.trim_matches('/');
+        let doomed: Vec<String> = if recursive {
+            self.inner
+                .fetch_file_list()?
+                .into_iter()
+                .map(|file| file.name)
+                .filter(|name| is_in_folder(name, folder))
+                .collect()
+        } else {
+            Vec::new()
+        };
+        self.inner.delete_folder(path, recursive)?;
+        for name in doomed {
+            self.report(&name, FsAction::Delete, 0);
+        }
         Ok(())
     }
 }

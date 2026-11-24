@@ -69,6 +69,7 @@ mod test_support {
                 disable_service_worker: true,
                 ephemeral_storage: false,
                 sync_protocol_version: 2,
+                folders: true,
                 revisions: RevisionsMode::Disabled,
                 public_url: None,
             },

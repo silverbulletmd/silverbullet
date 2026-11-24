@@ -69,6 +69,33 @@ async fn write_events_report_only_successful_writes_and_deletes() {
 }
 
 #[tokio::test]
+async fn a_recursive_folder_delete_reports_each_file_it_took() {
+    use silverbullet_server_common::space::MemorySpacePrimitives;
+    let (space, tx) = WriteEvents::wrap(Arc::new(MemorySpacePrimitives::new()));
+    for name in ["Moss/Fern.md", "Moss/Deep/Lichen.md", "Mossy.md"] {
+        space.write_file(name, b"x", None).unwrap();
+    }
+    space.create_folder("Empty").unwrap();
+    let mut events = tx.subscribe();
+
+    space.delete_folder("Empty", false).unwrap();
+    assert!(space.delete_folder("Moss", false).is_err());
+    space.delete_folder("Moss", true).unwrap();
+
+    let mut seen: Vec<_> = std::iter::from_fn(|| events.try_recv().ok())
+        .map(|e| (e.name, e.action))
+        .collect();
+    seen.sort_by(|a, b| a.0.cmp(&b.0));
+    assert_eq!(
+        seen,
+        [
+            ("Moss/Deep/Lichen.md".to_string(), FsAction::Delete),
+            ("Moss/Fern.md".to_string(), FsAction::Delete)
+        ]
+    );
+}
+
+#[tokio::test]
 async fn change_events_come_from_the_watcher_or_from_the_spaces_own_writes() {
     use silverbullet_server_common::space::MemorySpacePrimitives;
     let (watcher, _) = broadcast::channel(4);
