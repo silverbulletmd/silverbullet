@@ -640,3 +640,55 @@ test("the local listing includes folders only when asked for", async () => {
   expect(listing.files.map((f: any) => f.name)).toEqual(["Projects/Plan.md"]);
   expect(listing.folders).toEqual(["Projects"]);
 });
+
+test("file listing skips non-synced entries without meta", async () => {
+  const router = new ProxyRouter("", "http://localhost/", {});
+  const localMeta = {
+    name: "a.md",
+    contentType: "text/markdown",
+    size: 1,
+    created: 0,
+    lastModified: 0,
+    perm: "rw",
+  };
+  const remoteMeta = { ...localMeta, name: "big.zip" };
+  router.localSpacePrimitives = {
+    fetchFileList: async () => [localMeta],
+  } as any;
+  router.syncEngine = {
+    snapshot: {
+      nonSyncedFiles: new Map<string, any>([
+        ["broken.bin", undefined],
+        ["big.zip", remoteMeta],
+      ]),
+    },
+  } as any;
+  const resp = await router.handleFileListing();
+  expect(await resp.json()).toEqual([localMeta, remoteMeta]);
+});
+
+test("PUT of a non-synced file without meta headers leaves the snapshot clean", async () => {
+  const router = new ProxyRouter("", "http://localhost/", {});
+  const nonSyncedFiles = new Map<string, any>();
+  router.localSpacePrimitives = {} as any;
+  router.syncEngine = {
+    isSyncCandidate: () => false,
+    snapshot: { nonSyncedFiles },
+  } as any;
+  const fetchSpy = vi
+    .spyOn(globalThis, "fetch")
+    .mockResolvedValue(new Response("nope", { status: 500 }));
+  try {
+    const resp = await router.handlePut(
+      "big.zip",
+      new Request("http://localhost/.fs/big.zip", {
+        method: "PUT",
+        body: "x",
+      }),
+    );
+    expect(resp.status).toBe(500);
+    expect(nonSyncedFiles.size).toBe(0);
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
