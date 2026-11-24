@@ -1,5 +1,5 @@
 import type { FileMeta } from "../../plug-api/types/index.ts";
-import type { SpacePrimitives } from "./space_primitives.ts";
+import type { SpaceListing, SpacePrimitives } from "./space_primitives.ts";
 
 export class FilteredSpacePrimitives implements SpacePrimitives {
   constructor(
@@ -37,5 +37,21 @@ export class FilteredSpacePrimitives implements SpacePrimitives {
 
   deleteFile(path: string): Promise<void> {
     return this.wrapped.deleteFile(path);
+  }
+
+  async fetchListing(): Promise<SpaceListing> {
+    if (this.onFetchList) {
+      await this.onFetchList();
+    }
+    const { files, folders } = await this.wrapped.fetchListing();
+    return { files: files.filter(this.filterFn), folders };
+  }
+
+  createFolder(path: string): Promise<void> {
+    return this.wrapped.createFolder(path);
+  }
+
+  deleteFolder(path: string, opts?: { recursive?: boolean }): Promise<void> {
+    return this.wrapped.deleteFolder(path, opts);
   }
 }

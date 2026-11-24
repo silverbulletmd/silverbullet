@@ -1,3 +1,7 @@
+import {
+  folderNotEmptyError,
+  notFoundError,
+} from "@silverbulletmd/silverbullet/constants";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
   HttpSpacePrimitives,
@@ -360,5 +364,73 @@ describe("permission errors", () => {
     });
     await expect(primitives.readFile("index.md")).rejects.toThrow();
     expect(calls).toEqual(["/.auth"]);
+  });
+});
+
+describe("HttpSpacePrimitives folders", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubFetch(status: number, body = "") {
+    const calls: { url: string; init: RequestInit }[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init: RequestInit) => {
+        calls.push({ url, init });
+        return new Response(status === 204 ? null : body, { status });
+      }),
+    );
+    return calls;
+  }
+
+  const space = () =>
+    new HttpSpacePrimitives("http://x/.fs", "", () => {}, undefined, "c1");
+  const file = {
+    name: "a.md",
+    created: 1,
+    lastModified: 1,
+    contentType: "text/markdown",
+    size: 1,
+    perm: "rw",
+  };
+
+  test("fetchListing asks for folders and reads them from a new server", async () => {
+    const calls = stubFetch(
+      200,
+      JSON.stringify({ files: [file], folders: ["Projects"] }),
+    );
+    expect(await space().fetchListing()).toEqual({
+      files: [file],
+      folders: ["Projects"],
+    });
+    expect(calls[0].url).toBe("http://x/.fs?folders=1");
+  });
+
+  test("fetchListing reports no folder support for an old server's plain array", async () => {
+    stubFetch(200, JSON.stringify([file]));
+    expect(await space().fetchListing()).toEqual({ files: [file] });
+  });
+
+  test("createFolder and deleteFolder use the trailing-slash path", async () => {
+    const calls = stubFetch(204);
+    await space().createFolder("Projects/My Notes");
+    await space().deleteFolder("Projects/My Notes");
+    expect(calls.map((c) => [c.init.method, c.url])).toEqual([
+      ["PUT", "http://x/.fs/Projects/My%20Notes/"],
+      ["DELETE", "http://x/.fs/Projects/My%20Notes/"],
+    ]);
+    expect(
+      (calls[0].init.headers as Record<string, string>)["X-Client-Id"],
+    ).toBe("c1");
+  });
+
+  test("deleteFolder maps 404 and 409 to the shared errors", async () => {
+    stubFetch(404);
+    await expect(space().deleteFolder("Missing")).rejects.toBe(notFoundError);
+    stubFetch(409);
+    await expect(space().deleteFolder("Full")).rejects.toBe(
+      folderNotEmptyError,
+    );
   });
 });

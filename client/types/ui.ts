@@ -240,6 +240,9 @@ export type BootConfig = {
    * nothing on the device. */
   ephemeralStorage?: boolean;
   syncProtocolVersion?: number;
+  /** The server keeps folders, empty ones included, and serves them in the
+   * `/.fs?folders=1` listing and through trailing-slash PUT/DELETE. */
+  folders?: boolean;
   revisions?: "managed" | "unmanaged" | "disabled";
   /** Where others reach this space: absent means `document.baseURI`, `null`
    * means nowhere (a Desktop space that doesn't sync). Ends with a slash. */

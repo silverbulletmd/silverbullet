@@ -166,6 +166,37 @@ export function listFiles(): Promise<FileMeta[]> {
 }
 
 /**
+ * List every folder in the space, including empty ones, as paths without a
+ * trailing slash ("Projects/Archive").
+ * @returns the folders, or null when the server doesn't keep folders of its
+ * own (folders then only exist through the files in them)
+ */
+export function listFolders(): Promise<string[] | null> {
+  return syscall("space.listFolders");
+}
+
+/**
+ * Create a folder, and any missing parent folders. A no-op if it exists.
+ * Needs a server that keeps folders (`listFolders` doesn't return null).
+ * @param path the folder, without a trailing slash
+ */
+export function createFolder(path: string): Promise<void> {
+  return syscall("space.createFolder", path);
+}
+
+/**
+ * Delete a folder. Without `recursive` it fails when anything is still in
+ * it; with it, everything in it goes too.
+ * @param path the folder, without a trailing slash
+ */
+export function deleteFolder(
+  path: string,
+  opts?: { recursive?: boolean },
+): Promise<void> {
+  return syscall("space.deleteFolder", path, opts);
+}
+
+/**
  * Read a file from the space as a Uint8Array.
  * @param name the name of the file to read
  * @returns the data of the file

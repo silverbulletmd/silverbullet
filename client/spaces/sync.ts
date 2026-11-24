@@ -10,6 +10,7 @@ import mime from "mime";
 import { EventEmitter } from "../plugos/event.ts";
 import type { BaseStore } from "./base_store.ts";
 import { isStdLibFile } from "./constants.ts";
+import { syncFolders } from "./folder_sync.ts";
 import {
   PreconditionFailedError,
   type ReconcileRequest,
@@ -60,11 +61,15 @@ export class SyncSnapshot {
     // Hash of the last common base content for each synced file, used for
     // three-way reconciliation.
     public baseHashes: Map<string, string> = new Map(),
+    // Folders present on both sides after the last sync, the common ancestor
+    // for telling a folder created on one side from one deleted on the other.
+    public folders: Set<string> = new Set(),
   ) {
     this.files = files;
     this.nonSyncedFiles = nonSyncedFiles;
     this.remoteHashes = remoteHashes;
     this.baseHashes = baseHashes;
+    this.folders = folders;
   }
 
   toJSON(): any {
@@ -73,6 +78,7 @@ export class SyncSnapshot {
       nonSyncedFiles: Object.fromEntries(this.nonSyncedFiles),
       remoteHashes: Object.fromEntries(this.remoteHashes),
       baseHashes: Object.fromEntries(this.baseHashes),
+      folders: [...this.folders],
     };
   }
 
@@ -82,6 +88,7 @@ export class SyncSnapshot {
       new Map(Object.entries(json?.nonSyncedFiles || {})),
       new Map(Object.entries(json?.remoteHashes || {})),
       new Map(Object.entries(json?.baseHashes || {})),
+      new Set(json?.folders || []),
     );
   }
 }
@@ -336,8 +343,10 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
     const startTime = Date.now();
 
     try {
-      const primaryAllPages = await this.primary.fetchFileList();
-      const secondaryAllPages = await this.secondary.fetchFileList();
+      const primaryListing = await this.primary.fetchListing();
+      const secondaryListing = await this.secondary.fetchListing();
+      const primaryAllPages = primaryListing.files;
+      const secondaryAllPages = secondaryListing.files;
 
       // Assumption: the primary is local, and _all_ files should be synced to the secondary
       // However, the secondary is remote, and only a subset of files should be synced from it
@@ -391,6 +400,14 @@ export class SpaceSync extends EventEmitter<SyncEvents> {
           }
         },
         syncConcurrency,
+      );
+      // After the files, so folders that files were just synced into exist
+      // on both sides and aren't mistaken for deletions
+      operations += await syncFolders(
+        snapshot.folders,
+        { primary: this.primary, secondary: this.secondary },
+        primaryListing.folders,
+        secondaryListing.folders,
       );
       console.log(
         "[Sync]",

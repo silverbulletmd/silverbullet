@@ -1,7 +1,10 @@
+import {
+  folderNotEmptyError,
+  notFoundError,
+} from "@silverbulletmd/silverbullet/constants";
+import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { expect } from "vitest";
 import type { SpacePrimitives } from "./space_primitives.ts";
-import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
-import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 
 export async function testSpacePrimitives(spacePrimitives: SpacePrimitives) {
   await testBasicOperations(spacePrimitives);
@@ -198,6 +201,59 @@ async function testMetadataPreservation(spacePrimitives: SpacePrimitives) {
   expect(metaFile.meta.size).toEqual(testContent.length);
 
   await spacePrimitives.deleteFile("meta-test.txt");
+}
+
+/**
+ * The folder contract, for backends that implement folders: folders behave
+ * like a normal file system's, and are never removed implicitly.
+ */
+export async function testFolderOperations(space: SpacePrimitives) {
+  const folders = async () => (await space.fetchListing()).folders!.sort();
+  expect(await folders()).toEqual([]);
+
+  // Creating a folder creates its parents, and is idempotent
+  await space.createFolder("Projects/Archive");
+  await space.createFolder("Projects/Archive");
+  expect(await folders()).toEqual(["Projects", "Projects/Archive"]);
+
+  // Writing a file creates its parent folders, deleting it keeps them
+  await space.writeFile("Notes/2026/Today.md", stringToBytes("Hi"));
+  expect(await folders()).toEqual([
+    "Notes",
+    "Notes/2026",
+    "Projects",
+    "Projects/Archive",
+  ]);
+  await space.deleteFile("Notes/2026/Today.md");
+  expect(await folders()).toContain("Notes/2026");
+
+  // Only empty folders can be deleted
+  await expect(space.deleteFolder("Projects")).rejects.toBe(
+    folderNotEmptyError,
+  );
+  await space.writeFile("Notes/Page.md", stringToBytes("Hi"));
+  await space.deleteFolder("Notes/2026");
+  await expect(space.deleteFolder("Notes")).rejects.toBe(folderNotEmptyError);
+  await expect(space.deleteFolder("Missing")).rejects.toBe(notFoundError);
+
+  await space.deleteFile("Notes/Page.md");
+  await space.deleteFolder("Notes");
+  await space.deleteFolder("Projects/Archive");
+  await space.deleteFolder("Projects");
+  expect(await folders()).toEqual([]);
+
+  // A recursive delete takes everything in the folder with it
+  await space.createFolder("Old/Empty");
+  await space.writeFile("Old/Deep/Page.md", stringToBytes("Hi"));
+  await space.writeFile("Older.md", stringToBytes("Stays"));
+  await space.deleteFolder("Old", { recursive: true });
+  expect(await folders()).toEqual([]);
+  expect((await space.fetchFileList()).map(({ name }) => name)).toContain(
+    "Older.md",
+  );
+  expect(
+    (await space.fetchFileList()).some(({ name }) => name.startsWith("Old/")),
+  ).toBe(false);
 }
 
 function stringToBytes(str: string): Uint8Array {

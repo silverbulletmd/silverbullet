@@ -1,5 +1,7 @@
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
 import { expect, test, vi } from "vitest";
+import { MemoryKvPrimitives } from "../data/memory_kv_primitives.ts";
+import { DataStoreSpacePrimitives } from "../spaces/datastore_space_primitives.ts";
 import {
   belongsToAnotherSpace,
   belongsToSiblingSpace,
@@ -594,4 +596,47 @@ test("a chunk from the previous build is served from the previous generation's c
   } finally {
     vi.unstubAllGlobals();
   }
+});
+
+function routerWithFolders() {
+  const router = new ProxyRouter("", "http://localhost/", {});
+  const local = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
+  let spaceSyncs = 0;
+  router.localSpacePrimitives = local;
+  router.syncEngine = {
+    snapshot: { nonSyncedFiles: new Map() },
+    requestSpaceSync: () => spaceSyncs++,
+  } as any;
+  const request = (method: string, path: string) =>
+    router.handleRequest(
+      path.split("?")[0],
+      new Request(`http://localhost${path}`, { method }),
+    );
+  return { local, request, spaceSyncs: () => spaceSyncs };
+}
+
+test("folders are created and deleted locally, and trigger a space sync", async () => {
+  const { local, request, spaceSyncs } = routerWithFolders();
+
+  expect((await request("PUT", "/.fs/Projects/Archive/")).status).toBe(204);
+  expect((await local.fetchListing()).folders!.sort()).toEqual([
+    "Projects",
+    "Projects/Archive",
+  ]);
+  expect((await request("DELETE", "/.fs/Projects/")).status).toBe(409);
+  expect((await request("DELETE", "/.fs/Projects/Archive/")).status).toBe(204);
+  expect((await request("DELETE", "/.fs/Missing/")).status).toBe(404);
+  expect(spaceSyncs()).toBe(2);
+});
+
+test("the local listing includes folders only when asked for", async () => {
+  const { local, request } = routerWithFolders();
+  await local.writeFile("Projects/Plan.md", new TextEncoder().encode("Plan"));
+
+  const plain = await (await request("GET", "/.fs")).json();
+  expect(plain.map((f: any) => f.name)).toEqual(["Projects/Plan.md"]);
+
+  const listing = await (await request("GET", "/.fs?folders=1")).json();
+  expect(listing.files.map((f: any) => f.name)).toEqual(["Projects/Plan.md"]);
+  expect(listing.folders).toEqual(["Projects"]);
 });

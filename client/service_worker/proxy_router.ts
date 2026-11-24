@@ -1,4 +1,5 @@
 import {
+  folderNotEmptyError,
   isNetworkError,
   notFoundError,
   offlineError,
@@ -429,10 +430,15 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
 
   handleRequest(pathname: string, request: Request): Promise<Response> {
     const path = decodePageURI(pathname.slice(fsEndpoint.length + 1));
+    if (path.endsWith("/")) {
+      return this.handleFolderRequest(path.slice(0, -1), request);
+    }
     switch (request.method) {
       case "GET": {
         if (!path) {
-          return this.handleFileListing();
+          return this.handleFileListing(
+            new URL(request.url).searchParams.has("folders"),
+          );
         } else {
           return this.handleGet(path, request);
         }
@@ -460,23 +466,63 @@ export class ProxyRouter extends EventEmitter<ProxyRouterEvents> {
     return this.syncEngine!.snapshot.nonSyncedFiles;
   }
 
-  async handleFileListing(): Promise<Response> {
+  async handleFileListing(withFolders = false): Promise<Response> {
     if (!this.syncEngine || !this.localSpacePrimitives) {
       throw new Error("This should not happen");
     }
 
-    const files = await this.localSpacePrimitives.fetchFileList();
+    const local = this.localSpacePrimitives;
+    const { files, folders } = withFolders
+      ? await local.fetchListing()
+      : { files: await local.fetchFileList(), folders: undefined };
     const localFileNames = new Set(files.map((f) => f.name));
     for (const nonSyncedFile of this.nonSyncedFiles.values()) {
       if (!localFileNames.has(nonSyncedFile.name)) {
         files.push(nonSyncedFile);
       }
     }
-    return new Response(JSON.stringify(files), {
+    // Answers like the server does: the plain array unless folders were
+    // asked for and are supported
+    return new Response(JSON.stringify(folders ? { files, folders } : files), {
       headers: {
         "Content-Type": "application/json",
       },
     });
+  }
+
+  /**
+   * Creates (PUT) or deletes (DELETE) a folder locally. Folders reach the
+   * server on the next full sync, so this asks for one.
+   */
+  async handleFolderRequest(path: string, request: Request): Promise<Response> {
+    const local = this.localSpacePrimitives;
+    if (!this.syncEngine || !local) {
+      throw new Error("This should not happen");
+    }
+    if (!path) {
+      return fetch(request);
+    }
+    try {
+      if (request.method === "PUT") {
+        await local.createFolder(path);
+      } else if (request.method === "DELETE") {
+        const recursive = new URL(request.url).searchParams.has("recursive");
+        await local.deleteFolder(path, { recursive });
+      } else {
+        return fetch(request);
+      }
+      this.syncEngine.requestSpaceSync();
+      return new Response(null, { status: 204 });
+    } catch (e: any) {
+      if (e.message === notFoundError.message) {
+        return new Response(e.message, { status: 404 });
+      }
+      if (e.message === folderNotEmptyError.message) {
+        return new Response(e.message, { status: 409 });
+      }
+      console.error("Error changing folder", path, e.message);
+      return new Response(e.message, { status: 500 });
+    }
   }
 
   async handleGet(path: string, request: Request): Promise<Response> {

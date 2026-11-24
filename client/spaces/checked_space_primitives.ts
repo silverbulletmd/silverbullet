@@ -1,6 +1,6 @@
 import { isValidPath } from "@silverbulletmd/silverbullet/lib/ref";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
-import type { SpacePrimitives } from "./space_primitives.ts";
+import type { SpaceListing, SpacePrimitives } from "./space_primitives.ts";
 
 /**
  * Adds checks for two things:
@@ -17,6 +17,29 @@ export class CheckedSpacePrimitives implements SpacePrimitives {
     return (await this.wrapped.fetchFileList()).filter(({ name }) =>
       this.isReadable(name),
     );
+  }
+
+  async fetchListing(): Promise<SpaceListing> {
+    const { files, folders } = await this.wrapped.fetchListing();
+    return {
+      files: files.filter(({ name }) => this.isReadable(name)),
+      folders: folders?.filter((folder) => this.isReadable(folder)),
+    };
+  }
+
+  createFolder(path: string): Promise<void> {
+    // A folder is a page namespace: valid wherever a page by that name is
+    if (this.readOnly || !this.isReadable(path) || !isValidPath(`${path}.md`)) {
+      throw new Error("Couldn't create folder, path is not writable");
+    }
+    return this.wrapped.createFolder(path);
+  }
+
+  deleteFolder(path: string, opts?: { recursive?: boolean }): Promise<void> {
+    if (this.readOnly) {
+      throw new Error("Couldn't delete folder, space is read-only");
+    }
+    return this.wrapped.deleteFolder(path, opts);
   }
 
   readFile(path: string): Promise<{ data: Uint8Array; meta: FileMeta }> {

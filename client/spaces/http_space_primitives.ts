@@ -1,4 +1,6 @@
 import {
+  folderNotEmptyError,
+  foldersUnsupportedError,
   isNetworkError,
   notFoundError,
   offlineError,
@@ -10,7 +12,7 @@ import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import { flushCachesAndUnregisterServiceWorker } from "../../client/service_worker/util.ts";
 import { headersToFileMeta } from "../lib/util.ts";
 import { etagForHash, hashFromEtag } from "./revision.ts";
-import type { SpacePrimitives } from "./space_primitives.ts";
+import type { SpaceListing, SpacePrimitives } from "./space_primitives.ts";
 
 const defaultFetchTimeout = 30000; // 30 seconds
 
@@ -236,6 +238,60 @@ export class HttpSpacePrimitives implements SpacePrimitives {
 
     await this.validateSpacePathFromHeaders(resp);
     return resp.json();
+  }
+
+  /**
+   * Files and folders in one request. A server without folder support
+   * ignores the parameter and returns the plain file array, which is how
+   * this tells the two apart, whatever the boot config said.
+   */
+  async fetchListing(): Promise<SpaceListing> {
+    const resp = await this.authenticatedFetch(`${this.url}?folders=1`, {
+      method: "GET",
+    });
+
+    await this.validateSpacePathFromHeaders(resp);
+    const body = await resp.json();
+    if (Array.isArray(body)) {
+      return { files: body };
+    }
+    return { files: body.files, folders: body.folders };
+  }
+
+  async createFolder(path: string): Promise<void> {
+    const res = await this.authenticatedFetch(
+      `${this.url}/${encodePageURI(path)}/`,
+      { method: "PUT", headers: this.clientHeaders() },
+    );
+    if (res.status === 405) {
+      throw foldersUnsupportedError;
+    }
+    if (!res.ok) {
+      throw Error(`Failed to create folder: ${res.statusText}`);
+    }
+  }
+
+  async deleteFolder(
+    path: string,
+    opts?: { recursive?: boolean },
+  ): Promise<void> {
+    const query = opts?.recursive ? "?recursive=1" : "";
+    const res = await this.authenticatedFetch(
+      `${this.url}/${encodePageURI(path)}/${query}`,
+      { method: "DELETE", headers: this.clientHeaders() },
+    );
+    if (res.status === 404) {
+      throw notFoundError;
+    }
+    if (res.status === 405) {
+      throw foldersUnsupportedError;
+    }
+    if (res.status === 409) {
+      throw folderNotEmptyError;
+    }
+    if (!res.ok) {
+      throw Error(`Failed to delete folder: ${res.statusText}`);
+    }
   }
 
   /**

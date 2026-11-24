@@ -1,11 +1,24 @@
-import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import {
+  folderNotEmptyError,
+  notFoundError,
+} from "@silverbulletmd/silverbullet/constants";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import mime from "mime";
 import type { KvPrimitives } from "../data/kv_primitives.ts";
-import type { SpacePrimitives } from "./space_primitives.ts";
+import type { SpaceListing, SpacePrimitives } from "./space_primitives.ts";
 
 const filesMetaPrefix = ["meta"];
 const filesContentPrefix = ["content"];
+// One entry per folder, so folders outlive the files in them. Folders
+// implied by file paths written before these entries existed are derived
+// from the file list instead.
+const foldersPrefix = ["folder"];
+
+/** "a/b/c.md" -> ["a", "a/b"] */
+function parentFolders(path: string): string[] {
+  const parts = path.split("/");
+  return parts.slice(1).map((_, i) => parts.slice(0, i + 1).join("/"));
+}
 
 export class DataStoreSpacePrimitives implements SpacePrimitives {
   constructor(private kv: KvPrimitives) {}
@@ -60,7 +73,7 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       meta.perm = suggestedMeta.perm;
     }
 
-    // Write metadata and content in same transaction
+    // Write metadata, content and parent folders in same transaction
     await this.kv.batchSet([
       {
         key: [...filesMetaPrefix, path],
@@ -70,6 +83,10 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
         key: [...filesContentPrefix, path],
         value: data,
       },
+      ...parentFolders(path).map((folder) => ({
+        key: [...foldersPrefix, folder],
+        value: true,
+      })),
     ]);
     return meta;
   }
@@ -95,6 +112,53 @@ export class DataStoreSpacePrimitives implements SpacePrimitives {
       throw notFoundError;
     }
     return this.cleanFileMeta(fileMeta);
+  }
+
+  async fetchListing(): Promise<SpaceListing> {
+    const files = await this.fetchFileList();
+    const folders = new Set<string>();
+    for await (const { key } of this.kv.query({ prefix: foldersPrefix })) {
+      folders.add(key[1] as string);
+    }
+    for (const { name } of files) {
+      for (const folder of parentFolders(name)) {
+        folders.add(folder);
+      }
+    }
+    return { files, folders: [...folders] };
+  }
+
+  async createFolder(path: string): Promise<void> {
+    await this.kv.batchSet(
+      [...parentFolders(path), path].map((folder) => ({
+        key: [...foldersPrefix, folder],
+        value: true,
+      })),
+    );
+  }
+
+  async deleteFolder(
+    path: string,
+    opts?: { recursive?: boolean },
+  ): Promise<void> {
+    const { files, folders = [] } = await this.fetchListing();
+    if (!folders.includes(path)) {
+      throw notFoundError;
+    }
+    const prefix = `${path}/`;
+    const innerFiles = files.filter(({ name }) => name.startsWith(prefix));
+    const innerFolders = folders.filter((folder) => folder.startsWith(prefix));
+    if (!opts?.recursive && (innerFiles.length || innerFolders.length)) {
+      throw folderNotEmptyError;
+    }
+    // One batch, so it's all gone or none of it is
+    await this.kv.batchDelete([
+      ...innerFiles.flatMap(({ name }) => [
+        [...filesMetaPrefix, name],
+        [...filesContentPrefix, name],
+      ]),
+      ...[path, ...innerFolders].map((folder) => [...foldersPrefix, folder]),
+    ]);
   }
 
   cleanFileMeta(fileMeta: FileMeta): FileMeta {

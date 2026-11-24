@@ -2,7 +2,7 @@ import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
 import type { DataStore } from "../data/datastore.ts";
 import type { EventHook } from "../plugos/hooks/event.ts";
-import type { SpacePrimitives } from "./space_primitives.ts";
+import type { SpaceListing, SpacePrimitives } from "./space_primitives.ts";
 
 export type ChangedFile = {
   name: string;
@@ -20,6 +20,7 @@ export type ChangedFile = {
  * - file:initial: triggered in case of an initially empty snapshot, after the first set of events has gone out
  * - page:saved (string, FileMeta, created: boolean)
  * - page:deleted (string)
+ * - folder:changed (string): a folder was created or deleted through here
  */
 export class EventedSpacePrimitives implements SpacePrimitives {
   // Various operations may be going on at the same time, and we don't want to trigger events unnecessarily.
@@ -309,6 +310,28 @@ export class EventedSpacePrimitives implements SpacePrimitives {
       this.operationCount--;
       this.checkDeferredFetchFileList();
     }
+  }
+
+  fetchListing(): Promise<SpaceListing> {
+    return this.wrapped.fetchListing();
+  }
+
+  async createFolder(path: string): Promise<void> {
+    await this.wrapped.createFolder(path);
+    await this.dispatchEvent("folder:changed", path);
+  }
+
+  async deleteFolder(
+    path: string,
+    opts?: { recursive?: boolean },
+  ): Promise<void> {
+    await this.wrapped.deleteFolder(path, opts);
+    if (opts?.recursive) {
+      // The listing's diff against the snapshot sends the deletion events
+      // for every file that went with the folder
+      await this.fetchFileList();
+    }
+    await this.dispatchEvent("folder:changed", path);
   }
 
   async deleteFile(path: string): Promise<void> {

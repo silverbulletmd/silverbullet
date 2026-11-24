@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { foldersUnsupportedError } from "@silverbulletmd/silverbullet/constants";
 import { sleep } from "@silverbulletmd/silverbullet/lib/async";
 import { hashSHA256 } from "@silverbulletmd/silverbullet/lib/crypto";
 import type { FileMeta } from "@silverbulletmd/silverbullet/type/index";
@@ -59,6 +60,18 @@ class ConditionalSecondaryStub {
 
   fetchFileList() {
     return this.inner.fetchFileList();
+  }
+
+  fetchListing() {
+    return this.inner.fetchListing();
+  }
+
+  createFolder(path: string) {
+    return this.inner.createFolder(path);
+  }
+
+  deleteFolder(path: string, opts?: { recursive?: boolean }) {
+    return this.inner.deleteFolder(path, opts);
   }
 
   getFileMeta(path: string, observing?: boolean) {
@@ -843,6 +856,7 @@ describe("SyncSnapshot remoteHashes", () => {
       nonSyncedFiles: {},
       remoteHashes: { "a.md": "ff" },
       baseHashes: { "a.md": "ee" },
+      folders: [],
     });
 
     const restored = SyncSnapshot.fromJSON(snapshot.toJSON());
@@ -2251,5 +2265,127 @@ describe("base tracking keeps pace with pulled content", () => {
     // The decisive one: a base of SEED would make A's proposal look like it
     // appended B1 itself, colliding with the remote's own B1/B2 append.
     expect(req.baseText).toBe(withB1);
+  });
+});
+
+describe("Folder sync", () => {
+  const folders = async (space: DataStoreSpacePrimitives) =>
+    (await space.fetchListing()).folders!.sort();
+
+  test("empty folders created on either side reach the other", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    await primary.createFolder("Projects/Archive");
+    await secondary.createFolder("Inbox");
+
+    expect(await doSync(sync, snapshot)).toBeGreaterThan(0);
+
+    const all = ["Inbox", "Projects", "Projects/Archive"];
+    expect(await folders(primary)).toEqual(all);
+    expect(await folders(secondary)).toEqual(all);
+    expect([...snapshot.folders].sort()).toEqual(all);
+    expect(await doSync(sync, snapshot)).toBe(0);
+  });
+
+  test("an empty folder deleted on one side is deleted on the other", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    await primary.createFolder("Projects/Archive");
+    await secondary.createFolder("Inbox");
+    await doSync(sync, snapshot);
+
+    await primary.deleteFolder("Projects/Archive");
+    await primary.deleteFolder("Projects");
+    await secondary.deleteFolder("Inbox");
+    await doSync(sync, snapshot);
+
+    expect(await folders(primary)).toEqual([]);
+    expect(await folders(secondary)).toEqual([]);
+    expect(snapshot.folders.size).toBe(0);
+  });
+
+  test("deleting the last file in a folder keeps the folder on both sides", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    await primary.writeFile("Projects/Plan.md", encode("Plan"));
+    await doSync(sync, snapshot);
+    expect(await folders(secondary)).toEqual(["Projects"]);
+
+    await primary.deleteFile("Projects/Plan.md");
+    await doSync(sync, snapshot);
+
+    expect(await secondary.fetchFileList()).toEqual([]);
+    expect(await folders(primary)).toEqual(["Projects"]);
+    expect(await folders(secondary)).toEqual(["Projects"]);
+  });
+
+  test("a file added to a folder wins over that folder's deletion", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    await primary.createFolder("Projects");
+    await doSync(sync, snapshot);
+
+    await primary.deleteFolder("Projects");
+    await secondary.writeFile("Projects/New.md", encode("New"));
+    await doSync(sync, snapshot);
+
+    expect(decode((await primary.readFile("Projects/New.md")).data)).toBe(
+      "New",
+    );
+    expect(await folders(primary)).toEqual(["Projects"]);
+    expect(await folders(secondary)).toEqual(["Projects"]);
+    expect(await doSync(sync, snapshot)).toBe(0);
+  });
+
+  test("a subfolder created inside a folder deleted elsewhere survives", async () => {
+    const { primary, secondary, snapshot, sync } = createSyncSetup();
+    await primary.createFolder("Projects");
+    await doSync(sync, snapshot);
+
+    await primary.deleteFolder("Projects");
+    await secondary.createFolder("Projects/Archive");
+    await doSync(sync, snapshot);
+
+    expect(await folders(primary)).toEqual(["Projects", "Projects/Archive"]);
+    expect(await folders(secondary)).toEqual(["Projects", "Projects/Archive"]);
+  });
+
+  test("is skipped when a side has no folder support", async () => {
+    const { primary, snapshot } = createSyncSetup();
+    const inner = new DataStoreSpacePrimitives(new MemoryKvPrimitives());
+    // Only the file primitives: what an older server offers
+    const secondary = {
+      fetchFileList: () => inner.fetchFileList(),
+      getFileMeta: (path: string) => inner.getFileMeta(path),
+      readFile: (path: string) => inner.readFile(path),
+      writeFile: (path: string, data: Uint8Array, meta?: FileMeta) =>
+        inner.writeFile(path, data, meta),
+      deleteFile: (path: string) => inner.deleteFile(path),
+      fetchListing: async () => ({ files: await inner.fetchFileList() }),
+      createFolder: () => Promise.reject(foldersUnsupportedError),
+      deleteFolder: () => Promise.reject(foldersUnsupportedError),
+    };
+    const sync = new SpaceSync(primary, secondary, {
+      conflictResolver: SpaceSync.primaryConflictResolver,
+      isSyncCandidate: () => true,
+    });
+    await primary.createFolder("Projects");
+    await primary.writeFile("index.md", encode("Hi"));
+    // Left over from when the server did support folders
+    snapshot.folders.add("Stale");
+
+    await doSync(sync, snapshot);
+
+    expect((await inner.fetchFileList()).map((f) => f.name)).toEqual([
+      "index.md",
+    ]);
+    expect(await folders(inner)).toEqual([]);
+    expect(snapshot.folders.size).toBe(0);
+  });
+
+  test("snapshot folders survive a JSON roundtrip, and default to empty", () => {
+    const snapshot = new SyncSnapshot();
+    snapshot.folders.add("Projects");
+    expect(snapshot.toJSON().folders).toEqual(["Projects"]);
+    expect(SyncSnapshot.fromJSON(snapshot.toJSON()).folders).toEqual(
+      new Set(["Projects"]),
+    );
+    expect(SyncSnapshot.fromJSON({ files: {} }).folders.size).toBe(0);
   });
 });

@@ -17,19 +17,19 @@ import type {
 } from "@silverbulletmd/silverbullet/type/index";
 import type {
   FileRevisions,
-  GitSyncSnapshot,
-  GitConflicts,
   GitConflictAction,
+  GitConflicts,
+  GitSyncSnapshot,
   SpaceActivity,
   SpaceLog,
 } from "@silverbulletmd/silverbullet/type/revisions";
 import type { Client } from "../../client.ts";
-import { ServerError, serverJson } from "../../spaces/server_api.ts";
-import { fsEndpoint } from "../../spaces/constants.ts";
-import { fileChangedEvent } from "../../space_lua/dependencies.ts";
-import type { SysCallMapping } from "../system.ts";
 import { lintPages, type SpaceLintDiagnostic } from "../../space_lint.ts";
 import { spaceLintDeps } from "../../space_lint_deps.ts";
+import { fileChangedEvent } from "../../space_lua/dependencies.ts";
+import { fsEndpoint } from "../../spaces/constants.ts";
+import { ServerError, serverJson } from "../../spaces/server_api.ts";
+import type { SysCallMapping } from "../system.ts";
 
 function revisionsUrl(client: Client, suffix: string): string {
   return `${client.httpSpacePrimitives.url.slice(0, -fsEndpoint.length)}/.revisions/${suffix}`;
@@ -278,6 +278,38 @@ export function spaceReadSyscalls(client: Client): SysCallMapping {
       callback: (): Promise<FileMeta[]> =>
         client.space.spacePrimitives.fetchFileList(),
       description: "Lists every file in the space.",
+    },
+    "space.listFolders": {
+      dependsOn: () => ["index", "folder:changed"],
+      callback: async (): Promise<string[] | null> => {
+        // The local store in a synced space always keeps folders, so whether
+        // the space does is the server's say
+        if (!client.bootConfig.folders) {
+          return null;
+        }
+        return (
+          (await client.space.spacePrimitives.fetchListing()).folders ?? null
+        );
+      },
+      description:
+        "Lists every folder in the space, empty ones included, or null when the server doesn't keep folders of their own.",
+    },
+    "space.createFolder": {
+      callback: (_ctx, path: string) =>
+        client.space.spacePrimitives.createFolder(path),
+      description:
+        "Creates a folder, and any missing parent folders. Needs a server that keeps folders.",
+      signatures: ["space.createFolder(path)"],
+    },
+    "space.deleteFolder": {
+      callback: (_ctx, path: string, opts?: { recursive?: boolean }) =>
+        client.space.spacePrimitives.deleteFolder(path, opts),
+      description:
+        "Deletes a folder: only an empty one, unless `recursive` is set, which deletes everything in it too.",
+      signatures: [
+        "space.deleteFolder(path)",
+        "space.deleteFolder(path, { recursive = true })",
+      ],
     },
     "space.getFileMeta": {
       dependsOn: (name: string) => [fileChangedEvent(name)],
