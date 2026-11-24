@@ -50,6 +50,9 @@ export type ActionSpec<T = ObjectValue<Record<string, any>>> = {
   icon?: string;
   label: string;
   requireMode?: "rw";
+  /** Also offered in the tree header's menu, run on the root folder
+   * (`{ name: "", isFolder: true }`) where `when` agrees. */
+  root?: boolean;
   when?: (obj: T) => boolean;
   run: (obj: T, ctx: ActionCtx) => Promise<any> | any;
 };

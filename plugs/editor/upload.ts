@@ -1,13 +1,13 @@
-import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import {
   defaultLinkStyle,
   maximumDocumentSize,
 } from "@silverbulletmd/silverbullet/constants";
-import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
 import {
   encodePageURI,
   isValidPath,
 } from "@silverbulletmd/silverbullet/lib/ref";
+import { resolveMarkdownLink } from "@silverbulletmd/silverbullet/lib/resolve";
+import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { UploadFile } from "@silverbulletmd/silverbullet/type/client";
 
 function ensureValidFilenameWithExtension(filename: string): string {
@@ -18,7 +18,18 @@ function ensureValidFilenameWithExtension(filename: string): string {
   return `file.${match ? match[1] : "txt"}`;
 }
 
-export async function saveFile(file: UploadFile) {
+/**
+ * Saves an uploaded file under a name the user confirms, asking before
+ * replacing one. Without `folder` the name starts next to the current page
+ * and a link to it goes in at the cursor; with it (the space tree's upload,
+ * "" for the top of the space) it starts in that folder, and nothing is
+ * inserted.
+ * @returns where the file went, or undefined if it wasn't saved
+ */
+export async function saveFile(
+  file: UploadFile,
+  folder?: string,
+): Promise<string | undefined> {
   const invalidPathMessage =
     "Unable to upload file, invalid target filename or path";
   const maxSize = await system.getConfig<number>(
@@ -40,12 +51,14 @@ export async function saveFile(file: UploadFile) {
     return;
   }
 
+  const suggestedName = ensureValidFilenameWithExtension(file.name);
   let desiredFilePath = await editor.prompt(
     "File name for uploaded document",
-    resolveMarkdownLink(
-      await editor.getCurrentPath(),
-      ensureValidFilenameWithExtension(file.name),
-    ),
+    folder === undefined
+      ? resolveMarkdownLink(await editor.getCurrentPath(), suggestedName)
+      : folder
+        ? `${folder}/${suggestedName}`
+        : suggestedName,
   );
   if (desiredFilePath === undefined) {
     // User hit cancel, so they know why we stopped and dont need an notification.
@@ -98,7 +111,7 @@ export async function saveFile(file: UploadFile) {
 
   await space.writeDocument(finalFilePath, file.content);
 
-  if ((await editor.getCurrentEditor()) === "page") {
+  if (folder === undefined && (await editor.getCurrentEditor()) === "page") {
     const linkStyle = await system.getConfig(
       "defaultLinkStyle",
       defaultLinkStyle,
@@ -114,9 +127,18 @@ export async function saveFile(file: UploadFile) {
     }
     void editor.insertAtCursor(documentMarkdown);
   }
+  return finalFilePath;
 }
 
 export async function uploadFile(_ctx: any, accept?: string, capture?: string) {
   const uploadFile = await editor.uploadFile(accept, capture);
   await saveFile(uploadFile);
+}
+
+/** Uploads a file into `folder` ("" for the top of the space). */
+export async function uploadFileTo(folder: string) {
+  const uploaded = await saveFile(await editor.uploadFile(), folder);
+  if (uploaded) {
+    await editor.flashNotification(`Uploaded ${uploaded}`);
+  }
 }

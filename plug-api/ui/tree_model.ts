@@ -43,7 +43,10 @@ export function buildTree(
   };
   for (const row of rows) {
     const path = String(row.obj.name ?? row.primary);
-    ensure(path).row = row;
+    const node = ensure(path);
+    node.row = row;
+    // A folder with nothing in it has no children to make it one
+    if (row.obj.isFolder === true) node.isFolder = true;
   }
   // Stable, so within a group children keep the order the source put them in
   // -- which is what makes the tree alphabetical.

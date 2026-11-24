@@ -125,6 +125,9 @@ export type ViewMeta = {
   hasReorder: boolean;
   uploadFiles?: boolean;
   hasCreate: boolean;
+  /** A create phrase ending in the hierarchy separator makes a folder:
+   * `onCreate` gets it with the separator still on. */
+  createsFolders?: boolean;
   refreshOnOpen: boolean;
   /** A modal open without a phrase starts from the phrase this view last
    * queried in this tab (in memory only), selected so typing replaces it. */

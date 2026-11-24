@@ -34,6 +34,22 @@ test("page+folder dual merges", () => {
   expect(root.children[0].row!.obj.name).toBe("Projects");
 });
 
+test("a row marked as a folder is one without children", () => {
+  const root = buildTree(
+    [{ obj: { name: "Empty", isFolder: true }, primary: "Empty" }, row("Top")],
+    "/",
+    true,
+  );
+  expect(root.children.map((c) => [c.path, c.isFolder])).toEqual([
+    ["Empty", true],
+    ["Top", false],
+  ]);
+  expect(nodeObject(root.children[0])).toEqual({
+    name: "Empty",
+    isFolder: true,
+  });
+});
+
 test("foldersFirst=false preserves source order", () => {
   const root = buildTree([row("Zebra"), row("Projects/Alpha")], "/", false);
   expect(root.children.map((c) => c.path)).toEqual(["Zebra", "Projects"]);

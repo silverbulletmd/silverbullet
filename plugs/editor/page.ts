@@ -1,5 +1,6 @@
-import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
 import { notFoundError } from "@silverbulletmd/silverbullet/constants";
+import { leaveBeforeDeleting } from "@silverbulletmd/silverbullet/lib/leave_deleted";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
 
 export async function deletePage() {
   const pageName = await editor.getCurrentPage();
@@ -11,16 +12,8 @@ export async function deletePage() {
   ) {
     return;
   }
-  const recentlyOpenedPages = await editor.getRecentlyOpenedPages();
-  const allPages = await space.listPages();
-  const existingPageNames = new Set(allPages.map((p) => p.name));
-
-  const firstRecentlyOpenedPage = recentlyOpenedPages.find(
-    (page) => page.name !== pageName && existingPageNames.has(page.name),
-  );
+  await leaveBeforeDeleting((path) => path === `${pageName}.md`);
   await space.deletePage(pageName);
-  console.log("Navigating to previous page");
-  await editor.navigate(firstRecentlyOpenedPage?.name || "");
 }
 
 export async function copyPage(

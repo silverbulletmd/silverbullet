@@ -1,7 +1,7 @@
+import { moveByRename } from "../../navigator/move_by_rename.ts";
 import {
   defineView,
   focusPanel,
-  moveByRename,
   openView,
   pickView,
 } from "../../navigator/navigator.ts";

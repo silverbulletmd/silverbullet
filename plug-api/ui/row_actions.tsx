@@ -1,4 +1,4 @@
-import { RowMenu } from "./row_menu.tsx";
+import { RowMenu, type RowMenuItem } from "./row_menu.tsx";
 import type { ActionMeta } from "./tree_types.ts";
 
 export type RowActionsProps = {
@@ -13,25 +13,22 @@ export type RowActionsProps = {
   onRun: (index: number) => void;
 };
 
-/**
- * A row's actions, as one ⋯ menu (also opened by the menu key or Shift-F10
- * on the selected row; see `openRowMenu`). A right-click keeps the browser's
- * own menu. In a panel the filter input keeps focus
- * and the trigger stays out of the tab order; in a document it is a regular,
- * tabbable button whose keys stay away from the row's own.
- */
-export function RowActions({
+/** The menu items for the actions that apply: allowed in this mode, and
+ * whose `when` (if any) agreed, per `mask`. For a tree's root, only the
+ * actions marked `root`. */
+export function rowActionItems({
   actions,
   icons,
   mask,
   readOnly,
-  documentMode,
   disabled,
+  root,
   onRun,
-}: RowActionsProps) {
-  const items = actions
+}: Omit<RowActionsProps, "documentMode"> & { root?: boolean }): RowMenuItem[] {
+  return actions
     .map((action, index) => ({ action, index }))
     .filter(({ action, index }) => {
+      if (root && !action.root) return false;
       if (readOnly && action.requireMode === "rw") return false;
       return !action.hasWhen || mask?.[index] === true;
     })
@@ -41,6 +38,17 @@ export function RowActions({
       disabled,
       run: () => onRun(index),
     }));
+}
+
+/**
+ * A row's actions, as one ⋯ menu (also opened by the menu key or Shift-F10
+ * on the selected row; see `openRowMenu`). A right-click keeps the browser's
+ * own menu. In a panel the filter input keeps focus
+ * and the trigger stays out of the tab order; in a document it is a regular,
+ * tabbable button whose keys stay away from the row's own.
+ */
+export function RowActions({ documentMode, ...props }: RowActionsProps) {
+  const items = rowActionItems(props);
   if (items.length === 0) return null;
   return (
     <span

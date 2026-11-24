@@ -118,21 +118,31 @@ test.describe("space tree", () => {
     });
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 
-    const expandAll = tree.getByRole("button", { name: "Expand all folders" });
-    const collapseAll = tree.getByRole("button", {
+    // Folding lives in the tree's header menu, a portal on <body>
+    const treeMenu = tree.getByRole("button", { name: "Space tree actions" });
+    const expandAll = sbPage.getByRole("menuitem", {
+      name: "Expand all folders",
+    });
+    const collapseAll = sbPage.getByRole("menuitem", {
       name: "Collapse all folders",
     });
-    await expect(expandAll).toBeEnabled();
-    await expect(collapseAll).toBeDisabled();
+    const expectFolding = async (expand: boolean, collapse: boolean) => {
+      await treeMenu.click();
+      await expect(expandAll).toBeEnabled({ enabled: expand });
+      await expect(collapseAll).toBeEnabled({ enabled: collapse });
+      await sbPage.keyboard.press("Escape");
+    };
+    await expectFolding(true, false);
+    await treeMenu.click();
     await expandAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toBeVisible();
-    await expect(expandAll).toBeDisabled();
-    // The buttons follow the segment: Content leaves Library/ out, so its
+    await expectFolding(false, true);
+    // Folding follows the segment: Content leaves Library/ out, so its
     // folder is still collapsed in Library
     await tree.getByRole("radio", { name: "Library" }).click();
-    await expect(expandAll).toBeEnabled();
-    await expect(collapseAll).toBeDisabled();
+    await expectFolding(true, false);
     await tree.getByRole("radio", { name: "Content" }).click();
+    await treeMenu.click();
     await collapseAll.click();
     await expect(tree.locator("[data-path='Projects/Alpha']")).toHaveCount(0);
 

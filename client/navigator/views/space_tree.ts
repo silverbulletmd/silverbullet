@@ -1,3 +1,4 @@
+import { leaveBeforeDeleting } from "@silverbulletmd/silverbullet/lib/leave_deleted";
 import {
   splitPath,
   TREE_ORDER_PAGE,
@@ -6,6 +7,7 @@ import {
 } from "@silverbulletmd/silverbullet/lib/tree_order";
 import { editor, space, system } from "@silverbulletmd/silverbullet/syscalls";
 import type { ObjectValue } from "@silverbulletmd/silverbullet/type/index";
+import { moveByRename } from "../move_by_rename.ts";
 import { expandRefreshTriggers } from "../refresh_triggers.ts";
 import {
   HIDDEN_ROW_CLASS,
@@ -128,8 +130,44 @@ function homeSegment(obj: TreeObj): string | undefined {
   return spaceTreeSegments.find((s) => admits(s, obj))?.label;
 }
 
+// Whether the server keeps folders of their own (empty ones included), from
+// the last source run: action `when`s have to be synchronous.
+let foldersSupported = false;
+
+/** Rows for folders nothing else in the tree makes a folder: empty ones, or
+ * ones holding only empty folders deeper down. A page heading an empty
+ * folder gets marked as a folder instead of a second row. */
+export function withFolderRows(
+  contents: TreeObj[],
+  folders: string[],
+): TreeObj[] {
+  if (folders.length === 0) return contents;
+  const names = new Set(contents.map((obj) => obj.name));
+  // Every folder some row already sits in
+  const filled = new Set<string>();
+  for (const name of [...names, ...folders]) {
+    for (let i = name.indexOf("/"); i !== -1; i = name.indexOf("/", i + 1)) {
+      filled.add(name.slice(0, i));
+    }
+  }
+  const empty = new Set(folders.filter((folder) => !filled.has(folder)));
+  return [
+    ...contents.map((obj) =>
+      empty.has(obj.name) ? { ...obj, isFolder: true } : obj,
+    ),
+    ...[...empty]
+      .filter((folder) => !names.has(folder))
+      .map((name) => ({ name, isFolder: true })),
+  ];
+}
+
 async function spaceTreeSource(): Promise<TreeObj[]> {
-  const contents = (await spaceContents()) as TreeObj[];
+  const [listed, folders] = await Promise.all([
+    spaceContents() as Promise<TreeObj[]>,
+    space.listFolders(),
+  ]);
+  foldersSupported = folders !== null;
+  const contents = withFolderRows(listed, folders ?? []);
   const [collate, order] = await Promise.all([
     treeCollate(),
     loadTreeOrder(contents),
@@ -162,34 +200,6 @@ async function moveAmongSiblings(
     anchor,
     position: step < 0 ? "before" : "after",
   });
-}
-
-async function moveByRename(obj: TreeObj, newName: string): Promise<void> {
-  if (obj.isFolder) {
-    // Covers documents as well as pages under the prefix.
-    await system.invokeFunction("index.renamePrefixCommand", {
-      oldPrefix: `${obj.name}/`,
-      newPrefix: `${newName}/`,
-      disableConfirmation: true,
-    });
-  }
-  // A page that also has children is both: renamePrefixCommand only touches
-  // files under "name/", so the page itself still needs its own rename.
-  if (!obj.isFolder || obj.ref) {
-    if (obj.tag === "document") {
-      // A document's name carries its extension and is the file name itself,
-      // so the page rename (which appends ".md") would rename the wrong file.
-      await system.invokeFunction("index.renameDocumentCommand", {
-        oldDocument: obj.name,
-        document: newName,
-      });
-    } else {
-      await system.invokeFunction("index.renamePageCommand", {
-        oldPage: obj.name,
-        page: newName,
-      });
-    }
-  }
 }
 
 /** Renaming means something different for each of the three kinds of row a
@@ -237,6 +247,8 @@ async function hideTreeRow(obj: TreeObj): Promise<void> {
 
 async function deleteTreeRow(obj: TreeObj): Promise<void> {
   if (!(await editor.confirm(`Delete ${obj.name}?`))) return;
+  const file = obj.tag === "document" ? obj.name : `${obj.name}.md`;
+  await leaveBeforeDeleting((path) => path === file);
   if (obj.tag === "document") {
     await space.deleteDocument(obj.name);
   } else {
@@ -244,8 +256,79 @@ async function deleteTreeRow(obj: TreeObj): Promise<void> {
   }
 }
 
+function countFiles(names: string[]): string {
+  const pages = names.filter((name) => name.endsWith(".md")).length;
+  const documents = names.length - pages;
+  return [
+    pages > 0 ? `${pages} ${pages === 1 ? "page" : "pages"}` : "",
+    documents > 0
+      ? `${documents} ${documents === 1 ? "document" : "documents"}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" and ");
+}
+
+/** Deletes the folder and everything in it, after asking when that's more
+ * than the folder itself. A page heading the folder stays: it lives next to
+ * the folder, not in it. */
+async function deleteFolderRow(obj: TreeObj): Promise<void> {
+  const inside = (path: string) => path.startsWith(`${obj.name}/`);
+  const files = (await space.listFiles())
+    .map(({ name }) => name)
+    .filter(inside);
+  if (
+    files.length > 0 &&
+    !(await editor.confirm(
+      `Delete ${obj.name} and the ${countFiles(files)} in it?`,
+      { destructive: true },
+    ))
+  ) {
+    return;
+  }
+  await leaveBeforeDeleting(inside);
+  await space.deleteFolder(obj.name, { recursive: true });
+}
+
+/** Picks a file and uploads it into the folder (the top of the space for
+ * the root), under a name the user confirms. */
+async function uploadDocumentTo(obj: TreeObj): Promise<void> {
+  await system.invokeFunction("editor.uploadFileTo", obj.name);
+}
+
+/** What a name typed for something new in the folder starts with: the
+ * folder's own name, or nothing at the top of the space. */
+const inFolder = (obj: TreeObj) => (obj.name ? `${obj.name}/` : "");
+
+async function newFolderUnder(obj: TreeObj): Promise<void> {
+  const prefill = inFolder(obj);
+  const name = await editor.prompt("New folder name:", prefill);
+  if (name == null) return;
+  const trimmed = name.trim().replace(/\/+$/, "");
+  if (trimmed === "" || trimmed === obj.name) return;
+  await space.createFolder(trimmed);
+}
+
+/** The filter's create row: a page, or a folder for a name ending in "/". */
+async function createFromTree(name: string): Promise<void> {
+  if (!name.endsWith("/")) {
+    await editor.navigate(name);
+    return;
+  }
+  const folder = name.replace(/\/+$/, "");
+  if (!folder) return;
+  if (!foldersSupported) {
+    await editor.flashNotification(
+      "This server doesn't keep empty folders; create a page in it instead",
+      "error",
+    );
+    return;
+  }
+  await space.createFolder(folder);
+}
+
 async function newPageUnder(obj: TreeObj): Promise<void> {
-  const prefill = `${obj.name}/`;
+  const prefill = inFolder(obj);
   const name = await editor.prompt("New page name:", prefill);
   if (name == null) return;
   const trimmed = name.trim();
@@ -257,13 +340,6 @@ async function newPageUnder(obj: TreeObj): Promise<void> {
   await editor.navigate(trimmed);
 }
 
-// A pure folder has no object behind it, so it has nothing to delete (and
-// deleting a whole subtree is not a job for a hover button). A page that also
-// heads a folder keeps its own delete: it has a page to remove.
-function isDeletable(obj: TreeObj): boolean {
-  return !obj.isFolder || obj.ref != null;
-}
-
 export const spaceTreeView: BuiltinView<TreeObj> = {
   meta: baseMeta({
     title: "Space",
@@ -273,12 +349,13 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
     mode: "tree",
     followEditor: true,
     hasCreate: true,
+    createsFolders: true,
     uploadFiles: true,
     foldersFirst: false,
     // Every folder here names a page, whether or not one exists yet, so
     // clicking one opens that page as well as expanding the row.
     selectableFolders: true,
-    refreshOn: expandRefreshTriggers(["index"]),
+    refreshOn: expandRefreshTriggers(["index", "folder:changed"]),
   }),
   row: {
     icon: treeIcon,
@@ -290,16 +367,47 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
       icon: "plus",
       label: "New page here",
       requireMode: "rw",
+      root: true,
       when: (obj) => obj.isFolder === true,
       run: newPageUnder,
+    },
+    {
+      icon: "folder-plus",
+      label: "New folder here",
+      requireMode: "rw",
+      root: true,
+      when: (obj) => obj.isFolder === true && foldersSupported,
+      run: newFolderUnder,
+    },
+    {
+      icon: "upload",
+      label: "Upload document here",
+      requireMode: "rw",
+      root: true,
+      when: (obj) => obj.isFolder === true,
+      run: uploadDocumentTo,
     },
     { icon: "edit-3", label: "Rename", requireMode: "rw", run: renameTreeRow },
     {
       icon: "trash-2",
       label: "Delete",
       requireMode: "rw",
-      when: isDeletable,
+      when: (obj) => !obj.isFolder,
       run: deleteTreeRow,
+    },
+    {
+      icon: "trash-2",
+      label: "Delete page",
+      requireMode: "rw",
+      when: (obj) => obj.isFolder === true && obj.ref != null,
+      run: deleteTreeRow,
+    },
+    {
+      icon: "trash-2",
+      label: "Delete folder",
+      requireMode: "rw",
+      when: (obj) => obj.isFolder === true && foldersSupported,
+      run: deleteFolderRow,
     },
     {
       icon: "arrow-up",
@@ -351,5 +459,5 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
   onReorder: reorderSibling,
   source: spaceTreeSource,
   onSelect: (obj) => editor.navigate(obj.ref ?? obj.name),
-  onCreate: (name) => editor.navigate(name),
+  onCreate: createFromTree,
 };

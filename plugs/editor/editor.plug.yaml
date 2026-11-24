@@ -392,6 +392,8 @@ functions:
     command:
       name: "Client: Version"
 
+  uploadFileTo:
+    path: ./upload.ts:uploadFileTo
   uploadFileCommand:
     path: ./upload.ts:uploadFile
     command:

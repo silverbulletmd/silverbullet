@@ -16,6 +16,7 @@ export function CreateRow({
   hasIcon,
   selected,
   pinned,
+  folder,
   elRef,
   onClick,
 }: {
@@ -24,6 +25,8 @@ export function CreateRow({
   hasIcon: boolean;
   selected: boolean;
   pinned?: boolean;
+  /** Creating makes a folder rather than a page. */
+  folder?: boolean;
   elRef?: Ref<HTMLDivElement>;
   onClick: () => void;
 }) {
@@ -46,7 +49,9 @@ export function CreateRow({
       <span className="sb-nav-primary">{phrase}</span>
       {/* The same right-aligned hint an aspiring row carries, so the two ways
           to make a page read alike. */}
-      <span className="sb-nav-chip sb-nav-chip-hint">Create</span>
+      <span className="sb-nav-chip sb-nav-chip-hint">
+        {folder ? "Create folder" : "Create"}
+      </span>
     </div>
   );
 }

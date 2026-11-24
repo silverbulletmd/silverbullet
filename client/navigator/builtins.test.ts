@@ -1,4 +1,4 @@
-import { beforeEach, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 
 const index = {
   isAvailable: vi.fn<() => Promise<boolean>>(),
@@ -9,6 +9,11 @@ const space = {
   writePage: vi.fn<(name: string, text: string) => Promise<unknown>>(),
   listPages: vi.fn<() => Promise<unknown[]>>(),
   listDocuments: vi.fn<() => Promise<unknown[]>>(),
+  listFolders: vi.fn<() => Promise<string[] | null>>(),
+  listFiles: vi.fn<() => Promise<{ name: string }[]>>(),
+  createFolder: vi.fn<(path: string) => Promise<void>>(),
+  deleteFolder: vi.fn<(path: string) => Promise<void>>(),
+  deleteFile: vi.fn<(name: string) => Promise<void>>(),
   fileExists: vi.fn<(name: string) => Promise<boolean>>(),
   writeDocument: vi.fn<(name: string, data: Uint8Array) => Promise<unknown>>(),
   deletePage: vi.fn<(name: string) => Promise<void>>(),
@@ -25,6 +30,7 @@ const editor = {
   open: vi.fn<(ref: unknown) => Promise<void>>(),
   getCurrentPath: vi.fn<() => Promise<string>>(),
   getCurrentPage: vi.fn<() => Promise<string>>(),
+  getRecentlyOpenedPages: vi.fn<() => Promise<{ name: string }[]>>(),
   getLastOpenedMap: vi.fn<() => Promise<Record<string, number>>>(),
   getViewableExtensions: vi.fn<() => Promise<string[]>>(),
   getDocumentCapabilities:
@@ -47,6 +53,7 @@ const editor = {
   getText: vi.fn<() => Promise<string>>(),
   prompt: vi.fn<(msg: string, def?: string) => Promise<string | undefined>>(),
   confirm: vi.fn<(msg: string) => Promise<boolean>>(),
+  uploadFile: vi.fn<() => Promise<{ name: string; content: Uint8Array }>>(),
   getUiOption: vi.fn<(name: string) => Promise<unknown>>(),
   setText: vi.fn<(text: string, isolateHistory?: boolean) => Promise<void>>(),
 };
@@ -56,6 +63,7 @@ const markdown = {
 const config = { get: vi.fn() };
 const system = {
   getMode: vi.fn<() => Promise<string>>(),
+  getConfig: vi.fn<(key: string, fallback: unknown) => Promise<unknown>>(),
   invokeFunction:
     vi.fn<(name: string, ...args: unknown[]) => Promise<unknown>>(),
 };
@@ -107,6 +115,8 @@ const { pageScopes, spaceContents } = await import("./views/pages.ts");
 beforeEach(() => {
   vi.clearAllMocks();
   space.fileExists.mockResolvedValue(false);
+  space.listFolders.mockResolvedValue(null);
+  system.getConfig.mockImplementation(async (_key, fallback) => fallback);
   system.getMode.mockResolvedValue("rw");
   editor.getUiOption.mockResolvedValue(false);
   editor.getCurrentPath.mockResolvedValue("Current.md");
@@ -524,6 +534,29 @@ function runAction(
   return builtinHandle(name, "action", { index, obj, primary });
 }
 
+/** A space tree action's 1-based index, by its label. */
+function treeAction(label: string): number {
+  const index = builtinMeta("std.spaceTree")!.actions!.findIndex(
+    (a) => a.label === label,
+  );
+  if (index < 0) throw new Error(`No space tree action ${label}`);
+  return index + 1;
+}
+
+/** The labels of the space tree actions a row's state offers. */
+function offered(state: { actions: boolean[] }): string[] {
+  return builtinMeta("std.spaceTree")!
+    .actions!.filter((_, i) => state.actions[i])
+    .map((a) => a.label);
+}
+
+/** Whether a row's state offers [Move up, Move down]. */
+function moves(state: { actions: boolean[] }): boolean[] {
+  return ["Move up", "Move down"].map(
+    (label) => state.actions[treeAction(label) - 1],
+  );
+}
+
 test("std.spaceTree sources the same content as the space picker, sorted by name", async () => {
   index.isAvailable.mockResolvedValue(true);
   index.queryLuaObjects.mockImplementation((tag) =>
@@ -644,69 +677,34 @@ test("std.spaceTree's row state: icon per kind, and the action mask", async () =
   // what marks it out as a dual is the row's own styling, not the icon.
   expect(dual.icon).toBe("file-text");
 
-  // "New page here" (index 0) only offers on folders; "Delete" (index 2)
-  // only where there's something to delete -- a bare folder has neither a
-  // page nor a document behind it. Move up/down and Reset order (3-5) need
-  // rows the tree has listed and a saved order, and these were never listed.
-  // Set icon and Hide from tree (6-7) offer on anything but an aspiring page.
-  expect(folder.actions).toEqual([
-    true,
-    true,
-    false,
-    false,
-    false,
-    false,
-    true,
-    true,
-  ]);
-  expect(page.actions).toEqual([
-    false,
-    true,
-    true,
-    false,
-    false,
-    false,
-    true,
-    true,
-  ]);
-  expect(doc.actions).toEqual([
-    false,
-    true,
-    true,
-    false,
-    false,
-    false,
-    true,
-    true,
-  ]);
-  expect(aspiring.actions).toEqual([
-    false,
-    true,
-    true,
-    false,
-    false,
-    false,
-    false,
-    false,
-  ]);
-  // A page that also heads a folder (a "dual") keeps its own Delete -- the
-  // one case a bare folder-or-page pair doesn't exercise on either side.
-  expect(dual.actions).toEqual([
-    true,
-    true,
-    true,
-    false,
-    false,
-    false,
-    true,
-    true,
+  // "New page here" and "Upload document here" only offer on folders.
+  // "Delete" is for pages and documents; a page that also heads a folder
+  // gets "Delete page" instead, and the other folder actions ("New folder
+  // here", "Delete folder") need a server that keeps folders, which these
+  // rows never asked about. Move up/down and Reset order need rows the tree
+  // has listed and a saved order, and these were never listed. Set icon and
+  // Hide from tree offer on anything but an aspiring page.
+  const decorate = ["Set icon", "Hide from tree"];
+  const inFolder = ["New page here", "Upload document here"];
+  expect(offered(folder)).toEqual([...inFolder, "Rename", ...decorate]);
+  expect(offered(page)).toEqual(["Rename", "Delete", ...decorate]);
+  expect(offered(doc)).toEqual(["Rename", "Delete", ...decorate]);
+  expect(offered(aspiring)).toEqual(["Rename", "Delete"]);
+  expect(offered(dual)).toEqual([
+    ...inFolder,
+    "Rename",
+    "Delete page",
+    ...decorate,
   ]);
 });
 
 test("navigator:action New page here prompts, then navigates to the trimmed name", async () => {
   editor.prompt.mockResolvedValue("  Projects/Gamma  ");
 
-  const result = await runAction(1, { name: "Projects", isFolder: true });
+  const result = await runAction(treeAction("New page here"), {
+    name: "Projects",
+    isFolder: true,
+  });
 
   expect(editor.prompt).toHaveBeenCalledWith("New page name:", "Projects/");
   expect(editor.navigate).toHaveBeenCalledWith("Projects/Gamma");
@@ -715,15 +713,24 @@ test("navigator:action New page here prompts, then navigates to the trimmed name
 
 test("navigator:action New page here does nothing on Escape or an unedited prefill", async () => {
   editor.prompt.mockResolvedValueOnce(undefined);
-  await runAction(1, { name: "Projects", isFolder: true });
+  await runAction(treeAction("New page here"), {
+    name: "Projects",
+    isFolder: true,
+  });
   editor.prompt.mockResolvedValueOnce("Projects/");
-  await runAction(1, { name: "Projects", isFolder: true });
+  await runAction(treeAction("New page here"), {
+    name: "Projects",
+    isFolder: true,
+  });
 
   expect(editor.navigate).not.toHaveBeenCalled();
 });
 
 test("navigator:action Rename on a page runs the page rename command, no prompt", async () => {
-  await runAction(2, { tag: "page", name: "Projects/Alpha" });
+  await runAction(treeAction("Rename"), {
+    tag: "page",
+    name: "Projects/Alpha",
+  });
 
   expect(editor.prompt).not.toHaveBeenCalled();
   expect(system.invokeFunction).toHaveBeenCalledWith(
@@ -731,45 +738,68 @@ test("navigator:action Rename on a page runs the page rename command, no prompt"
     { oldPage: "Projects/Alpha" },
   );
 
-  await runAction(2, { tag: "document", name: "notes.txt" });
+  await runAction(treeAction("Rename"), { tag: "document", name: "notes.txt" });
   expect(system.invokeFunction).toHaveBeenCalledWith(
     "index.renameDocumentCommand",
     { oldDocument: "notes.txt" },
   );
 });
 
-test("navigator:action Rename on a folder prompts, then renames the prefix and (if headed by a page) the page itself", async () => {
+test("navigator:action Rename on a folder prompts, then moves the folder and (if headed by a page) the page itself as one batch", async () => {
   editor.prompt.mockResolvedValue("Archive");
 
-  await runAction(2, { isFolder: true, name: "Projects", ref: "Projects" });
+  await runAction(treeAction("Rename"), {
+    isFolder: true,
+    name: "Projects",
+    ref: "Projects",
+  });
 
   expect(system.invokeFunction).toHaveBeenCalledWith(
-    "index.renamePrefixCommand",
-    {
-      oldPrefix: "Projects/",
-      newPrefix: "Archive/",
-      disableConfirmation: true,
-    },
+    "index.renameFolderCommand",
+    { oldName: "Projects", newName: "Archive", withPage: true },
   );
-  expect(system.invokeFunction).toHaveBeenCalledWith(
-    "index.renamePageCommand",
-    { oldPage: "Projects", page: "Archive" },
-  );
+  expect(system.invokeFunction).toHaveBeenCalledTimes(1);
 });
 
 test("navigator:action Delete confirms via editor.confirm inside the handler, then deletes", async () => {
   editor.confirm.mockResolvedValue(true);
 
-  await runAction(3, { tag: "page", name: "Weird", ref: "Weird" });
+  await runAction(treeAction("Delete"), {
+    tag: "page",
+    name: "Weird",
+    ref: "Weird",
+  });
 
   expect(editor.confirm).toHaveBeenCalledWith("Delete Weird?");
   expect(space.deletePage).toHaveBeenCalledWith("Weird");
 });
 
+test("navigator:action Delete on the open page goes to the index page first, when nothing else was opened", async () => {
+  editor.confirm.mockResolvedValue(true);
+  editor.getCurrentPath.mockResolvedValue("Weird.md");
+  editor.getRecentlyOpenedPages.mockResolvedValue([{ name: "Weird" }]);
+  space.listPages.mockResolvedValue([{ name: "Weird" }]);
+
+  await runAction(treeAction("Delete"), {
+    tag: "page",
+    name: "Weird",
+    ref: "Weird",
+  });
+
+  expect(editor.navigate).toHaveBeenCalledWith("");
+  expect(editor.navigate.mock.invocationCallOrder[0]).toBeLessThan(
+    space.deletePage.mock.invocationCallOrder[0],
+  );
+});
+
 test("navigator:action Delete does nothing when declined", async () => {
   editor.confirm.mockResolvedValue(false);
 
-  await runAction(3, { tag: "document", name: "notes.txt" }, "notes.txt");
+  await runAction(
+    treeAction("Delete"),
+    { tag: "document", name: "notes.txt" },
+    "notes.txt",
+  );
 
   expect(space.deleteDocument).not.toHaveBeenCalled();
 });
@@ -777,7 +807,10 @@ test("navigator:action Delete does nothing when declined", async () => {
 test("navigator:action requireMode rw is blocked in read-only mode, before the action ever runs", async () => {
   system.getMode.mockResolvedValue("ro");
 
-  const result = await runAction(2, { tag: "page", name: "Alpha" });
+  const result = await runAction(treeAction("Rename"), {
+    tag: "page",
+    name: "Alpha",
+  });
 
   expect(system.invokeFunction).not.toHaveBeenCalled();
   expect(editor.flashNotification).toHaveBeenCalledWith(
@@ -806,19 +839,15 @@ test("navigator:move (drag-drop) renames a page through the same moveByRename pa
   );
 });
 
-test("navigator:move moving a folder renames the prefix, not a single page", async () => {
+test("navigator:move moving a folder moves the folder, not a single page", async () => {
   await builtinHandle("std.spaceTree", "move", {
     obj: { isFolder: true, name: "Projects" },
     newName: "Archive",
   });
 
   expect(system.invokeFunction).toHaveBeenCalledWith(
-    "index.renamePrefixCommand",
-    {
-      oldPrefix: "Projects/",
-      newPrefix: "Archive/",
-      disableConfirmation: true,
-    },
+    "index.renameFolderCommand",
+    { oldName: "Projects", newName: "Archive", withPage: false },
   );
   expect(system.invokeFunction).toHaveBeenCalledTimes(1);
 });
@@ -887,17 +916,17 @@ test("Move up/Move down offer only where there is a sibling to pass, and move be
     { tag: "page", name: "B" },
     { tag: "page", name: "C" },
   ])) as any[];
-  expect(a.actions.slice(3, 5)).toEqual([false, true]);
-  expect(b.actions.slice(3, 5)).toEqual([true, true]);
-  expect(c.actions.slice(3, 5)).toEqual([true, false]);
+  expect(moves(a)).toEqual([false, true]);
+  expect(moves(b)).toEqual([true, true]);
+  expect(moves(c)).toEqual([true, false]);
 
   // Move up on B: before A.
-  await runAction(4, { tag: "page", name: "B" });
+  await runAction(treeAction("Move up"), { tag: "page", name: "B" });
   expect(space.writePage.mock.calls[0][1]).toContain("* B\n* A\n* C\n");
   // Move down on B (order now B, A, C after the write): after A.
   await builtinRows("std.spaceTree");
   space.writePage.mockClear();
-  await runAction(5, { tag: "page", name: "B" });
+  await runAction(treeAction("Move down"), { tag: "page", name: "B" });
   expect(space.writePage.mock.calls[0][1]).toContain("* A\n* B\n* C\n");
 });
 
@@ -930,12 +959,12 @@ test("Move up/Move down availability is a lookup, not a rescan per row", async (
   expect(treeIndexBuilt.mock.calls.length).toBeLessThanOrEqual(1);
   // Folder-aware: siblings are within a folder, folders count as siblings.
   const at = (name: string) => states[objs.findIndex((o) => o.name === name)];
-  expect(at("F0/P0").actions.slice(3, 5)).toEqual([false, true]);
-  expect(at("F0/P99").actions.slice(3, 5)).toEqual([true, false]);
-  expect(at("F7/P50").actions.slice(3, 5)).toEqual([true, true]);
-  expect(at("F0").actions.slice(3, 5)).toEqual([false, true]);
+  expect(moves(at("F0/P0"))).toEqual([false, true]);
+  expect(moves(at("F0/P99"))).toEqual([true, false]);
+  expect(moves(at("F7/P50"))).toEqual([true, true]);
+  expect(moves(at("F0"))).toEqual([false, true]);
   // Plain (uncollated) order puts F9 last at the root.
-  expect(at("F9").actions.slice(3, 5)).toEqual([true, false]);
+  expect(moves(at("F9"))).toEqual([true, false]);
 });
 
 // A write primes the order cache, which outlives the test that wrote it.
@@ -1015,7 +1044,7 @@ test("std.spaceTree takes icon and hide from the order page's attributes", async
 
 function moveUp(name: string, segment: string) {
   return builtinHandle("std.spaceTree", "action", {
-    index: 4,
+    index: treeAction("Move up"),
     obj: { tag: "page", name },
     segment,
   });
@@ -1049,7 +1078,7 @@ test("Move up with no visible neighbour in the segment writes nothing", async ()
   const [state] = (await rowState("std.spaceTree", [
     { tag: "page", name: "Meetings" },
   ])) as any[];
-  expect(state.actions.slice(3, 5)).toEqual([false, false]);
+  expect(moves(state)).toEqual([false, false]);
 
   await moveUp("Meetings", "Content");
 
@@ -1060,7 +1089,7 @@ test("Move down in a segment counts a folder visible through its children", asyn
   await spaceTreeWith(["Alpha", "Projects/x"], [], ["Beta"]);
 
   await builtinHandle("std.spaceTree", "action", {
-    index: 5,
+    index: treeAction("Move down"),
     obj: { tag: "page", name: "Alpha" },
     segment: "Content",
   });
@@ -1457,4 +1486,155 @@ test("read members retain Git views while revision history stays hidden", () => 
   expect(builtinMeta("std.spaceLog")).toBeUndefined();
   expect(builtinMeta("std.gitStatus")?.title).toBe("Git status");
   expect(builtinMeta("std.gitConflicts")?.title).toBe("Git conflicts");
+});
+
+describe("std.spaceTree folders", () => {
+  const NEW_FOLDER = treeAction("New folder here");
+  const DELETE_FOLDER = treeAction("Delete folder");
+
+  test("empty folders from the server become folder rows", async () => {
+    space.listFolders.mockResolvedValue(["Projects", "Archive"]);
+    const rows = (await spaceTreeWith(["Projects/Plan"])) as any[];
+    expect(
+      rows.map((r) => [r.obj.name, r.obj.isFolder ?? false]),
+    ).toContainEqual(["Archive", true]);
+    expect(rows.some((r) => r.obj.name === "Projects")).toBe(false);
+  });
+
+  test("a create phrase ending in / makes a folder, when the server keeps them", async () => {
+    space.listFolders.mockResolvedValue([]);
+    await spaceTreeWith(["index"]);
+    await builtinHandle("std.spaceTree", "create", { phrase: "Projects/New/" });
+    expect(space.createFolder).toHaveBeenCalledWith("Projects/New");
+    expect(editor.navigate).not.toHaveBeenCalled();
+  });
+
+  test("a create phrase ending in / explains itself on an older server", async () => {
+    space.listFolders.mockResolvedValue(null);
+    await spaceTreeWith(["index"]);
+    await builtinHandle("std.spaceTree", "create", { phrase: "Projects/" });
+    expect(space.createFolder).not.toHaveBeenCalled();
+    expect(editor.flashNotification).toHaveBeenCalledWith(
+      expect.stringContaining("empty folders"),
+      "error",
+    );
+  });
+
+  test("New folder here prompts under the folder", async () => {
+    space.listFolders.mockResolvedValue([]);
+    await spaceTreeWith(["Projects/Plan"]);
+    editor.prompt.mockResolvedValue("Projects/Archive/");
+    await runAction(NEW_FOLDER, { name: "Projects", isFolder: true });
+    expect(editor.prompt).toHaveBeenCalledWith("New folder name:", "Projects/");
+    expect(space.createFolder).toHaveBeenCalledWith("Projects/Archive");
+  });
+
+  test("Delete folder asks, then deletes it and everything in it at once", async () => {
+    space.listFolders.mockResolvedValue(["Projects", "Projects/Old", "Other"]);
+    await spaceTreeWith(["Projects/Plan"]);
+    space.listFiles.mockResolvedValue([
+      { name: "Projects/Plan.md" },
+      { name: "Projects/Old/logo.png" },
+      { name: "Projects.md" },
+    ]);
+    editor.confirm.mockResolvedValue(true);
+
+    await runAction(DELETE_FOLDER, {
+      name: "Projects",
+      ref: "Projects",
+      isFolder: true,
+    });
+
+    expect(editor.confirm).toHaveBeenCalledWith(
+      "Delete Projects and the 1 page and 1 document in it?",
+      { destructive: true },
+    );
+    expect(space.deleteFolder.mock.calls).toEqual([
+      ["Projects", { recursive: true }],
+    ]);
+    expect(space.deleteFile).not.toHaveBeenCalled();
+  });
+
+  test("Delete folder moves the editor off a page inside it first", async () => {
+    space.listFolders.mockResolvedValue(["Projects"]);
+    await spaceTreeWith(["Projects/Plan", "Journal", "Projects/Old"]);
+    space.listFiles.mockResolvedValue([{ name: "Projects/Plan.md" }]);
+    editor.confirm.mockResolvedValue(true);
+    editor.getCurrentPath.mockResolvedValue("Projects/Plan.md");
+    editor.getRecentlyOpenedPages.mockResolvedValue([
+      { name: "Projects/Old" },
+      { name: "Gone" },
+      { name: "Journal" },
+    ]);
+    space.listPages.mockResolvedValue([
+      { name: "Projects/Plan" },
+      { name: "Projects/Old" },
+      { name: "Journal" },
+    ]);
+    const order: string[] = [];
+    editor.navigate.mockImplementation(async (to) => {
+      order.push(`navigate ${to}`);
+    });
+    space.deleteFolder.mockImplementation(async (name) => {
+      order.push(`delete ${name}`);
+    });
+
+    await runAction(DELETE_FOLDER, { name: "Projects", isFolder: true });
+
+    expect(order).toEqual(["navigate Journal", "delete Projects"]);
+  });
+
+  test("Delete folder leaves the editor alone when it shows something else", async () => {
+    space.listFolders.mockResolvedValue(["Projects"]);
+    await spaceTreeWith(["Projects/Plan"]);
+    space.listFiles.mockResolvedValue([{ name: "Projects/Plan.md" }]);
+    editor.confirm.mockResolvedValue(true);
+    editor.getCurrentPath.mockResolvedValue("Projects.md");
+
+    await runAction(DELETE_FOLDER, { name: "Projects", isFolder: true });
+
+    expect(editor.navigate).not.toHaveBeenCalled();
+    expect(space.deleteFolder).toHaveBeenCalled();
+  });
+
+  test("Delete folder on an empty folder doesn't ask", async () => {
+    space.listFolders.mockResolvedValue(["Empty"]);
+    await spaceTreeWith([]);
+    space.listFiles.mockResolvedValue([]);
+
+    await runAction(DELETE_FOLDER, { name: "Empty", isFolder: true });
+
+    expect(editor.confirm).not.toHaveBeenCalled();
+    expect(space.deleteFolder).toHaveBeenCalledWith("Empty", {
+      recursive: true,
+    });
+  });
+});
+
+describe("std.spaceTree upload", () => {
+  test('hands the folder to the editor\'s upload, the top of the space as ""', async () => {
+    await runAction(treeAction("Upload document here"), {
+      name: "Projects",
+      isFolder: true,
+    });
+    await runAction(treeAction("Upload document here"), {
+      name: "",
+      isFolder: true,
+    });
+
+    expect(system.invokeFunction.mock.calls).toEqual([
+      ["editor.uploadFileTo", "Projects"],
+      ["editor.uploadFileTo", ""],
+    ]);
+  });
+});
+
+describe("std.spaceTree root actions", () => {
+  test("only creating and uploading are offered on the top of the space", () => {
+    expect(
+      (builtinMeta("std.spaceTree")?.actions ?? [])
+        .filter((action) => action.root)
+        .map((action) => action.label),
+    ).toEqual(["New page here", "New folder here", "Upload document here"]);
+  });
 });

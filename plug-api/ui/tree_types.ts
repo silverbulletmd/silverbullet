@@ -49,6 +49,9 @@ export type ActionMeta = {
   hasWhen: boolean;
   /** `"rw"` hides the action while the client is in read-only mode. */
   requireMode?: "rw";
+  /** Also offered in a tree view's header menu, run on the tree's root (a
+   * folder named ""), where its `when` agrees. */
+  root?: boolean;
 };
 
 /**

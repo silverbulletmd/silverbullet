@@ -105,6 +105,7 @@ export function builtinMeta(name: string): ViewMeta | undefined {
       label: action.label,
       hasWhen: action.when !== undefined,
       requireMode: action.requireMode,
+      root: action.root,
     })),
     segments: view.segments?.map((segment) => ({
       label: segment.label,

@@ -336,10 +336,11 @@ export class NavigatorEngine {
       meta.hasRowIcon ||
       !!meta.actions?.some((a) => a.hasWhen);
     const needsDropdown = !!meta.dropdown;
-    const nodes =
+    const tree =
       (needsState || needsDropdown) && meta.mode === "tree"
-        ? allNodes(buildTree(rows, meta.hierarchy.separator, meta.foldersFirst))
+        ? buildTree(rows, meta.hierarchy.separator, meta.foldersFirst)
         : undefined;
+    const nodes = tree ? allNodes(tree) : undefined;
     const objs = nodes ? nodes.map(nodeObject) : rows.map((row) => row.obj);
     // Load dropdown options before rowState so either failure stays independent.
     // Missing masks fail closed when a value is selected.
@@ -365,7 +366,12 @@ export class NavigatorEngine {
     let raw: RawRowState[] = [];
     if (needsState) {
       try {
-        const result = await this.handle(meta.name, "rowState", { objs });
+        // The tree's root goes last: its state, kept at path "", says which
+        // root actions the header menu offers
+        const withRoot = tree && meta.actions?.some((a) => a.root);
+        const result = await this.handle(meta.name, "rowState", {
+          objs: withRoot ? [...objs, nodeObject(tree)] : objs,
+        });
         raw = Array.isArray(result) ? result : [];
       } catch (e) {
         console.error("navigator: row state failed", e);
@@ -393,7 +399,12 @@ export class NavigatorEngine {
       icon: this.icons.iconNode(r?.icon),
     }));
     rowState = nodes
-      ? { byPath: new Map(nodes.map((n, i) => [n.path, states[i] ?? {}])) }
+      ? {
+          byPath: new Map([
+            ...nodes.map((n, i) => [n.path, states[i] ?? {}] as const),
+            ["", states[nodes.length] ?? {}] as const,
+          ]),
+        }
       : {
           byRow: new WeakMap(
             rows.map((row, i) => [row, states[i] ?? {}] as const),

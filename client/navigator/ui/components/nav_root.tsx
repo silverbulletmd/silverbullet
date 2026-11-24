@@ -1,5 +1,4 @@
 import { maximumDocumentSize } from "@silverbulletmd/silverbullet/constants";
-import { Icon } from "@silverbulletmd/silverbullet/ui";
 import {
   useCallback,
   useEffect,
@@ -12,8 +11,10 @@ import {
   clampDockSize,
   MIN_DOCK_SIZE,
 } from "../../../../plug-api/ui/dock_size.ts";
+import { iconElement } from "../../../../plug-api/ui/icons/registry.ts";
 import { ResizeHandle } from "../../../../plug-api/ui/resize_handle.tsx";
-import { openRowMenu } from "../../../../plug-api/ui/row_menu.tsx";
+import { rowActionItems } from "../../../../plug-api/ui/row_actions.tsx";
+import { openRowMenu, RowMenu } from "../../../../plug-api/ui/row_menu.tsx";
 import { revealInClosest } from "../../../../plug-api/ui/scroll.ts";
 import { SegmentedControl } from "../../../../plug-api/ui/segmented_control.tsx";
 import {
@@ -478,26 +479,41 @@ export function NavRoot({
               ariaLabel="Segments"
             />
             {dropdown}
-            {spaceTree && (
+            {spaceTree && view && (
               <div className="sb-nav-tree-actions">
-                <button
-                  type="button"
-                  title="Collapse all folders"
-                  aria-label="Collapse all folders"
-                  disabled={treeFiltering || openFolders === 0}
-                  onClick={cmd.collapseAllFolders}
-                >
-                  <Icon name="square-minus" size={16} />
-                </button>
-                <button
-                  type="button"
-                  title="Expand all folders"
-                  aria-label="Expand all folders"
-                  disabled={treeFiltering || openFolders === folderPaths.size}
-                  onClick={cmd.expandAllFolders}
-                >
-                  <Icon name="square-plus" size={16} />
-                </button>
+                <RowMenu
+                  label="Space tree actions"
+                  tabIndex={0}
+                  items={[
+                    // The folder actions that also work on the top of the
+                    // space, run on the tree's root
+                    ...rowActionItems({
+                      actions: view.meta.actions ?? [],
+                      icons: view.actionIcons,
+                      mask: view.rowState?.byPath?.get("")?.actions,
+                      readOnly,
+                      root: true,
+                      onRun: (index) =>
+                        void engine.action(view.name, index, {
+                          name: "",
+                          isFolder: true,
+                        }),
+                    }),
+                    {
+                      label: "Collapse all folders",
+                      icon: iconElement("square-minus"),
+                      disabled: treeFiltering || openFolders === 0,
+                      run: cmd.collapseAllFolders,
+                    },
+                    {
+                      label: "Expand all folders",
+                      icon: iconElement("square-plus"),
+                      disabled:
+                        treeFiltering || openFolders === folderPaths.size,
+                      run: cmd.expandAllFolders,
+                    },
+                  ]}
+                />
               </div>
             )}
           </div>
@@ -733,6 +749,10 @@ export function NavRoot({
             hasIcon={!!view?.meta.hasRowIcon}
             selected={createSelected}
             pinned
+            folder={
+              !!view?.meta.createsFolders &&
+              trimmedPhrase.endsWith(view.meta.hierarchy.separator)
+            }
             elRef={createRef}
             onClick={() => void cmd.runCreate()}
           />

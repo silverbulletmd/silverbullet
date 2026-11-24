@@ -447,3 +447,32 @@ test("a source's notice replaces its rows without counting as an error", async (
   await engine.refresh();
   expect(engine.activeState()?.notice).toBeUndefined();
 });
+
+test('a tree with root actions gets the root\'s state at path ""', async () => {
+  const rows = [{ obj: { name: "A/b" }, primary: "A/b" }];
+  let stateObjs: unknown[] = [];
+  handle.mockImplementation((payload: any) => {
+    if (payload.hook === "meta") {
+      return Promise.resolve(
+        meta({
+          mode: "tree",
+          actions: [{ label: "New here", hasWhen: true, root: true }],
+        }),
+      );
+    }
+    if (payload.hook === "rows") return Promise.resolve(rows);
+    if (payload.hook === "rowState") {
+      stateObjs = payload.args.objs;
+      return Promise.resolve(
+        payload.args.objs.map((obj: any) => ({ actions: [obj.isFolder] })),
+      );
+    }
+    return Promise.resolve(undefined);
+  });
+
+  const state = await new NavigatorEngine().activate("v");
+
+  expect(stateObjs.at(-1)).toEqual({ name: "", isFolder: true });
+  expect(state.rowState?.byPath?.get("")?.actions).toEqual([true]);
+  expect(state.rowState?.byPath?.get("A/b")?.actions).toEqual([undefined]);
+});

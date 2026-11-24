@@ -1,9 +1,5 @@
 import { EditorView } from "@codemirror/view";
-import {
-  config,
-  datastore,
-  system,
-} from "@silverbulletmd/silverbullet/syscalls";
+import { config, datastore } from "@silverbulletmd/silverbullet/syscalls";
 import { refreshPageSlots } from "../codemirror/widgets/top_bottom_panels.ts";
 import { isNarrowScreen } from "../lib/mobile.ts";
 import { LuaTable } from "../space_lua/runtime.ts";
@@ -441,29 +437,4 @@ export function openView(name: string, opts?: any): Promise<boolean> {
     throw new Error("view.open: opts must be a table");
   }
   return open(name, opts);
-}
-
-export async function moveByRename(obj: any, newName: string): Promise<void> {
-  if (obj.isFolder) {
-    await system.invokeFunction("index.renamePrefixCommand", {
-      oldPrefix: `${obj.name}/`,
-      newPrefix: `${newName}/`,
-      disableConfirmation: true,
-    });
-  }
-  // A page that also has children needs both: renamePrefixCommand only touches files under "name/", so the page itself still needs its own rename.
-  if (!obj.isFolder || obj.ref) {
-    if (obj.tag === "document") {
-      // A document's name already carries its extension, so the page rename (which appends ".md") would target the wrong file.
-      await system.invokeFunction("index.renameDocumentCommand", {
-        oldDocument: obj.name,
-        document: newName,
-      });
-    } else {
-      await system.invokeFunction("index.renamePageCommand", {
-        oldPage: obj.name,
-        page: newName,
-      });
-    }
-  }
 }
