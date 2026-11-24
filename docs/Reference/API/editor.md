@@ -858,11 +858,11 @@ Shows an HTML panel in a specified editor UI location.
 ## editor.showProgress
 `editor.showProgress(progressType, progressPercentage?)`
 
-Shows, updates, or hides a sync or indexing progress indicator.
+Shows, updates, or hides a sync, indexing or rename progress indicator.
 
 **Parameters:**
 
-- `progressType` (`sync | index`) — The operation represented by the indicator.
+- `progressType` (`sync | index | rename`) — The operation represented by the indicator.
 - `progressPercentage?` (`number`) — Completion percentage, or undefined to hide the indicator.
 
 ## editor.startCompletion

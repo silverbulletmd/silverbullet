@@ -43,22 +43,24 @@ ${query[[
 <!--/lua-->
 
 # Connections
-Dynamically generated from ADR defined relationships. Dotted edges mark supersession. Click a node to open the ADR.
+Dynamically generated from ADR defined relationships. Dotted edges mark supersession, and superseded and deprecated ADRs are shaded. Click a node to open the ADR.
 
-${mermaid.diagram(mermaid.relationGraph {
+${pele.diagram(pele.relationGraph {
   pages = query[[from index.pages("adr")]],
   direction = "TD",
-})}
+  color = "status",
+} .. "\n  classDef superseded fill:#f3d3d3,color:#222\n  classDef deprecated fill:#e6e6e6,color:#222")}
 
 # Decision history
-${mermaid.diagram(mermaid.timeline{
+${pele.diagram(pele.timeline{
   pages = query[[from index.pages("adr")]],
   title = "ADR decision history"
 })}
 
 # By status
-${mermaid.diagram(mermaid.distribution{
+${pele.diagram(pele.distribution{
   pages = query[[from index.pages("adr")]],
   by = "status",
-  title = "ADRs by status"
+  title = "ADRs by status",
+  showData = true,
 })}

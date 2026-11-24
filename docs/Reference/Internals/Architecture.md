@@ -3,10 +3,10 @@
 SilverBullet has a browser client, a service worker and a server. The diagram is generated from the metadata on the [[#Components|component pages]], which describe each part and its connections.
 
 # Top-level Architecture
-${mermaid.diagram(mermaid.relationGraph{
+${pele.diagram(pele.relationGraph{
   pages = query[[from index.pages("component")]],
   groupBy = "partOf",
-  direction = "LR"
+  direction = "TD"
 })}
 
 # The three layers
