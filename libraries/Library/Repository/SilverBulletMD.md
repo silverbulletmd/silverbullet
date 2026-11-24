@@ -79,7 +79,7 @@ uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Fo
 ```
 
 ```#meta/library/remote
-name: Paper
+name: Paper (Theme)
 author: SilverBullet
 description: A warm light and dark theme pair for long-form writing, with Lora as the editor font.
 uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Themes/Paper.md

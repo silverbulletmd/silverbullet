@@ -79,7 +79,7 @@ uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Fo
 ```
 
 ```#meta/library/remote
-name: Paper
+name: Paper (Theme)
 author: SilverBullet
 description: A warm light and dark theme pair for long-form writing, with Lora as the editor font.
 uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Themes/Paper.md
@@ -88,14 +88,14 @@ requires:
 ```
 
 ```#meta/library/remote
-name: Classic
+name: Classic (Theme)
 author: SilverBullet
 description: "SilverBullet's original look, as a light and dark theme pair: iA Writer Mono, a gray top bar and tinted links."
 uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Themes/Classic.md
 ```
 
 ```#meta/library/remote
-name: Ink
+name: Ink (Theme)
 author: SilverBullet
 description: A calm monochrome light theme, like a printed page, with EB Garamond as the editor font.
 uri: github:silverbulletmd/silverbullet-libraries@main/Library/silverbulletmd/Themes/Ink.md

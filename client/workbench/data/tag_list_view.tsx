@@ -14,10 +14,6 @@ export function TagIcon({ icon }: { icon: string }) {
   );
 }
 
-// Feather has no pin; an outline pushpin drawn in its style (Tabler's, MIT)
-const PIN_ICON =
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5l-4 4l-4 1.5l-1.5 1.5l7 7l1.5 -1.5l1.5 -4l4 -4"/><path d="M9 15l-4.5 4.5"/><path d="M14.5 4l5.5 5.5"/></svg>';
-
 const SECTIONS: { key: DataSection; label: string }[] = [
   { key: "defined", label: "Defined" },
   { key: "noSchema", label: "No schema" },
@@ -83,7 +79,7 @@ export function TagListView({
             title={isPinned ? "Unpin" : "Pin to the top"}
             onClick={() => onTogglePin(e.name)}
           >
-            <TagIcon icon={PIN_ICON} />
+            <TagIcon icon="pin" />
           </button>
         ) : null}
       </div>

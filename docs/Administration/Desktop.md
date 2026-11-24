@@ -1,7 +1,7 @@
 SilverBullet Desktop stores each space in a folder on your computer. You can use it without running an external Server. This guide covers setting up that folder, keeping the app updated and optionally using the same content on other devices.
 
 # Install and open a space
-Follow [[Administration/Desktop/Install]] to download the app for macOS, Windows or Linux. In the dashboard, choose **New space** to pick a [[Starter Kits|starter kit]] or a Git starting point and create the space in a folder. To use a folder of Markdown files you already have, choose **Open folder** instead.
+Follow [[Administration/Desktop/Install]] to download the app for macOS, Windows or Linux. In the dashboard, choose **New space** to pick a [[Starter Kits|starter kit]] or a Git starting point and create the space in a folder. To use a folder of Markdown files you already have, choose **Open space** instead.
 
 Open the space and use [[Getting Started/My First Markdown Page]] to try the editor. [[Local Space]] explains the files Desktop keeps in the folder. Keep the folder’s location somewhere you can find when setting up backups.
 

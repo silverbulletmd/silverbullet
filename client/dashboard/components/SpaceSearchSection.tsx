@@ -5,6 +5,7 @@ import type {
 import {
   onByDefaultText,
   SpaceSearchSettings,
+  SpaceSearchSettingsView,
 } from "@silverbulletmd/silverbullet/ui";
 import { apiErrorText, getSpaceSearch, rebuildSpaceSearch } from "../api.ts";
 
@@ -40,6 +41,36 @@ export function SpaceSearchSection({
   onUnauthorized: () => void;
 }) {
   const onByDefault = onByDefaultText(model?.displayName ?? "", "this server");
+  const copy = {
+    noModel: NO_MODEL,
+    default: onByDefault,
+    loading: model ? onByDefault : NO_MODEL,
+    heading: "Search indexes",
+    unavailable: "Search isn't available for this space.",
+  };
+  if (!spaceId) {
+    // A new space has no search info to load: the server's model alone
+    // decides how its box is offered.
+    return (
+      <SpaceSearchSettingsView
+        info={{
+          semanticChoice: saved,
+          semantic: model ? "on" : "noModel",
+          pages: null,
+          indexes: [],
+          offer: { offByDefault: null, warning: null },
+        }}
+        error=""
+        showIndexes={false}
+        rebuilding={false}
+        onRebuild={() => {}}
+        saved={saved}
+        value={value}
+        onChange={onChange}
+        copy={copy}
+      />
+    );
+  }
   return (
     <SpaceSearchSettings
       host={{
@@ -55,13 +86,7 @@ export function SpaceSearchSection({
       saved={saved}
       value={value}
       onChange={onChange}
-      copy={{
-        noModel: NO_MODEL,
-        default: onByDefault,
-        loading: model ? onByDefault : NO_MODEL,
-        heading: "Search indexes",
-        unavailable: "Search isn't available for this space.",
-      }}
+      copy={copy}
     />
   );
 }

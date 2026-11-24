@@ -219,6 +219,32 @@ test("the box is disabled until the space's info arrives", async () => {
   );
 });
 
+test("a new space's box follows the server's model without loading", async () => {
+  const onChange = vi.fn();
+  function Form() {
+    const [value, setValue] = useState<boolean | null>(null);
+    return section({
+      spaceId: undefined,
+      value,
+      onChange: (choice) => {
+        onChange(choice);
+        setValue(choice);
+      },
+    });
+  }
+  await act(() => render(h(Form, {}), root));
+  await tick(0);
+  expect(api.getSpaceSearch).not.toHaveBeenCalled();
+  expect(checkbox().disabled).toBe(false);
+  expect(checkbox().checked).toBe(true);
+  await act(() => checkbox().click());
+  expect(onChange).toHaveBeenLastCalledWith(false);
+  expect(checkbox().checked).toBe(false);
+  await act(() => checkbox().click());
+  expect(onChange).toHaveBeenLastCalledWith(null);
+  expect(checkbox().checked).toBe(true);
+});
+
 test("unchecking edits false, checking again the saved choice", async () => {
   api.getSpaceSearch.mockResolvedValue(ready);
   const onChange = vi.fn();

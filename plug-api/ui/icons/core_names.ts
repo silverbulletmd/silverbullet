@@ -73,6 +73,7 @@ export const CORE_ICON_NAMES: readonly string[] = [
   "pause",
   "pen-line",
   "pen-tool",
+  "pin",
   "plus",
   "quote",
   "redo",
