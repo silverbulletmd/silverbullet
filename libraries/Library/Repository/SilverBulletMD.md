@@ -2,7 +2,7 @@
 share:
   uri: "github:silverbulletmd/silverbullet-libraries@main/Library/Repository/SilverBulletMD.md"
   mode: pull
-  hash: "be7ab8d3"
+  hash: "cbb63dab"
 name: Repositories/SilverBulletMD
 tags: meta/repository
 ---
