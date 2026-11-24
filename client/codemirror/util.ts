@@ -358,8 +358,15 @@ const hiddenBlockSourceDecoration = Decoration.replace({
   hiddenBlockSource: true,
 });
 
-const hiddenLineDecoration = Decoration.line({
-  class: "sb-line-table-outside",
+// A whole line replaced by nothing as a block: CodeMirror knows its height is
+// zero without drawing it. A line hidden by CSS instead (`display: none`) is
+// estimated at a line's height until drawn, so where the widget is shorter
+// than its hidden lines' estimate (a table scrolling in a box of its own) the
+// viewport reaches them, they measure zero, and the viewport moves on to the
+// next: every hidden line ends up drawn, a few hundred at a time.
+const hiddenLineDecoration = Decoration.replace({
+  block: true,
+  hiddenBlockSource: true,
 });
 
 /**
@@ -372,8 +379,8 @@ const hiddenLineDecoration = Decoration.line({
  *
  * `widgetAt` indicates which end of the range hosts a point widget so
  * that line stays in the DOM via `Decoration.replace` (content erased
- * but the line still renders). Other lines use a `display: none` line
- * class so they take no vertical space.
+ * but the line still renders). Other lines are replaced whole by a block
+ * of no height.
  */
 export function hideBlockSource(
   widgets: Range<Decoration>[],
@@ -391,17 +398,18 @@ export function hideBlockSource(
   if (widgetAt === "start") {
     widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   } else if (from === fromLine.from) {
-    widgets.push(hiddenLineDecoration.range(fromLine.from));
+    widgets.push(hiddenLineDecoration.range(fromLine.from, fromLine.to));
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   }
   for (let n = fromLine.number + 1; n < toLine.number; n++) {
-    widgets.push(hiddenLineDecoration.range(state.doc.line(n).from));
+    const line = state.doc.line(n);
+    widgets.push(hiddenLineDecoration.range(line.from, line.to));
   }
   if (widgetAt === "end") {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   } else if (to === toLine.to) {
-    widgets.push(hiddenLineDecoration.range(toLine.from));
+    widgets.push(hiddenLineDecoration.range(toLine.from, toLine.to));
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
   }

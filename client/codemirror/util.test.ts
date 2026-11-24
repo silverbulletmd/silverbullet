@@ -1,8 +1,9 @@
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Range } from "@codemirror/state";
+import type { Decoration } from "@codemirror/view";
 import { expect, test } from "vitest";
 import type { Client, PageListSource } from "../client.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
-import { widgetRenderMode } from "./util.ts";
+import { hideBlockSource, widgetRenderMode } from "./util.ts";
 
 function clientWith(state: {
   systemReady?: boolean;
@@ -76,4 +77,30 @@ test("before the index, the page's own frontmatter can disable widgets", () => {
   expect(
     widgetRenderMode(clientWith({ pageListSource: "index" }), optedOut),
   ).toBe("ready");
+});
+
+test("a block's hidden source lines are replaced whole as blocks, which CodeMirror knows are of no height", () => {
+  const state = page(
+    ["Above", "| a |", "|---|", "| 1 |", "| 2 |", "Below"].join("\n"),
+  );
+  const from = state.doc.line(2).from;
+  const to = state.doc.line(5).to;
+  const widgets: Range<Decoration>[] = [];
+  hideBlockSource(widgets, state, from, to, "start");
+  // The first line keeps the widget, its text replaced inline; every other line
+  // is replaced whole, one by one (each line still a place of its own for the cursor)
+  expect(widgets[0]).toMatchObject({ from, to: state.doc.line(2).to });
+  expect(widgets[0].value.spec.block).toBeFalsy();
+  const lines = widgets.slice(1);
+  expect(lines.map((w) => [w.from, w.to])).toEqual(
+    [3, 4, 5].map((n) => [state.doc.line(n).from, state.doc.line(n).to]),
+  );
+  for (const w of lines) {
+    expect(w.value.spec).toMatchObject({
+      block: true,
+      hiddenBlockSource: true,
+    });
+    // No widget: CodeMirror sizes it at zero without drawing it
+    expect(w.value.spec.widget).toBeUndefined();
+  }
 });

@@ -78,7 +78,7 @@ import {
 /**
  * Block widgets (queries, tables, …) hide their multi-line source via
  * `hideBlockSource`: one line stays visible to host the widget, the rest
- * collapse to zero height with `display:none`. CodeMirror's geometric
+ * are replaced by blocks of zero height. CodeMirror's geometric
  * `cursorLineUp/Down` then lands on whichever line is visible — so the
  * cursor appears to jump several document lines when entering the block.
  *
