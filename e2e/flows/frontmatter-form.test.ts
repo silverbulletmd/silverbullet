@@ -181,7 +181,7 @@ test.describe("frontmatter form", () => {
     await clickRevealedMenu(
       preview.locator('button[data-button="menu"]').first(),
     );
-    await sbPage.getByRole("menuitem", { name: "Delete" }).click();
+    await sbPage.getByRole("menuitem", { name: "Delete frontmatter" }).click();
     await expect.poll(() => docText(sbPage)).toBe("Apollo body text.\n");
     await expect(preview).toHaveCount(0);
     await sbPage.keyboard.press(`${mod}+z`);
