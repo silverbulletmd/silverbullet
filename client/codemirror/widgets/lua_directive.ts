@@ -10,6 +10,7 @@ import type { SyntaxNode } from "@lezer/common";
 import {
   isLocalURL,
   resolveMarkdownLink,
+  stripMarkdownLinkBrackets,
 } from "@silverbulletmd/silverbullet/lib/resolve";
 import type { Client } from "../../client.ts";
 import { mdLinkRegex } from "../../markdown_parser/constants.ts";
@@ -142,8 +143,10 @@ export function directiveWrappers(
         break;
       case "Link": {
         mdLinkRegex.lastIndex = 0;
-        const url = mdLinkRegex.exec(state.sliceDoc(p.from, p.to))?.groups?.url;
-        if (!url) break;
+        const destination = mdLinkRegex.exec(state.sliceDoc(p.from, p.to))
+          ?.groups?.url;
+        if (!destination) break;
+        const url = stripMarkdownLinkBrackets(destination);
         out.unshift({
           tag: "a",
           attrs: isLocalURL(url)

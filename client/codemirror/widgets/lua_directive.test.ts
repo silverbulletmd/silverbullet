@@ -44,6 +44,10 @@ test("link text keeps its link", () => {
   });
   const [local] = wrappersFor("[${1}](Other)");
   expect(local.attrs?.["data-ref"]).toBe("Other");
+  const [bracketedExt] = wrappersFor("[${1}](<https://example.com>)");
+  expect(bracketedExt.attrs?.href).toBe("https://example.com");
+  const [bracketedLocal] = wrappersFor("[${1}](<Other page>)");
+  expect(bracketedLocal.attrs?.["data-ref"]).toBe("Other page");
 });
 
 test("wrapInline nests outermost first", () => {
