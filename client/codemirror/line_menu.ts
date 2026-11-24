@@ -23,6 +23,7 @@ import {
   sortSlashEntries,
 } from "../plugos/hooks/slash_command.ts";
 import { addTag, addTagAvailable } from "./add_tag.ts";
+import { findFrontmatterBlock } from "./syntax/frontmatter_block.ts";
 import { isCursorInRange } from "./util.ts";
 import {
   blockDirectiveAt,
@@ -200,7 +201,9 @@ export function lineMenuEntries(
 
 /**
  * Delete for the block of text the line is part of (`textBlockAt`), last as a
- * block widget's ⋮ has it; where the page can be edited
+ * block widget's ⋮ has it; where the page can be edited. On the frontmatter
+ * that's "Delete frontmatter", then "Delete page" (which confirms first), as
+ * the frontmatter form's ⋯ has them.
  */
 function deleteEntries(
   client: Client,
@@ -209,11 +212,17 @@ function deleteEntries(
   onRun: (run: () => void) => void,
 ): PopupEntry[] {
   if (client.isReadOnlyMode() || state.readOnly) return [];
-  if (!textBlockAt(state, line)) return [];
+  const span = textBlockAt(state, line);
+  if (!span) return [];
   const at = state.doc.line(line).from;
+  const frontmatter = findFrontmatterBlock(state);
+  const isFrontmatter = !!frontmatter && span.from === frontmatter.from;
   return [
     {
-      ...widgetMenuItem("remove", "Delete"),
+      ...widgetMenuItem(
+        "remove",
+        isFrontmatter ? "Delete frontmatter" : "Delete",
+      ),
       run: () =>
         onRun(() => {
           // Found again when picked: where the line is then
@@ -226,6 +235,20 @@ function deleteEntries(
           client.focus();
         }),
     },
+    ...(isFrontmatter
+      ? [
+          {
+            ...widgetMenuItem("deletePage", "Delete page"),
+            run: () =>
+              onRun(
+                () =>
+                  void client
+                    .runCommandByName("Page: Delete")
+                    .catch(console.error),
+              ),
+          },
+        ]
+      : []),
   ];
 }
 

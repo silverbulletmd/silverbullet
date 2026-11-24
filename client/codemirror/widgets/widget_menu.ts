@@ -18,6 +18,7 @@ export type WidgetActionId =
   | "copy"
   | "bake"
   | "remove"
+  | "deletePage"
   | "moveUp"
   | "moveDown"
   | "revert";
@@ -29,6 +30,11 @@ export type WidgetCaps = {
   copy: boolean;
   /** Delete the object the widget shows */
   remove: boolean;
+  /**
+   * Delete the page the widget's object is the frontmatter of (which makes
+   * Delete read "Delete frontmatter")
+   */
+  deletePage: boolean;
 };
 
 const ACTION_ICONS: Record<
@@ -45,6 +51,7 @@ const ACTION_ICONS: Record<
   moveDown: "arrow-down",
   revert: "rotate-ccw",
   remove: "trash",
+  deletePage: "file-x",
 };
 
 const MENU_ICON_SIZE = 15;
@@ -76,9 +83,12 @@ export function widgetMenuEntries(
   if (caps.open) action("open", "Open");
   if (caps.edit) action("edit", "Edit source");
   if (caps.copy) action("copy", "Copy as Markdown");
-  if (caps.remove) {
+  if (caps.remove || caps.deletePage) {
     out.push({ kind: "separator" });
-    action("remove", "Delete");
+    if (caps.remove) {
+      action("remove", caps.deletePage ? "Delete frontmatter" : "Delete");
+    }
+    if (caps.deletePage) action("deletePage", "Delete page");
   }
   return out;
 }

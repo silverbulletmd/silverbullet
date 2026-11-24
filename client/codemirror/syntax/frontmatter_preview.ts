@@ -83,6 +83,8 @@ const frontmatterHost: ObjectPreviewHost = {
     const block = findFrontmatterBlock(state);
     return block && withLineBreak(state, block.from, block.to);
   },
+  // "Page: Delete" asks for confirmation first
+  deletesPage: true,
   target: (_state, _from, _index, page) => ({ page, ref: page }),
 };
 

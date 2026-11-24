@@ -41,6 +41,8 @@ export const CORE_ICON_NAMES: readonly string[] = [
   "file",
   "file-plus",
   "file-text",
+  "file-x",
+  "folder-plus",
   "git-branch",
   "grid-3x3",
   "hash",

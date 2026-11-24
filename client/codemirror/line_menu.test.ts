@@ -313,9 +313,12 @@ describe("line menu", () => {
       "",
       "Delete",
     ]);
-    // Frontmatter: Delete from its first line only
-    expect(labels(doc, 1).at(-1)).toBe("Delete");
-    expect(labels(doc, 2)).not.toContain("Delete");
+    // Frontmatter: Delete frontmatter and Delete page, from its first line only
+    expect(labels(doc, 1).slice(-2)).toEqual([
+      "Delete frontmatter",
+      "Delete page",
+    ]);
+    expect(labels(doc, 2)).not.toContain("Delete frontmatter");
     // Selection buttons never show in the line menu
     expect(labels(doc, 4)).not.toContain("Bold");
   });

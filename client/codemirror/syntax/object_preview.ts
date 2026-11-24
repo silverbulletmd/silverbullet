@@ -136,6 +136,8 @@ export type ObjectPreviewHost = {
     | { from: number; to: number }
     | { object: Record<string, unknown> }
     | undefined;
+  /** Whether the widget's menu offers deleting its page (the frontmatter) */
+  deletesPage?: boolean;
   /** The `object.update` target for object `index` of the widget at `from` */
   target: (
     state: EditorState,
@@ -945,6 +947,9 @@ export class ObjectPreviewWidget extends WidgetType {
           editPos: () => contentStart(this.liveDocument(view, container, i)),
           definitionRef,
           remove: host.removal && (() => this.remove(view, container, i)),
+          deletePage: host.deletesPage
+            ? () => this.client.runCommandByName("Page: Delete")
+            : undefined,
           inMargin: host.kind === "data",
         },
       });

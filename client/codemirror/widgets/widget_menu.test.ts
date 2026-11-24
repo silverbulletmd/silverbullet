@@ -8,6 +8,7 @@ const base: WidgetCaps = {
   edit: true,
   copy: true,
   remove: false,
+  deletePage: false,
 };
 const labels = (caps: WidgetCaps) =>
   widgetMenuEntries(caps).map((e) =>
@@ -28,4 +29,10 @@ test("a deletable object ends with Delete, apart from the rest", () => {
     "—",
     "Delete",
   ]);
+});
+
+test("the frontmatter ends with Delete frontmatter and Delete page", () => {
+  expect(
+    labels({ ...base, copy: false, remove: true, deletePage: true }),
+  ).toEqual(["Edit source", "—", "Delete frontmatter", "Delete page"]);
 });

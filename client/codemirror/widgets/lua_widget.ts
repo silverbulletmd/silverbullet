@@ -145,6 +145,10 @@ export type WidgetHost =
       /** Deletes the object from the page (frontmatter, a data item) */
       remove?: () => Promise<void>;
       /**
+       * Deletes the page the object is the frontmatter of, after confirming
+       */
+      deletePage?: () => Promise<void>;
+      /**
        * Its menu goes in its card's margin ⋮ on desktop (a data block item);
        * else it keeps its corner ⋯ (the frontmatter form)
        */
@@ -189,6 +193,7 @@ export function widgetCaps(
     edit: host.kind !== "panel" && !env.readOnly,
     copy: host.kind !== "object" && shown.copyable,
     remove: host.kind === "object" && !!host.remove && !env.readOnly,
+    deletePage: host.kind === "object" && !!host.deletePage && !env.readOnly,
   };
 }
 
@@ -775,6 +780,9 @@ export class LuaWidget extends WidgetType {
         return;
       case "remove":
         if (host.kind === "object") await host.remove?.();
+        return;
+      case "deletePage":
+        if (host.kind === "object") await host.deletePage?.();
         return;
     }
   }

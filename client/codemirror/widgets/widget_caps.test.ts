@@ -19,6 +19,7 @@ test("read-only keeps Copy and drops editing", () => {
     edit: true,
     copy: true,
     remove: false,
+    deletePage: false,
   });
   expect(widgetCaps(code, shown, { readOnly: true })).toMatchObject({
     edit: false,
@@ -47,11 +48,15 @@ test("each host's own rules", () => {
     editPos: () => 4,
     definitionRef: null,
     remove: async () => {},
+    deletePage: async () => {},
   };
-  expect(widgetCaps(frontmatter, shown, env).remove).toBe(true);
+  expect(widgetCaps(frontmatter, shown, env)).toMatchObject({
+    remove: true,
+    deletePage: true,
+  });
   expect(
-    widgetCaps(frontmatter, shown, { ...env, readOnly: true }).remove,
-  ).toBe(false);
+    widgetCaps(frontmatter, shown, { ...env, readOnly: true }),
+  ).toMatchObject({ remove: false, deletePage: false });
   expect(
     widgetCaps({ kind: "panel", definitionRef: ref }, shown, env),
   ).toMatchObject({ definition: true, edit: false });
