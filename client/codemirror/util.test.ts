@@ -1,5 +1,7 @@
-import { EditorState, type Range } from "@codemirror/state";
-import type { Decoration } from "@codemirror/view";
+// @vitest-environment happy-dom
+
+import { EditorState, type Range, StateEffect } from "@codemirror/state";
+import { Decoration, EditorView } from "@codemirror/view";
 import { expect, test } from "vitest";
 import type { Client, PageListSource } from "../client.ts";
 import { buildExtendedMarkdownLanguage } from "../markdown_parser/parser.ts";
@@ -79,28 +81,43 @@ test("before the index, the page's own frontmatter can disable widgets", () => {
   ).toBe("ready");
 });
 
-test("a block's hidden source lines are replaced whole as blocks, which CodeMirror knows are of no height", () => {
+test("a block's hidden lines touch, so they don't split the visible ranges", () => {
+  // Rows of 20+ characters: CodeMirror ends a visible range at any replaced
+  // range that long, so a line break left between two hidden rows would be a
+  // visible range of its own
+  const rows = Array.from(
+    { length: 40 },
+    (_, i) => `| ${i} | a longer row | ${i} |`,
+  );
   const state = page(
-    ["Above", "| a |", "|---|", "| 1 |", "| 2 |", "Below"].join("\n"),
+    ["Above", "| n | name | v |", "|---|---|---|", ...rows, "Below"].join("\n"),
   );
-  const from = state.doc.line(2).from;
-  const to = state.doc.line(5).to;
+  const table = {
+    from: state.doc.line(2).from,
+    to: state.doc.line(rows.length + 3).to,
+  };
   const widgets: Range<Decoration>[] = [];
-  hideBlockSource(widgets, state, from, to, "start");
-  // The first line keeps the widget, its text replaced inline; every other line
-  // is replaced whole, one by one (each line still a place of its own for the cursor)
-  expect(widgets[0]).toMatchObject({ from, to: state.doc.line(2).to });
-  expect(widgets[0].value.spec.block).toBeFalsy();
-  const lines = widgets.slice(1);
-  expect(lines.map((w) => [w.from, w.to])).toEqual(
-    [3, 4, 5].map((n) => [state.doc.line(n).from, state.doc.line(n).to]),
-  );
-  for (const w of lines) {
-    expect(w.value.spec).toMatchObject({
-      block: true,
-      hiddenBlockSource: true,
-    });
-    // No widget: CodeMirror sizes it at zero without drawing it
-    expect(w.value.spec.widget).toBeUndefined();
+  hideBlockSource(widgets, state, table.from, table.to, "start");
+
+  // Each hidden line is still a decoration of its own, so the cursor can stop on it
+  for (const w of widgets) {
+    expect(state.doc.lineAt(w.from).number).toBe(
+      state.doc.lineAt(Math.max(w.from, w.to - 1)).number,
+    );
+  }
+
+  const view = new EditorView({
+    parent: document.body,
+    state: state.update({
+      effects: StateEffect.appendConfig.of(
+        EditorView.decorations.of(Decoration.set(widgets, true)),
+      ),
+    }).state,
+  });
+  try {
+    // "Above" plus the table's first line, and the break after it; "Below"
+    expect(view.visibleRanges.length).toBeLessThanOrEqual(3);
+  } finally {
+    view.destroy();
   }
 });

@@ -395,16 +395,20 @@ export function hideBlockSource(
     widgets.push(hiddenBlockSourceDecoration.range(from, to));
     return;
   }
+  // A hidden line followed by another line of the block takes its line break
+  // too, so neighbouring hidden lines touch. Otherwise each break between them
+  // is a visible range of its own, and everything that walks the syntax tree
+  // per visible range (highlighting, most view plugins) does so once per line.
   if (widgetAt === "start") {
     widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   } else if (from === fromLine.from) {
-    widgets.push(hiddenLineDecoration.range(fromLine.from, fromLine.to));
+    widgets.push(hiddenLineDecoration.range(fromLine.from, fromLine.to + 1));
   } else {
     widgets.push(hiddenBlockSourceDecoration.range(from, fromLine.to));
   }
   for (let n = fromLine.number + 1; n < toLine.number; n++) {
     const line = state.doc.line(n);
-    widgets.push(hiddenLineDecoration.range(line.from, line.to));
+    widgets.push(hiddenLineDecoration.range(line.from, line.to + 1));
   }
   if (widgetAt === "end") {
     widgets.push(hiddenBlockSourceDecoration.range(toLine.from, to));
