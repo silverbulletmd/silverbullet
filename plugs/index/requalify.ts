@@ -9,7 +9,11 @@ import {
 import { fileName } from "@silverbulletmd/silverbullet/lib/resolve";
 import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import { space } from "@silverbulletmd/silverbullet/syscalls";
-import { renameSourceOf, updateBacklinks } from "./refactor.ts";
+import {
+  isArrivingByRename,
+  isLeavingByRename,
+  updateBacklinks,
+} from "./refactor.ts";
 
 /**
  * Restores the "a bare link exists iff its basename is unique" invariant after
@@ -29,10 +33,9 @@ import { renameSourceOf, updateBacklinks } from "./refactor.ts";
 export async function requalifyCollisions(pageName: string): Promise<void> {
   const basename = fileName(`${pageName}.md`);
   const lookups = await space.lookupPaths([basename]);
-  // A page being renamed into `pageName` is on its way out, not a rival
-  const renamedFrom = renameSourceOf(pageName);
+  // A page a rename is moving away from is on its way out, not a rival
   const candidates = (lookups[basename]?.candidates ?? []).filter(
-    (path) => getNameFromPath(path) !== renamedFrom,
+    (path) => !isLeavingByRename(getNameFromPath(path)),
   );
   if (candidates.length < 2) {
     return;
@@ -61,7 +64,8 @@ export async function requalifyAfterSave(
   _meta: unknown,
   created: boolean,
 ) {
-  if (!created) {
+  // A rename requalifies the pages it wrote once its whole batch is done
+  if (!created || isArrivingByRename(pageName)) {
     return;
   }
   await requalifyCollisions(pageName);

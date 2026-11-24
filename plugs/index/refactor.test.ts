@@ -4,9 +4,9 @@ import { describe, expect, test } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
 import { createMockSystem } from "../../plug-api/system_mock.ts";
 import { indexPage } from "./indexer.ts";
-import { batchRenameFiles } from "./refactor.ts";
-import { requalifyAfterSave } from "./requalify.ts";
+import { batchRenameFiles, renameFolderCommand } from "./refactor.ts";
 import { applySplices, type Splice, yamlRegions } from "./refactor_yaml.ts";
+import { requalifyAfterSave } from "./requalify.ts";
 
 async function indexPageForTest(name: string, text: string) {
   const meta: PageMeta = {
@@ -443,4 +443,146 @@ test("a rename waits for the index to catch up with files changed outside the ed
   } finally {
     worker.stop();
   }
+});
+
+test("moving a folder of interlinked pages updates every link, however slow indexing is", async () => {
+  const mock = createMockSystem();
+  const { space, system, eventHook, spacePrimitives, mq } = mock;
+  await spacePrimitives.enable();
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.showProgress": () => {},
+    "editor.navigate": () => {},
+  });
+  eventHook.addLocalListener("file:changedBatch", (changed: any[]) =>
+    mq.batchSend(
+      "indexQueue",
+      changed.map(({ name }) => ({ path: name })),
+    ),
+  );
+  eventHook.addLocalListener("page:saved", requalifyAfterSave);
+  const worker = startIndexWorker(mock, 100);
+
+  try {
+    const pages: Record<string, string> = {
+      "Proj/Alpha": "To [[Proj/Beta]] and [gamma](Sub/Gamma).",
+      "Proj/Beta": "Back to [[Proj/Alpha]] and [[Proj/Sub/Gamma]].",
+      "Proj/Sub/Gamma": "Up to [alpha](../Alpha) and [[Proj/Beta]].",
+      Home: "See [[Proj/Alpha]], [[Proj/Sub/Gamma]] and [b](Proj/Beta).",
+    };
+    for (const [name, text] of Object.entries(pages)) {
+      await space.writePage(name, text);
+    }
+    await mq.awaitEmptyQueue("indexQueue");
+
+    expect(
+      await batchRenameFiles([
+        ["Proj/Alpha.md", "Archive/Proj/Alpha.md"],
+        ["Proj/Beta.md", "Archive/Proj/Beta.md"],
+        ["Proj/Sub/Gamma.md", "Archive/Proj/Sub/Gamma.md"],
+      ]),
+    ).toBe(true);
+
+    expect((await space.readPage("Archive/Proj/Alpha")).text).toBe(
+      "To [[Archive/Proj/Beta]] and [gamma](Sub/Gamma).",
+    );
+    expect((await space.readPage("Archive/Proj/Beta")).text).toBe(
+      "Back to [[Archive/Proj/Alpha]] and [[Archive/Proj/Sub/Gamma]].",
+    );
+    expect((await space.readPage("Archive/Proj/Sub/Gamma")).text).toBe(
+      "Up to [alpha](../Alpha) and [[Archive/Proj/Beta]].",
+    );
+    expect((await space.readPage("Home")).text).toBe(
+      "See [[Archive/Proj/Alpha]], [[Archive/Proj/Sub/Gamma]] and [b](Archive/Proj/Beta).",
+    );
+    expect(
+      (await (globalThis as any).syscall("space.listPages"))
+        .map((page: { name: string }) => page.name)
+        .filter((name: string) => name.startsWith("Proj/")),
+    ).toEqual([]);
+  } finally {
+    worker.stop();
+  }
+});
+
+test("moving a folder asks once, and moves nothing when declined", async () => {
+  const { space, system } = createMockSystem();
+  const confirmations: string[] = [];
+  let answer = false;
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.showProgress": () => {},
+    "editor.navigate": () => {},
+    "editor.confirm": (_ctx: unknown, message: string) => {
+      confirmations.push(message);
+      return answer;
+    },
+  });
+  await space.writePage("Proj", "# Proj\n");
+  await space.writePage("Proj/One", "# One\n");
+  await space.writePage("Proj/Deep/Two", "# Two\n");
+  await space.writeDocument("Proj/file.pdf", new Uint8Array([1]));
+  const pageNames = async () =>
+    (await (globalThis as any).syscall("space.listPages"))
+      .map((page: { name: string }) => page.name)
+      .sort();
+
+  expect(
+    await renameFolderCommand({
+      oldName: "Proj",
+      newName: "Archive/Proj",
+      withPage: true,
+    }),
+  ).toBe(false);
+  expect(await pageNames()).toEqual(["Proj", "Proj/Deep/Two", "Proj/One"]);
+
+  answer = true;
+  expect(
+    await renameFolderCommand({
+      oldName: "Proj",
+      newName: "Archive/Proj",
+      withPage: true,
+    }),
+  ).toBe(true);
+  expect(await pageNames()).toEqual([
+    "Archive/Proj",
+    "Archive/Proj/Deep/Two",
+    "Archive/Proj/One",
+  ]);
+  expect(confirmations).toEqual([
+    'Move "Proj" to "Archive/Proj"? This moves 3 pages and 1 document and updates links to them.',
+    'Move "Proj" to "Archive/Proj"? This moves 3 pages and 1 document and updates links to them.',
+  ]);
+});
+
+test("moving a folder takes its empty folders along", async () => {
+  const { space, system, spacePrimitives, clientMock } = createMockSystem();
+  clientMock.bootConfig.folders = true;
+  system.registerSyscalls([], {
+    "editor.save": () => {},
+    "editor.getCurrentPage": () => "Unrelated/Page",
+    "editor.getCurrentPath": () => "Unrelated/Page",
+    "editor.flashNotification": () => {},
+    "editor.showProgress": () => {},
+    "editor.navigate": () => {},
+    "editor.confirm": () => true,
+  });
+  await space.writePage("Proj/One", "# One\n");
+  await spacePrimitives.createFolder("Proj/Empty/Deeper");
+
+  expect(
+    await renameFolderCommand({ oldName: "Proj", newName: "Archive/Proj" }),
+  ).toBe(true);
+  expect((await spacePrimitives.fetchListing()).folders!.sort()).toEqual([
+    "Archive",
+    "Archive/Proj",
+    "Archive/Proj/Empty",
+    "Archive/Proj/Empty/Deeper",
+  ]);
 });

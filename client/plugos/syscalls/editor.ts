@@ -960,17 +960,17 @@ export function editorSyscalls(client: Client): SysCallMapping {
     "editor.showProgress": {
       callback: (
         _ctx,
-        progressType: "sync" | "index",
+        progressType: "sync" | "index" | "rename",
         progressPercentage?: number,
       ) => {
         client.ui.showProgress(progressType, progressPercentage);
       },
       description:
-        "Shows, updates, or hides a sync or indexing progress indicator.",
+        "Shows, updates, or hides a sync, indexing or rename progress indicator.",
       parameters: [
         {
           name: "progressType",
-          type: "sync | index",
+          type: "sync | index | rename",
           description: "The operation represented by the indicator.",
         },
         {

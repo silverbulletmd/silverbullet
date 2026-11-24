@@ -279,13 +279,15 @@ export function getFocusedPanelSlot(): Promise<
 }
 
 export function showProgress(
-  progressType: "sync" | "index",
+  progressType: "sync" | "index" | "rename",
   progressPercentage: number,
 ): Promise<void> {
   return syscall("editor.showProgress", progressType, progressPercentage);
 }
 
-export function hideProgress(progressType: "sync" | "index"): Promise<void> {
+export function hideProgress(
+  progressType: "sync" | "index" | "rename",
+): Promise<void> {
   return syscall("editor.showProgress", progressType);
 }
 

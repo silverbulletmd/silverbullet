@@ -193,6 +193,8 @@ functions:
       name: "Page: Batch Rename Prefix"
       requireMode: rw
       requireEditor: page
+  renameFolderCommand:
+    path: "./refactor.ts:renameFolderCommand"
   renamePageLinkCommand:
     path: "./refactor.ts:renamePageLinkCommand"
     command:

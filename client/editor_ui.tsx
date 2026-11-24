@@ -31,6 +31,8 @@ import {
 } from "./components/basic_modals.tsx";
 import { ChooseVersionModal } from "./components/choose_version.tsx";
 import { FilterList } from "./components/filter.tsx";
+import { iconComponent } from "./components/icon_component.tsx";
+import { IconPickerModal } from "./components/icon_picker_modal.tsx";
 import { KeyboardBar } from "./components/keyboard_bar.tsx";
 import { Panel } from "./components/panel.tsx";
 import { PickManyModal } from "./components/pick_many.tsx";
@@ -41,8 +43,6 @@ import {
   profileMenuLabel,
 } from "./components/profile_button.tsx";
 import { TopBar } from "./components/top_bar.tsx";
-import { iconComponent } from "./components/icon_component.tsx";
-import { IconPickerModal } from "./components/icon_picker_modal.tsx";
 import { installKeyboardViewport } from "./lib/keyboard_viewport.ts";
 import { markupButtons, markupSurfaces } from "./lib/markup_buttons.ts";
 import { toggleMobileDock } from "./navigator/navigator.ts";
@@ -155,7 +155,7 @@ export class MainUI {
   }
 
   private progressMap = new Map<
-    "index" | "sync",
+    "index" | "sync" | "rename",
     {
       percentage: number;
       timeout: ReturnType<typeof setTimeout>;
@@ -212,11 +212,11 @@ export class MainUI {
       return;
     }
 
-    // Sync takes precedence over index so the indicator
-    // doesn't flip between the two when both streams are firing.
-    const progressType: "sync" | "index" = this.progressMap.has("sync")
-      ? "sync"
-      : "index";
+    // A fixed precedence keeps the indicator from flipping between types
+    // when several streams are firing.
+    const progressType = (["rename", "sync", "index"] as const).find((type) =>
+      this.progressMap.has(type),
+    )!;
     const entry = this.progressMap.get(progressType);
     if (entry) {
       this.viewDispatch({
@@ -227,7 +227,7 @@ export class MainUI {
     }
   }
 
-  private removeProgressType(progressType: "index" | "sync") {
+  private removeProgressType(progressType: "index" | "sync" | "rename") {
     const entry = this.progressMap.get(progressType);
     if (entry) {
       clearTimeout(entry.timeout);
@@ -235,7 +235,10 @@ export class MainUI {
     }
   }
 
-  showProgress(progressType: "sync" | "index", progressPercentage?: number) {
+  showProgress(
+    progressType: "sync" | "index" | "rename",
+    progressPercentage?: number,
+  ) {
     this.removeProgressType(progressType);
 
     if (progressPercentage !== undefined) {

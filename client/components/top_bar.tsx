@@ -164,17 +164,17 @@ function SyncProgressIndicator({
     type === "sync"
       ? "var(--progress-sync-color)"
       : "var(--progress-index-color)";
+  // "sync" → "Syncing", "rename" → "Renaming": a trailing "e" drops before "ing"
+  const label = type
+    ? `${type[0].toUpperCase()}${type.slice(1).replace(/e$/, "")}ing`
+    : "";
   return (
     <div className="sb-sync-progress">
       <div
         className="progress-wrapper"
         title={`${type} progress: ${percentage}%`}
       >
-        {withLabel && (
-          <span className="progress-label">
-            {type === "sync" ? "Syncing space" : "Indexing"}
-          </span>
-        )}
+        {withLabel && <span className="progress-label">{label}</span>}
         <div className="progress-bar">
           <div
             className="progress-ring"
