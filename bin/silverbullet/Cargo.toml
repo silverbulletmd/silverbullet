@@ -20,7 +20,7 @@ silverbullet-server-common = { path = "../../server-common" }
 silverbullet-server = { path = "../../server" }
 silverbullet-server-search = { path = "../../server-search" }
 silverbullet-server-mcp = { path = "../../server-mcp" }
-silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome" }
+silverbullet-server-runtime-chrome = { path = "../../server-runtime-chrome", optional = true }
 getrandom = { workspace = true }
 axum = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "signal"] }
@@ -32,6 +32,13 @@ tower = { version = "0.5", features = ["util"] }
 tower-http = { workspace = true, features = ["trace"] }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
+
+[features]
+default = ["runtime-chrome"]
+# The headless-Chrome runtime behind the Runtime API (chromiumoxide is a large,
+# slow dependency to compile). Build with `--no-default-features` to leave it
+# out; the server then reports the runtime as unavailable.
+runtime-chrome = ["dep:silverbullet-server-runtime-chrome"]
 
 [build-dependencies]
 serde_json = { workspace = true }

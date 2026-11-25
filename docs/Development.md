@@ -63,6 +63,12 @@ To pass arguments like `-p` or `-L`, put them after `--`:
 SB_DISABLE_SERVICE_WORKER=1 cargo run -p silverbullet -- -L 0.0.0.0 <PATH-TO-YOUR-DATA-FOLDER>
 ```
 
+The server includes a headless-Chrome runtime (for the Runtime API) whose `chromiumoxide` dependency is slow to compile. If you don’t need it, you build without it the server then reports the runtime as unavailable, as it does when no Chrome is installed:
+
+```shell
+cargo build --release -p silverbullet --no-default-features
+```
+
 **When you change the server** (any Rust code): rebuild **and restart** it — stop the process and re-run `cargo run` (it recompiles). A running server does *not* pick up source changes.
 
 **When you change only the client** (TypeScript in `client/`): you do **not** need to restart the server. Rebuild just the client and reload the page in your browser — the debug server serves the new bundle from disk:

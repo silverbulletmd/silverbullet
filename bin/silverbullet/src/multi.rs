@@ -526,6 +526,18 @@ pub(crate) async fn run_multi(
     crate::server::serve(&config, router, shutdown).await
 }
 
+/// Built without the `runtime-chrome` feature: no headless runtime, reported
+/// the same way as a host with no Chrome installed.
+#[cfg(not(feature = "runtime-chrome"))]
+pub(crate) fn space_runtime_factory(
+    _server_root: &std::path::Path,
+) -> (RuntimeFactory, RuntimeAvailability) {
+    tracing::info!("runtime API disabled: built without the runtime-chrome feature");
+    let factory: RuntimeFactory = Arc::new(|_: &RuntimeRequest| None);
+    (factory, RuntimeAvailability::NoChrome)
+}
+
+#[cfg(feature = "runtime-chrome")]
 pub(crate) fn space_runtime_factory(
     server_root: &std::path::Path,
 ) -> (RuntimeFactory, RuntimeAvailability) {
