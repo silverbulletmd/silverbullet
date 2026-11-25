@@ -243,35 +243,42 @@ impl RevisionStore {
                 Err(error) => Err(format!("failed to inspect revision path {rel}: {error}")),
             })
             .collect::<Result<_, _>>()?;
-        let missing_pathspecs: Vec<String> = rels
-            .iter()
-            .zip(&present)
-            .filter(|(_, present)| !**present)
-            .map(|(rel, _)| format!(":(literal){rel}"))
-            .collect();
-        let tracked: HashSet<Vec<u8>> = if missing_pathspecs.is_empty() {
+        // Neither list goes on the command line: Windows caps it at 32K
+        // characters, which a startup rescan of a large space exceeds.
+        // `ls-files` has no `--pathspec-from-file`, so list the whole index
+        // and filter here instead.
+        let tracked: HashSet<Vec<u8>> = if present.iter().all(|present| *present) {
             HashSet::new()
         } else {
-            let mut args: Vec<&str> = vec!["ls-files", "-z", "--cached", "--"];
-            args.extend(missing_pathspecs.iter().map(String::as_str));
-            git::run_bytes(repo, &args, &[])?
+            git::run_bytes(repo, &["ls-files", "-z", "--cached"], &[])?
                 .split(|byte| *byte == 0)
                 .filter(|path| !path.is_empty())
                 .map(<[u8]>::to_vec)
                 .collect()
         };
-        let stageable: Vec<String> = rels
-            .into_iter()
-            .zip(present)
-            .filter(|(rel, present)| *present || tracked.contains(rel.as_bytes()))
-            .map(|(rel, _)| format!(":(literal){rel}"))
-            .collect();
-        if stageable.is_empty() {
+        let mut pathspecs = Vec::new();
+        for (rel, present) in rels.iter().zip(present) {
+            if present || tracked.contains(rel.as_bytes()) {
+                pathspecs.extend_from_slice(b":(literal)");
+                pathspecs.extend_from_slice(rel.as_bytes());
+                pathspecs.push(0);
+            }
+        }
+        if pathspecs.is_empty() {
             return Ok(());
         }
-        let mut add_args: Vec<&str> = vec!["add", "-A", "-f", "--"];
-        add_args.extend(stageable.iter().map(String::as_str));
-        git::run(repo, &add_args, &[])?;
+        git::run_with_stdin(
+            repo,
+            &[
+                "add",
+                "-A",
+                "-f",
+                "--pathspec-from-file=-",
+                "--pathspec-file-nul",
+            ],
+            &[],
+            pathspecs,
+        )?;
         Ok(())
     }
 
@@ -317,14 +324,13 @@ impl RevisionStore {
 
     /// `-z` records are `<status>\0<path>`, except renames and copies, which
     /// carry a second path -- the destination, which is the one that now exists.
+    ///
+    /// Filters in memory rather than by pathspec: `diff` has no
+    /// `--pathspec-from-file`, and a large batch overflows the Windows
+    /// command-line limit.
     fn classify_staged(&self, repo: &Path, paths: &[String]) -> Result<Vec<StagedChange>, String> {
-        let mut args: Vec<&str> = vec!["diff", "--cached", "--name-status", "-z", "--"];
-        let rels: Vec<String> = paths
-            .iter()
-            .map(|p| format!(":(literal){}", self.rel(p)))
-            .collect();
-        args.extend(rels.iter().map(|s| s.as_str()));
-        let out = git::run(repo, &args, &[])?;
+        let rels: HashSet<String> = paths.iter().map(|p| self.rel(p)).collect();
+        let out = git::run(repo, &["diff", "--cached", "--name-status", "-z"], &[])?;
         let mut fields = out.split('\0').filter(|f| !f.is_empty());
         let mut changes = Vec::new();
         while let Some(status) = fields.next() {
@@ -341,6 +347,9 @@ impl RevisionStore {
             } else {
                 (first, None)
             };
+            if !rels.contains(path) {
+                continue;
+            }
             changes.push(StagedChange {
                 status: code,
                 path: path.to_string(),
@@ -642,6 +651,43 @@ mod tests {
             git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]),
             "live.md"
         );
+    }
+
+    /// Windows caps a command line at 32K characters, so a startup rescan of
+    /// a large space used to fail every commit with os error 206. Unix limits
+    /// are far higher, so this batch is sized past them to fail the same way.
+    #[test]
+    fn commit_batch_auto_handles_more_paths_than_fit_on_a_command_line() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        let folder = "f".repeat(200);
+        std::fs::create_dir(dir.path().join(&folder)).unwrap();
+        let paths: Vec<String> = (0..16_000)
+            .map(|i| format!("{folder}/page {i:05}.md"))
+            .collect();
+        assert!(paths.iter().map(String::len).sum::<usize>() > 3_000_000);
+        for path in &paths {
+            std::fs::write(dir.path().join(path), b"x").unwrap();
+        }
+        store.commit_all("A", "a@x", "base").unwrap().unwrap();
+
+        for (i, path) in paths.iter().enumerate() {
+            if i % 2 == 0 {
+                std::fs::remove_file(dir.path().join(path)).unwrap();
+            } else {
+                std::fs::write(dir.path().join(path), b"y").unwrap();
+            }
+        }
+        let id = store.commit_batch_auto("A", "a@x", &paths).unwrap();
+
+        assert!(id.is_some());
+        assert_eq!(
+            git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"])
+                .lines()
+                .count(),
+            8_000
+        );
+        assert_eq!(git_out(dir.path(), &["status", "--porcelain"]), "");
     }
 
     #[test]

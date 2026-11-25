@@ -147,12 +147,24 @@ fn strip_progress(stderr: &str) -> String {
         .join("\n")
 }
 
-fn output(mut command: Command, limit: impl Into<Limit>) -> Result<Output, String> {
+fn output(command: Command, limit: impl Into<Limit>) -> Result<Output, String> {
+    output_with_stdin(command, limit, None)
+}
+
+fn output_with_stdin(
+    mut command: Command,
+    limit: impl Into<Limit>,
+    stdin: Option<Vec<u8>>,
+) -> Result<Output, String> {
     let limit = limit.into();
     command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .stdin(Stdio::null());
+        .stdin(if stdin.is_some() {
+            Stdio::piped()
+        } else {
+            Stdio::null()
+        });
     #[cfg(unix)]
     {
         use std::os::unix::process::CommandExt;
@@ -161,6 +173,16 @@ fn output(mut command: Command, limit: impl Into<Limit>) -> Result<Output, Strin
     let mut child = command
         .spawn()
         .map_err(|e| format!("failed to run git: {e}"))?;
+    // Fed from its own thread: git can fill the stdout pipe before it has
+    // read all of its input, and a blocking write here would then deadlock.
+    let in_thread = stdin.map(|bytes| {
+        let mut pipe = child.stdin.take().unwrap();
+        std::thread::spawn(move || {
+            use std::io::Write;
+            // A broken pipe means git exited early; its status reports why.
+            let _ = pipe.write_all(&bytes);
+        })
+    });
     let mut stdout = child.stdout.take().unwrap();
     let mut stderr = child.stderr.take().unwrap();
     let out_thread = std::thread::spawn(move || {
@@ -214,6 +236,9 @@ fn output(mut command: Command, limit: impl Into<Limit>) -> Result<Output, Strin
         }
         std::thread::sleep(Duration::from_millis(5));
     };
+    if let Some(thread) = in_thread {
+        let _ = thread.join();
+    }
     Ok(Output {
         status,
         stdout: out_thread
@@ -371,11 +396,34 @@ pub fn run_bytes(repo: &Path, args: &[&str], envs: &[(&str, &str)]) -> Result<Ve
     run_bytes_with_limit(repo, args, envs, Duration::from_secs(60))
 }
 
+/// Like [`run`], but feeds `stdin` to git. For path lists: Windows caps a
+/// command line at 32K characters, so a large space cannot pass its paths
+/// as arguments; pair this with `--pathspec-from-file=-`.
+pub fn run_with_stdin(
+    repo: &Path,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    stdin: Vec<u8>,
+) -> Result<String, String> {
+    run_bytes_with_stdin(repo, args, envs, Duration::from_secs(60), Some(stdin))
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
+}
+
 fn run_bytes_with_limit(
     repo: &Path,
     args: &[&str],
     envs: &[(&str, &str)],
     limit: impl Into<Limit>,
+) -> Result<Vec<u8>, String> {
+    run_bytes_with_stdin(repo, args, envs, limit, None)
+}
+
+fn run_bytes_with_stdin(
+    repo: &Path,
+    args: &[&str],
+    envs: &[(&str, &str)],
+    limit: impl Into<Limit>,
+    stdin: Option<Vec<u8>>,
 ) -> Result<Vec<u8>, String> {
     if !available() {
         return Err("git is not installed".to_string());
@@ -390,7 +438,7 @@ fn run_bytes_with_limit(
                 .collect()
         })
         .unwrap_or_else(|| envs.to_vec());
-    let out = output(command(repo, args, &selected), limit)?;
+    let out = output_with_stdin(command(repo, args, &selected), limit, stdin)?;
     if out.status.success() {
         if let Some(transport) = &transport {
             transport.finish()?;
