@@ -1,4 +1,5 @@
 import { throttle } from "@silverbulletmd/silverbullet/lib/async";
+import { isLoadablePlugPath } from "@silverbulletmd/silverbullet/lib/library_pages";
 import { BasenameIndex } from "@silverbulletmd/silverbullet/lib/resolve_path";
 import type { SilverBulletHooks } from "@silverbulletmd/silverbullet/type/manifest";
 import { builtinPlugPaths } from "../plugs/builtin_plugs.ts";
@@ -472,6 +473,9 @@ export class ClientSystem {
   }
 
   async loadPlugFromPath(path: string, lastModified: number) {
+    if (!isLoadablePlugPath(path)) {
+      throw new Error(`Plugs only load from under Library/, not ${path}`);
+    }
     await this.system.loadPlug(WorkerSandbox.forPath(path), path, lastModified);
   }
 
@@ -480,6 +484,14 @@ export class ClientSystem {
     await this.system.unloadAll();
 
     let allPlugs = await space.listPlugs();
+    const skipped = allPlugs.filter(({ name }) => !isLoadablePlugPath(name));
+    if (skipped.length > 0) {
+      console.warn(
+        "Not loading plugs outside Library/:",
+        skipped.map(({ name }) => name),
+      );
+      allPlugs = allPlugs.filter(({ name }) => isLoadablePlugPath(name));
+    }
     if (this.client.bootConfig.disablePlugs) {
       allPlugs = allPlugs.filter(({ name }) => builtinPlugPaths.includes(name));
 

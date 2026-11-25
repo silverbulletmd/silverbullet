@@ -25,7 +25,7 @@ references:
 # Context
 Since [[ADR/005 Space Lua|Space Lua]] landed, `space-lua` and `space-style` blocks could live on any page. Two problems followed:
 
-1. **Scattered tooling.** Scripts and styles end up spread across a space, mixed in with content, so it’s hard to see what customizes a space. To help separate the two, we introduced the “meta page”: a page tagged `#meta` or `#meta/*`. But this was a rather hard to understand concept that many users are confused by.
+1. **Scattered scripts.** Scripts and styles end up spread across a space, mixed in with content, so it’s hard to see what customizes a space. To help separate the two, we introduced the “meta page”: a page tagged `#meta` or `#meta/*`. But this was a rather hard to understand concept that many users are confused by.
 2. **Boot depends on the index.** Because scripts can be anywhere, the only way to find them is the [[ADR/003 Indexed Object Graph|object index]]. Boot runs a configuration pre-pass over four hardcoded pages, then loads scripts and styles from the index. On a fresh client nothing loads until the whole space is indexed. When indexing finishes, everything is reloaded and the editor rebuilt. Styles and fonts wait the same way. This is slow, and every step adds special cases.
 
 # Decision

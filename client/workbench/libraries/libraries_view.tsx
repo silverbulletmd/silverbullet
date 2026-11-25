@@ -52,7 +52,7 @@ async function promptInstall(libs: Libraries) {
   if (!uri) return;
   if (uri.endsWith(".plug.js")) {
     const segs = uri.split("/");
-    const suggested = segs[segs.length - 1] || "";
+    const suggested = `Library/${segs[segs.length - 1] || ""}`;
     const path = (
       await editor.prompt("Save plug as (path):", suggested)
     )?.trim();

@@ -17,6 +17,11 @@ export function libraryPageLua(varName: string): string {
   return `string.startsWith(${varName}.name, "${LIBRARY_PAGE_PREFIX}")`;
 }
 
+/** Plugs only load from under `Library/`; a `.plug.js` anywhere else is an ordinary file. */
+export function isLoadablePlugPath(path: string): boolean {
+  return isLibraryPage(path) && path.endsWith(".plug.js");
+}
+
 export type ToolFence = "space-lua" | "space-style";
 
 /** A `space-lua` or `space-style` fence on a page. */

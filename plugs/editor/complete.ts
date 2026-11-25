@@ -29,19 +29,21 @@ function recencyToBoost(lastModified: string): number {
 
 // Page completion
 export async function pageComplete(completeEvent: CompleteEvent) {
-  const isDocumentQuery = {
-    objectVariable: "_",
-    where: await lua.parseExpression(
-      `not string.startsWith(_.name, "_") and not string.endsWith(_.name, ".plug.js")`,
-    ),
-  };
-  const isLibraryPageQuery = {
+  // `Library/` pages and documents complete only after `[[^`, everything else
+  // only after `[[`.
+  const inLibraryQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(libraryPageLua("_")),
   };
-  const isntLibraryPageQuery = {
+  const outsideLibraryQuery = {
     objectVariable: "_",
     where: await lua.parseExpression(`not (${libraryPageLua("_")})`),
+  };
+  const outsideLibraryDocumentQuery = {
+    objectVariable: "_",
+    where: await lua.parseExpression(
+      `not string.startsWith(_.name, "_") and not (${libraryPageLua("_")})`,
+    ),
   };
   // Try to match [[wikilink]]
   let isWikilink = true;
@@ -61,8 +63,13 @@ export async function pageComplete(completeEvent: CompleteEvent) {
   let allPages: (PageMeta | DocumentMeta)[] = [];
 
   if (prefix.startsWith("^")) {
-    // A carrot prefix means we're looking for a Library page
-    allPages = await index.queryLuaObjects<PageMeta>("page", isLibraryPageQuery);
+    // A caret prefix means we're looking for a Library page or document
+    allPages = (
+      await Promise.all([
+        index.queryLuaObjects<PageMeta>("page", inLibraryQuery),
+        index.queryLuaObjects<DocumentMeta>("document", inLibraryQuery),
+      ])
+    ).flat();
     // Let's prefix the names with a caret to make them match
     allPages = allPages.map((page) => ({
       ...page,
@@ -73,9 +80,12 @@ export async function pageComplete(completeEvent: CompleteEvent) {
     allPages = (
       await Promise.all([
         // All non-Library pages
-        index.queryLuaObjects<PageMeta>("page", isntLibraryPageQuery),
-        // All documents
-        index.queryLuaObjects<DocumentMeta>("document", isDocumentQuery),
+        index.queryLuaObjects<PageMeta>("page", outsideLibraryQuery),
+        // All non-Library documents
+        index.queryLuaObjects<DocumentMeta>(
+          "document",
+          outsideLibraryDocumentQuery,
+        ),
         // And all links to non-existing pages (to augment the existing ones)
         index
           .queryLuaObjects<string>("aspiring-page", {

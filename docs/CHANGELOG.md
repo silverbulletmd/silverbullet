@@ -1,7 +1,9 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-_Nothing new since the 3.0 release_
+* Theoretically **breaking:** plugs (`.plug.js` files) now **only** load from `Library/`, following [[ADR/012 Tooling Lives in Library]], move them under `Library/`.
+  * `.plug.js` and `.js.map` files are now listed as regular documents: they show up in the Library segment of the document picker and Space Tree, and complete after `[[^`.
+  * `[[^` now completes both pages and documents under `Library/`, and `[[` no longer offers anything under `Library/`.
 
 ## 3.0.0
 * [[Reference/Theming]]: themes are here along with a significant visual refresh. Themes can can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select`.

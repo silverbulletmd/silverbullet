@@ -5,6 +5,7 @@ import {
   system,
 } from "@silverbulletmd/silverbullet/syscalls";
 import { base64Decode } from "../../../plug-api/lib/crypto.ts";
+import { isLoadablePlugPath } from "../../../plug-api/lib/library_pages.ts";
 import { reloadConfig } from "../../config_management/reload.ts";
 import { stdLibPrefix } from "../../spaces/constants.ts";
 import { luaString } from "../shared/lua_string.ts";
@@ -446,8 +447,8 @@ export async function removeLibrary(name: string): Promise<void> {
 }
 
 export async function installPlug(uri: string, path: string): Promise<void> {
-  if (!path.endsWith(".plug.js")) {
-    throw new Error("Plug path must end with .plug.js");
+  if (!isLoadablePlugPath(path)) {
+    throw new Error("Plug path must be under Library/ and end with .plug.js");
   }
   await space.writeFile(path, await readUriAsBytes(uri));
   await hotLoadPlugs([path]);

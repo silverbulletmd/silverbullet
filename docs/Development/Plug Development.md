@@ -23,10 +23,10 @@ npm install
 npm run build
 ```
 
-This produces a `yourplug.plug.js` bundle. For development, copy somewhere in your [[Reference/Concepts/Space]] (it doesn’t really matter where):
+This produces a `yourplug.plug.js` bundle. For development, copy it anywhere under the `Library/` folder of your [[Reference/Concepts/Space]] (plugs outside `Library/` are not loaded):
 
 ```shell
-cp yourplug.plug.js ~/myspace/
+cp yourplug.plug.js ~/myspace/Library/
 ```
 
 Within a few seconds watch your browser’s JavaScript console — the plug file should be synced locally. You can now run the `Plugs: Reload` command to “hot” reload it, without a full page refresh.
