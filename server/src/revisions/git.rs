@@ -409,6 +409,29 @@ pub fn run_with_stdin(
         .map(|b| String::from_utf8_lossy(&b).into_owned())
 }
 
+/// Like [`run_with_stdin`], but also reads exit code `also_ok` as success.
+/// `git check-ignore` exits 1 when no path matched.
+pub fn run_bytes_with_stdin_tolerating(
+    repo: &Path,
+    args: &[&str],
+    stdin: Vec<u8>,
+    also_ok: i32,
+) -> Result<Vec<u8>, String> {
+    if !available() {
+        return Err("git is not installed".to_string());
+    }
+    let out = output_with_stdin(
+        command(repo, args, &[]),
+        Duration::from_secs(60),
+        Some(stdin),
+    )?;
+    match out.status.code() {
+        Some(0) => Ok(out.stdout),
+        Some(c) if c == also_ok => Ok(out.stdout),
+        _ => Err(String::from_utf8_lossy(&out.stderr).trim().to_string()),
+    }
+}
+
 fn run_bytes_with_limit(
     repo: &Path,
     args: &[&str],

@@ -282,6 +282,43 @@ impl RevisionStore {
         Ok(())
     }
 
+    /// Drop the paths `.gitignore` excludes. [`Self::commit_batch`] forces
+    /// past `.gitignore`, which suits a page someone edits in SilverBullet but
+    /// not a list of everything in the folder, so callers with such a list
+    /// filter it here first. Tracked paths are kept, deletions included:
+    /// `check-ignore` never reports a path that is in the index.
+    pub fn without_ignored(&self, paths: Vec<String>) -> Result<Vec<String>, String> {
+        let Some(repo) = self.repo_root() else {
+            return Ok(paths);
+        };
+        if paths.is_empty() {
+            return Ok(paths);
+        }
+        let rels: Vec<String> = paths.iter().map(|path| self.rel(path)).collect();
+        let mut input = Vec::new();
+        for rel in &rels {
+            input.extend_from_slice(rel.as_bytes());
+            input.push(0);
+        }
+        // Stdin, not arguments: Windows caps a command line at 32K characters.
+        let out = git::run_bytes_with_stdin_tolerating(
+            &repo,
+            &["check-ignore", "--stdin", "-z"],
+            input,
+            1,
+        )?;
+        let ignored: HashSet<&[u8]> = out
+            .split(|byte| *byte == 0)
+            .filter(|path| !path.is_empty())
+            .collect();
+        Ok(paths
+            .into_iter()
+            .zip(rels)
+            .filter(|(_, rel)| !ignored.contains(rel.as_bytes()))
+            .map(|(path, _)| path)
+            .collect())
+    }
+
     /// Commit the current on-disk state of `paths` (space-relative). Missing
     /// files become deletions. Returns Ok(None) when nothing changed.
     pub fn commit_batch(
@@ -766,6 +803,33 @@ mod tests {
             .unwrap();
         let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
         assert!(files.contains("notes/x.md"), "{files}");
+    }
+
+    #[test]
+    fn without_ignored_drops_untracked_ignored_paths_only() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = RevisionStore::open(dir.path(), RevisionsMode::Managed).unwrap();
+        std::fs::create_dir_all(dir.path().join("out")).unwrap();
+        std::fs::write(dir.path().join("out/tracked.md"), b"t").unwrap();
+        store
+            .commit_batch("A", "a@x", "add", &["out/tracked.md".into()])
+            .unwrap();
+        std::fs::write(dir.path().join(".gitignore"), b"out/\n").unwrap();
+        std::fs::write(dir.path().join("out/new.js"), b"n").unwrap();
+        std::fs::write(dir.path().join("page.md"), b"p").unwrap();
+
+        let kept = store
+            .without_ignored(vec![
+                "out/tracked.md".into(),
+                "out/new.js".into(),
+                "page.md".into(),
+            ])
+            .unwrap();
+
+        assert_eq!(
+            kept,
+            vec!["out/tracked.md".to_string(), "page.md".to_string()]
+        );
     }
 
     #[test]

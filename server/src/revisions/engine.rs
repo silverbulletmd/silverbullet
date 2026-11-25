@@ -296,7 +296,16 @@ impl EngineInner {
         for (attribution, mut paths) in by_attribution {
             paths.sort();
             let (name, email) = self.identity_for(&attribution);
-            match self.store.commit_batch_auto(&name, &email, &paths) {
+            // Changes SilverBullet did not make honor `.gitignore`: otherwise
+            // a resync, or an `npm install` in the folder, commits whatever
+            // the user told git to leave alone. Edits made in SilverBullet
+            // are always kept.
+            let staged = if attribution == Attribution::External {
+                self.store.without_ignored(paths.clone())
+            } else {
+                Ok(paths.clone())
+            };
+            match staged.and_then(|staged| self.store.commit_batch_auto(&name, &email, &staged)) {
                 Ok(id) => {
                     committed |= id.is_some();
                     self.warned.store(false, Ordering::Relaxed);
@@ -407,6 +416,13 @@ impl EngineInner {
             .filter(|p| root.join(p).exists())
             .cloned()
             .collect();
+        let existing = match self.store.without_ignored(existing) {
+            Ok(existing) => existing,
+            Err(e) => {
+                tracing::warn!("History initial snapshot failed, will retry: {e}");
+                return false;
+            }
+        };
         if existing.is_empty() {
             self.snapshot_done.store(true, Ordering::Release);
             return false;
@@ -1327,6 +1343,41 @@ mod tests {
         );
         let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
         assert!(files.contains("index.md"), "{files}");
+    }
+
+    #[test]
+    fn initial_snapshot_honors_gitignore() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("index.md"), b"hello").unwrap();
+        std::fs::write(dir.path().join(".gitignore"), b"node_modules\n").unwrap();
+        std::fs::create_dir_all(dir.path().join("node_modules/pkg")).unwrap();
+        std::fs::write(dir.path().join("node_modules/pkg/index.js"), b"x").unwrap();
+        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
+        handle.commit_now();
+        let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
+        assert!(files.contains("index.md"), "{files}");
+        assert!(!files.contains("node_modules"), "{files}");
+    }
+
+    #[test]
+    fn external_changes_honor_gitignore_but_user_edits_do_not() {
+        let dir = tempfile::tempdir().unwrap();
+        let handle = RevisionEngine::start(managed(&dir), None, Timing::default(), None);
+        handle.commit_now();
+
+        std::fs::write(dir.path().join(".gitignore"), b"build/\n").unwrap();
+        std::fs::create_dir_all(dir.path().join("build")).unwrap();
+        std::fs::write(dir.path().join("build/out.js"), b"x").unwrap();
+        std::fs::write(dir.path().join("build/page.md"), b"x").unwrap();
+        std::fs::write(dir.path().join("a.md"), b"a").unwrap();
+        handle.inner.rescan_as_external();
+        handle.mark("build/page.md", Attribution::LocalUser);
+        handle.commit_now();
+
+        let files = git_out(dir.path(), &["ls-tree", "-r", "--name-only", "HEAD"]);
+        assert!(files.contains("a.md"), "{files}");
+        assert!(files.contains("build/page.md"), "{files}");
+        assert!(!files.contains("build/out.js"), "{files}");
     }
 
     #[test]
