@@ -6,8 +6,11 @@ export function throttle(
   const throttled = () => {
     if (!timer) {
       timer = setTimeout(() => {
-        func();
-        timer = null;
+        try {
+          func();
+        } finally {
+          timer = null;
+        }
       }, limit);
     }
   };
@@ -114,14 +117,20 @@ export class ConcurrencyLimiter {
 
   async run<T>(fn: () => Promise<T>): Promise<T> {
     if (this.active >= this.max) {
+      // The finishing call hands over its slot, so `active` stays as it is
       await new Promise<void>((resolve) => this.queue.push(resolve));
+    } else {
+      this.active++;
     }
-    this.active++;
     try {
       return await fn();
     } finally {
-      this.active--;
-      this.queue.shift()?.();
+      const next = this.queue.shift();
+      if (next) {
+        next();
+      } else {
+        this.active--;
+      }
     }
   }
 }
