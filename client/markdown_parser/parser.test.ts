@@ -192,6 +192,10 @@ http://no-trailing-comma.com, that same a URL, ends with m (and not ',').
 http://trailing-slash.com/. That ends with '/' (still not '.').
 http://abc.com?e=2.71,pi=3.14 is a URL too.
 http://abc.com?e=2.71. That is a URL, which ends with 1 (and not '.').
+https://en.wikipedia.org/wiki/Quarter_(film)
+See https://en.wikipedia.org/wiki/Quarter_(film). It keeps the ')'.
+A wrapped URL (https://x.com/a) drops the ')'.
+Wrapped with a period (https://x.com/b.) drops both.
 `;
 
 test("Test NakedURL parser", () => {
@@ -205,6 +209,10 @@ test("Test NakedURL parser", () => {
     "http://trailing-slash.com/",
     "http://abc.com?e=2.71,pi=3.14",
     "http://abc.com?e=2.71",
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+    "https://en.wikipedia.org/wiki/Quarter_(film)",
+    "https://x.com/a",
+    "https://x.com/b",
   ]);
 });
 
