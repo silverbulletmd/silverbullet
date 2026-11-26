@@ -41,10 +41,10 @@ event.listen {
   run = function(e)
     local pageName = e.data.name
     for _, def in pairs(config.get("virtualPages", {})) do
-      local match = pageName:match(def.pattern)
-      if match != nil then
+      local captures = {pageName:match(def.pattern)}
+      if #captures > 0 then
         return {
-          text = def.run(match),
+          text = def.run(table.unpack(captures)),
           perm = "ro"
         }
       end
