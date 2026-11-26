@@ -558,14 +558,14 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         Comment: ct.CommentTag,
         CommentMarker: ct.CommentMarkerTag,
         CommentMarkerBlock: ct.CommentTag,
-        Subscript: ct.SubscriptTag,
-        Superscript: ct.SuperscriptTag,
         "TableDelimiter StrikethroughMark": t.processingInstruction,
         "TableHeader/...": t.heading,
         TableCell: t.content,
         // @lezer/markdown already styles these, and at equal specificity its
         // rules win. The `*/` parent context makes ours take precedence.
         "*/CodeInfo": ct.CodeInfoTag,
+        "*/Subscript": ct.SubscriptTag,
+        "*/Superscript": ct.SuperscriptTag,
         "*/HorizontalRule": ct.HorizontalRuleTag,
         Hashtag: ct.HashtagTag,
         NakedURL: ct.NakedURLTag,
