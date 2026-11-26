@@ -5,13 +5,22 @@ references:
 - client/markdown_parser/custom_syntax.ts
 - client/markdown_renderer/markdown_render.ts
 ---
-Silverbullet supports [admonitions](https://github.com/community/community/discussions/16925) using GitHub syntax (`note` and `warning`).
+SilverBullet supports [admonitions](https://github.com/community/community/discussions/16925) in GitHub syntax. It has all five GitHub alert types (`note`, `tip`, `important`, `warning` and `caution`) and two types of its own (`danger` and `success`).
 
 > **note** This is a
 > note admonition
 
+> **tip** This is a
+> tip admonition
+
+> **important** This is an
+> important admonition
+
 > **warning** This is a
 > warning admonition
+
+> **caution** This is a
+> caution admonition
 
 > **danger** This is a
 > danger admonition
