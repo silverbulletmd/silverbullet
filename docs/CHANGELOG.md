@@ -1,10 +1,22 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* Fix: plugs (`.plug.js` files) now **only** load from `Library/`, following [[ADR/012 Tooling Lives in Library]], move them under `Library/`. This should have been the case before, but wasn't implemented.
+* Nothing new since 3.0.1
+
+## 3.0.1
+* Fix: plugs (`.plug.js` files) now **only** load from `Library/`, following [[Reference/Internals/ADR/012 Space Lua and Style Lives in Library]], move them under `Library/`. This should have been the case before, but wasn't implemented.
   * `.plug.js` and `.js.map` files are now listed as regular documents: they show up in the Library segment of the document picker and Space Tree.
 * [[Workbench/Data]]: *Create page template* in a tag's Schema view turns its schema into a [[Reference/Concepts/Page Template]], so new pages start with the tag and its attributes.
 * Fix: choosing *enum* as an attribute type in the [[Workbench/Data]] Schema view no longer errors and falls back to `string`. A new enum starts from the values already in use, and its allowed values save when you leave the field or press **Enter**.
+* Security fix: on Windows, the server now rejects drive-relative paths such as `C:notes.md` and `\notes.md`, which could read or write files outside the space.
+* Fix: [[Reference/Concepts/Linked Tasks]] now show each task's tags and attributes. They use the new `templates.taskItemFull`, which renders a task's full text; `templates.taskItem` is unchanged.
+* Fix: ^superscript^ and ~subscript~ now render as superscript and subscript in the editor too, not only in transclusions and query results.
+* Fix: a key binding set with `command.update` for the Table of Contents, or any other [[Reference/Concepts/View|view]] command, now sticks instead of being reset when the view is defined.
+* Fix: [[Reference/Concepts/Virtual Pages|virtual pages]] whose pattern has several capture groups now pass all of them to `run`, not just the first.
+* Fix: relative links starting with `./`, such as `[Other](./Other)`, now resolve to the current folder.
+* Fix: a list item starting with a link whose text has escaped brackets, such as `- [\[Note\]](https://example.com)`, is no longer read as a task.
+* Fix: numeric `width` and `height` for `embed.youtube`, `embed.vimeo` and `embed.peertube` now apply, as pixels.
+* Fix: the image viewer's toolbar icons show on iOS Safari.
 
 ## 3.0.0
 * [[Reference/Theming]]: themes are here along with a significant visual refresh. Themes can can be distributed as libraries. SilverBullet comes with **SilverBullet Light** and **SilverBullet Dark**. Pick a theme for the whole space in [[Workbench/Configuration]] (Appearance → Theme), or for one device with `Theme: Select`.
