@@ -12,6 +12,11 @@ ${embed.peertube "https://peertube.fr/w/kkGMgK9ZtnKfYAgnEtQxbv"}
 ## Example
 ${embed.vimeo "https://vimeo.com/1084537"}
 
+# Size
+Each embed takes an optional `width` and `height`. A number is in pixels, and a string is any CSS size. The defaults are `"100%"` wide and `400` high.
+
+${embed.youtube {url = "https://youtu.be/t1oy_41bDAY", width = 560, height = 315}}
+
 # Implementation
 ```space-lua
 -- priority: 10
@@ -19,11 +24,22 @@ local embedVideoSpecSchema = {
   type = "object",
   properties = {
     url = { type = "string"},
-    width = { type = "number"},
-    height = { type = "number"},
+    width = { type = {"number", "string"}},
+    height = { type = {"number", "string"}},
   },
   required = {"url"}
 }
+
+-- A number is a size in pixels; a string (e.g. "100%" or "20em") is used as is
+local function cssSize(value, default)
+  if value == nil then
+    return default
+  end
+  if type(value) == "number" then
+    return value .. "px"
+  end
+  return value
+end
 
 function embed.youtube(specOrUrl)
   if type(specOrUrl) == "string" then
@@ -45,8 +61,8 @@ function embed.youtube(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src="https://www.youtube.com/embed/" .. videoId,
     style="width: " .. width .. "; height: " .. height,
@@ -75,8 +91,8 @@ function embed.peertube(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src = "https://" .. peertubeInstance .. "/videos/embed/" .. videoId,
     style = "width: " .. width .. "; height: " .. height,
@@ -101,8 +117,8 @@ function embed.vimeo(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src = "https://player.vimeo.com/video/" .. videoId,
     style = "width: " .. width .. "; height: " .. height,

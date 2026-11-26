@@ -1,6 +1,7 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
+* Fix: `embed.youtube`, `embed.peertube` and `embed.vimeo` accept a number for `width` and `height` as a size in pixels, and a string as any CSS size. Numbers used to produce CSS with no unit, and strings were rejected.
 * Fix: plugs (`.plug.js` files) now **only** load from `Library/`, following [[ADR/012 Tooling Lives in Library]], move them under `Library/`. This should have been the case before, but wasn't implemented.
   * `.plug.js` and `.js.map` files are now listed as regular documents: they show up in the Library segment of the document picker and Space Tree.
 * [[Workbench/Data]]: *Create page template* in a tag's Schema view turns its schema into a [[Reference/Concepts/Page Template]], so new pages start with the tag and its attributes.
