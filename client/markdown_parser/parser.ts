@@ -558,8 +558,6 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         Comment: ct.CommentTag,
         CommentMarker: ct.CommentMarkerTag,
         CommentMarkerBlock: ct.CommentTag,
-        Subscript: ct.SubscriptTag,
-        Superscript: ct.SuperscriptTag,
         "TableDelimiter StrikethroughMark": t.processingInstruction,
         "TableHeader/...": t.heading,
         TableCell: t.content,
@@ -567,6 +565,8 @@ const baseMarkdownExtensions: MarkdownConfig[] = [
         // rules win. The `*/` parent context makes ours take precedence.
         "*/CodeInfo": ct.CodeInfoTag,
         "*/HorizontalRule": ct.HorizontalRuleTag,
+        "*/Subscript": ct.SubscriptTag,
+        "*/Superscript": ct.SuperscriptTag,
         Hashtag: ct.HashtagTag,
         NakedURL: ct.NakedURLTag,
         NamedAnchor: ct.NamedAnchorTag,

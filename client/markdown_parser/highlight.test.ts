@@ -25,4 +25,6 @@ test("Custom style tags override built-in markdown ones", () => {
   expect(classesFor("Hello <!-- note --> there", "note")).toContain(
     "sb-comment",
   );
+  expect(classesFor("E = mc^2^ here", "2")).toContain("sb-sup");
+  expect(classesFor("H~2~O here", "2")).toContain("sb-sub");
 });
