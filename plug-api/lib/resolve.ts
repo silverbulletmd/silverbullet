@@ -48,8 +48,8 @@ export function resolveMarkdownLink(
     const splitAbsolute = absolute.split("/").slice(0, -1);
     const splitRelative = relative.split("/");
 
-    while (splitRelative && splitRelative[0] === "..") {
-      splitAbsolute.pop();
+    while (splitRelative[0] === ".." || splitRelative[0] === ".") {
+      if (splitRelative[0] === "..") splitAbsolute.pop();
       splitRelative.shift();
     }
 

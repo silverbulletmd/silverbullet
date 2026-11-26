@@ -21,6 +21,10 @@ test("Test URL resolver", () => {
   expect(resolveMarkdownLink("bar/qux", "foo/../baz")).toEqual(
     "bar/foo/../baz",
   );
+  // A leading `./` means the current folder (#2200)
+  expect(resolveMarkdownLink("Folder/page", "./other")).toEqual("Folder/other");
+  expect(resolveMarkdownLink("page", "./other")).toEqual("other");
+  expect(resolveMarkdownLink("a/b/page", "./../other")).toEqual("a/other");
 });
 
 test("application protocols are external regardless of URL shape", () => {
