@@ -20,6 +20,7 @@ const mobile = {
 };
 const config = {
   set: vi.fn<(key: unknown, value: unknown) => Promise<void>>(),
+  merge: vi.fn<(key: unknown, value: unknown) => Promise<void>>(),
 };
 const system = {
   invokeFunction:
@@ -376,7 +377,10 @@ test("defineView registers the view and mirrors its command into config", async 
   );
   // Exact keys, not objectContaining: an absent field reintroduced as
   // `undefined` fails config's own JSON-schema validation.
-  const [path, command] = config.set.mock.calls[0];
+  // Merged, never replaced: a user's earlier `command.update { key = ... }`
+  // must survive a view defined later (#2154).
+  expect(config.set).not.toHaveBeenCalled();
+  const [path, command] = config.merge.mock.calls[0];
   expect(path).toEqual(["commands", "Space: V"]);
   expect(Object.keys(command as object).sort()).toEqual(["key", "name", "run"]);
   expect(command).toMatchObject({ name: "Space: V", key: "Ctrl-j" });
@@ -406,7 +410,7 @@ test("defineView registers an explicit value without onSelect", async () => {
     hasSelect: false,
   });
   expect(registered.spec.rawGet("source")).toBe(source);
-  expect(config.set).not.toHaveBeenCalled();
+  expect(config.merge).not.toHaveBeenCalled();
 });
 
 // Lua view menu metadata must become plain MenuContribution objects for
@@ -431,7 +435,7 @@ test("defineView mirrors a Lua `menu` table into the command's config entry inta
 
   await nav.defineView(spec);
 
-  const [path, command] = config.set.mock.calls[0];
+  const [path, command] = config.merge.mock.calls[0];
   expect(path).toEqual(["commands", "Space: V"]);
   expect(Object.keys(command as object).sort()).toEqual([
     "menu",

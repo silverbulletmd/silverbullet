@@ -418,7 +418,9 @@ export async function defineView(spec: ViewSpec): Promise<void> {
   if (!command.name) return;
   // Written to config rather than registered with the command hook, so a
   // script reload's `config.clear()` retires it alongside the view itself.
-  await config.set(["commands", command.name], command);
+  // Merged, not set: views defined after Library/Config (e.g. Std's TOC at
+  // priority -1) would otherwise wipe a user's `command.update { key = ... }`.
+  await config.merge(["commands", command.name], command);
 }
 
 export function pickView(spec: ViewSpec): Promise<unknown> {

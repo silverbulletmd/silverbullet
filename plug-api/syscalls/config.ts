@@ -29,6 +29,17 @@ export function set<T>(
 }
 
 /**
+ * Shallow-merges fields into the table at a path: given fields replace
+ * existing ones, other existing fields are kept.
+ */
+export function merge(
+  path: string | string[],
+  values: Record<string, any>,
+): Promise<void> {
+  return syscall("config.merge", path, values);
+}
+
+/**
  * Inserts a config value into an array
  */
 export function insert<T>(path: string | string[], value: T): Promise<void> {
