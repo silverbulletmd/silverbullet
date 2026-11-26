@@ -1,4 +1,5 @@
 import { parseToRef } from "@silverbulletmd/silverbullet/lib/ref";
+import { editor, space } from "@silverbulletmd/silverbullet/syscalls";
 import { Button } from "@silverbulletmd/silverbullet/ui";
 import { Fragment } from "preact";
 import { useEffect, useState } from "preact/hooks";
@@ -23,6 +24,7 @@ import { IconPicker } from "../icon_picker.tsx";
 import { sourceForEntry } from "../sources.ts";
 import { type TagListEntry, tagIcon } from "../tag_list.ts";
 import { AddAttributeRow, AttributeRowView } from "./attribute_row.tsx";
+import { defaultTemplateName, pageTemplateText } from "./page_template.ts";
 import type { SchemaDrafts } from "./schema_drafts.ts";
 import { objectsFilter, type SchemaLink } from "./schema_links.ts";
 import {
@@ -141,6 +143,27 @@ export function SchemaView({
     );
   }
 
+  async function createTemplate() {
+    let suggested = defaultTemplateName(tag);
+    while (true) {
+      const name = (await editor.prompt("Page template name:", suggested))
+        ?.trim()
+        .replace(/\.md$/, "");
+      if (!name) return;
+      if (await space.pageExists(name)) {
+        await editor.flashNotification(
+          `${name} already exists; pick another name`,
+          "error",
+        );
+        suggested = name;
+        continue;
+      }
+      await space.writePage(name, pageTemplateText(tag, schemaFor(rows)));
+      await openRef(client, { path: `${name}.md` });
+      return;
+    }
+  }
+
   // A draft's null is "no icon", shown as the plain tag glyph the list falls back to
   const iconNow =
     (draft?.icon === null ? "tag" : draft?.icon) ??
@@ -185,6 +208,15 @@ export function SchemaView({
           )}
         </span>
         <span className="sb-wbq-spacer" />
+        {(!creating || draft) && writable ? (
+          <button
+            type="button"
+            className="sb-wbq-link"
+            onClick={() => void createTemplate()}
+          >
+            Create page template
+          </button>
+        ) : null}
         {!creating || draft ? (
           <button
             type="button"

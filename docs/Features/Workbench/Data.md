@@ -57,7 +57,7 @@ The Schema view lists the tag's attributes: the ones its schema declares, and th
 * **Present**: how many of the sampled objects have a value. A partial count opens the objects without it. A ⚠ *invalid* count opens the objects whose value doesn't match, and an allowed value opens the objects that have it.
 * **Origin**: *inherited* from the root tag (a `#book` page has `name` because it's a page), *declared* in a definition elsewhere, *local* to your changes here, or *inferred* from the objects.
 
-Edit any of them in place, add attributes with *Add attribute*, and remove or reset them from a row's ⋯ menu. Each change saves as you make it: a name or description when you leave the field or press **Enter** (**Escape** puts it back), anything else right away. A change that can't be saved, such as renaming an attribute to one that already exists, stays marked with its problem, with **Discard** to drop it; the tab shows a • meanwhile. *Copy as tag.define* copies the schema as Lua, and the icon button picks the tag's icon (or *No icon*). For a schema defined elsewhere, the toolbar links to the page that defines it.
+Edit any of them in place, add attributes with *Add attribute*, and remove or reset them from a row's ⋯ menu. Each change saves as you make it: a name, description or enum values when you leave the field or press **Enter** (**Escape** puts it back), anything else right away. A change that can't be saved, such as renaming an attribute to one that already exists, stays marked with its problem, with **Discard** to drop it; the tab shows a • meanwhile. *Copy as tag.define* copies the schema as Lua.
 
 For a tag without a schema, tick the inferred attributes to keep and click **Create schema**. Nothing is required until you say so.
 
