@@ -1,4 +1,4 @@
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import {
   batchRequests,
   ConcurrencyLimiter,
@@ -6,6 +6,7 @@ import {
   PromiseQueue,
   processWithConcurrency,
   sleep,
+  throttle,
 } from "./async.ts";
 
 test("PromiseQueue test", async () => {
@@ -170,6 +171,50 @@ test("never runs more than max at once and preserves results", async () => {
   );
   expect(results).toEqual([10, 20, 30, 40, 50]);
   expect(peak).toBe(2);
+});
+
+test("ConcurrencyLimiter keeps a freed slot for the waiting call", async () => {
+  const lim = new ConcurrencyLimiter(1);
+  let running = 0;
+  let peak = 0;
+  const task = (until: Promise<void>) => async () => {
+    running++;
+    peak = Math.max(peak, running);
+    await until;
+    running--;
+  };
+  const first = deferred<void>();
+  const second = deferred<void>();
+  const a = lim.run(task(first.promise));
+  const b = lim.run(task(second.promise));
+  // Comes in after the first call is done, before the second one got going
+  const c = first.promise
+    .then(() => {})
+    .then(() => lim.run(task(Promise.resolve())));
+  first.resolve();
+  await a;
+  await sleep(1);
+  second.resolve();
+  await Promise.all([a, b, c]);
+  expect(peak).toBe(1);
+});
+
+test("throttle keeps working after the function throws", () => {
+  vi.useFakeTimers();
+  try {
+    let calls = 0;
+    const throttled = throttle(() => {
+      calls++;
+      if (calls === 1) throw new Error("first call fails");
+    }, 10);
+    throttled();
+    expect(() => vi.advanceTimersByTime(10)).toThrow("first call fails");
+    throttled();
+    vi.advanceTimersByTime(10);
+    expect(calls).toBe(2);
+  } finally {
+    vi.useRealTimers();
+  }
 });
 
 function deferred<T>() {
