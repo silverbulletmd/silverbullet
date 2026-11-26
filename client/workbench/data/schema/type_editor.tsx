@@ -4,6 +4,7 @@ import {
   schemaFromLuaText,
   schemaToLua,
 } from "../../../config_management/schema_lua.ts";
+import { CommitInput } from "./commit_input.tsx";
 import {
   applyTypeChoice,
   choiceFor,
@@ -23,12 +24,15 @@ const CUSTOM = "custom";
 export /** Type, format, enum values, ref target and nullability of one rule */
 function TypeEditor({
   schema,
+  values,
   disabled,
   onChange,
   onValue,
   onEditLua,
 }: {
   schema: JsonSchema;
+  /** Values in use, which a new enum starts from */
+  values: string[];
   disabled: boolean;
   onChange: (schema: JsonSchema) => void;
   onValue: (value: string) => void;
@@ -66,7 +70,7 @@ function TypeEditor({
             onEditLua();
             return;
           }
-          set(choiceFor(value as TypeKind, choice.nullable, choice));
+          set(choiceFor(value as TypeKind, choice.nullable, choice, values));
         }}
       >
         {TYPE_KINDS.map((k) => (
@@ -97,16 +101,16 @@ function TypeEditor({
       ) : null}
       {choice.kind === "type" && choice.enum ? (
         <>
-          <input
+          <CommitInput
             className="sb-wbd-input"
-            aria-label="Allowed values"
+            label="Allowed values"
             placeholder="planned, active, done"
             disabled={disabled}
             value={choice.enum.join(", ")}
-            onChange={(e) =>
+            onCommit={(text) =>
               set({
                 ...choice,
-                enum: e.currentTarget.value
+                enum: text
                   .split(",")
                   .map((v) => v.trim())
                   .filter(Boolean),

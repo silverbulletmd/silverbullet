@@ -19,6 +19,7 @@ import {
 import type { JsonSchema } from "../../../config_management/schema_lua.ts";
 import { validateSchema } from "../../../plugos/syscalls/jsonschema.ts";
 import { ReloadingStore } from "../../shared/reloading_store.ts";
+import { readTypeChoice } from "./schema_type.ts";
 import { schemaSources, type TagSource } from "./tag_sources.ts";
 
 export type TagDraft = {
@@ -492,6 +493,8 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
       if (rule !== null) {
         const problem = validateSchema(rule);
         if (problem) errors[name] = problem;
+        // An empty Lua table reads back as an object, not an empty list
+        else if (isEmptyEnum(rule)) errors[name] = "List the allowed values";
       }
     }
     for (const [from, to] of d.renamed) {
@@ -557,4 +560,9 @@ export class SchemaDrafts extends ReloadingStore<SchemaDraftSource> {
       for (const tag of this.drafts.keys()) void this.saveSoon(tag);
     }
   }
+}
+
+function isEmptyEnum(rule: JsonSchema): boolean {
+  const choice = readTypeChoice(rule);
+  return choice.kind === "type" && choice.enum?.length === 0;
 }

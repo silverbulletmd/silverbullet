@@ -198,9 +198,19 @@ describe("type menu", () => {
     expect(typeKindOf({ kind: "advanced", reason: "anyOf" })).toBeNull();
   });
 
+  test("picking enum on a plain type starts from the values in use", () => {
+    const prev = readTypeChoice({ type: "string" });
+    expect(choiceFor("enum", false, prev, ["reading", "done"])).toEqual({
+      kind: "type",
+      type: "string",
+      enum: ["reading", "done"],
+      nullable: false,
+    });
+  });
+
   test("picking enum again keeps the values, other picks keep nullability", () => {
     const prev = readTypeChoice({ type: "string", enum: ["a", "b"] });
-    expect(choiceFor("enum", false, prev)).toEqual({
+    expect(choiceFor("enum", false, prev, ["c"])).toEqual({
       kind: "type",
       type: "string",
       enum: ["a", "b"],

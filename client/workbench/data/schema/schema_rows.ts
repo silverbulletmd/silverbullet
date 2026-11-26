@@ -19,6 +19,8 @@ export type AttributeRow = {
   present: number;
   sampled: number;
   invalid: number;
+  /** Values in use, most used first: where an enum starts from */
+  values: string[];
 };
 
 export type RowsInput = {
@@ -115,6 +117,7 @@ export function buildRows(input: RowsInput): AttributeRow[] {
         .length,
       sampled: samples.length,
       invalid: invalidCount(name, schema, samples),
+      values: (guess?.values ?? []).map(([v]) => v),
     };
   });
   // The tag's own attributes first; what its root tag brings comes last
@@ -170,6 +173,7 @@ export function withDraft(rows: AttributeRow[], draft?: Draft): DraftRow[] {
       present: 0,
       sampled: rows[0]?.sampled ?? 0,
       invalid: 0,
+      values: [],
       added: true,
     });
   }

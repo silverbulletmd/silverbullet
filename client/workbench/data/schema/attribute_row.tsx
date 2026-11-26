@@ -1,5 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { ActionMenu } from "../../shared/action_menu.tsx";
+import { CommitInput } from "./commit_input.tsx";
 import type { SchemaDrafts } from "./schema_drafts.ts";
 import type { SchemaLink } from "./schema_links.ts";
 import type { DraftRow } from "./schema_rows.ts";
@@ -92,6 +93,7 @@ export function AttributeRowView({
           ) : (
             <TypeEditor
               schema={row.schema}
+              values={row.values}
               disabled={!editable}
               onChange={(s) => schemas.setRule(tag, row.name, s)}
               onValue={(value) =>
@@ -200,52 +202,6 @@ export function AttributeRowView({
         ) : null}
       </td>
     </tr>
-  );
-}
-
-/**
- * A text field that hands its value over when it is left or Enter is
- * pressed, since each hand-over saves; Escape puts the value back.
- */
-function CommitInput({
-  className,
-  label,
-  value,
-  disabled,
-  onCommit,
-}: {
-  className: string;
-  label: string;
-  value: string;
-  disabled: boolean;
-  onCommit: (value: string) => void;
-}) {
-  const [text, setText] = useState(value);
-  useEffect(() => setText(value), [value]);
-  return (
-    <input
-      className={className}
-      aria-label={label}
-      value={text}
-      disabled={disabled}
-      onInput={(e) => setText(e.currentTarget.value)}
-      onBlur={() => {
-        if (text !== value) onCommit(text);
-      }}
-      onKeyDown={(e) => {
-        if (e.isComposing) return;
-        if (e.key === "Enter") {
-          e.preventDefault();
-          e.currentTarget.blur();
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          setText(value);
-          // Left once it's back, so the blur hands nothing over
-          const el = e.currentTarget;
-          requestAnimationFrame(() => el.blur());
-        }
-      }}
-    />
   );
 }
 

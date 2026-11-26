@@ -40,6 +40,22 @@ const byName = <T extends { name: string }>(rows: T[], name: string) =>
   rows.find((r) => r.name === name);
 
 describe("buildRows", () => {
+  test("a row lists the attribute's values in use, most used first", () => {
+    const rows = buildRows(
+      input({
+        inferred: [
+          info("status", "text", {
+            values: [
+              ["reading", 3],
+              ["done", 1],
+            ],
+          }),
+        ],
+      }),
+    );
+    expect(byName(rows, "status")?.values).toEqual(["reading", "done"]);
+  });
+
   test("declared attributes absent from the samples still appear", () => {
     const rows = buildRows(
       input({

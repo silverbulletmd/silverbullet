@@ -59,11 +59,15 @@ export function typeKindOf(c: TypeChoice): TypeKind | null {
   return c.enum ? "enum" : c.type;
 }
 
-/** The choice a type menu pick makes, keeping enum values when there are some */
+/**
+ * The choice a type menu pick makes, keeping enum values when there are some;
+ * a new enum starts from the values in use
+ */
 export function choiceFor(
   kind: TypeKind,
   nullable: boolean,
   prev: TypeChoice,
+  inUse: string[] = [],
 ): TypeChoice {
   switch (kind) {
     case "ref":
@@ -75,7 +79,7 @@ export function choiceFor(
       return {
         kind: "type",
         type: "string",
-        enum: prev.kind === "type" && prev.enum ? prev.enum : [],
+        enum: prev.kind === "type" && prev.enum ? prev.enum : [...inUse],
         nullable,
       };
     case "array":

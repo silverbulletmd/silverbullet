@@ -338,6 +338,24 @@ describe("saving", () => {
     expect(drafts.draft("meeting")).toBeDefined();
   });
 
+  test("an enum without values is refused, plain or nullable", async () => {
+    const { drafts, saved } = setup();
+    await ready(drafts);
+    drafts.setRule("meeting", "status", { type: "string", enum: [] });
+    drafts.setRule("meeting", "phase", {
+      anyOf: [{ type: "string", enum: [] }, { type: "null" }],
+    });
+    const result = await drafts.save("meeting");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(Object.keys(result.fieldErrors ?? {}).sort()).toEqual([
+        "phase",
+        "status",
+      ]);
+    }
+    expect(saved).toHaveLength(0);
+  });
+
   test("a rename onto an existing attribute is refused", async () => {
     const { drafts } = setup();
     await ready(drafts);
