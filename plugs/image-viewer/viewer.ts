@@ -46,6 +46,11 @@ html, body {
   border-radius: 5px;
   color: var(--button-color);
 }
+/* WebKit (iOS Safari) sizes a viewBox-only SVG flex item to 0x0. */
+.ui-button svg {
+  width: 100%;
+  height: 100%;
+}
 </style>
 <script type="module">
 /**
