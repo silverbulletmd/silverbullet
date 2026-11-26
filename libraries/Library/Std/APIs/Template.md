@@ -62,6 +62,7 @@ The `templates` table contains ready-made templates for common query rendering p
 * **`templates.pageItem`** — renders a page as `* [[name]]`
 * **`templates.fullPageItem`** — renders a page as `* [[name|name]]` (full path)
 * **`templates.taskItem`** — renders a task as a togglable `* [state] [[ref]] name`
+* **`templates.taskItemFull`** — like `taskItem`, but renders the task's full `text`, keeping its tags and attributes
 * **`templates.itemItem`** — renders an item as `* [[ref]] name`
 * **`templates.paragraphItem`** — renders a paragraph as `* [[ref]] text`
 * **`templates.tagItem`** — renders a tag as `* [[tag:name|#name]]`

@@ -32,6 +32,12 @@ templates.taskItem = template.new([==[
 * [${state}] ${templates.refLink(ref)}: ${name}
 ]==])
 
+--- Like `taskItem`, but keeps the task's tags and attributes (its `text`).
+--- @param t task
+templates.taskItemFull = template.new([==[
+* [${state}] ${templates.refLink(ref)}: ${text}
+]==])
+
 --- Renders an item, linked to where it is.
 --- @param i item
 templates.itemItem = template.new([==[

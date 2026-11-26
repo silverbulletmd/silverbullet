@@ -52,6 +52,7 @@ Item templates render each row of a query. The standard library provides some in
 | `templates.pageItem` | A page as `* [[name]]` |
 | `templates.fullPageItem` | A page as a link labeled with its full name |
 | `templates.taskItem` | A task as a toggleable checkbox linked to its source |
+| `templates.taskItemFull` | The same, keeping the task's tags and attributes |
 | `templates.itemItem` | A list item linked to its source |
 | `templates.paragraphItem` | A paragraph linked to its source |
 | `templates.tagItem` | A tag as a linked hashtag |

@@ -303,14 +303,15 @@ view.define {
 -- priority: 10
 
 -- Linked tasks as Markdown without a heading, or "" when empty.
--- taskItem includes page@pos refs so checkboxes write back to their source.
+-- taskItemFull includes page@pos refs so checkboxes write back to their
+-- source, and keeps each task's tags and attributes.
 function widgets.linkedTasksMarkdown(pageName)
   pageName = pageName or editor.getCurrentPage()
   local tasks = query[[
     from t = index.tasks()
     where not t.done and table.includes(t.ilinks, pageName)
     order by t.page
-    select templates.taskItem(t)
+    select templates.taskItemFull(t)
   ]]
   if #tasks == 0 then
     return ""

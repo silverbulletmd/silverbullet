@@ -46,6 +46,7 @@ The standard library provides several commonly used templates in the `templates`
 * `templates.pageItem`: Renders a page as `* [[pageName]]`.
 * `templates.fullPageItem`: Similar to `pageItem` but rendering the full page name (including folders).
 * `templates.taskItem`: Renders a task as a togglable checkbox item with a link to its source so that it can update.
+* `templates.taskItemFull`: Like `taskItem`, but keeps the task's tags and attributes. [[Linked Tasks]] uses this one.
 * `templates.itemItem`: Renders a list item with a link to its source.
 * `templates.paragraphItem`: Renders a paragraph with a link to its source.
 * `templates.tagItem`: Renders a tag as a linked hashtag.
