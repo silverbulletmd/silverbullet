@@ -57,3 +57,21 @@ export class Disposers {
     for (const fn of this.fns.splice(0).reverse()) fn();
   }
 }
+
+export type LineEnding = "\n" | "\r\n";
+
+/** A text's main line ending: whatever its first line break uses. */
+export function detectLineEnding(text: string): LineEnding {
+  const idx = text.indexOf("\n");
+  return idx > 0 && text[idx - 1] === "\r" ? "\r\n" : "\n";
+}
+
+/** Converts CRLF to LF, the form CodeMirror holds a document in. */
+export function normalizeLineEndings(text: string): string {
+  return text.replaceAll("\r\n", "\n");
+}
+
+/** Converts LF text (as held by the editor) to the given line ending. */
+export function applyLineEnding(text: string, lineEnding: LineEnding): string {
+  return lineEnding === "\r\n" ? text.replaceAll("\n", "\r\n") : text;
+}
