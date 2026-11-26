@@ -332,7 +332,9 @@ export async function buildGlobalGraph(
   rootRef: string | null,
 ): Promise<ExpansionResult | null> {
   const { relations, pagesByName } = await ensureCache();
-  const { pages, libraryPageNames } = splitLibraryPages([...pagesByName.values()]);
+  const { pages, libraryPageNames } = splitLibraryPages([
+    ...pagesByName.values(),
+  ]);
   if (pages.length === 0) return null;
   const rows = relations;
 

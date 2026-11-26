@@ -156,7 +156,9 @@ export function sampleQuery(s: QuerySource): { key: string; where?: string } {
   if (s.root === null) return { key: s.tag ?? "" };
   if (s.scope) {
     const scoped =
-      s.scope === "library" ? libraryPageLua("o") : `not (${libraryPageLua("o")})`;
+      s.scope === "library"
+        ? libraryPageLua("o")
+        : `not (${libraryPageLua("o")})`;
     if (s.tag === null) return { key: s.root, where: scoped };
     return { key: s.tag, where: `o.tag == "page" and ${scoped}` };
   }

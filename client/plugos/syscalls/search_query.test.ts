@@ -69,7 +69,10 @@ describe("find", () => {
         ),
     );
     const search = await serverSearch(fetch, []);
-    await search.find("fern", { scope: "library", exclude: ["Templates/Daily"] });
+    await search.find("fern", {
+      scope: "library",
+      exclude: ["Templates/Daily"],
+    });
     await search.find("fern", { scope: "meta", exclude: ["Templates/Daily"] });
     await search.find("fern", { scope: "pages", mode: "phrase", limit: 5 });
     await search.find("fern");
@@ -129,7 +132,10 @@ describe("find", () => {
     ];
     const search = await serverSearch(fetch, pages);
     await search.find("fern");
-    await search.find("fern", { scope: "library", exclude: ["Garden", "Secret"] });
+    await search.find("fern", {
+      scope: "library",
+      exclude: ["Garden", "Secret"],
+    });
     // An explicit include: no exclude merge and no drop afterwards.
     const included = await search.find("fern", { include: ["Secret"] });
     expect(included).toEqual(result);
@@ -138,7 +144,11 @@ describe("find", () => {
     );
     expect(bodies).toEqual([
       { query: "fern", exclude: ["Secret", "Diary"] },
-      { query: "fern", scope: "library", exclude: ["Garden", "Secret", "Diary"] },
+      {
+        query: "fern",
+        scope: "library",
+        exclude: ["Garden", "Secret", "Diary"],
+      },
       { query: "fern", include: ["Secret"] },
     ]);
   });

@@ -41,6 +41,7 @@ An attempt at documenting the changes/new features introduced in each release.
   * Fix: moving or renaming a folder no longer loses links between the pages inside it. A folder move now asks once for confirmation, shows a single progress indicator and one summary instead of a notification per page, and lists any file it could not move.
 * Related Pages and [[Linked Mention|Linked Mentions]] show compact, formatted excerpts with clickable links. Space Lua widgets can use the same renderer through `widget.markdownSummary` (see [[API/widget]]).
 * [[Live Object Edit]]: form-based editing for [[Frontmatter]] and [[Tag/data]] objects.
+  * **Breaking:** the `frontmatterFolding` options are removed. Frontmatter now shows as a compact preview, and its YAML source appears when the cursor is inside it.
 * Native menus in [[Features/Desktop]] now expose [[Workbench]] tabs, [[Features/Search]] and [[Features/Graph View]], with history and advanced maintenance grouped under Tools. Settings opens Workbench Configuration.
 * `${...}` expressions and widgets now **compose everywhere** and **live update**: buttons and other widgets work inside table cells, inside Markdown returned by other widgets, in transcluded pages, and in query results and templates. There were a lot of weird restrictions here before, hopefully these have now been resolved.
 * [[Features/Share]] refresh:

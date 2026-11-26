@@ -268,7 +268,9 @@ const CONTROLS: Record<string, (p: ControlProps) => JSX.Element> = {
       aria-label={label}
       disabled={disabled}
       type={schema.ui?.inputType === "password" ? "password" : "text"}
-      autocomplete={schema.ui?.inputType === "password" ? "new-password" : undefined}
+      autocomplete={
+        schema.ui?.inputType === "password" ? "new-password" : undefined
+      }
       value={value ?? ""}
       onInput={(e) => set(e.currentTarget.value)}
       {...typed}

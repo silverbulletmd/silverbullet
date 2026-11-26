@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { parseMarkdown } from "../../client/markdown_parser/parser.ts";
-import { findFrontmatter, isLibraryPage, libraryPageLua } from "./library_pages.ts";
+import {
+  findFrontmatter,
+  isLibraryPage,
+  libraryPageLua,
+} from "./library_pages.ts";
 
 describe("isLibraryPage", () => {
   it("accepts Library/ pages, including Library/Config", () => {
