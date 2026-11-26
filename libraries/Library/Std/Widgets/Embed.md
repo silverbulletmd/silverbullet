@@ -25,6 +25,12 @@ local embedVideoSpecSchema = {
   required = {"url"}
 }
 
+-- The schema takes numbers (pixels); bare numbers aren't valid CSS lengths.
+local function cssSize(value, default)
+  if value == nil then return default end
+  return value .. "px"
+end
+
 function embed.youtube(specOrUrl)
   if type(specOrUrl) == "string" then
     specOrUrl = { url = specOrUrl }
@@ -45,8 +51,8 @@ function embed.youtube(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src="https://www.youtube.com/embed/" .. videoId,
     style="width: " .. width .. "; height: " .. height,
@@ -75,8 +81,8 @@ function embed.peertube(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src = "https://" .. peertubeInstance .. "/videos/embed/" .. videoId,
     style = "width: " .. width .. "; height: " .. height,
@@ -101,8 +107,8 @@ function embed.vimeo(specOrUrl)
     error("No video id found")
   end
   
-  local width = specOrUrl.width or "100%"
-  local height = specOrUrl.height or "400px"
+  local width = cssSize(specOrUrl.width, "100%")
+  local height = cssSize(specOrUrl.height, "400px")
   return widget.html(dom.iframe {
     src = "https://player.vimeo.com/video/" .. videoId,
     style = "width: " .. width .. "; height: " .. height,
