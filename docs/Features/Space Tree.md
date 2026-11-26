@@ -36,7 +36,7 @@ These are plain names, not links, so the outline doesn't show up in Linked Menti
 **Set icon** and **Hide from tree** in a row's ⋯ menu write these for you. An entry in `Library/Space Tree Outline` can carry attributes after it:
 
 * `[icon: book-open]` gives the row that icon (any [[Icons|icon name]]). It works for folders without a page too. A page's own decoration icon (see [[Reference/Theming/Page Decorations]]) wins over it.
-* `[hide: true]` hides the entry from the tree’s Content and Library segments, and with a folder, everything under it. Hidden rows still show, dimmed, under **All**, and still open through links, search and the pickers.
+* `[hide: true]` hides the entry from the tree’s Content and Library segments, and with a folder, everything under it. Hidden rows still show, dimmed, under **All**, and still open through links, search and the pickers. **Unhide in tree** in a hidden row's ⋯ menu there removes the `[hide: true]` again.
 
 ```markdown
 * Getting Started [icon: book-open]
@@ -47,4 +47,4 @@ These are plain names, not links, so the outline doesn't show up in Linked Menti
 Reordering rewrites this page, but keeps every entry's attributes. An icon or hide on an entry that isn't otherwise ordered is written with `[order: auto]`, so it doesn't move.
 
 # Row menu
-Each row has a ⋯ menu with its actions: **New page here** (folders), **Rename**, **Delete**, **Move up**, **Move down**, **Reset order** (folders with a saved order), **Set icon** and **Hide from tree**. Open it with the ⋯ button, or press the keyboard menu key or Shift-F10 on the selected row. Right-clicking keeps your browser's own context menu. The same ⋯ menu is used for row actions in every [[Reference/Concepts/View]].
+Each row has a ⋯ menu with its actions: **New page here** (folders), **Rename**, **Delete**, **Move up**, **Move down**, **Reset order** (folders with a saved order), **Set icon**, **Hide from tree** and **Unhide in tree**. Open it with the ⋯ button, or press the keyboard menu key or Shift-F10 on the selected row. Right-clicking keeps your browser's own context menu. The same ⋯ menu is used for row actions in every [[Reference/Concepts/View]].

@@ -1,7 +1,6 @@
 import { leaveBeforeDeleting } from "@silverbulletmd/silverbullet/lib/leave_deleted";
 import {
   splitPath,
-  TREE_ORDER_PAGE,
   type TreeAttributes,
   TreeIndex,
 } from "@silverbulletmd/silverbullet/lib/tree_order";
@@ -241,8 +240,14 @@ async function pickTreeIcon(obj: TreeObj): Promise<void> {
 async function hideTreeRow(obj: TreeObj): Promise<void> {
   await setTreeAttribute(obj.name, "hide", "true");
   await editor.flashNotification(
-    `Hid ${obj.name} from the tree; remove its [hide: true] in ${TREE_ORDER_PAGE} to show it again`,
+    `Hid ${obj.name} from the tree; unhide it from the All view`,
   );
+}
+
+/** Whether the row carries its own `[hide: true]`, the only kind of hiding
+ * the tree can undo (an ancestor folder's is undone on that folder). */
+function hiddenByOwnEntry(obj: TreeObj): boolean {
+  return cachedTreeAttributes().get(obj.name)?.hide === "true";
 }
 
 async function deleteTreeRow(obj: TreeObj): Promise<void> {
@@ -445,8 +450,16 @@ export const spaceTreeView: BuiltinView<TreeObj> = {
       icon: "eye-off",
       label: "Hide from tree",
       requireMode: "rw",
-      when: (obj) => !obj.isAspiring && !obj.isTreeHidden,
+      when: (obj) =>
+        !obj.isAspiring && !obj.isTreeHidden && !hiddenByOwnEntry(obj),
       run: hideTreeRow,
+    },
+    {
+      icon: "eye",
+      label: "Unhide in tree",
+      requireMode: "rw",
+      when: hiddenByOwnEntry,
+      run: (obj) => setTreeAttribute(obj.name, "hide", null),
     },
   ],
   keymap: {

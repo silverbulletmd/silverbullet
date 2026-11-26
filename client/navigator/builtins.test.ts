@@ -1042,6 +1042,40 @@ test("std.spaceTree takes icon and hide from the order page's attributes", async
   expect(notes.icon).toBe("file-text");
 });
 
+test("Unhide in tree offers only on a row with its own [hide: true], and removes it", async () => {
+  await resetTreeOrder();
+  index.isAvailable.mockResolvedValue(true);
+  index.queryLuaObjects.mockImplementation((tag) =>
+    Promise.resolve(
+      tag === "page"
+        ? ["Notes", "Fixtures/X", "Library/Space Tree Outline"].map((name) => ({
+            name,
+            tag: "page",
+          }))
+        : [],
+    ),
+  );
+  space.readPage.mockResolvedValue("* Notes\n* Fixtures [hide: true]\n");
+  await builtinRows("std.spaceTree");
+
+  const [folder, child, notes] = (await rowState("std.spaceTree", [
+    { isFolder: true, name: "Fixtures" },
+    { tag: "page", name: "Fixtures/X", ref: "Fixtures/X", isTreeHidden: true },
+    { tag: "page", name: "Notes", ref: "Notes" },
+  ])) as any[];
+  expect(offered(folder)).toContain("Unhide in tree");
+  expect(offered(folder)).not.toContain("Hide from tree");
+  // Hidden by its folder: unhiding is done on the folder.
+  expect(offered(child)).not.toContain("Unhide in tree");
+  expect(offered(notes)).not.toContain("Unhide in tree");
+
+  await runAction(treeAction("Unhide in tree"), {
+    isFolder: true,
+    name: "Fixtures",
+  });
+  expect(space.writePage.mock.calls[0][1]).toMatch(/\* Notes\n\* Fixtures\n$/);
+});
+
 function moveUp(name: string, segment: string) {
   return builtinHandle("std.spaceTree", "action", {
     index: treeAction("Move up"),
