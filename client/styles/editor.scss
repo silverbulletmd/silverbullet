@@ -498,6 +498,18 @@ $comment-border: 1px;
     text-decoration: var(--editor-link-text-decoration);
     text-underline-offset: 3px;
     cursor: pointer;
+
+    // A link is a widget, so the formatting around it does not reach it by
+    // inheritance; the link carries the matching class itself (see
+    // enclosingFormatClasses in wiki_link_processor.ts) and these win over
+    // the defaults above.
+    &.sb-strong {
+      font-weight: 900;
+    }
+
+    &.sb-strikethrough {
+      text-decoration-line: underline line-through;
+    }
   }
 
   // Links in rendered widgets and tables: the same offset, so the underline clears the text
