@@ -145,6 +145,7 @@ export class ClientSystem {
   scriptsLoaded: boolean = false;
   private loadLuaScriptsInFlight: Promise<void> | undefined;
   private lastNotifiedQuarantineRefs: string | null = null;
+  private scriptReloadChannel: BroadcastChannel | undefined;
 
   readonly allKnownFiles = new BasenameIndex();
 
@@ -190,6 +191,22 @@ export class ClientSystem {
       },
     });
     this.serviceRegistry = new ServiceRegistry(this.eventHook, client.config);
+
+    // Clients on one origin share one index, but each indexes under its own
+    // loaded Space Lua. A reload in one client has to reach all of them.
+    if (typeof BroadcastChannel !== "undefined") {
+      const dbName = (ds.kv as any).dbName ?? "default";
+      this.scriptReloadChannel = new BroadcastChannel(`sb-scripts:${dbName}`);
+      this.scriptReloadChannel.onmessage = () => {
+        // A booting client loads its scripts anyway.
+        if (!this.client.systemReady) {
+          return;
+        }
+        // Do not call system.loadScripts here. It announces the reload, so
+        // two clients would keep triggering each other's reloads.
+        this.reloadState().catch(console.error);
+      };
+    }
 
     setInterval(() => {
       mq.requeueTimeouts(mqTimeout, mqTimeoutRetry, true).catch(console.error);
@@ -244,7 +261,15 @@ export class ClientSystem {
     this.slashCommandHook = new SlashCommandHook(this.client);
     this.slashCommandHook.addBuiltin(querySlashCommand(client, builder));
 
-    this.mqHook = new MQHook(this.system, this.mq, this.client.config);
+    this.mqHook = new MQHook(
+      this.system,
+      this.mq,
+      this.client.config,
+      (queue) =>
+        queue === "indexQueue"
+          ? () => this.objectIndex.isForeignReindexRunning()
+          : undefined,
+    );
     this.system.addHook(this.mqHook);
 
     this.system.addHook(new SyscallHook());
@@ -548,6 +573,10 @@ export class ClientSystem {
 
   localSyscall(name: string, args: any[]) {
     return this.system.localSyscall(name, args);
+  }
+
+  announceScriptReload() {
+    this.scriptReloadChannel?.postMessage("reload");
   }
 
   public async reloadState() {
