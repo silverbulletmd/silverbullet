@@ -504,6 +504,21 @@ test("same-page non-anchor wikilinks ([[#Header]], [[@123]]) emit no relation", 
   expect(rels).toHaveLength(0);
 });
 
+test("same-page markdown header link ([text](#Header)) emits no relation", async () => {
+  createMockSystem();
+  const text = `# Heading\n\nSee [the heading](#Heading).\n`;
+  const tree = parseMarkdown(text);
+  const fm = extractFrontMatter(tree);
+  const objects = await indexRelations(
+    pageMeta("Folder/Notes"),
+    fm,
+    tree,
+    text,
+  );
+  const rels = objects.filter((o) => o.tag === "relation");
+  expect(rels).toHaveLength(0);
+});
+
 test("cross-page anchor wikilink: to = page (anchor segment is UI nav)", async () => {
   const { space } = createMockSystem();
   await space.writePage("Other", "");

@@ -428,6 +428,9 @@ export async function indexRelations(
           });
           return true;
         }
+        // Same-page header links (`[text](#Heading)`) are UI navigation,
+        // like `[[#Heading]]`: no relation
+        if (url.startsWith("#")) return true;
         const ref = parseToRef(
           resolveMarkdownLink(pageMeta.name, decodeURI(url)),
         );

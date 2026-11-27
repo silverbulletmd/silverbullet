@@ -44,6 +44,9 @@ export function resolveMarkdownLink(
 
   if (relative.startsWith("/")) {
     return relative.slice(1);
+  } else if (relative.startsWith("#")) {
+    // Same-page link (`[text](#Heading)`): keep the current page
+    return absolute + relative;
   } else {
     const splitAbsolute = absolute.split("/").slice(0, -1);
     const splitRelative = relative.split("/");
