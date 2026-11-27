@@ -102,10 +102,7 @@ function formatMarkdownTable(tree)
       for i, cell in ipairs(child.children) do
         local cellType = cell and cell.type or "nil"
         if cell and cell.type == "TableCell" then
-          local cellContent = ""
-          for _, next_child in ipairs(cell.children) do
-            cellContent = cellContent .. next_child.text
-          end
+          local cellContent = markdown.renderParseTree(cell)
           local trimmedContent = string.trim(cellContent)
 
           if trimmedContent ~= "" or not isFirstCell then
@@ -125,10 +122,7 @@ function formatMarkdownTable(tree)
       local isFirstCell = true
       for i, cell in ipairs(child.children) do
         if cell and cell.type == "TableCell" then
-          local cellContent = ""
-          for _, next_child in ipairs(cell.children) do
-            cellContent = cellContent .. next_child.text
-          end
+          local cellContent = markdown.renderParseTree(cell)
           local trimmedContent = string.trim(cellContent)
 
           if trimmedContent ~= "" or not isFirstCell then
@@ -151,11 +145,7 @@ function formatMarkdownTable(tree)
     local isFirstCell = true
     for i, cell in ipairs(child.children) do
       if cell and cell.type == "TableCell" then
-        local cellContent = ""
-        for _, next_child in ipairs(cell.children) do
-          cellContent = cellContent .. next_child.text
-        end
-
+        local cellContent = markdown.renderParseTree(cell)
         cellContent = string.trim(cellContent)
 
         if cellContent ~= "" or not isFirstCell then
