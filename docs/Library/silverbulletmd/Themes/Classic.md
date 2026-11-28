@@ -640,7 +640,7 @@ The layout is the original one too: while a Classic theme is active, the styles 
     .sb-admonition {
       background-color: var(--editor-blockquote-background-color);
       color: var(--editor-blockquote-color);
-      padding-right: 0;
+      padding-inline-end: 0;
     }
     .sb-admonition-title {
       background-color: color-mix(
@@ -648,12 +648,12 @@ The layout is the original one too: while a Classic theme is active, the styles 
         var(--admonition-color),
         transparent 90%
       );
-      border-top-right-radius: 0;
+      border-start-end-radius: 0;
       padding-top: 0;
       font-weight: inherit;
     }
     .sb-admonition:not(:has(+ .sb-admonition:not(.sb-admonition-title))) {
-      border-bottom-right-radius: 0;
+      border-end-end-radius: 0;
       padding-bottom: 0;
     }
     .sb-admonition-type::before {

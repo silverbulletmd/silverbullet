@@ -181,12 +181,14 @@ describe("comment region styling", () => {
     expect(rule).toMatch(new RegExp(`margin-right:\\s*-${inset}px`));
     expect(rule).toMatch(
       new RegExp(
-        `padding-left:\\s*calc\\(var\\(--sb-indent\\) \\+ ${
+        `padding-inline-start:\\s*calc\\(var\\(--sb-indent\\) \\+ ${
           inset - border
         }px\\)`,
       ),
     );
-    expect(rule).toMatch(new RegExp(`padding-right:\\s*${inset - border}px`));
+    expect(rule).toMatch(
+      new RegExp(`padding-inline-end:\\s*${inset - border}px`),
+    );
     // A `border-left` shorthand would also set a color, outranking the
     // `.sb-admonition` color in colors.scss on a line carrying both.
     expect(rule).not.toMatch(/border-left:/);

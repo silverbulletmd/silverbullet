@@ -15,7 +15,7 @@ class QuoteMarkSpacer extends WidgetType {
   toDOM() {
     const span = document.createElement("span");
     span.className = "sb-quote-spacer";
-    span.style.paddingLeft = `calc(${this.columns} * var(--editor-column))`;
+    span.style.paddingInlineStart = `calc(${this.columns} * var(--editor-column))`;
     return span;
   }
 
