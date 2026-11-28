@@ -1633,3 +1633,44 @@ describe("ContentManager.saveOverDiskChanges (system.reboot after an external ed
     expect(written).toEqual(["new page"]);
   });
 });
+
+describe("ContentManager CRLF pages", () => {
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  test("an edit is saved with the file's CRLF line endings kept", async () => {
+    const written: string[] = [];
+    let diskText = "one\r\ntwo\r\n";
+    let diskModified = "2026-01-01T00:00:00.000";
+    const client = makeClientStub({
+      initialDoc: "",
+      readPage: async () => ({ text: diskText, meta: pageMeta(diskModified) }),
+      writePage: async (_name, text) => {
+        written.push(text);
+        return pageMeta("2026-01-01T00:00:05.000");
+      },
+    });
+    client.currentPathValue = "index.md";
+    const cm = new ContentManager(client as unknown as Client);
+
+    await cm.loadPage({ path: "index.md" }, false);
+    expect(client.editorView.state.sliceDoc()).toBe("one\ntwo\n");
+
+    client.editorView.dispatch({
+      changes: { from: client.editorView.state.doc.length, insert: "three" },
+    });
+    client.viewState.unsavedChanges = true;
+    void cm.save(true);
+    await flush();
+    expect(written).toEqual(["one\r\ntwo\r\nthree"]);
+
+    // An external change to another line merges against the saved base
+    // without the line endings counting as a difference.
+    client.editorView.dispatch({
+      changes: { from: client.editorView.state.doc.length, insert: "!" },
+    });
+    diskText = "ONE\r\ntwo\r\nthree";
+    diskModified = "2026-01-01T00:00:09.000";
+    await cm.reloadPageContent();
+    expect(client.editorView.state.sliceDoc()).toBe("ONE\ntwo\nthree!");
+  });
+});

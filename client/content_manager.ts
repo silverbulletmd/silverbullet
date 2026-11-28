@@ -49,6 +49,12 @@ import {
 import { computeExternalChanges } from "./external_merge.ts";
 import { parsePageMetaLastModified } from "./lib/page_meta.ts";
 import { recordMark } from "./lib/perf.ts";
+import {
+  applyLineEnding,
+  detectLineEnding,
+  type LineEnding,
+  normalizeLineEndings,
+} from "./lib/util.ts";
 import { parseMarkdown } from "./markdown_parser/parser.ts";
 import { browserMediaCapabilities, type MediaCapabilities } from "./media.ts";
 import { MediaDocumentViewer } from "./media_document_viewer.ts";
@@ -92,6 +98,9 @@ export class ContentManager {
   // fetched content is older than what's already applied (out-of-order
   // resolution of overlapping reloads for the same page)
   private lastKnownDiskModified?: number;
+  // Line ending of the current page on disk. The editor and the base above
+  // hold LF text; writes convert back so a CRLF file stays CRLF.
+  private lineEnding: LineEnding = "\n";
   // An external update computeExternalChanges withheld because it collided
   // with unsaved local edits. The base above deliberately stays put while
   // this is set: the buffer still descends from it, not from the withheld
@@ -257,7 +266,10 @@ export class ContentManager {
             const divergentBase = this.settlePendingExternal();
             if (divergentBase !== undefined) {
               await this.client
-                .declareDivergentBase(path, divergentBase)
+                .declareDivergentBase(
+                  path,
+                  applyLineEnding(divergentBase, this.lineEnding),
+                )
                 .catch((e) =>
                   console.error("Could not declare divergent base", e),
                 );
@@ -270,7 +282,10 @@ export class ContentManager {
             console.log("Saving page", path);
             void this.client.dispatchAppEvent("editor:pageSaving", pageName);
             const text = this.client.editorView.state.sliceDoc(0);
-            const writePromise = this.client.space.writePage(pageName, text);
+            const writePromise = this.client.space.writePage(
+              pageName,
+              applyLineEnding(text, this.lineEnding),
+            );
             // Separate from the promise save() returns: waiters need the base
             // updated, not the events and meta fetch that follow it.
             const baseUpdated = writePromise.then(
@@ -588,6 +603,8 @@ export class ContentManager {
       }
     }
 
+    doc.text = this.adoptDiskLineEnding(doc.text);
+
     this.switchToPageEditor();
     this.hostEditorMode = { kind: "page", pageName };
 
@@ -894,6 +911,12 @@ export class ContentManager {
     return undefined;
   }
 
+  /** Records the line ending of text read from disk and returns it as LF. */
+  private adoptDiskLineEnding(text: string): string {
+    this.lineEnding = detectLineEnding(text);
+    return normalizeLineEndings(text);
+  }
+
   async reloadPageContent(source = "external"): Promise<void> {
     const path = this.client.currentPath();
     if (!isMarkdownPath(path)) {
@@ -911,7 +934,7 @@ export class ContentManager {
     }
     const pageName = getNameFromPath(path);
     const applied = this.applyExternalPatches(
-      doc.text,
+      this.adoptDiskLineEnding(doc.text),
       parsePageMetaLastModified(doc.meta.lastModified),
       source,
     );
