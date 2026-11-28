@@ -188,6 +188,14 @@ export function taskListPlugin({
         function iterateInner(type: NodeType, nfrom: number, nto: number) {
           if (type.name !== "TaskState") return;
           taskStateEnd = from + nto;
+          // `[x]` or a custom state such as `[IN PROGRESS]` must not decide
+          // the direction of the task line (see text_direction.ts)
+          widgets.push(
+            Decoration.mark({ attributes: { dir: "ltr" } }).range(
+              from + nfrom,
+              from + nto,
+            ),
+          );
           const checkbox = state.sliceDoc(from + nfrom, from + nto);
           if (isCheckboxState(checkbox)) {
             checkboxStatus = checkbox !== "[ ]";

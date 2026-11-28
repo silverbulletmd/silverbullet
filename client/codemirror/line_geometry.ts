@@ -1,7 +1,7 @@
 // Where the line handle goes, and which lines are drawn as something other
 // than their text (and so get no handle)
 import type { Line } from "@codemirror/state";
-import { BlockType, type EditorView } from "@codemirror/view";
+import { BlockType, Direction, type EditorView } from "@codemirror/view";
 
 /** The rendered `.cm-line` of a line, if it has one in the viewport */
 export function lineElement(
@@ -145,7 +145,12 @@ export function handlePlacement(
   const row = { top: first.top, bottom: first.bottom };
   const scroller = view.scrollDOM.getBoundingClientRect();
   const indent = line.text.length - line.text.trimStart().length;
-  const indented = line.number > 1 && indent > 0 && indent < line.length;
+  // A right-to-left line starts at the right edge, far from the handle
+  const indented =
+    line.number > 1 &&
+    indent > 0 &&
+    indent < line.length &&
+    view.textDirectionAt(line.from) === Direction.LTR;
   const content = indented ? view.coordsAtPos(line.from + indent, 1) : null;
   const at = marginPlacement({
     row,

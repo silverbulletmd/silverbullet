@@ -541,7 +541,7 @@ tbody tr:nth-of-type(even) {
 }
 
 .sb-admonition {
-  border-left-color: var(--admonition-color);
+  border-inline-start-color: var(--admonition-color);
 }
 
 .sb-admonition-title {

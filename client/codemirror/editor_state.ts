@@ -34,6 +34,7 @@ import {
   Prec,
 } from "@codemirror/state";
 import {
+  Direction,
   drawSelection,
   dropCursor,
   EditorView,
@@ -81,6 +82,7 @@ import { codeCopyPlugin } from "./syntax/code_copy.ts";
 import { conflictMarkers } from "./syntax/conflict_markers.ts";
 import { inlineContentPlugin } from "./syntax/inline_content.ts";
 import { lineWrapper } from "./syntax/line_wrapper.ts";
+import { textDirection } from "./text_direction.ts";
 import { readOnlyCursorActive, readOnlyReveal } from "./util.ts";
 import { postScriptPrefacePlugin } from "./widgets/top_bottom_panels.ts";
 
@@ -307,6 +309,7 @@ export function buildPageExtensions(
     pointerPreview,
     ...cleanModePlugins(client),
     EditorView.lineWrapping,
+    textDirection(),
     plugLinter(client),
     postScriptPrefacePlugin(client),
     lineWrapper([
@@ -362,7 +365,7 @@ export function buildPageExtensions(
               pos: pos,
             };
 
-            const distanceX = touch.clientX - view.coordsAtPos(pos)!.left;
+            const distanceX = distancePastPos(view, pos, touch.clientX);
             // What we're trying to determine here is if the tap occured anywhere near the looked up position
             // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
             // Fixes #585
@@ -422,7 +425,7 @@ export function buildPageExtensions(
             }
           }
 
-          const distanceX = event.x - view.coordsAtPos(pos)!.left;
+          const distanceX = distancePastPos(view, pos, event.x);
           // What we're trying to determine here is if the click occured anywhere near the looked up position
           // this may not be the case with locations that expand signifcantly based on live preview (such as links), we don't want any accidental clicks
           // Fixes #357
@@ -732,4 +735,15 @@ export function buildMarkdownLanguageExtension(client: Client): Extension[] {
       },
     }),
   ];
+}
+
+/**
+ * How far `x` lies past `pos` in the reading direction of its line: to the
+ * right of it in left-to-right text, to the left of it in right-to-left text
+ */
+function distancePastPos(view: EditorView, pos: number, x: number): number {
+  const coords = view.coordsAtPos(pos)!;
+  return view.textDirectionAt(pos) === Direction.RTL
+    ? coords.right - x
+    : x - coords.left;
 }

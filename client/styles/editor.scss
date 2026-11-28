@@ -71,7 +71,7 @@ $comment-border: 1px;
     // Share vertical padding with quote bars so they span the full line.
     --sb-line-pad-y: 0px;
 
-    padding-left: var(--sb-indent);
+    padding-inline-start: var(--sb-indent);
     padding-top: var(--sb-line-pad-y);
     padding-bottom: var(--sb-line-pad-y);
     text-indent: calc(-1 * (var(--sb-indent) + var(--sb-header-hang)));
@@ -245,7 +245,7 @@ $comment-border: 1px;
     font-family: var(--editor-font);
     letter-spacing: normal;
     font-variant-numeric: tabular-nums;
-    text-align: right;
+    text-align: end;
     white-space: pre;
 
     // In the bullet color, not the fainter source-markup gray
@@ -518,8 +518,8 @@ $comment-border: 1px;
       // inline, which always allows a line break before it, leaving the arrow
       // alone at the start of the next line
       content: "";
-      padding-left: 0.62em;
-      margin-left: 0.06em;
+      padding-inline-start: 0.62em;
+      margin-inline-start: 0.06em;
       background-color: color-mix(in srgb, var(--ui-accent-text-color) 45%, var(--root-background-color));
       // WebKit leaves the inline background outside a lone mask tile visible.
       $mask: $arrow right 0 top 0.08em / 0.62em 0.62em no-repeat,
@@ -665,6 +665,18 @@ $comment-border: 1px;
     background-position: calc(var(--sb-quote-bar-offset, 0px) - var(--sb-indent)) calc(-1 * var(--sb-line-pad-y));
     background-repeat: no-repeat;
     background-size: var(--blockquote-step) calc(100% + 2 * var(--sb-line-pad-y));
+
+    // Right-to-left lines draw the bars from the right edge. Code lines stay
+    // left to right (see below). No added specificity, so `.sb-admonition`
+    // still removes the bars.
+    &:where(:dir(rtl):not(.sb-line-fenced-code, .sb-line-code, .sb-frontmatter)) {
+      background-image: repeating-linear-gradient(to left,
+          var(--editor-blockquote-border-color) 0,
+          var(--editor-blockquote-border-color) var(--blockquote-bar),
+          transparent var(--blockquote-bar),
+          transparent var(--blockquote-step));
+      background-position: right calc(var(--sb-quote-bar-offset, 0px) - var(--sb-indent)) top calc(-1 * var(--sb-line-pad-y));
+    }
   }
 
   .sb-quote-spacer {
@@ -795,6 +807,8 @@ $comment-border: 1px;
   // itself keeps the background continuous; the indent is added to, so the
   // negative text-indent still hangs wrapped rows under the first.
   .cm-line:is(.sb-line-fenced-code, .sb-line-code, .sb-frontmatter):not(.sb-fenced-code-iframe, .sb-fenced-code-hide) {
+    // Code reads left to right, even with right-to-left comments or strings
+    direction: ltr;
     padding-left: calc(var(--sb-indent) + 16px);
     padding-right: 16px;
 
@@ -1330,11 +1344,11 @@ $comment-border: 1px;
   .sb-admonition {
     // Override the inline quote indent: the admonition border replaces its marker.
     --sb-quote-indent: 0px !important;
-    border-left-width: 4px !important;
-    border-left-style: solid;
+    border-inline-start-width: 4px !important;
+    border-inline-start-style: solid;
     // Add the border gap without losing a nested admonition’s list indent.
-    padding-left: calc(var(--sb-indent) + 5px);
-    padding-right: 14px;
+    padding-inline-start: calc(var(--sb-indent) + 5px);
+    padding-inline-end: 14px;
     background-image: none;
     // One tinted card per callout, with a bold title line in its tone. See-through
     // (mixed with transparent, as code blocks are): CodeMirror draws the
@@ -1345,20 +1359,20 @@ $comment-border: 1px;
     // The border replaces the quote spacer. Keep its inline box for posAtCoords,
     // but remove its width so the first row stays aligned.
     >.sb-quote-spacer {
-      padding-left: 0 !important;
+      padding-inline-start: 0 !important;
     }
   }
 
   .sb-admonition-title {
     background-color: color-mix(in srgb, var(--admonition-color) 8%, transparent);
-    border-top-right-radius: var(--ui-radius-lg);
+    border-start-end-radius: var(--ui-radius-lg);
     padding-top: 8px;
     font-weight: 600;
     color: color-mix(in oklab, var(--admonition-color), var(--root-color) 25%);
   }
 
   .sb-admonition:not(:has(+ .sb-admonition:not(.sb-admonition-title))) {
-    border-bottom-right-radius: var(--ui-radius-lg);
+    border-end-end-radius: var(--ui-radius-lg);
     padding-bottom: 8px;
   }
 
@@ -1377,6 +1391,13 @@ $comment-border: 1px;
     display: inline-flex;
     vertical-align: middle;
   }
+  // The type span is always left to right, so mirror the icon gap by the
+  // direction of the line
+  .cm-line:dir(rtl) .sb-admonition-type::before {
+    margin-right: 0;
+    margin-left: 0.35em;
+  }
+
 
   .sb-comment-block {
     background-color: var(--editor-comment-background-color);
@@ -1389,8 +1410,8 @@ $comment-border: 1px;
     // text stays aligned with surrounding lines.
     margin-left: -$comment-inset;
     margin-right: -$comment-inset;
-    padding-left: calc(var(--sb-indent) + #{$comment-inset - $comment-border});
-    padding-right: $comment-inset - $comment-border;
+    padding-inline-start: calc(var(--sb-indent) + #{$comment-inset - $comment-border});
+    padding-inline-end: $comment-inset - $comment-border;
   }
 
   .sb-comment-block-first {

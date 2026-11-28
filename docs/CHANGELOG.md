@@ -1,7 +1,7 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* Nothing new since 3.0.1
+* Fix #861: right-to-left text (Arabic, Hebrew, Persian and others) now reads and aligns correctly in the editor. Every line takes its direction from its first letters, so a page can mix right-to-left and left-to-right paragraphs. Lists, quotes, tasks, callouts and tables follow the direction of their text; code blocks stay left to right.
 
 ## 3.0.1
 * Fix: plugs (`.plug.js` files) now **only** load from `Library/`, following [[Reference/Internals/ADR/012 Space Lua and Style Lives in Library]], move them under `Library/`. This should have been the case before, but wasn't implemented.

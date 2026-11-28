@@ -58,6 +58,9 @@ export class TableViewWidget extends WidgetType {
     frame.className = "sb-table-frame";
     const dom = document.createElement("span");
     dom.classList.add("sb-table-widget");
+    // Like the editor lines (text_direction.ts), a table whose text starts in
+    // a right-to-left script lays out its columns from the right
+    dom.dir = "auto";
     frame.appendChild(dom);
     // expandMarkdown is asynchronous. Reserve the widget's height until the
     // table is ready so its insertion does not collapse the scrollable area.

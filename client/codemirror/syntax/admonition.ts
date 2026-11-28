@@ -105,6 +105,15 @@ export function admonitionPlugin() {
             }).range(fromOffsets[0]),
           );
 
+          // The `[!type]` markup, hidden or revealed, must not decide the
+          // direction of the title line (see text_direction.ts)
+          widgets.push(
+            Decoration.mark({ attributes: { dir: "ltr" } }).range(
+              iconRange.from,
+              iconRange.to,
+            ),
+          );
+
           if (
             !isCursorInRange(state, [
               from,
