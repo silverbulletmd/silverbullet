@@ -288,12 +288,15 @@ type RegexParserExtension = {
   firstCharCode: number;
   regex: RegExp;
   nodeType: string;
+  // optionally shortens the matched text
+  trim?: (text: string) => string;
 };
 
 function regexParser({
   regex,
   firstCharCode,
   nodeType,
+  trim,
 }: RegexParserExtension): MarkdownConfig {
   return {
     defineNodes: [nodeType],
@@ -308,17 +311,36 @@ function regexParser({
           if (!match) {
             return -1;
           }
-          return cx.addElement(cx.elt(nodeType, pos, pos + match[0].length));
+          const text = trim ? trim(match[0]) : match[0];
+          return cx.addElement(cx.elt(nodeType, pos, pos + text.length));
         },
       },
     ],
   };
 }
 
+// Like GFM autolinks: keep a trailing `)` only when it closes a `(` in the
+// URL, so `https://x.com/a_(b)` keeps it but `(https://x.com/a)` does not.
+function trimNakedURL(url: string): string {
+  while (true) {
+    if (/[.,:;]$/.test(url)) {
+      url = url.slice(0, -1);
+    } else if (
+      url.endsWith(")") &&
+      url.split(")").length > url.split("(").length
+    ) {
+      url = url.slice(0, -1);
+    } else {
+      return url;
+    }
+  }
+}
+
 const NakedURL = regexParser({
   firstCharCode: 104, // h
   regex: new RegExp(`^${nakedUrlRegex.source}`),
   nodeType: "NakedURL",
+  trim: trimNakedURL,
 });
 
 const Hashtag = regexParser({

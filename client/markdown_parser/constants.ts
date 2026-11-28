@@ -9,7 +9,7 @@ export const tagRegex =
 export const atMentionRegex =
   /@(?:\d*[^\d\s!@#$%^&*(),.?":{}|<>\\\/'’][^\s!@#$%^&*(),.?":{}|<>\\\/'’]*(?:(?:\.|['’](?![sS](?![^\s!@#$%^&*(),.?":{}|<>\\\/'’])))[^\s!@#$%^&*(),.?":{}|<>\\\/'’]+)*)/;
 export const nakedUrlRegex =
-  /(^https?:\/\/([-a-zA-Z0-9@:%_+~#=]|(?:[.](?!(\s|$)))){1,256})(([-a-zA-Z0-9(@:%_+~#?&=/]|(?:[.,:;)](?!(\s|$))))*)/;
+  /(^https?:\/\/([-a-zA-Z0-9@:%_+~#=]|(?:[.](?!(\s|$)))){1,256})(([-a-zA-Z0-9()@:%_+~#?&=/]|(?:[.,:;](?!(\s|$))))*)/;
 export const frontmatterQuotesRegex = /["'].*["']/g;
 export const frontmatterUrlRegex = /([a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s"']+)/g;
 export const frontmatterWikiLinkRegex =
