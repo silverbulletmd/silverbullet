@@ -65,4 +65,21 @@ export async function allTests(db: KvPrimitives) {
   for await (const _entry of db.query({ prefix: ["test"] })) {
     throw new Error("This should not happen");
   }
+
+  // A prefix matches whole key parts: ["tag", "work"] doesn't match
+  // ["tag", "work/meeting", ...]
+  await db.batchSet([
+    { key: ["tag", "work", "page1"], value: "Work" },
+    { key: ["tag", "work/meeting", "page2"], value: "Meeting" },
+  ]);
+  const prefixResult: KV[] = [];
+  for await (const entry of db.query({ prefix: ["tag", "work"] })) {
+    prefixResult.push(entry);
+  }
+  expect(prefixResult).toEqual([
+    { key: ["tag", "work", "page1"], value: "Work" },
+  ]);
+  expect(await db.countQuery({ prefix: ["tag", "work"] })).toEqual(1);
+  expect(await db.countQuery({ prefix: ["tag"] })).toEqual(2);
+  expect(await db.countQuery({})).toEqual(3);
 }

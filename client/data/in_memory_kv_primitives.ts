@@ -49,7 +49,9 @@ export class InMemoryKvPrimitives implements KvPrimitives {
   }
 
   async *query(options: KvQueryOptions): AsyncIterableIterator<KV> {
-    const prefix = options.prefix?.join(memoryKeySeparator);
+    const prefix = options.prefix?.length
+      ? options.prefix.join(memoryKeySeparator) + memoryKeySeparator
+      : undefined;
     const sortedKeys = [...this.store.keys()].sort();
     for (const key of sortedKeys) {
       if (prefix && !key.startsWith(prefix)) {
@@ -63,7 +65,9 @@ export class InMemoryKvPrimitives implements KvPrimitives {
   }
 
   countQuery({ prefix }: KvQueryOptions): Promise<number> {
-    const prefixStr = prefix ? prefix.join(memoryKeySeparator) : undefined;
+    const prefixStr = prefix?.length
+      ? prefix.join(memoryKeySeparator) + memoryKeySeparator
+      : undefined;
     const keys = [...this.store.keys()];
     return Promise.resolve(
       keys.filter((key) => !prefixStr || key.startsWith(prefixStr)).length,
