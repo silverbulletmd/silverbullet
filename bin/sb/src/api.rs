@@ -81,7 +81,7 @@ impl SpaceConnection {
 
         if status == StatusCode::UNAUTHORIZED || (status.as_u16() >= 300 && status.as_u16() < 400) {
             return Err(
-                "authentication required; run `sb space login <name>`, use --token, or configure a space with 'space add'"
+                "authentication required; run `sb space login <name>`, use --token (or SB_TOKEN), or configure a space with 'space add'"
                     .to_string(),
             );
         }

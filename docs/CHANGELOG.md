@@ -1,7 +1,7 @@
 An attempt at documenting the changes/new features introduced in each release.
 
 ## Edge
-* Nothing new since 3.0.1
+* [[Integrations/CLI]]: `sb` reads the token from the `SB_TOKEN` environment variable when `--token` is not given, so secret managers can supply it without exposing it on the command line.
 
 ## 3.0.1
 * Fix: plugs (`.plug.js` files) now **only** load from `Library/`, following [[Reference/Internals/ADR/012 Space Lua and Style Lives in Library]], move them under `Library/`. This should have been the case before, but wasn't implemented.

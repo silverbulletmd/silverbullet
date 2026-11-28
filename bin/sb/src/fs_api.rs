@@ -426,7 +426,7 @@ fn response_error(
     let mut error = match status {
         StatusCode::UNAUTHORIZED => FsError::new(
             "authentication_required",
-            "Authentication required; run `sb space login <name>`, use --token, or configure a space with `sb space add`.",
+            "Authentication required; run `sb space login <name>`, use --token (or SB_TOKEN), or configure a space with `sb space add`.",
             4,
         ),
         StatusCode::FORBIDDEN => FsError::new(
@@ -458,7 +458,7 @@ fn response_error(
         ),
         status if status.is_redirection() => FsError::new(
             "authentication_required",
-            "Authentication required; run `sb space login <name>`, use --token, or configure a space with `sb space add`.",
+            "Authentication required; run `sb space login <name>`, use --token (or SB_TOKEN), or configure a space with `sb space add`.",
             4,
         ),
         _ => FsError::new(
