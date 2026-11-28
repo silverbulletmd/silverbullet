@@ -25,6 +25,11 @@ test("Test URL resolver", () => {
   expect(resolveMarkdownLink("Folder/page", "./other")).toEqual("Folder/other");
   expect(resolveMarkdownLink("page", "./other")).toEqual("other");
   expect(resolveMarkdownLink("a/b/page", "./../other")).toEqual("a/other");
+  // A leading `#` links to a header on the current page (#1107)
+  expect(resolveMarkdownLink("some/folder/File", "#This")).toEqual(
+    "some/folder/File#This",
+  );
+  expect(resolveMarkdownLink("File", "#This")).toEqual("File#This");
 });
 
 test("application protocols are external regardless of URL shape", () => {
