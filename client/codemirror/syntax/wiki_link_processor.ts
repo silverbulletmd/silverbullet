@@ -1,5 +1,7 @@
+import { syntaxTree } from "@codemirror/language";
 import type { EditorState } from "@codemirror/state";
 import { Decoration } from "@codemirror/view";
+import type { SyntaxNode } from "@lezer/common";
 import {
   encodePageURI,
   encodeRef,
@@ -39,6 +41,32 @@ export type WikiLinkProcessorOptions = {
   /** `shift` is how far edits have moved the link since this build */
   callback: (e: MouseEvent, ref: any, shift: number) => void;
 };
+
+/** Syntax nodes whose formatting a rendered link has to repeat, by class. */
+const formatClasses: Record<string, string> = {
+  StrongEmphasis: "sb-strong",
+  Emphasis: "sb-emphasis",
+  Strikethrough: "sb-strikethrough",
+  Subscript: "sb-sub",
+  Superscript: "sb-sup",
+};
+
+/**
+ * The formatting classes of the nodes a position sits inside. The link is
+ * rendered as a widget that replaces its source, and the highlighter's marks
+ * for `**bold**`, `_italic_` and the like end around a replaced range rather
+ * than wrapping it, so the link would otherwise lose that formatting.
+ */
+function enclosingFormatClasses(state: EditorState, pos: number): string {
+  const classes = new Set<string>();
+  let node: SyntaxNode | null = syntaxTree(state).resolveInner(pos, 1);
+  while (node) {
+    const found = formatClasses[node.name];
+    if (found) classes.add(found);
+    node = node.parent;
+  }
+  return [...classes].join(" ");
+}
 
 export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
   const { from, to, match, matchFrom, matchTo, client, state, callback } =
@@ -152,6 +180,10 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
     }
   }
 
+  const cssClass = ["sb-wiki-link", css, enclosingFormatClasses(state, from)]
+    .filter(Boolean)
+    .join(" ");
+
   widgets.push(
     Decoration.replace({
       widget: new LinkWidget({
@@ -159,7 +191,7 @@ export function processWikiLink(options: WikiLinkProcessorOptions): any[] {
         icon,
         title: helpText,
         href: ref ? encodePageURI(encodeRef(ref)) : undefined,
-        cssClass: `sb-wiki-link ${css}`,
+        cssClass,
         from: matchFrom,
         callback: (e, at) => callback(e, ref, at - matchFrom),
         content: alias?.includes("${")
