@@ -19,9 +19,9 @@ Getting started:
   sb search 'garden irrigation' --limit 5
 
 Select a saved connection with --space (optional when only one exists), or use
---url and optionally --token to connect directly. Flags may appear before or
-after the command. Space commands require a running server; folder spaces
-are served by SilverBullet Desktop, which sb starts when needed.
+--url and optionally --token (or SB_TOKEN) to connect directly. Flags may
+appear before or after the command. Space commands require a running server;
+folder spaces are served by SilverBullet Desktop, which sb starts when needed.
 
 Use sb <command> --help for examples and detailed rules; -h gives compact help.
 
@@ -71,7 +71,13 @@ pub struct GlobalFlags {
     #[arg(long, global = true, help_heading = "Connection")]
     pub url: Option<String>,
     /// Bearer token; overrides saved authentication when supplied.
-    #[arg(long, global = true, help_heading = "Connection")]
+    #[arg(
+        long,
+        global = true,
+        env = "SB_TOKEN",
+        hide_env_values = true,
+        help_heading = "Connection"
+    )]
     pub token: Option<String>,
     /// Request timeout in seconds.
     #[arg(
@@ -358,6 +364,18 @@ Examples:
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn token_reads_sb_token_env_and_hides_its_value() {
+        let cmd = Cli::command();
+        let token = cmd
+            .get_arguments()
+            .find(|arg| arg.get_id() == "token")
+            .unwrap();
+        assert_eq!(token.get_env(), Some(std::ffi::OsStr::new("SB_TOKEN")));
+        assert!(token.is_hide_env_values_set());
+    }
 
     #[test]
     fn documented_examples_parse() {

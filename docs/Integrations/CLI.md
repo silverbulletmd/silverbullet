@@ -87,7 +87,7 @@ These flags are available on all commands that connect to a space:
 
 * `-s, --space <name>`: Select a space by name or id (auto-selected if only one is configured, or when the current folder is a registered space). An exact name wins, then an exact id, then a name in any case when only one space has it. A name that fits two spaces is refused and both ids are listed
 * `--url <url>`: Connect directly to a URL (bypasses space config)
-* `--token <token>`: Authentication token (use with `--url`)
+* `--token <token>`: Authentication token (use with `--url`). Overrides the saved credentials of a space. When the flag is absent, the `SB_TOKEN` environment variable is used instead, so a secret manager can supply the token without putting it on the command line, e.g. `SB_TOKEN=$(pass show sb) sb fs ls`
 * `-t, --timeout <seconds>`: Request timeout (default: 30)
 
 # Discovering commands
